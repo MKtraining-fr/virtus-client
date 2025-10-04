@@ -1,0 +1,8 @@
+{
+  "name": "Virtus backup 11/09/2025",
+  "description": "An application for administrators, coaches, and clients. Admins manage the platform, coaches manage their clients and create plans, and clients access their dedicated portal.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "prompt": ""
+}

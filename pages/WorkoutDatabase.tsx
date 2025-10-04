@@ -1,0 +1,371 @@
+
+import React, { useState, useMemo } from 'react';
+import { Exercise } from '../types';
+import Card from '../components/Card';
+import Modal from '../components/Modal';
+import Button from '../components/Button';
+import Input from '../components/Input';
+import Select from '../components/Select';
+import { useAuth } from '../src/context/AuthContext';
+
+const EQUIPMENT_TYPES = ['Non spécifié', 'Machine à charge libre', 'Machine à charge guidée', 'Barre olympique', 'Haltères', 'Poulie', 'Poids du corps', 'Autre'];
+const MUSCLE_GROUPS = ['Pectoraux', 'Dos', 'Épaules', 'Biceps', 'Triceps', 'Avant-bras', 'Quadriceps', 'Ischio-jambiers', 'Fessiers', 'Mollets', 'Abdominaux', 'Lombaires', 'Hanches', 'Cardio'];
+
+
+const XMarkIcon = (props: React.SVGProps<SVGSVGElement>) => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}> <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /> </svg> );
+
+const initialNewExerciseState: Omit<Exercise, 'id'> = {
+    name: '',
+    category: 'Musculation',
+    description: '',
+    videoUrl: '',
+    illustrationUrl: '',
+    equipment: 'Non spécifié',
+    alternativeIds: [],
+    muscleGroups: [],
+    coachId: ''
+};
+
+
+const WorkoutDatabase: React.FC = () => {
+    const { user, exercises, setExercises } = useAuth();
+    const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [filter, setFilter] = useState('All');
+    
+    // State for the "add exercise" form
+    const [newExercise, setNewExercise] = useState<Omit<Exercise, 'id'>>(initialNewExerciseState);
+    const [illustrationPreview, setIllustrationPreview] = useState<string | null>(null);
+    
+    const [alternativeSearch, setAlternativeSearch] = useState('');
+    const [showAlternativeSuggestions, setShowAlternativeSuggestions] = useState(false);
+
+    const [muscleGroupSearch, setMuscleGroupSearch] = useState('');
+    const [showMuscleGroupSuggestions, setShowMuscleGroupSuggestions] = useState(false);
+
+
+    const handleCardClick = (exercise: Exercise) => {
+        setSelectedExercise(exercise);
+        setIsViewModalOpen(true);
+    };
+
+    const closeViewModal = () => {
+        setIsViewModalOpen(false);
+        setSelectedExercise(null);
+    };
+    
+    const openAddModal = () => {
+        setNewExercise(initialNewExerciseState);
+        setIllustrationPreview(null);
+        setAlternativeSearch('');
+        setShowAlternativeSuggestions(false);
+        setMuscleGroupSearch('');
+        setShowMuscleGroupSuggestions(false);
+        setIsAddModalOpen(true);
+    };
+
+    const closeAddModal = () => {
+        setIsAddModalOpen(false);
+    };
+
+    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setNewExercise(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleIllustrationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result as string;
+                setIllustrationPreview(base64String);
+                setNewExercise(prev => ({ ...prev, illustrationUrl: base64String }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    const addAlternative = (id: string) => {
+        if (!newExercise.alternativeIds?.includes(id)) {
+            setNewExercise(prev => ({ ...prev, alternativeIds: [...(prev.alternativeIds || []), id]}));
+        }
+        setAlternativeSearch('');
+        setShowAlternativeSuggestions(false);
+    };
+    
+    const removeAlternative = (id: string) => {
+        setNewExercise(prev => ({...prev, alternativeIds: prev.alternativeIds?.filter(altId => altId !== id)}));
+    };
+
+    const addMuscleGroup = (group: string) => {
+        if (!newExercise.muscleGroups?.includes(group)) {
+            setNewExercise(prev => ({ ...prev, muscleGroups: [...(prev.muscleGroups || []), group]}));
+        }
+        setMuscleGroupSearch('');
+        setShowMuscleGroupSuggestions(false);
+    };
+
+    const removeMuscleGroup = (group: string) => {
+        setNewExercise(prev => ({...prev, muscleGroups: prev.muscleGroups?.filter(g => g !== group)}));
+    };
+
+    const handleAddExercise = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newExercise.name) {
+            alert("Le titre de l'exercice est obligatoire.");
+            return;
+        }
+        const exerciseToAdd: Exercise = { 
+            ...newExercise, 
+            id: `ex-${Date.now()}`, 
+            coachId: user?.id 
+        };
+        setExercises([...exercises, exerciseToAdd]);
+        closeAddModal();
+    };
+
+    const availableExercises = useMemo(() => {
+        return exercises.filter(ex => ex.coachId === 'system' || ex.coachId === user?.id);
+    }, [exercises, user]);
+
+    const filteredExercises = filter === 'All' ? availableExercises : availableExercises.filter(e => e.category === filter);
+    
+    const filteredAlternativeSuggestions = availableExercises.filter(ex => 
+        ex.name.toLowerCase().includes(alternativeSearch.toLowerCase()) && 
+        !newExercise.alternativeIds?.includes(ex.id) &&
+        alternativeSearch.length > 0
+    );
+    
+    const filteredMuscleGroupSuggestions = MUSCLE_GROUPS.filter(g =>
+        g.toLowerCase().includes(muscleGroupSearch.toLowerCase()) &&
+        !newExercise.muscleGroups?.includes(g) &&
+        muscleGroupSearch.length > 0
+    );
+    
+    const alternativeExercisesForModal = useMemo(() => {
+        if (!selectedExercise?.alternativeIds) return [];
+        return selectedExercise.alternativeIds
+            .map(id => exercises.find(ex => ex.id === id))
+            .filter((ex): ex is Exercise => !!ex);
+    }, [selectedExercise, exercises]);
+
+    const categories = ['All', 'Musculation', 'Mobilité', 'Échauffement'];
+
+    return (
+        <div>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-800">Base de données d'exercices</h1>
+                <Button onClick={openAddModal}>Ajouter un exercice</Button>
+            </div>
+
+            <div className="mb-6 flex space-x-2">
+                {categories.map(cat => (
+                    <button 
+                        key={cat}
+                        onClick={() => setFilter(cat)}
+                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${filter === cat ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                    >
+                        {cat === 'All' ? 'Tous' : cat}
+                    </button>
+                ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredExercises.map(exercise => (
+                    <Card key={exercise.id} onClick={() => handleCardClick(exercise)} className="flex flex-col">
+                        <img src={exercise.illustrationUrl} alt={exercise.name} className="w-full h-40 object-contain bg-gray-100" />
+                        <div className="p-4 flex flex-col flex-grow">
+                            <h3 className="font-bold text-lg">{exercise.name}</h3>
+                            <p className="text-sm text-gray-600 my-2 flex-grow min-h-[40px]" title={exercise.description}>
+                                {exercise.description.length > 80 ? `${exercise.description.substring(0, 77)}...` : exercise.description}
+                            </p>
+                            <div className="mt-auto border-t border-gray-200 pt-2 text-xs space-y-1 text-gray-500">
+                                <p><strong>Équipement:</strong> {exercise.equipment || 'N/A'}</p>
+                                <p><strong>Groupes Musculaires:</strong> {exercise.muscleGroups?.join(', ') || 'N/A'}</p>
+                                <p>
+                                    <strong>Alternatives:</strong> {
+                                        (exercise.alternativeIds && exercise.alternativeIds.length > 0
+                                        ? exercise.alternativeIds.map(id => exercises.find(e => e.id === id)?.name).filter(Boolean).join(', ')
+                                        : 'Aucune')
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    </Card>
+                ))}
+            </div>
+
+            {/* View Exercise Modal */}
+            {selectedExercise && (
+                <Modal isOpen={isViewModalOpen} onClose={closeViewModal} title={selectedExercise.name}>
+                    <div className="space-y-6">
+                         {selectedExercise.videoUrl ? (
+                            <div className="aspect-w-16 aspect-h-9">
+                                <iframe
+                                    src={selectedExercise.videoUrl}
+                                    title={selectedExercise.name}
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                    className="w-full h-full rounded-lg"
+                                ></iframe>
+                            </div>
+                        ) : (
+                            <img src={selectedExercise.illustrationUrl} alt={selectedExercise.name} className="w-full h-auto object-contain rounded-lg bg-gray-100"/>
+                        )}
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="font-semibold text-lg mb-1 text-gray-800">Description</h4>
+                                <p className="text-gray-600">{selectedExercise.description || "Aucune description."}</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <h4 className="font-semibold text-lg mb-2 text-gray-800">Équipement</h4>
+                                    <p className="text-gray-600">{selectedExercise.equipment}</p>
+                                </div>
+                                <div>
+                                    <h4 className="font-semibold text-lg mb-2 text-gray-800">Groupes Musculaires</h4>
+                                    {(selectedExercise.muscleGroups && selectedExercise.muscleGroups.length > 0) ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedExercise.muscleGroups.map(group => (
+                                                <span key={group} className="bg-primary/10 text-primary text-sm font-medium px-3 py-1 rounded-full">{group}</span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500">Non spécifié.</p>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 className="font-semibold text-lg mb-2 text-gray-800">Mouvements Alternatifs</h4>
+                                {alternativeExercisesForModal.length > 0 ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        {alternativeExercisesForModal.map(alt => (
+                                            <Card key={alt.id} className="!shadow-none border hover:border-primary transition-colors cursor-pointer" onClick={() => handleCardClick(alt)}>
+                                                <img src={alt.illustrationUrl} alt={alt.name} className="w-full h-24 object-contain bg-gray-50 rounded-t-lg"/>
+                                                <p className="p-2 text-sm font-semibold text-center text-gray-800">{alt.name}</p>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500">Aucun mouvement alternatif suggéré.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Add Exercise Modal */}
+            <Modal isOpen={isAddModalOpen} onClose={closeAddModal} title="Ajouter un nouvel exercice">
+                <form onSubmit={handleAddExercise} className="space-y-4">
+                    <Input label="Titre de l'exercice" name="name" value={newExercise.name} onChange={handleFormChange} required />
+                    <Input label="Lien vidéo YouTube (embed)" name="videoUrl" value={newExercise.videoUrl} onChange={handleFormChange} placeholder="https://www.youtube.com/embed/..." />
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Illustration</label>
+                        <input type="file" accept="image/*" onChange={handleIllustrationChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-primary hover:file:bg-violet-100"/>
+                        {illustrationPreview && <img src={illustrationPreview} alt="Aperçu" className="mt-2 w-32 h-32 object-cover rounded-lg" />}
+                    </div>
+
+                    <div>
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="description" name="description" value={newExercise.description} onChange={handleFormChange} rows={3} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"></textarea>
+                    </div>
+
+                    <Select label="Type d'équipement" name="equipment" value={newExercise.equipment} onChange={handleFormChange}>
+                        {EQUIPMENT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+                    </Select>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Groupes musculaires</label>
+                        <div className="relative">
+                            <Input
+                                placeholder="Rechercher un groupe musculaire..."
+                                value={muscleGroupSearch}
+                                onChange={e => setMuscleGroupSearch(e.target.value)}
+                                onFocus={() => setShowMuscleGroupSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowMuscleGroupSuggestions(false), 200)}
+                            />
+                             {showMuscleGroupSuggestions && filteredMuscleGroupSuggestions.length > 0 && (
+                                <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                                    {filteredMuscleGroupSuggestions.map(group => (
+                                        <div 
+                                            key={group}
+                                            onMouseDown={() => addMuscleGroup(group)}
+                                            className="p-2 hover:bg-gray-100 cursor-pointer"
+                                        >
+                                            {group}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                             {newExercise.muscleGroups?.map(group => (
+                                 <span key={group} className="flex items-center bg-primary/10 text-primary text-sm font-medium px-2 py-1 rounded-full">
+                                     {group}
+                                     <button type="button" onClick={() => removeMuscleGroup(group)} className="ml-2 text-primary hover:text-red-500">
+                                         <XMarkIcon className="w-4 h-4" />
+                                     </button>
+                                 </span>
+                             ))}
+                         </div>
+                    </div>
+
+                    <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">Mouvements alternatifs</label>
+                         <div className="relative">
+                            <Input 
+                                placeholder="Rechercher un exercice..."
+                                value={alternativeSearch}
+                                onChange={e => setAlternativeSearch(e.target.value)}
+                                onFocus={() => setShowAlternativeSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowAlternativeSuggestions(false), 200)}
+                            />
+                            {showAlternativeSuggestions && filteredAlternativeSuggestions.length > 0 && (
+                                <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                                    {filteredAlternativeSuggestions.map(ex => (
+                                        <div 
+                                            key={ex.id}
+                                            onMouseDown={() => addAlternative(ex.id)}
+                                            className="p-2 hover:bg-gray-100 cursor-pointer"
+                                        >
+                                            {ex.name}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                         </div>
+                         <div className="flex flex-wrap gap-2 mt-2">
+                             {newExercise.alternativeIds?.map(id => {
+                                 const altEx = exercises.find(e => e.id === id);
+                                 if (!altEx) return null;
+                                 return (
+                                     <span key={id} className="flex items-center bg-primary/10 text-primary text-sm font-medium px-2 py-1 rounded-full">
+                                         {altEx.name}
+                                         <button type="button" onClick={() => removeAlternative(id)} className="ml-2 text-primary hover:text-red-500">
+                                             <XMarkIcon className="w-4 h-4" />
+                                         </button>
+                                     </span>
+                                 )
+                             })}
+                         </div>
+                    </div>
+                    
+                    <div className="flex justify-end pt-4 space-x-2">
+                        <Button type="button" variant="secondary" onClick={closeAddModal}>Annuler</Button>
+                        <Button type="submit">Enregistrer l'exercice</Button>
+                    </div>
+                </form>
+            </Modal>
+        </div>
+    );
+};
+
+export default WorkoutDatabase;
