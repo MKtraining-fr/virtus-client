@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
+import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthPage from './pages/AuthPage';
 import AdminLayout from './layouts/AdminLayout';
@@ -29,20 +30,22 @@ const App: React.FC = () => {
   };
 
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={!user ? <AuthPage /> : <Navigate to="/app" replace />} />
-      <Route
-        path="/app/*"
-        element={
-          <ProtectedRoute>
-            <RoleBasedLayout />
-          </ProtectedRoute>
-        }
-      />
-       {/* Fallback for any other route */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={!user ? <AuthPage /> : <Navigate to="/app" replace />} />
+        <Route
+          path="/app/*"
+          element={
+            <ProtectedRoute>
+              <RoleBasedLayout />
+            </ProtectedRoute>
+          }
+        />
+         {/* Fallback for any other route */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </ErrorBoundary>
   );
 };
 

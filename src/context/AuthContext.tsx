@@ -430,11 +430,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = useCallback(
     async (email: string, password: string): Promise<void> => {
       try {
+        setIsAuthLoading(true);
         await signIn(email, password);
         // L'utilisateur sera automatiquement défini par onAuthStateChange
         navigate('/app');
       } catch (error) {
-        throw error;
+        const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion';
+        console.error('Erreur lors de la connexion:', error);
+        throw new Error(errorMessage);
+      } finally {
+        setIsAuthLoading(false);
       }
     },
     [navigate],
@@ -443,11 +448,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = useCallback(
     async (userData: SignUpData): Promise<void> => {
       try {
+        setIsAuthLoading(true);
         await signUp(userData);
         // L'utilisateur sera automatiquement défini par onAuthStateChange
         navigate('/app');
       } catch (error) {
-        throw error;
+        const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'inscription';
+        console.error('Erreur lors de l\'inscription:', error);
+        throw new Error(errorMessage);
+      } finally {
+        setIsAuthLoading(false);
       }
     },
     [navigate],
