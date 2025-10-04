@@ -1,13 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { COACH_NAV_ITEMS as NAV_ITEMS } from '../constants/navigation';
 import { ChevronDownIcon } from '../constants/icons';
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>(
     NAV_ITEMS.filter(item => location.pathname.startsWith(item.path) && item.subItems.length > 0).map(item => item.name)
   );
+
+  // Fermer le menu mobile lors du changement de route
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Empêcher le scroll du body quand le menu mobile est ouvert
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
 
   const toggleMenu = (name: string) => {
     setOpenMenus(prev => prev.includes(name) ? prev.filter(m => m !== name) : [...prev, name]);
@@ -22,12 +40,12 @@ const Sidebar: React.FC = () => {
       return location.pathname.startsWith(parentPath) && parentPath !== '/app';
   }
 
-  return (
-    <div className="w-64 bg-sidebar-bg text-white flex flex-col">
+  const SidebarContent = () => (
+    <>
       <div className="p-6 text-2xl font-bold text-center border-b border-gray-700">
         VIRTUS
       </div>
-      <nav className="flex-1 px-4 py-6 space-y-2">
+      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         {NAV_ITEMS.map((item) => (
           <div key={item.name}>
             {item.subItems.length === 0 ? (
@@ -88,7 +106,50 @@ const Sidebar: React.FC = () => {
       <div className="p-4 border-t border-gray-700">
         {/* Footer or user info can go here */}
       </div>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Bouton hamburger mobile */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-sidebar-bg text-white rounded-lg shadow-lg"
+        aria-label="Menu"
+      >
+        {isMobileMenuOpen ? (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        )}
+      </button>
+
+      {/* Overlay mobile */}
+      {isMobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Desktop */}
+      <div className="hidden md:flex w-64 bg-sidebar-bg text-white flex-col">
+        <SidebarContent />
+      </div>
+
+      {/* Sidebar Mobile (slide-in) */}
+      <div
+        className={`md:hidden fixed top-0 left-0 h-full w-64 bg-sidebar-bg text-white flex flex-col z-40 transform transition-transform duration-300 ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <SidebarContent />
+      </div>
+    </>
   );
 };
 

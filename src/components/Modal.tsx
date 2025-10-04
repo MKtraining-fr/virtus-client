@@ -40,14 +40,14 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
 
   return createPortal(
     <div 
-      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4" 
+      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center md:p-4" 
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
       <div 
-        className={`rounded-lg shadow-xl w-full ${sizeClass} mx-4 flex flex-col max-h-[90vh] ${themeClasses}`}
+        className={`rounded-none md:rounded-lg shadow-xl w-full h-full md:h-auto ${sizeClass} md:mx-4 flex flex-col md:max-h-[90vh] ${themeClasses}`}
         onClick={(e) => e.stopPropagation()}
         role="document"
       >
@@ -57,7 +57,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
             <XMarkIcon className="w-6 h-6" />
           </button>
         </div>
-        <div className="p-6 overflow-y-auto flex-grow">
+        <div className="p-4 md:p-6 overflow-y-auto flex-grow">
           {children}
         </div>
       </div>
