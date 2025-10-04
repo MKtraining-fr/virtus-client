@@ -1,7 +1,7 @@
 {
-  "name": "virtus-backup-11-09-2025",
+  "name": "virtus",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "^1.11.0",
     "firebase": "^11.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
