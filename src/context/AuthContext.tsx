@@ -214,6 +214,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 
   useEffect(() => {
+    // Ne charger les données que si l'utilisateur est connecté
+    if (!user || isAuthLoading) {
+      setIsDataLoading(false);
+      setIsInitialized(true);
+      return;
+    }
+
     let isActive = true;
     const unsubscribers: Unsubscribe[] = [];
 
@@ -285,7 +292,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isActive = false;
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
-  }, []);
+  }, [user, isAuthLoading]);
 
   const setTheme = useCallback((newTheme: 'light' | 'dark') => {
     setThemeState(newTheme);
