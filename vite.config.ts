@@ -1,10 +1,54 @@
 import path from 'path';
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  plugins: [react()],
+  
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
     }
-  }
+  },
+
+  build: {
+    // Optimisation du build
+    target: 'es2015',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Supprimer les console.log en production
+        drop_debugger: true,
+      },
+    },
+    
+    // Chunking stratégique pour un meilleur caching
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          
+          // Feature chunks
+          'charts': ['recharts'],
+        },
+      },
+    },
+    
+    // Optimisation des assets
+    assetsInlineLimit: 4096, // Inline les assets < 4kb
+    chunkSizeWarningLimit: 1000, // Warning si chunk > 1000kb
+  },
+
+  // Optimisation du serveur de développement
+  server: {
+    port: 3000,
+    open: true,
+  },
+
+  // Optimisation des dépendances
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'firebase/app', 'firebase/auth', 'firebase/firestore'],
+  },
 });

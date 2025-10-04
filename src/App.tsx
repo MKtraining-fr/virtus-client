@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
-import AuthPage from './pages/AuthPage';
-import AdminLayout from './layouts/AdminLayout';
-import CoachLayout from './layouts/CoachLayout';
-import ClientLayout from './layouts/ClientLayout';
-import LandingPage from './pages/LandingPage';
+import LoadingSpinner from './components/LoadingSpinner';
+
+// Lazy loading des composants lourds
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
+const CoachLayout = lazy(() => import('./layouts/CoachLayout'));
+const ClientLayout = lazy(() => import('./layouts/ClientLayout'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const App: React.FC = () => {
   const { user } = useAuth();
@@ -31,20 +34,22 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={!user ? <AuthPage /> : <Navigate to="/app" replace />} />
-        <Route
-          path="/app/*"
-          element={
-            <ProtectedRoute>
-              <RoleBasedLayout />
-            </ProtectedRoute>
-          }
-        />
-         {/* Fallback for any other route */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+      <Suspense fallback={<LoadingSpinner fullScreen message="Chargement..." />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={!user ? <AuthPage /> : <Navigate to="/app" replace />} />
+          <Route
+            path="/app/*"
+            element={
+              <ProtectedRoute>
+                <RoleBasedLayout />
+              </ProtectedRoute>
+            }
+          />
+           {/* Fallback for any other route */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Suspense>
     </ErrorBoundary>
   );
 };

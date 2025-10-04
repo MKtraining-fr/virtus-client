@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 
 interface CardProps {
   children: React.ReactNode;
@@ -8,8 +8,10 @@ interface CardProps {
 }
 
 const Card: React.FC<CardProps> = ({ children, className = '', onClick }) => {
-  const isClickable = !!onClick;
-  const cardClasses = `bg-white dark:bg-client-card rounded-lg shadow-md dark:shadow-xl dark:shadow-black/20 overflow-hidden border border-transparent dark:border-gray-700/50 ${className} ${isClickable ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`;
+  const cardClasses = useMemo(() => {
+    const isClickable = !!onClick;
+    return `bg-white dark:bg-client-card rounded-lg shadow-md dark:shadow-xl dark:shadow-black/20 overflow-hidden border border-transparent dark:border-gray-700/50 ${className} ${isClickable ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`;
+  }, [onClick, className]);
 
   return (
     <div className={cardClasses} onClick={onClick}>
@@ -18,4 +20,4 @@ const Card: React.FC<CardProps> = ({ children, className = '', onClick }) => {
   );
 };
 
-export default Card;
+export default React.memo(Card);
