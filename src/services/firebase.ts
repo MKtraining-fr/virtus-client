@@ -1,4 +1,5 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 type FirebaseConfigKeys =
@@ -65,4 +66,5 @@ const createFirebaseApp = () => {
 };
 
 export const firebaseApp = createFirebaseApp();
+export const auth = getAuth(firebaseApp);
 export const db = getFirestore(firebaseApp);

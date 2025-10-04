@@ -119,7 +119,6 @@ export interface Client {
   firstName: string;
   lastName: string;
   email: string;
-  password?: string;
   phone: string;
   age: number;
   sex: 'Homme' | 'Femme' | 'Autre';

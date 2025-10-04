@@ -27,18 +27,12 @@ import {
 } from '../types';
 import { db } from '../services/firebase';
 import {
-  signIn,
-  signUp,
-  signOutUser,
-  onAuthStateChange,
-  getClientProfile,
-  SignUpData,
-} from '../services/authService';
-import {
   collection,
   doc,
   getDocs,
   onSnapshot,
+  query,
+  where,
   setDoc,
   writeBatch,
   DocumentData,
@@ -70,10 +64,9 @@ interface AuthContextType {
   meals: Meal[];
   isDataLoading: boolean;
   dataError: string | null;
-  isAuthLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  register: (userData: SignUpData) => Promise<void>;
+  register: (user: Omit<Client, 'id'>) => Promise<void>;
   addUser: (userData: Partial<Client>) => Promise<Client>;
   setClients: (clients: Client[]) => void;
   setExercises: (exercises: Exercise[]) => void;
@@ -100,12 +93,88 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const THEME_KEY = 'virtus_theme';
+const USER_SESSION_KEY = 'virtus_user';
 const ORIGINAL_USER_SESSION_KEY = 'virtus_original_user';
+
+const createDefaultClient = (id: string): Client => ({
+  id,
+  status: 'prospect',
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: undefined,
+  phone: '',
+  age: 0,
+  sex: 'Autre',
+  registrationDate: new Date().toISOString().split('T')[0],
+  role: 'client',
+  objective: '',
+  notes: '',
+  medicalInfo: {
+    history: '',
+    allergies: '',
+  },
+  nutrition: {
+    measurements: {},
+    weightHistory: [],
+    calorieHistory: [],
+    macros: { protein: 0, carbs: 0, fat: 0 },
+    historyLog: [],
+    foodJournal: {},
+  },
+  bilans: [],
+  performanceLog: [],
+  assignedPrograms: [],
+  savedPrograms: [],
+  assignedNutritionPlans: [],
+  grantedFormationIds: [],
+  canUseWorkoutBuilder: true,
+});
+
+const mergeClient = (base: Client, overrides: Partial<Client>): Client => ({
+  ...base,
+  ...overrides,
+  medicalInfo: {
+    ...base.medicalInfo,
+    ...(overrides.medicalInfo ?? {}),
+  },
+  nutrition: {
+    ...base.nutrition,
+    ...(overrides.nutrition ?? {}),
+    measurements: {
+      ...base.nutrition.measurements,
+      ...(overrides.nutrition?.measurements ?? {}),
+    },
+    macros: {
+      ...base.nutrition.macros,
+      ...(overrides.nutrition?.macros ?? {}),
+    },
+    historyLog: overrides.nutrition?.historyLog ?? base.nutrition.historyLog,
+    foodJournal: {
+      ...base.nutrition.foodJournal,
+      ...(overrides.nutrition?.foodJournal ?? {}),
+    },
+  },
+  bilans: overrides.bilans ?? base.bilans,
+  performanceLog: overrides.performanceLog ?? base.performanceLog,
+  assignedPrograms: overrides.assignedPrograms ?? base.assignedPrograms,
+  savedPrograms: overrides.savedPrograms ?? base.savedPrograms,
+  assignedNutritionPlans: overrides.assignedNutritionPlans ?? base.assignedNutritionPlans,
+  grantedFormationIds: overrides.grantedFormationIds ?? base.grantedFormationIds,
+  canUseWorkoutBuilder: overrides.canUseWorkoutBuilder ?? base.canUseWorkoutBuilder,
+});
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const stored = sessionStorage.getItem(USER_SESSION_KEY);
+      return stored ? (JSON.parse(stored) as User) : null;
+    } catch {
+      return null;
+    }
+  });
   const [originalUser, setOriginalUser] = useState<User | null>(() => {
     try {
       const stored = sessionStorage.getItem(ORIGINAL_USER_SESSION_KEY);
@@ -141,34 +210,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [meals, setMealsState] = useState<Meal[]>([]);
 
   const [isDataLoading, setIsDataLoading] = useState(true);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Écouter les changements d'authentification Firebase
-  useEffect(() => {
-    const unsubscribe = onAuthStateChange(async (firebaseUser) => {
-      setIsAuthLoading(true);
-      if (firebaseUser) {
-        // Récupérer le profil complet depuis Firestore
-        const clientProfile = await getClientProfile(firebaseUser.uid);
-        if (clientProfile) {
-          setUser(clientProfile);
-        } else {
-          console.error('Profil client introuvable pour l\'utilisateur:', firebaseUser.uid);
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-      setIsAuthLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
   useEffect(() => {
     try {
+      if (user) {
+        sessionStorage.setItem(USER_SESSION_KEY, JSON.stringify(user));
+      } else {
+        sessionStorage.removeItem(USER_SESSION_KEY);
+      }
       if (originalUser) {
         sessionStorage.setItem(ORIGINAL_USER_SESSION_KEY, JSON.stringify(originalUser));
       } else {
@@ -177,7 +228,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('Failed to persist session state', error);
     }
-  }, [originalUser]);
+  }, [user, originalUser]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -210,7 +261,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       await batch.commit();
     },
-    [],
+    [db],
   );
 
   useEffect(() => {
@@ -285,7 +336,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isActive = false;
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
-  }, []);
+  }, [db]);
+
+  const buildClientForCreation = useCallback(
+    (id: string, userData: Partial<Client>) => {
+      if (!userData.email) {
+        throw new Error("L'email est requis pour créer un utilisateur.");
+      }
+      if (!userData.firstName) {
+        throw new Error('Le prénom est requis pour créer un utilisateur.');
+      }
+      if (!userData.lastName) {
+        throw new Error('Le nom est requis pour créer un utilisateur.');
+      }
+      const role = userData.role ?? 'client';
+      let affiliationCode = userData.affiliationCode;
+      if (role === 'coach' && !affiliationCode) {
+        const existingCodes = new Set(clients.filter((client) => client.affiliationCode).map((client) => client.affiliationCode));
+        let generated = '';
+        do {
+          generated = Math.floor(100000 + Math.random() * 900000).toString();
+        } while (existingCodes.has(generated));
+        affiliationCode = generated;
+      }
+
+      const defaultClient = createDefaultClient(id);
+      const password = userData.password || Math.random().toString(36).slice(-8);
+
+      return mergeClient(defaultClient, {
+        ...userData,
+        id,
+        email: userData.email.trim(),
+        role,
+        password,
+        affiliationCode,
+        status: userData.status ?? defaultClient.status,
+      });
+    },
+    [clients],
+  );
 
   const setTheme = useCallback((newTheme: 'light' | 'dark') => {
     setThemeState(newTheme);
@@ -429,28 +518,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = useCallback(
     async (email: string, password: string): Promise<void> => {
-      try {
-        await signIn(email, password);
-        // L'utilisateur sera automatiquement défini par onAuthStateChange
-        navigate('/app');
-      } catch (error) {
-        throw error;
+      const normalizedEmail = email.trim().toLowerCase();
+      const usersRef = collection(db, 'users');
+      const existingUsers = await getDocs(query(usersRef, where('emailLowercase', '==', normalizedEmail)));
+      if (existingUsers.empty) {
+        throw new Error('Email ou mot de passe invalide.');
       }
-    },
-    [navigate],
-  );
-
-  const register = useCallback(
-    async (userData: SignUpData): Promise<void> => {
-      try {
-        await signUp(userData);
-        // L'utilisateur sera automatiquement défini par onAuthStateChange
-        navigate('/app');
-      } catch (error) {
-        throw error;
+      const userDoc = existingUsers.docs[0];
+      const data = userDoc.data() as Client & { emailLowercase?: string };
+      if (data.password !== password) {
+        throw new Error('Email ou mot de passe invalide.');
       }
+      const authenticatedUser = clients.find((client) => client.id === userDoc.id) ?? {
+        ...data,
+        id: userDoc.id,
+      };
+      setUser(authenticatedUser);
+      setOriginalUser(null);
+      navigate('/app');
     },
-    [navigate],
+    [clients, navigate, db],
   );
 
   const addUser = useCallback(
@@ -459,29 +546,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error("Le Prénom, le Nom, l'Email et le Rôle sont requis pour créer un utilisateur.");
       }
 
-      // Pour créer un utilisateur depuis l'admin, on utilise un mot de passe temporaire
-      const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
-      
-      const signUpData: SignUpData = {
-        email: userData.email,
-        password: tempPassword,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        role: userData.role,
-        phone: userData.phone,
-        age: userData.age,
-        sex: userData.sex,
-        coachId: userData.coachId,
-        affiliationCode: userData.affiliationCode,
-      };
+      const normalizedEmail = userData.email.trim().toLowerCase();
+      const usersRef = collection(db, 'users');
+      const existing = await getDocs(query(usersRef, where('emailLowercase', '==', normalizedEmail)));
+      if (!existing.empty) {
+        throw new Error('Un utilisateur avec cet email existe déjà.');
+      }
 
-      const newClient = await signUp(signUpData);
-      
-      // TODO: Envoyer un email de réinitialisation de mot de passe au nouvel utilisateur
-      
-      return newClient;
+      const clientsRef = collection(db, 'clients');
+      const clientDoc = userData.id ? doc(clientsRef, userData.id) : doc(clientsRef);
+      const id = clientDoc.id;
+      const clientToCreate = buildClientForCreation(id, { ...userData, id });
+
+      await setDoc(clientDoc, clientToCreate);
+      await setDoc(doc(usersRef, id), {
+        ...clientToCreate,
+        emailLowercase: normalizedEmail,
+      });
+
+      return clientToCreate;
     },
-    [],
+    [buildClientForCreation, db],
+  );
+
+  const register = useCallback(
+    async (newUser: Omit<Client, 'id'>): Promise<void> => {
+      const createdUser = await addUser({ ...newUser, status: newUser.status ?? 'active' });
+      setUser(createdUser);
+      setOriginalUser(null);
+      navigate('/app');
+    },
+    [addUser, navigate],
   );
 
   const addNotification = useCallback(
@@ -496,7 +591,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
       await setDoc(notificationDoc, newNotification);
     },
-    [],
+    [db],
   );
 
   const impersonate = useCallback(
@@ -517,15 +612,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [originalUser]);
 
-  const logout = useCallback(async () => {
-    try {
-      await signOutUser();
-      setUser(null);
-      setOriginalUser(null);
-      navigate('/');
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-    }
+  const logout = useCallback(() => {
+    setUser(null);
+    setOriginalUser(null);
+    navigate('/');
   }, [navigate]);
 
   const value = useMemo(
@@ -551,7 +641,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       meals,
       isDataLoading,
       dataError,
-      isAuthLoading,
       login,
       logout,
       register,
@@ -599,7 +688,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       meals,
       isDataLoading,
       dataError,
-      isAuthLoading,
       login,
       logout,
       register,
@@ -627,7 +715,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     ],
   );
 
-  return <AuthContext.Provider value={value}>{isInitialized && !isAuthLoading ? children : null}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{isInitialized ? children : null}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
