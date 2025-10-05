@@ -313,7 +313,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newClient = mapSupabaseClientToClient(data);
     
     // Mettre à jour la liste locale des clients
-    setClients(prevClients => [...prevClients, newClient]);
+    setClientsState(prevClients => [...prevClients, newClient]);
     
     return newClient;
   }, []);
