@@ -107,6 +107,7 @@ interface AuthContextType {
   impersonate: (userId: string) => void;
   stopImpersonating: () => void;
   setTheme: (theme: 'light' | 'dark') => void;
+  reloadData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -177,76 +178,82 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => unsubscribe();
   }, []);
 
-  // Charger les données depuis Supabase
+  // Fonction pour charger/recharger les données depuis Supabase
+  const loadData = useCallback(async () => {
+    if (!user) {
+      setIsDataLoading(false);
+      return;
+    }
+
+    try {
+      setIsDataLoading(true);
+      setDataError(null);
+
+      // Charger toutes les données en parallèle
+      const [
+        clientsData,
+        exercisesData,
+        programsData,
+        sessionsData,
+        nutritionPlansData,
+        messagesData,
+        notificationsData,
+        foodItemsData,
+      ] = await Promise.all([
+        supabase.from('clients').select('*'),
+        supabase.from('exercises').select('*'),
+        supabase.from('programs').select('*'),
+        supabase.from('sessions').select('*'),
+        supabase.from('nutrition_plans').select('*'),
+        supabase.from('messages').select('*'),
+        supabase.from('notifications').select('*'),
+        supabase.from('food_items').select('*'),
+      ]);
+
+      if (clientsData.error) {
+        console.error('Erreur de chargement des clients:', clientsData.error);
+      }
+
+      if (clientsData.data) {
+        const mappedClients = clientsData.data.map(mapSupabaseClientToClient);
+        setClientsState(mappedClients);
+      }
+      if (exercisesData.data) {
+        setExercisesState(exercisesData.data.map(mapSupabaseExerciseToExercise));
+      }
+      if (programsData.data) {
+        setProgramsState(programsData.data.map(mapSupabaseProgramToProgram));
+      }
+      if (sessionsData.data) {
+        setSessionsState(sessionsData.data as WorkoutSession[]);
+      }
+      if (nutritionPlansData.data) {
+        setNutritionPlansState(nutritionPlansData.data.map(mapSupabaseNutritionPlanToNutritionPlan));
+      }
+      if (messagesData.data) {
+        setMessagesState(messagesData.data.map(mapSupabaseMessageToMessage));
+      }
+      if (notificationsData.data) {
+        setNotificationsState(notificationsData.data.map(mapSupabaseNotificationToNotification));
+      }
+      if (foodItemsData.data) {
+        setFoodItemsState(foodItemsData.data as FoodItem[]);
+      }
+
+    } catch (error) {
+      logger.error('Erreur lors du chargement des données', { error });
+      setDataError(error instanceof Error ? error.message : 'Une erreur est survenue');
+    } finally {
+      setIsDataLoading(false);
+    }
+  }, [user]);
+
+  // Charger les données au montage et quand l'utilisateur change
   useEffect(() => {
     if (!user || isAuthLoading) {
       setIsDataLoading(false);
       return;
     }
-
-    const loadData = async () => {
-      try {
-        setIsDataLoading(true);
-        setDataError(null);
-
-        // Charger toutes les données en parallèle
-        const [
-          clientsData,
-          exercisesData,
-          programsData,
-          sessionsData,
-          nutritionPlansData,
-          messagesData,
-          notificationsData,
-          foodItemsData,
-        ] = await Promise.all([
-          supabase.from('clients').select('*'),
-          supabase.from('exercises').select('*'),
-          supabase.from('programs').select('*'),
-          supabase.from('sessions').select('*'),
-          supabase.from('nutrition_plans').select('*'),
-          supabase.from('messages').select('*'),
-          supabase.from('notifications').select('*'),
-          supabase.from('food_items').select('*'),
-        ]);
-
-        if (clientsData.error) {
-          console.error('Erreur de chargement des clients:', clientsData.error);
-        }
-
-        if (clientsData.data) {
-          const mappedClients = clientsData.data.map(mapSupabaseClientToClient);
-          setClientsState(mappedClients);
-        }
-        if (exercisesData.data) {
-          setExercisesState(exercisesData.data.map(mapSupabaseExerciseToExercise));
-        }
-        if (programsData.data) {
-          setProgramsState(programsData.data.map(mapSupabaseProgramToProgram));
-        }
-        if (sessionsData.data) {
-          setSessionsState(sessionsData.data as WorkoutSession[]);
-        }
-        if (nutritionPlansData.data) {
-          setNutritionPlansState(nutritionPlansData.data.map(mapSupabaseNutritionPlanToNutritionPlan));
-        }
-        if (messagesData.data) {
-          setMessagesState(messagesData.data.map(mapSupabaseMessageToMessage));
-        }
-        if (notificationsData.data) {
-          setNotificationsState(notificationsData.data.map(mapSupabaseNotificationToNotification));
-        }
-        if (foodItemsData.data) {
-          setFoodItemsState(foodItemsData.data as FoodItem[]);
-        }
-
-      } catch (error) {
-        logger.error('Erreur lors du chargement des données', { error });
-        setDataError(error instanceof Error ? error.message : 'Une erreur est survenue');
-      } finally {
-        setIsDataLoading(false);
-      }
-    };
 
     loadData();
   }, [user, isAuthLoading]);
@@ -668,6 +675,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     impersonate,
     stopImpersonating,
     setTheme,
+    reloadData: loadData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

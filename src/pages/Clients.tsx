@@ -18,7 +18,7 @@ const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null 
 
 
 const Clients: React.FC = () => {
-    const { user, clients: allClients, setClients } = useAuth();
+    const { user, clients: allClients, setClients, reloadData, isDataLoading } = useAuth();
     const [selectedClients, setSelectedClients] = useState<string[]>([]);
     const [filter, setFilter] = useState('');
     const navigate = useNavigate();
@@ -100,6 +100,14 @@ const Clients: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-800">Mes Clients</h1>
                 <div>
+                    <Button 
+                        variant="secondary" 
+                        className="mr-2" 
+                        onClick={() => reloadData()} 
+                        disabled={isDataLoading}
+                    >
+                        {isDataLoading ? 'Actualisation...' : '🔄 Actualiser'}
+                    </Button>
                     <Button variant="secondary" className="mr-2" onClick={handleArchiveSelected} disabled={selectedClients.length === 0}>Archiver</Button>
                     <Button variant="danger" onClick={handleDeleteSelected} disabled={selectedClients.length === 0}>Supprimer</Button>
                 </div>
