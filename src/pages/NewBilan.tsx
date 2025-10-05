@@ -144,7 +144,7 @@ const NewBilan: React.FC = () => {
         coachTemplates.find(t => t.id === selectedTemplateId),
     [coachTemplates, selectedTemplateId]);
     
-    const isInitialBilanSelected = selectedTemplate?.id === 'system-default';
+    const isInitialBilanSelected = selectedTemplate?.coachId === 'system';
 
     const handleAnswerChange = (fieldId: string, value: any) => {
         setAnswers(prev => ({ ...prev, [fieldId]: value }));
