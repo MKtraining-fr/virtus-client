@@ -1,4 +1,4 @@
-const CACHE_NAME = 'virtus-pwa-v1';
+const CACHE_NAME = 'virtus-pwa-v2-supabase';
 // Add all assets that make up the app shell.
 const APP_SHELL_URLS = [
     '/',
