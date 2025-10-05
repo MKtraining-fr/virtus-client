@@ -41,6 +41,7 @@ import {
   mapSupabaseNutritionPlanToNutritionPlan,
   mapSupabaseMessageToMessage,
   mapSupabaseNotificationToNotification,
+  mapClientToSupabaseClient,
 } from '../services/typeMappers';
 
 export type User = Client;
@@ -297,14 +298,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 
   const addUser = useCallback(async (userData: Partial<Client>): Promise<Client> => {
+    // Convertir les données du format camelCase vers snake_case pour Supabase
+    const supabaseData = mapClientToSupabaseClient(userData);
+    
     const { data, error } = await supabase
       .from('clients')
-      .insert([userData])
+      .insert([supabaseData])
       .select()
       .single();
 
     if (error) throw error;
-    return data as Client;
+    
+    // Convertir les données retournées de snake_case vers camelCase
+    return mapSupabaseClientToClient(data);
   }, []);
 
   const addNotification = useCallback(
