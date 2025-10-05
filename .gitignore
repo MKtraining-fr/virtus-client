@@ -27,3 +27,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Scripts avec secrets (migration Supabase)
+*_schema.py
+*_rls.py
+check_tables.py
+test-*.js
+deploy-schema.js
+fix_signup_policy.py
