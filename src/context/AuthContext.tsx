@@ -175,6 +175,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setIsDataLoading(true);
         setDataError(null);
 
+        console.log('[AuthContext] Chargement des données...', { userId: user?.id, userEmail: user?.email });
+
         // Charger toutes les données en parallèle
         const [
           clientsData,
@@ -196,8 +198,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           supabase.from('food_items').select('*'),
         ]);
 
+        console.log('[AuthContext] Données clients chargées:', {
+          count: clientsData.data?.length || 0,
+          error: clientsData.error,
+          data: clientsData.data
+        });
+
+        if (clientsData.error) {
+          console.error('[AuthContext] Erreur de chargement des clients:', clientsData.error);
+        }
+
         if (clientsData.data) {
-          setClientsState(clientsData.data.map(mapSupabaseClientToClient));
+          const mappedClients = clientsData.data.map(mapSupabaseClientToClient);
+          console.log('[AuthContext] Clients mappés:', mappedClients);
+          setClientsState(mappedClients);
         }
         if (exercisesData.data) {
           setExercisesState(exercisesData.data.map(mapSupabaseExerciseToExercise));
