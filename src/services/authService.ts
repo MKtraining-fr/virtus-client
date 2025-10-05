@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import type { Client } from '../types';
-import { loginSchema, registerSchema } from '../validation/schemas';
+import { SignInSchema, SignUpSchema } from '../validation/schemas';
 
 export interface SignUpData {
   email: string;
@@ -16,7 +16,7 @@ export interface SignUpData {
  */
 export const signUp = async (userData: SignUpData): Promise<{ user: any; error: any }> => {
   // Valider les données
-  const validation = registerSchema.safeParse(userData);
+  const validation = SignUpSchema.safeParse(userData);
   if (!validation.success) {
     const firstError = validation.error.errors[0];
     throw new Error(firstError.message);
@@ -72,7 +72,7 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
  */
 export const signIn = async (email: string, password: string): Promise<{ user: any; error: any }> => {
   // Valider les données
-  const validation = loginSchema.safeParse({ email, password });
+  const validation = SignInSchema.safeParse({ email, password });
   if (!validation.success) {
     const firstError = validation.error.errors[0];
     throw new Error(firstError.message);

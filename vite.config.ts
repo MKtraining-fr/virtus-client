@@ -28,10 +28,7 @@ export default defineConfig({
         manualChunks: {
           // Vendor chunks
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-          
-          // Feature chunks
-          'charts': ['recharts'],
+          'supabase-vendor': ['@supabase/supabase-js'],
         },
       },
     },
@@ -49,6 +46,6 @@ export default defineConfig({
 
   // Optimisation des dépendances
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'firebase/app', 'firebase/auth', 'firebase/firestore'],
+    include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'],
   },
 });
