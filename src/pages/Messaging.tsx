@@ -11,7 +11,7 @@ import { PaperAirplaneIcon, PlusIcon } from '../constants/icons';
 
 
 const Messaging: React.FC = () => {
-    const { user, clients, messages, setMessages } = useAuth();
+    const { user, clients, messages, setMessages, addMessage, markMessageAsRead } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const [newMessage, setNewMessage] = useState('');
@@ -31,11 +31,19 @@ const Messaging: React.FC = () => {
     const conversationClientIds = useMemo(() => {
         const ids = new Set<string>();
         messages.forEach(msg => {
-            const client = myClients.find(c => c.id === msg.clientId);
-            if (client) ids.add(msg.clientId);
+            // Un message implique soit le sender soit le recipient
+            if (msg.senderId === user?.id) {
+                // Message envoyé par le coach, le client est le recipient
+                const client = myClients.find(c => c.id === msg.recipientId);
+                if (client) ids.add(msg.recipientId);
+            } else if (msg.recipientId === user?.id) {
+                // Message reçu par le coach, le client est le sender
+                const client = myClients.find(c => c.id === msg.senderId);
+                if (client) ids.add(msg.senderId);
+            }
         });
         return Array.from(ids);
-    }, [messages, myClients]);
+    }, [messages, myClients, user]);
 
     const selectedClientId = searchParams.get('clientId');
 
@@ -51,18 +59,22 @@ const Messaging: React.FC = () => {
 
     useEffect(() => {
         if (user && selectedClientId) {
-            const hasUnread = messages.some(m => m.clientId === selectedClientId && m.senderId === selectedClientId && !m.seenByCoach);
-            if (hasUnread) {
-                const updatedMessages = messages.map(m => {
-                    if (m.clientId === selectedClientId && m.senderId === selectedClientId && !m.seenByCoach) {
-                        return { ...m, seenByCoach: true };
-                    }
-                    return m;
-                });
-                setMessages(updatedMessages);
-            }
+            // Marquer les messages non lus comme lus
+            const unreadMessages = messages.filter(m => 
+                m.senderId === selectedClientId && 
+                m.recipientId === user.id && 
+                !m.isRead
+            );
+            
+            unreadMessages.forEach(async (msg) => {
+                try {
+                    await markMessageAsRead(msg.id);
+                } catch (error) {
+                    console.error('Erreur lors du marquage du message comme lu:', error);
+                }
+            });
         }
-    }, [user, selectedClientId, messages, setMessages]);
+    }, [user, selectedClientId, messages, markMessageAsRead]);
 
     const selectedClient = useMemo(() => {
         return clients.find(c => c.id === selectedClientId);
@@ -70,24 +82,27 @@ const Messaging: React.FC = () => {
 
     const conversation = useMemo(() => {
         if (!selectedClientId) return [];
-        return messages.filter(m => m.clientId === selectedClientId);
-    }, [selectedClientId, messages]);
+        return messages.filter(m => 
+            (m.senderId === user?.id && m.recipientId === selectedClientId) ||
+            (m.senderId === selectedClientId && m.recipientId === user?.id)
+        );
+    }, [selectedClientId, messages, user]);
 
-    const handleSendMessage = () => {
+    const handleSendMessage = async () => {
         if (!newMessage.trim() || !user || !selectedClientId) return;
 
-        const newMessageObj: Message = {
-            id: `msg-${Date.now()}`,
-            senderId: user.id,
-            clientId: selectedClientId,
-            text: newMessage.trim(),
-            timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-            isVoice: false,
-            seenByCoach: true,
-            seenByClient: false
-        };
-        setMessages([...messages, newMessageObj]);
-        setNewMessage('');
+        try {
+            await addMessage({
+                senderId: user.id,
+                recipientId: selectedClientId,
+                content: newMessage.trim(),
+                isRead: false,
+            });
+            setNewMessage('');
+        } catch (error) {
+            console.error('Erreur lors de l\'envoi du message:', error);
+            alert('Erreur lors de l\'envoi du message. Veuillez réessayer.');
+        }
     };
 
     const clientsForNewConversation = useMemo(() => {
@@ -124,7 +139,7 @@ const Messaging: React.FC = () => {
                                         <p className={`font-semibold ${isUnread ? 'text-gray-900' : 'text-gray-700'}`}>{client.firstName} {client.lastName}</p>
                                         {isUnread && <span className="w-2.5 h-2.5 bg-primary rounded-full"></span>}
                                     </div>
-                                    {lastMessage && <p className="text-sm text-gray-500 truncate">{lastMessage.text}</p>}
+                                    {lastMessage && <p className="text-sm text-gray-500 truncate">{lastMessage.content || lastMessage.text}</p>}
                                 </div>
                             </div>
                         );
@@ -153,8 +168,8 @@ const Messaging: React.FC = () => {
                                     return (
                                         <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`max-w-md px-4 py-2 rounded-xl ${isMe ? 'bg-primary text-white' : 'bg-white border'}`}>
-                                                <p>{msg.text}</p>
-                                                <p className={`text-xs mt-1 text-right ${isMe ? 'text-violet-200' : 'text-gray-400'}`}>{msg.timestamp}</p>
+                                                <p>{msg.content || msg.text}</p>
+                                                <p className={`text-xs mt-1 text-right ${isMe ? 'text-violet-200' : 'text-gray-400'}`}>{new Date(msg.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
                                             </div>
                                         </div>
                                     );

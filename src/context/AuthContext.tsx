@@ -74,6 +74,7 @@ interface AuthContextType {
   register: (userData: SignUpData) => Promise<void>;
   addUser: (userData: Partial<Client>) => Promise<Client>;
   updateUser: (userId: string, userData: Partial<Client>) => Promise<Client>;
+  deleteUser: (userId: string) => Promise<void>;
   setClients: (clients: Client[]) => void;
   setExercises: (exercises: Exercise[]) => void;
   setPrograms: (programs: WorkoutProgram[]) => void;
@@ -90,6 +91,18 @@ interface AuthContextType {
   setIntensificationTechniques: (techniques: IntensificationTechnique[]) => void;
   setRecipes: (recipes: Meal[]) => void;
   setMeals: (meals: Meal[]) => void;
+  // Fonctions CRUD pour les programmes
+  addProgram: (programData: Omit<WorkoutProgram, 'id'>) => Promise<WorkoutProgram>;
+  updateProgram: (programId: string, programData: Partial<WorkoutProgram>) => Promise<WorkoutProgram>;
+  deleteProgram: (programId: string) => Promise<void>;
+  // Fonctions CRUD pour les plans nutritionnels
+  addNutritionPlan: (planData: Omit<NutritionPlan, 'id'>) => Promise<NutritionPlan>;
+  updateNutritionPlan: (planId: string, planData: Partial<NutritionPlan>) => Promise<NutritionPlan>;
+  deleteNutritionPlan: (planId: string) => Promise<void>;
+  // Fonctions CRUD pour les messages
+  addMessage: (messageData: Omit<Message, 'id' | 'timestamp'>) => Promise<Message>;
+  markMessageAsRead: (messageId: string) => Promise<Message>;
+  deleteMessage: (messageId: string) => Promise<void>;
   addNotification: (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => Promise<void>;
   impersonate: (userId: string) => void;
   stopImpersonating: () => void;
@@ -376,6 +389,188 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return updatedClient;
   }, []);
 
+  const deleteUser = useCallback(async (userId: string) => {
+    // Supprimer de Supabase
+    const { error } = await supabase
+      .from('clients')
+      .delete()
+      .eq('id', userId);
+
+    if (error) throw error;
+    
+    // Mettre à jour la liste locale
+    setClientsState(prevClients => prevClients.filter(client => client.id !== userId));
+  }, []);
+
+  // ===== PROGRAMMES D'ENTRAÎNEMENT =====
+  
+  const addProgram = useCallback(async (programData: Omit<WorkoutProgram, 'id'>) => {
+    const programToInsert = {
+      name: programData.name,
+      objective: programData.objective || null,
+      week_count: programData.weekCount,
+      sessions_by_week: programData.sessionsByWeek,
+      created_by: user?.id,
+    };
+
+    const { data, error } = await supabase
+      .from('programs')
+      .insert([programToInsert])
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    const newProgram = mapSupabaseProgramToProgram(data);
+    setProgramsState(prev => [...prev, newProgram]);
+    
+    return newProgram;
+  }, [user]);
+
+  const updateProgram = useCallback(async (programId: string, programData: Partial<WorkoutProgram>) => {
+    const updateData: any = {};
+    
+    if (programData.name !== undefined) updateData.name = programData.name;
+    if (programData.objective !== undefined) updateData.objective = programData.objective;
+    if (programData.weekCount !== undefined) updateData.week_count = programData.weekCount;
+    if (programData.sessionsByWeek !== undefined) updateData.sessions_by_week = programData.sessionsByWeek;
+
+    const { data, error } = await supabase
+      .from('programs')
+      .update(updateData)
+      .eq('id', programId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    const updatedProgram = mapSupabaseProgramToProgram(data);
+    setProgramsState(prev => prev.map(p => p.id === programId ? updatedProgram : p));
+    
+    return updatedProgram;
+  }, []);
+
+  const deleteProgram = useCallback(async (programId: string) => {
+    const { error } = await supabase
+      .from('programs')
+      .delete()
+      .eq('id', programId);
+
+    if (error) throw error;
+    
+    setProgramsState(prev => prev.filter(p => p.id !== programId));
+  }, []);
+
+  // ===== PLANS NUTRITIONNELS =====
+  
+  const addNutritionPlan = useCallback(async (planData: Omit<NutritionPlan, 'id'>) => {
+    const planToInsert = {
+      name: planData.name,
+      client_id: planData.clientId,
+      meals: planData.meals,
+      notes: planData.notes || null,
+      created_by: user?.id,
+    };
+
+    const { data, error } = await supabase
+      .from('nutrition_plans')
+      .insert([planToInsert])
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    const newPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
+    setNutritionPlansState(prev => [...prev, newPlan]);
+    
+    return newPlan;
+  }, [user]);
+
+  const updateNutritionPlan = useCallback(async (planId: string, planData: Partial<NutritionPlan>) => {
+    const updateData: any = {};
+    
+    if (planData.name !== undefined) updateData.name = planData.name;
+    if (planData.clientId !== undefined) updateData.client_id = planData.clientId;
+    if (planData.meals !== undefined) updateData.meals = planData.meals;
+    if (planData.notes !== undefined) updateData.notes = planData.notes;
+
+    const { data, error } = await supabase
+      .from('nutrition_plans')
+      .update(updateData)
+      .eq('id', planId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    const updatedPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
+    setNutritionPlansState(prev => prev.map(p => p.id === planId ? updatedPlan : p));
+    
+    return updatedPlan;
+  }, []);
+
+  const deleteNutritionPlan = useCallback(async (planId: string) => {
+    const { error } = await supabase
+      .from('nutrition_plans')
+      .delete()
+      .eq('id', planId);
+
+    if (error) throw error;
+    
+    setNutritionPlansState(prev => prev.filter(p => p.id !== planId));
+  }, []);
+
+  // ===== MESSAGES =====
+  
+  const addMessage = useCallback(async (messageData: Omit<Message, 'id' | 'timestamp'>) => {
+    const messageToInsert = {
+      sender_id: messageData.senderId,
+      recipient_id: messageData.recipientId,
+      content: messageData.content,
+      is_read: false,
+    };
+
+    const { data, error } = await supabase
+      .from('messages')
+      .insert([messageToInsert])
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    const newMessage = mapSupabaseMessageToMessage(data);
+    setMessagesState(prev => [...prev, newMessage]);
+    
+    return newMessage;
+  }, []);
+
+  const markMessageAsRead = useCallback(async (messageId: string) => {
+    const { data, error } = await supabase
+      .from('messages')
+      .update({ is_read: true })
+      .eq('id', messageId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    const updatedMessage = mapSupabaseMessageToMessage(data);
+    setMessagesState(prev => prev.map(m => m.id === messageId ? updatedMessage : m));
+    
+    return updatedMessage;
+  }, []);
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    const { error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('id', messageId);
+
+    if (error) throw error;
+    
+    setMessagesState(prev => prev.filter(m => m.id !== messageId));
+  }, []);
+
   const addNotification = useCallback(
     async (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
       const { error } = await supabase.from('notifications').insert([
@@ -443,6 +638,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     register,
     addUser,
     updateUser,
+    deleteUser,
     setClients: setClientsState,
     setExercises: setExercisesState,
     setPrograms: setProgramsState,
@@ -459,6 +655,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIntensificationTechniques: setIntensificationTechniquesState,
     setRecipes: setRecipesState,
     setMeals: setMealsState,
+    addProgram,
+    updateProgram,
+    deleteProgram,
+    addNutritionPlan,
+    updateNutritionPlan,
+    deleteNutritionPlan,
+    addMessage,
+    markMessageAsRead,
+    deleteMessage,
     addNotification,
     impersonate,
     stopImpersonating,

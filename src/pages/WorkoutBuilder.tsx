@@ -34,7 +34,7 @@ interface WorkoutBuilderProps {
 }
 
 const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
-    const { user, clients, exercises: exerciseDBFromAuth, programs, setPrograms, sessions: allSessions, setSessions: setAllSessions, setClients, addNotification } = useAuth();
+    const { user, clients, exercises: exerciseDBFromAuth, programs, setPrograms, addProgram, updateProgram, sessions: allSessions, setSessions: setAllSessions, setClients, addNotification } = useAuth();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
@@ -499,75 +499,84 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         }
     };
 
-    const handleSaveCoach = () => {
+    const handleSaveCoach = async () => {
         if (!user) return;
         
         if (isEditMode && editProgramId) {
             // --- EDIT LOGIC ---
-            const updatedProgram: WorkoutProgram = {
-                id: editProgramId,
-                name: programName,
-                objective: objective,
-                weekCount: Number(weekCount) || 1,
-                sessionsByWeek: sessionsByWeek,
-            };
-
-            const updatedClients = clients.map(c => {
-                if (c.id === selectedClient) {
-                    const programIndex = c.assignedPrograms?.findIndex(p => p.id === editProgramId);
-                    if (programIndex !== undefined && programIndex !== -1) {
-                        const newAssignedPrograms = [...(c.assignedPrograms || [])];
-                        newAssignedPrograms[programIndex] = updatedProgram;
-                        
-                        // Also update total sessions for the current week if it has changed
-                        const newTotalSessions = updatedProgram.sessionsByWeek[c.programWeek || 1]?.length || 0;
-
-                        return { ...c, assignedPrograms: newAssignedPrograms, totalSessions: newTotalSessions };
-                    }
-                }
-                return c;
-            });
-            setClients(updatedClients);
-            alert(`Programme "${programName}" mis à jour avec succès !`);
-            navigate(`/app/client/${selectedClient}`);
-
-        } else {
-            // --- ADD NEW LOGIC ---
-            if (workoutMode === 'program') {
-                const newProgram: WorkoutProgram = {
-                    id: `prog-${Date.now()}`,
+            try {
+                const updatedProgram = await updateProgram(editProgramId, {
                     name: programName,
                     objective: objective,
                     weekCount: Number(weekCount) || 1,
                     sessionsByWeek: sessionsByWeek,
-                };
-                setPrograms([...programs, newProgram]);
+                });
 
-                if (selectedClient && selectedClient !== '0') {
-                    const updatedClients = clients.map(c => {
-                        if (c.id === selectedClient) {
-                            const updatedPrograms = [newProgram, ...(c.assignedPrograms || [])];
-                             const progressUpdates = {
-                                programWeek: 1,
-                                sessionProgress: 1,
-                                totalWeeks: newProgram.weekCount,
-                                totalSessions: newProgram.sessionsByWeek[1]?.length || 0,
-                                viewed: false,
-                            };
-                            return { ...c, assignedPrograms: updatedPrograms, ...progressUpdates };
+                const updatedClients = clients.map(c => {
+                    if (c.id === selectedClient) {
+                        const programIndex = c.assignedPrograms?.findIndex(p => p.id === editProgramId);
+                        if (programIndex !== undefined && programIndex !== -1) {
+                            const newAssignedPrograms = [...(c.assignedPrograms || [])];
+                            newAssignedPrograms[programIndex] = updatedProgram;
+                            
+                            // Also update total sessions for the current week if it has changed
+                            const newTotalSessions = updatedProgram.sessionsByWeek[c.programWeek || 1]?.length || 0;
+
+                            return { ...c, assignedPrograms: newAssignedPrograms, totalSessions: newTotalSessions };
                         }
-                        return c;
+                    }
+                    return c;
+                });
+                setClients(updatedClients);
+                alert(`Programme "${programName}" mis à jour avec succès !`);
+                navigate(`/app/client/${selectedClient}`);
+            } catch (error) {
+                console.error('Erreur lors de la mise à jour du programme:', error);
+                alert('Erreur lors de la mise à jour du programme. Veuillez réessayer.');
+                return;
+            }
+
+        } else {
+            // --- ADD NEW LOGIC ---
+            if (workoutMode === 'program') {
+                try {
+                    const newProgram = await addProgram({
+                        name: programName,
+                        objective: objective,
+                        weekCount: Number(weekCount) || 1,
+                        sessionsByWeek: sessionsByWeek,
                     });
-                    setClients(updatedClients);
-                    addNotification({
-                        userId: selectedClient,
-                        fromName: `${user.firstName} ${user.lastName}`,
-                        type: 'assignment',
-                        message: `vous a assigné un nouveau programme : ${newProgram.name}.`,
-                        link: '/app/workout'
-                    });
+
+                    if (selectedClient && selectedClient !== '0') {
+                        const updatedClients = clients.map(c => {
+                            if (c.id === selectedClient) {
+                                const updatedPrograms = [newProgram, ...(c.assignedPrograms || [])];
+                                const progressUpdates = {
+                                    programWeek: 1,
+                                    sessionProgress: 1,
+                                    totalWeeks: newProgram.weekCount,
+                                    totalSessions: newProgram.sessionsByWeek[1]?.length || 0,
+                                    viewed: false,
+                                };
+                                return { ...c, assignedPrograms: updatedPrograms, ...progressUpdates };
+                            }
+                            return c;
+                        });
+                        setClients(updatedClients);
+                        addNotification({
+                            userId: selectedClient,
+                            fromName: `${user.firstName} ${user.lastName}`,
+                            type: 'assignment',
+                            message: `vous a assigné un nouveau programme : ${newProgram.name}.`,
+                            link: '/app/workout'
+                        });
+                    }
+                    alert(`Programme "${programName}" enregistré et assigné !`);
+                } catch (error) {
+                    console.error('Erreur lors de la création du programme:', error);
+                    alert('Erreur lors de la création du programme. Veuillez réessayer.');
+                    return;
                 }
-                alert(`Programme "${programName}" enregistré et assigné !`);
 
             } else {
                 const sessionToSave = activeSession;

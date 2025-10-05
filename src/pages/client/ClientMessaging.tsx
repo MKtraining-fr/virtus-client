@@ -11,7 +11,7 @@ const PaperAirplaneIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 const ClientMessaging: React.FC = () => {
-    const { user, clients, messages, setMessages } = useAuth();
+    const { user, clients, messages, setMessages, addMessage, markMessageAsRead } = useAuth();
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -21,9 +21,12 @@ const ClientMessaging: React.FC = () => {
     }, [user, clients]);
     
     const conversation = useMemo(() => {
-        if (!user) return [];
-        return messages.filter(m => m.clientId === user.id);
-    }, [messages, user]);
+        if (!user || !coach) return [];
+        return messages.filter(m => 
+            (m.senderId === user.id && m.recipientId === coach.id) ||
+            (m.senderId === coach.id && m.recipientId === user.id)
+        );
+    }, [messages, user, coach]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView();
@@ -31,35 +34,38 @@ const ClientMessaging: React.FC = () => {
 
     useEffect(() => {
         if (user && coach) {
-            const hasUnread = messages.some(m => m.clientId === user.id && m.senderId === coach.id && !m.seenByClient);
-            if (hasUnread) {
-                const updatedMessages = messages.map(m => {
-                    if (m.clientId === user.id && m.senderId === coach.id && !m.seenByClient) {
-                        return { ...m, seenByClient: true };
-                    }
-                    return m;
-                });
-                setMessages(updatedMessages);
-            }
+            // Marquer les messages non lus comme lus
+            const unreadMessages = messages.filter(m => 
+                m.senderId === coach.id && 
+                m.recipientId === user.id && 
+                !m.isRead
+            );
+            
+            unreadMessages.forEach(async (msg) => {
+                try {
+                    await markMessageAsRead(msg.id);
+                } catch (error) {
+                    console.error('Erreur lors du marquage du message comme lu:', error);
+                }
+            });
         }
-    }, [user, coach, messages, setMessages]);
+    }, [user, coach, messages, markMessageAsRead]);
 
-    const handleSendMessage = () => {
-        if (!newMessage.trim() || !user) return;
+    const handleSendMessage = async () => {
+        if (!newMessage.trim() || !user || !coach) return;
 
-        const newMessageObj: Message = {
-            id: `msg-${Date.now()}`,
-            senderId: user.id,
-            clientId: user.id,
-            text: newMessage.trim(),
-            timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-            isVoice: false,
-            seenByCoach: false,
-            seenByClient: true
-        };
-
-        setMessages([...messages, newMessageObj]);
-        setNewMessage('');
+        try {
+            await addMessage({
+                senderId: user.id,
+                recipientId: coach.id,
+                content: newMessage.trim(),
+                isRead: false,
+            });
+            setNewMessage('');
+        } catch (error) {
+            console.error('Erreur lors de l\'envoi du message:', error);
+            alert('Erreur lors de l\'envoi du message. Veuillez réessayer.');
+        }
     };
 
     if (!user) return null;
@@ -90,8 +96,8 @@ const ClientMessaging: React.FC = () => {
                           return (
                               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                   <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${isMe ? 'bg-primary text-white rounded-br-none' : 'bg-white border dark:border-transparent dark:bg-gray-700 text-gray-800 dark:text-client-light rounded-bl-none'}`}>
-                                      <p className="text-sm">{msg.text}</p>
-                                      <p className={`text-xs mt-1 text-right ${isMe ? 'text-violet-200' : 'text-gray-500 dark:text-client-subtle'}`}>{msg.timestamp}</p>
+                                      <p className="text-sm">{msg.content || msg.text}</p>
+                                      <p className={`text-xs mt-1 text-right ${isMe ? 'text-violet-200' : 'text-gray-500 dark:text-client-subtle'}`}>{new Date(msg.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
                                   </div>
                               </div>
                           );

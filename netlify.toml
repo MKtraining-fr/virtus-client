@@ -1,0 +1,89 @@
+# Configuration Netlify pour Virtus
+
+[build]
+  # Commande de build
+  command = "npm run build"
+  
+  # Répertoire de publication (sortie du build Vite)
+  publish = "dist"
+  
+  # Répertoire de base
+  base = "."
+
+[build.environment]
+  # Version de Node.js
+  NODE_VERSION = "22.13.0"
+  
+  # Désactiver les telemetry
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Redirections pour SPA (Single Page Application)
+# Toutes les routes doivent pointer vers index.html pour React Router
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
+  
+# Headers de sécurité
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Sécurité
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+    # Cache pour les assets statiques
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Headers spécifiques pour index.html (pas de cache)
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    
+# Headers pour les fichiers JavaScript et CSS
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Headers pour les images
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    
+[[headers]]
+  for = "/*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Configuration des fonctions (si nécessaire plus tard)
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Paramètres de développement local
+[dev]
+  command = "npm run dev"
+  port = 5173
+  targetPort = 5173
+  autoLaunch = false

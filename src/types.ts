@@ -226,10 +226,15 @@ export interface WorkoutProgram {
 export interface Message {
   id: string;
   senderId: string;
-  clientId: string;
-  text: string;
+  recipientId: string;
+  subject?: string;
+  content: string;
+  isRead: boolean;
   timestamp: string;
-  isVoice: boolean;
+  // Propriétés héritées pour compatibilité (à supprimer progressivement)
+  clientId?: string;
+  text?: string;
+  isVoice?: boolean;
   seenByCoach?: boolean;
   seenByClient?: boolean;
 }

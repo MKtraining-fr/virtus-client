@@ -35,7 +35,7 @@ const deepCopyNutritionDays = (days: NutritionDay[]): NutritionDay[] => {
 };
 
 const Nutrition: React.FC = () => {
-    const { user, clients, nutritionPlans, setNutritionPlans, setClients, foodItems, recipes, setRecipes, meals } = useAuth();
+    const { user, clients, nutritionPlans, setNutritionPlans, addNutritionPlan, updateNutritionPlan, setClients, foodItems, recipes, setRecipes, meals } = useAuth();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     
@@ -319,7 +319,7 @@ const Nutrition: React.FC = () => {
     const handleRemoveDay = (indexToRemove: number) => { if (activeDaysInWeek.length <= 1) { alert("Vous ne pouvez pas supprimer le dernier jour."); return; } if (window.confirm(`Supprimer le ${activeDaysInWeek[indexToRemove].name} de toutes les semaines ?`)) { updateAllWeeksInPlan(days => days.filter((_, index) => index !== indexToRemove).map((day, index) => ({ ...day, name: `Jour ${index + 1}` }))); setSelectedDayIndex(prev => Math.min(prev, activeDaysInWeek.length - 2)); } };
 
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (creationMode === 'recipe') {
             if (!recipe.name.trim()) return alert("Le nom de la recette est requis.");
             
@@ -334,55 +334,69 @@ const Nutrition: React.FC = () => {
             }
             navigate('/app/nutrition/bibliotheque');
         } else { // Plan creation/editing
-            const finalPlan = { ...plan, clientId: selectedClientId === '0' ? undefined : selectedClientId };
+            const finalPlanData = { 
+                ...plan, 
+                clientId: selectedClientId === '0' ? undefined : selectedClientId 
+            };
             
-            if (isEditMode && editPlanId) {
-                // Update plan in the main library
-                const updatedLibrary = nutritionPlans.map(p => (p.id === editPlanId ? finalPlan : p));
-                setNutritionPlans(updatedLibrary);
-                
-                // Update client assignments
-                const updatedClients = clients.map(client => {
-                    const newAssignedPlans = [...(client.assignedNutritionPlans || [])];
-                    const planIndex = newAssignedPlans.findIndex(p => p.id === editPlanId);
+            try {
+                if (isEditMode && editPlanId) {
+                    // Update plan in Supabase
+                    const updatedPlan = await updateNutritionPlan(editPlanId, finalPlanData);
                     
-                    const wasAssigned = planIndex !== -1;
-                    const shouldBeAssigned = client.id === finalPlan.clientId;
+                    // Update client assignments
+                    const updatedClients = clients.map(client => {
+                        const newAssignedPlans = [...(client.assignedNutritionPlans || [])];
+                        const planIndex = newAssignedPlans.findIndex(p => p.id === editPlanId);
+                        
+                        const wasAssigned = planIndex !== -1;
+                        const shouldBeAssigned = client.id === updatedPlan.clientId;
 
-                    if (wasAssigned && !shouldBeAssigned) {
-                        newAssignedPlans.splice(planIndex, 1);
-                    } else if (!wasAssigned && shouldBeAssigned) {
-                        newAssignedPlans.push(finalPlan);
-                    } else if (wasAssigned && shouldBeAssigned) {
-                        newAssignedPlans[planIndex] = finalPlan;
+                        if (wasAssigned && !shouldBeAssigned) {
+                            newAssignedPlans.splice(planIndex, 1);
+                        } else if (!wasAssigned && shouldBeAssigned) {
+                            newAssignedPlans.push(updatedPlan);
+                        } else if (wasAssigned && shouldBeAssigned) {
+                            newAssignedPlans[planIndex] = updatedPlan;
+                        }
+
+                        return { ...client, assignedNutritionPlans: newAssignedPlans };
+                    });
+                    setClients(updatedClients);
+                    
+                    let alertMessage = `Plan "${updatedPlan.name}" mis à jour.`;
+                    if (updatedPlan.clientId) {
+                        const client = clients.find(c => c.id === updatedPlan.clientId);
+                        alertMessage += ` Il est maintenant assigné à ${client?.firstName} ${client?.lastName}.`;
                     }
+                    alert(alertMessage);
+                } else { // Add new plan
+                    const newPlan = await addNutritionPlan({
+                        name: finalPlanData.name,
+                        objective: finalPlanData.objective,
+                        weekCount: finalPlanData.weekCount,
+                        daysByWeek: finalPlanData.daysByWeek,
+                        clientId: finalPlanData.clientId,
+                        notes: finalPlanData.notes,
+                    });
 
-                    return { ...client, assignedNutritionPlans: newAssignedPlans };
-                });
-                setClients(updatedClients);
-                
-                let alertMessage = `Plan "${finalPlan.name}" mis à jour.`;
-                if (finalPlan.clientId) {
-                    const client = clients.find(c => c.id === finalPlan.clientId);
-                    alertMessage += ` Il est maintenant assigné à ${client?.firstName} ${client?.lastName}.`;
+                    if (newPlan.clientId) {
+                        const client = clients.find(c => c.id === newPlan.clientId);
+                        setClients(clients.map(c => 
+                            c.id === newPlan.clientId 
+                                ? { ...c, assignedNutritionPlans: [...(c.assignedNutritionPlans || []), newPlan] } 
+                                : c
+                        ));
+                        alert(`Plan "${newPlan.name}" enregistré et assigné à ${client?.firstName} ${client?.lastName}.`);
+                    } else {
+                        alert(`Plan "${newPlan.name}" enregistré dans la bibliothèque.`);
+                    }
                 }
-                alert(alertMessage);
-            } else { // Add new plan
-                if (finalPlan.clientId) {
-                    setNutritionPlans([...nutritionPlans, finalPlan]);
-                    const client = clients.find(c => c.id === finalPlan.clientId);
-                    setClients(clients.map(c => 
-                        c.id === finalPlan.clientId 
-                            ? { ...c, assignedNutritionPlans: [...(c.assignedNutritionPlans || []), finalPlan] } 
-                            : c
-                    ));
-                    alert(`Plan "${finalPlan.name}" enregistré et assigné à ${client?.firstName} ${client?.lastName}.`);
-                } else {
-                    setNutritionPlans([...nutritionPlans, finalPlan]);
-                    alert(`Plan "${finalPlan.name}" enregistré dans la bibliothèque.`);
-                }
+                navigate('/app/nutrition/bibliotheque');
+            } catch (error) {
+                console.error('Erreur lors de la sauvegarde du plan nutritionnel:', error);
+                alert('Erreur lors de la sauvegarde du plan. Veuillez réessayer.');
             }
-            navigate('/app/nutrition/bibliotheque');
         }
     };
     
