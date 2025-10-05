@@ -373,17 +373,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (error) throw error;
     if (!authUser) throw new Error('Échec de la création de l\'utilisateur');
 
-    // Mettre à jour le statut et coachId dans la table clients
-    const updateData: any = {};
-    if (userData.status) updateData.status = userData.status;
-    if (userData.coachId) updateData.coach_id = userData.coachId;
-    if (user?.id) updateData.coach_id = user.id; // Associer au coach connecté
+    // Préparer toutes les données du profil client pour la mise à jour
+    const updateData = mapClientToSupabaseClient({
+      ...userData,
+      id: authUser.id,
+      coachId: user?.id, // Associer au coach connecté
+    });
 
-    if (Object.keys(updateData).length > 0) {
-      await supabase
-        .from('clients')
-        .update(updateData)
-        .eq('id', authUser.id);
+    // Supprimer les champs qui ne doivent pas être mis à jour (déjà créés par signUp)
+    delete updateData.id;
+    delete updateData.email;
+    delete updateData.first_name;
+    delete updateData.last_name;
+    delete updateData.phone;
+    delete updateData.role;
+
+    // Mettre à jour le profil complet dans la table clients
+    const { error: updateError } = await supabase
+      .from('clients')
+      .update(updateData)
+      .eq('id', authUser.id);
+
+    if (updateError) {
+      console.error('Erreur lors de la mise à jour du profil:', updateError);
+      // Ne pas bloquer si la mise à jour échoue (peut-être que les colonnes n'existent pas encore)
     }
 
     // Envoyer un email de réinitialisation de mot de passe

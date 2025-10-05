@@ -151,45 +151,87 @@ const NewBilan: React.FC = () => {
     };
 
     const handleSubmit = async (status: 'active' | 'prospect') => {
-        // Since Bilan Initial is the only one with civility fields, it's the only one that can create a user.
+        // Vérifier les champs requis avec les bons IDs
         if (isInitialBilanSelected) {
-            if (!answers.firstName || !answers.lastName || !answers.email) {
+            if (!answers.prenom || !answers.nom || !answers.email) {
                 alert('Prénom, nom et email sont requis pour le bilan initial.');
                 return;
             }
         } else {
-             // For now, custom templates also create new users, but they must have the required fields.
-             // This logic can be expanded later to handle existing clients.
-             if (!answers.firstName || !answers.lastName || !answers.email) {
+             // Pour les templates personnalisés
+             if (!answers.prenom || !answers.nom || !answers.email) {
                 alert('Ce modèle de bilan ne peut pas être utilisé pour créer un nouvel utilisateur car les champs Prénom, Nom et Email sont manquants.');
                 return;
             }
         }
         
+        // Mapper les niveaux d'activité physique vers energyExpenditureLevel
+        const activityLevelMap: Record<string, Client['energyExpenditureLevel']> = {
+            'Sédentaire': 'sedentary',
+            'Légèrement actif': 'lightly_active',
+            'Modérément actif': 'moderately_active',
+            'Très actif': 'very_active',
+            'Extrêmement actif': 'extremely_active'
+        };
+
+        // Combiner les allergies et aversions pour le champ foodAversions
+        const allergiesList = Array.isArray(answers.allergies) ? answers.allergies : [];
+        const allergiesAutre = answers.allergies_autre || '';
+        const aversions = answers.aversions || '';
+        
+        let combinedAllergiesAndAversions = '';
+        if (allergiesList.length > 0) {
+            combinedAllergiesAndAversions += 'Allergies: ' + allergiesList.join(', ');
+            if (allergiesAutre) {
+                combinedAllergiesAndAversions += ', ' + allergiesAutre;
+            }
+        }
+        if (aversions) {
+            if (combinedAllergiesAndAversions) combinedAllergiesAndAversions += '\n';
+            combinedAllergiesAndAversions += 'Aversions: ' + aversions;
+        }
+
+        // Préparer les données du profil client avec le bon mapping
         const dataToSubmit: Partial<Client> = {
-            firstName: answers.firstName,
-            lastName: answers.lastName,
-            dob: answers.dob,
-            age: answers.dob ? Math.floor((new Date().getTime() - new Date(answers.dob).getTime()) / (1000 * 60 * 60 * 24 * 365.25)) : 0,
-            sex: answers.sex as Client['sex'],
-            address: answers.address,
+            // Informations générales
+            firstName: answers.prenom,
+            lastName: answers.nom,
+            dob: answers.date_naissance,
+            age: answers.date_naissance ? Math.floor((new Date().getTime() - new Date(answers.date_naissance).getTime()) / (1000 * 60 * 60 * 24 * 365.25)) : 0,
+            sex: answers.sexe as Client['sex'],
             email: answers.email,
-            phone: answers.phone,
-            height: answers.height ? Number(answers.height) : undefined,
-            weight: answers.weight ? Number(answers.weight) : undefined,
-            energyExpenditureLevel: answers.energyExpenditureLevel as Client['energyExpenditureLevel'],
+            phone: answers.telephone,
+            height: answers.taille ? Number(answers.taille) : undefined,
+            weight: answers.poids ? Number(answers.poids) : undefined,
+            energyExpenditureLevel: activityLevelMap[answers.activite_physique as string] || 'moderately_active',
             
-            objective: answers['fld_objectif'] || '',
-            lifestyle: { profession: answers['fld_profession'] || '' },
-            medicalInfo: { history: '', allergies: answers['fld_allergies'] || '' },
-            notes: '',
+            // Objectif
+            objective: answers.objectif_principal || '',
+            
+            // Vie quotidienne
+            lifestyle: { 
+                profession: answers.profession || '' 
+            },
+            
+            // Notes et médical
+            medicalInfo: { 
+                history: answers.antecedents_medicaux || '',
+                allergies: allergiesList.length > 0 ? allergiesList.join(', ') + (allergiesAutre ? ', ' + allergiesAutre : '') : ''
+            },
+            notes: answers.notes_coach || '',
+            
+            // Nutrition
             nutrition: {
-                measurements: {}, weightHistory: [], calorieHistory: [], 
+                measurements: {}, 
+                weightHistory: [], 
+                calorieHistory: [], 
                 macros: { protein: 0, carbs: 0, fat: 0 },
-                foodAversions: answers['fld_aversions'] || '',
-                generalHabits: answers['fld_habits'] || '',
+                foodAversions: combinedAllergiesAndAversions,
+                generalHabits: answers.habitudes || '',
                 historyLog: [],
             },
+            
+            // Enregistrer le bilan complet
             bilans: [{
                 id: `bilan-${Date.now()}`,
                 templateId: selectedTemplateId,

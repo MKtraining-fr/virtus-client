@@ -20,17 +20,39 @@ export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Clien
     phone: supabaseClient.phone || '',
     role: supabaseClient.role as 'admin' | 'coach' | 'client',
     coachId: supabaseClient.coach_id || undefined,
-    status: (supabaseClient as any).status || 'active', // Gérer le status (à ajouter dans Supabase)
+    status: supabaseClient.status || 'active',
     createdAt: supabaseClient.created_at,
-    // Champs supplémentaires qui peuvent ne pas être dans Supabase
-    age: 0,
-    height: 0,
-    weight: 0,
-    goal: '',
+    // Informations générales
+    dob: supabaseClient.dob || undefined,
+    age: supabaseClient.age || 0,
+    sex: supabaseClient.sex as Client['sex'] || undefined,
+    height: supabaseClient.height || 0,
+    weight: supabaseClient.weight || 0,
+    address: supabaseClient.address || undefined,
+    energyExpenditureLevel: supabaseClient.energy_expenditure_level as Client['energyExpenditureLevel'] || 'moderately_active',
+    // Objectifs et notes
+    objective: supabaseClient.objective || '',
+    notes: supabaseClient.notes || '',
+    // Données JSON
+    lifestyle: (supabaseClient.lifestyle as any) || { profession: '' },
+    medicalInfo: (supabaseClient.medical_info as any) || { history: '', allergies: '' },
+    nutrition: (supabaseClient.nutrition as any) || {
+      measurements: {},
+      weightHistory: [],
+      calorieHistory: [],
+      macros: { protein: 0, carbs: 0, fat: 0 },
+      foodAversions: '',
+      generalHabits: '',
+      historyLog: [],
+    },
+    bilans: (supabaseClient.bilans as any) || [],
+    assignedBilans: (supabaseClient.assigned_bilans as any) || [],
+    nutritionLogs: (supabaseClient.nutrition_logs as any) || [],
+    performanceLogs: (supabaseClient.performance_logs as any) || [],
+    assignedNutritionPlans: (supabaseClient.assigned_nutrition_plans as any) || [],
+    // Champs legacy pour compatibilité
+    goal: supabaseClient.objective || '',
     activityLevel: 'moderate',
-    nutritionLogs: [],
-    performanceLogs: [],
-    assignedBilans: [],
   } as Client;
 }
 
@@ -38,14 +60,35 @@ export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Clien
  * Convertir un client de l'application vers le format Supabase
  */
 export function mapClientToSupabaseClient(client: Partial<Client>): Partial<SupabaseClient> {
-  const result: Partial<SupabaseClient> & { status?: string } = {
+  const result: Partial<SupabaseClient> = {
+    // Champs de base
     email: client.email,
     first_name: client.firstName,
     last_name: client.lastName,
     phone: client.phone || null,
     role: client.role,
     coach_id: client.coachId || null,
-    status: client.status || 'active', // Gérer le status
+    status: client.status || 'active',
+    // Informations générales
+    dob: client.dob || null,
+    age: client.age || null,
+    sex: client.sex || null,
+    height: client.height || null,
+    weight: client.weight || null,
+    address: client.address || null,
+    energy_expenditure_level: client.energyExpenditureLevel || null,
+    // Objectifs et notes
+    objective: client.objective || null,
+    notes: client.notes || null,
+    // Données JSON
+    lifestyle: client.lifestyle as any || null,
+    medical_info: client.medicalInfo as any || null,
+    nutrition: client.nutrition as any || null,
+    bilans: client.bilans as any || null,
+    assigned_bilans: client.assignedBilans as any || null,
+    nutrition_logs: client.nutritionLogs as any || null,
+    performance_logs: client.performanceLogs as any || null,
+    assigned_nutrition_plans: client.assignedNutritionPlans as any || null,
   };
   
   // N'inclure l'ID que s'il est défini (pour les mises à jour)

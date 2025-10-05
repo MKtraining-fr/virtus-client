@@ -18,6 +18,24 @@ export interface Database {
           phone: string | null
           role: 'admin' | 'coach' | 'client'
           coach_id: string | null
+          dob: string | null
+          age: number | null
+          sex: string | null
+          height: number | null
+          weight: number | null
+          address: string | null
+          energy_expenditure_level: string | null
+          objective: string | null
+          notes: string | null
+          status: string | null
+          lifestyle: Json | null
+          medical_info: Json | null
+          nutrition: Json | null
+          bilans: Json | null
+          assigned_bilans: Json | null
+          nutrition_logs: Json | null
+          performance_logs: Json | null
+          assigned_nutrition_plans: Json | null
           created_at: string
           updated_at: string
         }
@@ -29,6 +47,24 @@ export interface Database {
           phone?: string | null
           role?: 'admin' | 'coach' | 'client'
           coach_id?: string | null
+          dob?: string | null
+          age?: number | null
+          sex?: string | null
+          height?: number | null
+          weight?: number | null
+          address?: string | null
+          energy_expenditure_level?: string | null
+          objective?: string | null
+          notes?: string | null
+          status?: string | null
+          lifestyle?: Json | null
+          medical_info?: Json | null
+          nutrition?: Json | null
+          bilans?: Json | null
+          assigned_bilans?: Json | null
+          nutrition_logs?: Json | null
+          performance_logs?: Json | null
+          assigned_nutrition_plans?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -40,6 +76,24 @@ export interface Database {
           phone?: string | null
           role?: 'admin' | 'coach' | 'client'
           coach_id?: string | null
+          dob?: string | null
+          age?: number | null
+          sex?: string | null
+          height?: number | null
+          weight?: number | null
+          address?: string | null
+          energy_expenditure_level?: string | null
+          objective?: string | null
+          notes?: string | null
+          status?: string | null
+          lifestyle?: Json | null
+          medical_info?: Json | null
+          nutrition?: Json | null
+          bilans?: Json | null
+          assigned_bilans?: Json | null
+          nutrition_logs?: Json | null
+          performance_logs?: Json | null
+          assigned_nutrition_plans?: Json | null
           created_at?: string
           updated_at?: string
         }
