@@ -5,7 +5,6 @@ import React, {
   ReactNode,
   useEffect,
   useCallback,
-  useMemo,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -25,7 +24,7 @@ import {
   IntensificationTechnique,
   Meal,
 } from '../types';
-import { db } from '../services/firebase';
+import { supabase } from '../services/supabase';
 import {
   signIn,
   signUp,
@@ -34,17 +33,15 @@ import {
   getClientProfile,
   SignUpData,
 } from '../services/authService';
+import { logger } from '../utils/logger';
 import {
-  collection,
-  doc,
-  getDocs,
-  onSnapshot,
-  setDoc,
-  writeBatch,
-  DocumentData,
-  Unsubscribe,
-  QuerySnapshot,
-} from 'firebase/firestore';
+  mapSupabaseClientToClient,
+  mapSupabaseExerciseToExercise,
+  mapSupabaseProgramToProgram,
+  mapSupabaseNutritionPlanToNutritionPlan,
+  mapSupabaseMessageToMessage,
+  mapSupabaseNotificationToNotification,
+} from '../services/typeMappers';
 
 export type User = Client;
 
@@ -143,19 +140,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Écouter les changements d'authentification Firebase
+  // Écouter les changements d'authentification
   useEffect(() => {
-    const unsubscribe = onAuthStateChange(async (firebaseUser) => {
+    const unsubscribe = onAuthStateChange(async (supabaseUser) => {
       setIsAuthLoading(true);
-      if (firebaseUser) {
-        // Récupérer le profil complet depuis Firestore
-        const clientProfile = await getClientProfile(firebaseUser.uid);
+      if (supabaseUser) {
+        const clientProfile = await getClientProfile(supabaseUser.id);
         if (clientProfile) {
           setUser(clientProfile);
         } else {
-          console.error('Profil client introuvable pour l\'utilisateur:', firebaseUser.uid);
+          logger.error('Profil client introuvable', { userId: supabaseUser.id });
           setUser(null);
         }
       } else {
@@ -167,6 +162,76 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => unsubscribe();
   }, []);
 
+  // Charger les données depuis Supabase
+  useEffect(() => {
+    if (!user || isAuthLoading) {
+      setIsDataLoading(false);
+      return;
+    }
+
+    const loadData = async () => {
+      try {
+        setIsDataLoading(true);
+        setDataError(null);
+
+        // Charger toutes les données en parallèle
+        const [
+          clientsData,
+          exercisesData,
+          programsData,
+          sessionsData,
+          nutritionPlansData,
+          messagesData,
+          notificationsData,
+          foodItemsData,
+        ] = await Promise.all([
+          supabase.from('clients').select('*'),
+          supabase.from('exercises').select('*'),
+          supabase.from('programs').select('*'),
+          supabase.from('sessions').select('*'),
+          supabase.from('nutrition_plans').select('*'),
+          supabase.from('messages').select('*'),
+          supabase.from('notifications').select('*'),
+          supabase.from('food_items').select('*'),
+        ]);
+
+        if (clientsData.data) {
+          setClientsState(clientsData.data.map(mapSupabaseClientToClient));
+        }
+        if (exercisesData.data) {
+          setExercisesState(exercisesData.data.map(mapSupabaseExerciseToExercise));
+        }
+        if (programsData.data) {
+          setProgramsState(programsData.data.map(mapSupabaseProgramToProgram));
+        }
+        if (sessionsData.data) {
+          setSessionsState(sessionsData.data as WorkoutSession[]);
+        }
+        if (nutritionPlansData.data) {
+          setNutritionPlansState(nutritionPlansData.data.map(mapSupabaseNutritionPlanToNutritionPlan));
+        }
+        if (messagesData.data) {
+          setMessagesState(messagesData.data.map(mapSupabaseMessageToMessage));
+        }
+        if (notificationsData.data) {
+          setNotificationsState(notificationsData.data.map(mapSupabaseNotificationToNotification));
+        }
+        if (foodItemsData.data) {
+          setFoodItemsState(foodItemsData.data as FoodItem[]);
+        }
+
+      } catch (error) {
+        logger.error('Erreur lors du chargement des données', { error });
+        setDataError(error instanceof Error ? error.message : 'Une erreur est survenue');
+      } finally {
+        setIsDataLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user, isAuthLoading]);
+
+  // Persist session state
   useEffect(() => {
     try {
       if (originalUser) {
@@ -175,356 +240,103 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
       }
     } catch (error) {
-      console.error('Failed to persist session state', error);
+      logger.error('Échec de la persistance de la session', { error });
     }
   }, [originalUser]);
 
+  // Persist theme
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
+    if (typeof window === 'undefined') return;
     try {
       window.localStorage.setItem(THEME_KEY, theme);
     } catch (error) {
-      console.error('Failed to persist theme preference', error);
+      logger.error('Échec de la persistance du thème', { error });
     }
   }, [theme]);
-
-  const persistCollectionChanges = useCallback(
-    async <T extends { id?: string }>(collectionName: string, previousItems: T[], nextItems: T[]) => {
-      const validNextItems = nextItems.filter((item): item is T & { id: string } => Boolean(item.id));
-      const collectionRef = collection(db, collectionName);
-      const batch = writeBatch(db);
-
-      const nextIds = new Set(validNextItems.map((item) => item.id));
-      validNextItems.forEach((item) => {
-        batch.set(doc(collectionRef, item.id), item as unknown as DocumentData);
-      });
-
-      previousItems.forEach((item) => {
-        const itemId = item.id;
-        if (itemId && !nextIds.has(itemId)) {
-          batch.delete(doc(collectionRef, itemId));
-        }
-      });
-
-      await batch.commit();
-    },
-    [],
-  );
-
-  useEffect(() => {
-    // Ne charger les données que si l'utilisateur est connecté
-    if (!user || isAuthLoading) {
-      setIsDataLoading(false);
-      setIsInitialized(true);
-      return;
-    }
-
-    let isActive = true;
-    const unsubscribers: Unsubscribe[] = [];
-
-    const mapSnapshot = <T,>(snapshot: QuerySnapshot<DocumentData>) =>
-      snapshot.docs.map((docSnapshot) => ({ id: docSnapshot.id, ...(docSnapshot.data() as T) })) as T[];
-
-    const loadCollection = async <T,>(collectionName: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-      const collectionRef = collection(db, collectionName);
-      const initialSnapshot = await getDocs(collectionRef);
-      if (isActive) {
-        setter(mapSnapshot<T>(initialSnapshot));
-      }
-      const unsubscribe = onSnapshot(
-        collectionRef,
-        (snapshot) => {
-          if (!isActive) {
-            return;
-          }
-          setter(mapSnapshot<T>(snapshot));
-        },
-        (error) => {
-          console.error(`Failed to subscribe to Firestore collection "${collectionName}"`, error);
-          if (isActive) {
-            setDataError(error.message ?? 'Une erreur inattendue est survenue lors du chargement des données.');
-          }
-        },
-      );
-      unsubscribers.push(unsubscribe);
-    };
-
-    const initialize = async () => {
-      try {
-        setIsDataLoading(true);
-        setDataError(null);
-        await Promise.all([
-          loadCollection<Client>('clients', setClientsState),
-          loadCollection<Exercise>('exercises', setExercisesState),
-          loadCollection<WorkoutProgram>('programs', setProgramsState),
-          loadCollection<WorkoutSession>('sessions', setSessionsState),
-          loadCollection<NutritionPlan>('nutritionPlans', setNutritionPlansState),
-          loadCollection<Message>('messages', setMessagesState),
-          loadCollection<ClientFormation>('clientFormations', setClientFormationsState),
-          loadCollection<ProfessionalFormation>('professionalFormations', setProfessionalFormationsState),
-          loadCollection<Notification>('notifications', setNotificationsState),
-          loadCollection<FoodItem>('foodItems', setFoodItemsState),
-          loadCollection<BilanTemplate>('bilanTemplates', setBilanTemplatesState),
-          loadCollection<Partner>('partners', setPartnersState),
-          loadCollection<Product>('products', setProductsState),
-          loadCollection<IntensificationTechnique>('intensificationTechniques', setIntensificationTechniquesState),
-          loadCollection<Meal>('recipes', setRecipesState),
-          loadCollection<Meal>('meals', setMealsState),
-        ]);
-      } catch (error) {
-        console.error('Failed to load data from Firestore', error);
-        if (isActive) {
-          setDataError(error instanceof Error ? error.message : 'Une erreur inattendue est survenue.');
-        }
-      } finally {
-        if (isActive) {
-          setIsDataLoading(false);
-          setIsInitialized(true);
-        }
-      }
-    };
-
-    void initialize();
-
-    return () => {
-      isActive = false;
-      unsubscribers.forEach((unsubscribe) => unsubscribe());
-    };
-  }, [user, isAuthLoading]);
 
   const setTheme = useCallback((newTheme: 'light' | 'dark') => {
     setThemeState(newTheme);
   }, []);
 
-  const setClients = useCallback(
-    (updatedClients: Client[]) => {
-      setClientsState(updatedClients);
-      void persistCollectionChanges('clients', clients, updatedClients);
-      if (user) {
-        const updatedUser = updatedClients.find((client) => client.id === user.id) || null;
-        setUser(updatedUser);
-      }
-      if (originalUser) {
-        const updatedOriginalUser = updatedClients.find((client) => client.id === originalUser.id) || null;
-        setOriginalUser(updatedOriginalUser);
-      }
-    },
-    [clients, persistCollectionChanges, user, originalUser],
-  );
-
-  const setExercises = useCallback(
-    (updatedExercises: Exercise[]) => {
-      setExercisesState(updatedExercises);
-      void persistCollectionChanges('exercises', exercises, updatedExercises);
-    },
-    [exercises, persistCollectionChanges],
-  );
-
-  const setPrograms = useCallback(
-    (updatedPrograms: WorkoutProgram[]) => {
-      setProgramsState(updatedPrograms);
-      void persistCollectionChanges('programs', programs, updatedPrograms);
-    },
-    [programs, persistCollectionChanges],
-  );
-
-  const setSessions = useCallback(
-    (updatedSessions: WorkoutSession[]) => {
-      setSessionsState(updatedSessions);
-      void persistCollectionChanges('sessions', sessions, updatedSessions);
-    },
-    [sessions, persistCollectionChanges],
-  );
-
-  const setNutritionPlans = useCallback(
-    (updatedPlans: NutritionPlan[]) => {
-      setNutritionPlansState(updatedPlans);
-      void persistCollectionChanges('nutritionPlans', nutritionPlans, updatedPlans);
-    },
-    [nutritionPlans, persistCollectionChanges],
-  );
-
-  const setMessages = useCallback(
-    (updatedMessages: Message[]) => {
-      setMessagesState(updatedMessages);
-      void persistCollectionChanges('messages', messages, updatedMessages);
-    },
-    [messages, persistCollectionChanges],
-  );
-
-  const setClientFormations = useCallback(
-    (updatedFormations: ClientFormation[]) => {
-      setClientFormationsState(updatedFormations);
-      void persistCollectionChanges('clientFormations', clientFormations, updatedFormations);
-    },
-    [clientFormations, persistCollectionChanges],
-  );
-
-  const setProfessionalFormations = useCallback(
-    (updatedFormations: ProfessionalFormation[]) => {
-      setProfessionalFormationsState(updatedFormations);
-      void persistCollectionChanges('professionalFormations', professionalFormations, updatedFormations);
-    },
-    [professionalFormations, persistCollectionChanges],
-  );
-
-  const setNotifications = useCallback(
-    (updatedNotifications: Notification[]) => {
-      setNotificationsState(updatedNotifications);
-      void persistCollectionChanges('notifications', notifications, updatedNotifications);
-    },
-    [notifications, persistCollectionChanges],
-  );
-
-  const setFoodItems = useCallback(
-    (updatedFoodItems: FoodItem[]) => {
-      setFoodItemsState(updatedFoodItems);
-      void persistCollectionChanges('foodItems', foodItems, updatedFoodItems);
-    },
-    [foodItems, persistCollectionChanges],
-  );
-
-  const setBilanTemplates = useCallback(
-    (updatedTemplates: BilanTemplate[]) => {
-      setBilanTemplatesState(updatedTemplates);
-      void persistCollectionChanges('bilanTemplates', bilanTemplates, updatedTemplates);
-    },
-    [bilanTemplates, persistCollectionChanges],
-  );
-
-  const setPartners = useCallback(
-    (updatedPartners: Partner[]) => {
-      setPartnersState(updatedPartners);
-      void persistCollectionChanges('partners', partners, updatedPartners);
-    },
-    [partners, persistCollectionChanges],
-  );
-
-  const setProducts = useCallback(
-    (updatedProducts: Product[]) => {
-      setProductsState(updatedProducts);
-      void persistCollectionChanges('products', products, updatedProducts);
-    },
-    [products, persistCollectionChanges],
-  );
-
-  const setIntensificationTechniques = useCallback(
-    (updatedTechniques: IntensificationTechnique[]) => {
-      setIntensificationTechniquesState(updatedTechniques);
-      void persistCollectionChanges('intensificationTechniques', intensificationTechniques, updatedTechniques);
-    },
-    [intensificationTechniques, persistCollectionChanges],
-  );
-
-  const setRecipes = useCallback(
-    (updatedRecipes: Meal[]) => {
-      setRecipesState(updatedRecipes);
-      void persistCollectionChanges('recipes', recipes, updatedRecipes);
-    },
-    [recipes, persistCollectionChanges],
-  );
-
-  const setMeals = useCallback(
-    (updatedMeals: Meal[]) => {
-      setMealsState(updatedMeals);
-      void persistCollectionChanges('meals', meals, updatedMeals);
-    },
-    [meals, persistCollectionChanges],
-  );
-
   const login = useCallback(
-    async (email: string, password: string): Promise<void> => {
+    async (email: string, password: string) => {
       try {
-        setIsAuthLoading(true);
         await signIn(email, password);
-        // L'utilisateur sera automatiquement défini par onAuthStateChange
-        navigate('/app');
+        navigate('/');
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion';
-        console.error('Erreur lors de la connexion:', error);
-        throw new Error(errorMessage);
-      } finally {
-        setIsAuthLoading(false);
+        logger.error('Échec de la connexion', { error, email });
+        throw error;
       }
     },
     [navigate],
   );
+
+  const logout = useCallback(async () => {
+    try {
+      await signOutUser();
+      setUser(null);
+      setOriginalUser(null);
+      navigate('/login');
+    } catch (error) {
+      logger.error('Échec de la déconnexion', { error });
+      throw error;
+    }
+  }, [navigate]);
 
   const register = useCallback(
-    async (userData: SignUpData): Promise<void> => {
+    async (userData: SignUpData) => {
       try {
-        setIsAuthLoading(true);
         await signUp(userData);
-        // L'utilisateur sera automatiquement défini par onAuthStateChange
-        navigate('/app');
+        navigate('/');
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'inscription';
-        console.error('Erreur lors de l\'inscription:', error);
-        throw new Error(errorMessage);
-      } finally {
-        setIsAuthLoading(false);
+        logger.error('Échec de l\'inscription', { error, email: userData.email });
+        throw error;
       }
     },
     [navigate],
   );
 
-  const addUser = useCallback(
-    async (userData: Partial<Client>): Promise<Client> => {
-      if (!userData.email || !userData.firstName || !userData.lastName || !userData.role) {
-        throw new Error("Le Prénom, le Nom, l'Email et le Rôle sont requis pour créer un utilisateur.");
-      }
+  const addUser = useCallback(async (userData: Partial<Client>): Promise<Client> => {
+    const { data, error } = await supabase
+      .from('clients')
+      .insert([userData])
+      .select()
+      .single();
 
-      // Pour créer un utilisateur depuis l'admin, on utilise un mot de passe temporaire
-      const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
-      
-      const signUpData: SignUpData = {
-        email: userData.email,
-        password: tempPassword,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        role: userData.role,
-        phone: userData.phone,
-        age: userData.age,
-        sex: userData.sex,
-        coachId: userData.coachId,
-        affiliationCode: userData.affiliationCode,
-      };
-
-      const newClient = await signUp(signUpData);
-      
-      // TODO: Envoyer un email de réinitialisation de mot de passe au nouvel utilisateur
-      
-      return newClient;
-    },
-    [],
-  );
+    if (error) throw error;
+    return data as Client;
+  }, []);
 
   const addNotification = useCallback(
     async (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
-      const notificationsRef = collection(db, 'notifications');
-      const notificationDoc = doc(notificationsRef);
-      const newNotification: Notification = {
-        ...notification,
-        id: notificationDoc.id,
-        isRead: false,
-        timestamp: new Date().toISOString(),
-      };
-      await setDoc(notificationDoc, newNotification);
+      const { error } = await supabase.from('notifications').insert([
+        {
+          user_id: user?.id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          read: false,
+        },
+      ]);
+
+      if (error) {
+        logger.error('Échec de l\'ajout de la notification', { error });
+        throw error;
+      }
     },
-    [],
+    [user],
   );
 
   const impersonate = useCallback(
     (userId: string) => {
-      const targetUser = clients.find((client) => client.id === userId);
-      if (targetUser && user && user.role === 'admin' && user.id !== targetUser.id) {
-        setOriginalUser(user);
-        setUser(targetUser);
+      if (!user) return;
+      setOriginalUser(user);
+      const targetClient = clients.find((c) => c.id === userId);
+      if (targetClient) {
+        setUser(targetClient);
       }
     },
-    [clients, user],
+    [user, clients],
   );
 
   const stopImpersonating = useCallback(() => {
@@ -534,122 +346,61 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [originalUser]);
 
-  const logout = useCallback(async () => {
-    try {
-      await signOutUser();
-      setUser(null);
-      setOriginalUser(null);
-      navigate('/');
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-    }
-  }, [navigate]);
+  const value: AuthContextType = {
+    user,
+    originalUser,
+    theme,
+    clients,
+    exercises,
+    programs,
+    sessions,
+    nutritionPlans,
+    messages,
+    clientFormations,
+    professionalFormations,
+    notifications,
+    foodItems,
+    bilanTemplates,
+    partners,
+    products,
+    intensificationTechniques,
+    recipes,
+    meals,
+    isDataLoading,
+    dataError,
+    isAuthLoading,
+    login,
+    logout,
+    register,
+    addUser,
+    setClients: setClientsState,
+    setExercises: setExercisesState,
+    setPrograms: setProgramsState,
+    setSessions: setSessionsState,
+    setNutritionPlans: setNutritionPlansState,
+    setMessages: setMessagesState,
+    setClientFormations: setClientFormationsState,
+    setProfessionalFormations: setProfessionalFormationsState,
+    setNotifications: setNotificationsState,
+    setFoodItems: setFoodItemsState,
+    setBilanTemplates: setBilanTemplatesState,
+    setPartners: setPartnersState,
+    setProducts: setProductsState,
+    setIntensificationTechniques: setIntensificationTechniquesState,
+    setRecipes: setRecipesState,
+    setMeals: setMealsState,
+    addNotification,
+    impersonate,
+    stopImpersonating,
+    setTheme,
+  };
 
-  const value = useMemo(
-    () => ({
-      user,
-      originalUser,
-      theme,
-      clients,
-      exercises,
-      programs,
-      sessions,
-      nutritionPlans,
-      messages,
-      clientFormations,
-      professionalFormations,
-      notifications,
-      foodItems,
-      bilanTemplates,
-      partners,
-      products,
-      intensificationTechniques,
-      recipes,
-      meals,
-      isDataLoading,
-      dataError,
-      isAuthLoading,
-      login,
-      logout,
-      register,
-      addUser,
-      setClients,
-      setExercises,
-      setPrograms,
-      setSessions,
-      setNutritionPlans,
-      setMessages,
-      setClientFormations,
-      setProfessionalFormations,
-      setNotifications,
-      setFoodItems,
-      setBilanTemplates,
-      setPartners,
-      setProducts,
-      setIntensificationTechniques,
-      setRecipes,
-      setMeals,
-      addNotification,
-      impersonate,
-      stopImpersonating,
-      setTheme,
-    }),
-    [
-      user,
-      originalUser,
-      theme,
-      clients,
-      exercises,
-      programs,
-      sessions,
-      nutritionPlans,
-      messages,
-      clientFormations,
-      professionalFormations,
-      notifications,
-      foodItems,
-      bilanTemplates,
-      partners,
-      products,
-      intensificationTechniques,
-      recipes,
-      meals,
-      isDataLoading,
-      dataError,
-      isAuthLoading,
-      login,
-      logout,
-      register,
-      addUser,
-      setClients,
-      setExercises,
-      setPrograms,
-      setSessions,
-      setNutritionPlans,
-      setMessages,
-      setClientFormations,
-      setProfessionalFormations,
-      setNotifications,
-      setFoodItems,
-      setBilanTemplates,
-      setPartners,
-      setProducts,
-      setIntensificationTechniques,
-      setRecipes,
-      setMeals,
-      addNotification,
-      impersonate,
-      stopImpersonating,
-      setTheme,
-    ],
-  );
-
-  return <AuthContext.Provider value={value}>{isInitialized && !isAuthLoading ? children : null}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === null) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
