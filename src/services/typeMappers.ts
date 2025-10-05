@@ -20,6 +20,7 @@ export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Clien
     phone: supabaseClient.phone || '',
     role: supabaseClient.role as 'admin' | 'coach' | 'client',
     coachId: supabaseClient.coach_id || undefined,
+    status: (supabaseClient as any).status || 'active', // Gérer le status (à ajouter dans Supabase)
     createdAt: supabaseClient.created_at,
     // Champs supplémentaires qui peuvent ne pas être dans Supabase
     age: 0,
@@ -37,13 +38,14 @@ export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Clien
  * Convertir un client de l'application vers le format Supabase
  */
 export function mapClientToSupabaseClient(client: Partial<Client>): Partial<SupabaseClient> {
-  const result: Partial<SupabaseClient> = {
+  const result: Partial<SupabaseClient> & { status?: string } = {
     email: client.email,
     first_name: client.firstName,
     last_name: client.lastName,
     phone: client.phone || null,
     role: client.role,
     coach_id: client.coachId || null,
+    status: client.status || 'active', // Gérer le status
   };
   
   // N'inclure l'ID que s'il est défini (pour les mises à jour)

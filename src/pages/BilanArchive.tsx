@@ -18,7 +18,7 @@ const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null 
 };
 
 const BilanArchive: React.FC = () => {
-    const { user, clients: allClients, setClients } = useAuth();
+    const { user, clients: allClients, setClients, updateUser } = useAuth();
     const [selectedArchives, setSelectedArchives] = useState<string[]>([]);
     const [filter, setFilter] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -46,17 +46,20 @@ const BilanArchive: React.FC = () => {
         setSelectedBilan(null);
     };
 
-    const handleValidateBilan = (bilanId: string) => {
-        const updatedClients = allClients.map((client): Client => {
-            if (client.id === bilanId) {
-                return { ...client, status: 'active' as const, coachId: client.coachId || user?.id };
-            }
-            return client;
-        });
-        setClients(updatedClients);
-        alert(`Bilan de ${selectedBilan?.firstName} validé. Le prospect est maintenant un client.`);
-        closeModal();
-        navigate(`/app/client/${bilanId}`);
+    const handleValidateBilan = async (bilanId: string) => {
+        try {
+            // Mettre à jour le statut dans Supabase
+            await updateUser(bilanId, { 
+                status: 'active',
+                coachId: selectedBilan?.coachId || user?.id 
+            });
+            
+            alert(`Bilan de ${selectedBilan?.firstName} validé. Le prospect est maintenant un client.`);
+            closeModal();
+            navigate(`/app/client/${bilanId}`);
+        } catch (error: any) {
+            alert(`Erreur lors de la validation: ${error.message}`);
+        }
     };
 
     const handleDeleteBilan = (bilanId: string) => {
@@ -68,19 +71,27 @@ const BilanArchive: React.FC = () => {
         }
     };
     
-    const handleValidateSelected = () => {
+    const handleValidateSelected = async () => {
         if (selectedArchives.length === 0) return;
         const count = selectedArchives.length;
         if (window.confirm(`Êtes-vous sûr de vouloir valider ${count} bilan(s) ? Les prospects deviendront des clients.`)) {
-            const updatedClients = allClients.map((client): Client => {
-                if (selectedArchives.includes(client.id)) {
-                    return { ...client, status: 'active' as const, coachId: client.coachId || user?.id };
-                }
-                return client;
-            });
-            setClients(updatedClients);
-            setSelectedArchives([]);
-            alert(`${count} bilan(s) validé(s) avec succès.`);
+            try {
+                // Mettre à jour tous les prospects sélectionnés en parallèle
+                await Promise.all(
+                    selectedArchives.map(bilanId => {
+                        const client = allClients.find(c => c.id === bilanId);
+                        return updateUser(bilanId, { 
+                            status: 'active',
+                            coachId: client?.coachId || user?.id 
+                        });
+                    })
+                );
+                
+                setSelectedArchives([]);
+                alert(`${count} bilan(s) validé(s) avec succès.`);
+            } catch (error: any) {
+                alert(`Erreur lors de la validation: ${error.message}`);
+            }
         }
     };
     

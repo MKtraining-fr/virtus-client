@@ -344,6 +344,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (error) throw error;
     if (!authUser) throw new Error('Échec de la création de l\'utilisateur');
 
+    // Mettre à jour le statut dans la table clients si fourni
+    if (userData.status && userData.status !== 'active') {
+      await supabase
+        .from('clients')
+        .update({ status: userData.status })
+        .eq('id', authUser.id);
+    }
+
     // Récupérer le profil créé depuis la base de données
     const { data: clientData, error: fetchError } = await supabase
       .from('clients')
@@ -372,6 +380,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (userData.phone !== undefined) updateData.phone = userData.phone;
     if (userData.role !== undefined) updateData.role = userData.role;
     if (userData.coachId !== undefined) updateData.coach_id = userData.coachId;
+    if (userData.status !== undefined) updateData.status = userData.status;
 
     // Mettre à jour dans Supabase
     const { data, error } = await supabase
