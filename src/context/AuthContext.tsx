@@ -312,22 +312,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 
   const addUser = useCallback(async (userData: Partial<Client>): Promise<Client> => {
-    // Convertir les données du format camelCase vers snake_case pour Supabase
-    const supabaseData = mapClientToSupabaseClient(userData);
+    // Vérifier que les champs requis sont présents
+    if (!userData.email || !userData.password || !userData.firstName || !userData.lastName) {
+      throw new Error('Email, mot de passe, prénom et nom sont requis');
+    }
+
+    // Utiliser signUp pour créer l'utilisateur dans Auth ET dans la table clients
+    const signUpData: SignUpData = {
+      email: userData.email,
+      password: userData.password,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      phone: userData.phone,
+      role: userData.role || 'client',
+    };
+
+    const { user: authUser, error } = await signUp(signUpData);
     
-    const { data, error } = await supabase
+    if (error) throw error;
+    if (!authUser) throw new Error('Échec de la création de l\'utilisateur');
+
+    // Récupérer le profil créé depuis la base de données
+    const { data: clientData, error: fetchError } = await supabase
       .from('clients')
-      .insert([supabaseData])
-      .select()
+      .select('*')
+      .eq('id', authUser.id)
       .single();
 
-    if (error) throw error;
+    if (fetchError) throw fetchError;
     
     // Convertir les données retournées de snake_case vers camelCase
-    const newClient = mapSupabaseClientToClient(data);
+    const newClient = mapSupabaseClientToClient(clientData);
     
     // Mettre à jour la liste locale des clients
     setClientsState(prevClients => [...prevClients, newClient]);
+    
+    console.log('[AuthContext] Nouvel utilisateur créé:', newClient);
     
     return newClient;
   }, []);

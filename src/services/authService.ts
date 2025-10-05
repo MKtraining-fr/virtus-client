@@ -45,14 +45,13 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
   }
 
   // Créer le profil client dans la base de données
-  const clientProfile: Partial<Client> = {
+  const clientProfile = {
     id: authData.user.id,
     email: userData.email,
-    firstName: userData.firstName,
-    lastName: userData.lastName,
+    first_name: userData.firstName,
+    last_name: userData.lastName,
     phone: userData.phone || '',
     role: userData.role || 'client',
-    createdAt: new Date().toISOString(),
   };
 
   const { error: profileError } = await supabase
