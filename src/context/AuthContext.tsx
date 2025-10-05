@@ -310,7 +310,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (error) throw error;
     
     // Convertir les données retournées de snake_case vers camelCase
-    return mapSupabaseClientToClient(data);
+    const newClient = mapSupabaseClientToClient(data);
+    
+    // Mettre à jour la liste locale des clients
+    setClients(prevClients => [...prevClients, newClient]);
+    
+    return newClient;
   }, []);
 
   const addNotification = useCallback(
