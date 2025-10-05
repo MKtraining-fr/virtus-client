@@ -35,3 +35,9 @@ check_tables.py
 test-*.js
 deploy-schema.js
 fix_signup_policy.py
+
+# Scripts de diagnostic et fichiers temporaires
+check_*.py
+apply_*.py
+test_*.cjs
+fix_*.sql
