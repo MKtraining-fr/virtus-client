@@ -15,12 +15,9 @@ export interface SignUpData {
  * Inscription d'un nouvel utilisateur
  */
 export const signUp = async (userData: SignUpData): Promise<{ user: any; error: any }> => {
-  console.log('[signUp] Début de l\'inscription:', { email: userData.email, role: userData.role });
-  
   // Valider les données
   const validation = SignUpSchema.safeParse(userData);
   if (!validation.success) {
-    console.error('[signUp] Validation échouée:', validation.error);
     const errors = validation.error.errors;
     if (errors && errors.length > 0) {
       // Regrouper les erreurs de mot de passe
@@ -40,8 +37,6 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
     throw new Error('Données invalides');
   }
 
-  console.log('[signUp] Validation réussie, création dans Auth...');
-
   // Créer l'utilisateur dans Supabase Auth
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: userData.email,
@@ -57,16 +52,12 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
   });
 
   if (authError) {
-    console.error('[signUp] Erreur Auth:', authError);
     throw authError;
   }
 
   if (!authData.user) {
-    console.error('[signUp] Pas d\'utilisateur retourné');
     throw new Error('Échec de la création du compte');
   }
-
-  console.log('[signUp] Utilisateur Auth créé:', authData.user.id);
 
   // Créer le profil client dans la base de données
   const clientProfile = {
@@ -78,17 +69,13 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
     role: userData.role || 'client',
   };
 
-  console.log('[signUp] Insertion du profil dans la table clients...');
-
   const { error: profileError } = await supabase
     .from('clients')
     .insert([clientProfile]);
 
   if (profileError) {
-    console.error('[signUp] Erreur lors de la création du profil:', profileError);
+    console.error('Erreur lors de la création du profil:', profileError);
     // Ne pas bloquer l'inscription si le profil échoue
-  } else {
-    console.log('[signUp] Profil créé avec succès');
   }
 
   return { user: authData.user, error: null };
