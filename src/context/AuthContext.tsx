@@ -201,7 +201,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.log('[AuthContext] Données clients chargées:', {
           count: clientsData.data?.length || 0,
           error: clientsData.error,
-          data: clientsData.data
         });
 
         if (clientsData.error) {
@@ -209,8 +208,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         if (clientsData.data) {
+          console.log('[AuthContext] Données brutes avant mapping:', clientsData.data);
           const mappedClients = clientsData.data.map(mapSupabaseClientToClient);
           console.log('[AuthContext] Clients mappés:', mappedClients);
+          console.log('[AuthContext] Nombre de clients après mapping:', mappedClients.length);
           setClientsState(mappedClients);
         }
         if (exercisesData.data) {
