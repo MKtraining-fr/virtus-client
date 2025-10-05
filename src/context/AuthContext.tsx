@@ -131,10 +131,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
     if (typeof window === 'undefined') {
-      return 'dark';
+      return 'light';
     }
     const stored = window.localStorage.getItem(THEME_KEY);
-    return stored === 'light' ? 'light' : 'dark';
+    return stored === 'dark' ? 'dark' : 'light';
   });
 
   const [clients, setClientsState] = useState<Client[]>([]);
