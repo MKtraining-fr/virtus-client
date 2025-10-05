@@ -230,14 +230,28 @@ const NewBilan: React.FC = () => {
                         return (
                             <Accordion key={section.id} title={section.title} isOpenDefault={true}>
                                 <div className={`grid grid-cols-1 ${section.isCivility ? 'md:grid-cols-2' : ''} gap-4`}>
-                                    {section.fields.map(field => (
-                                        <DynamicField 
-                                            key={field.id}
-                                            field={field}
-                                            value={answers[field.id]}
-                                            onChange={(value) => handleAnswerChange(field.id, value)}
-                                        />
-                                    ))}
+                                    {section.fields.map(field => {
+                                        // Gérer les champs conditionnels
+                                        if (field.conditionalOn && field.conditionalValue) {
+                                            const parentValue = answers[field.conditionalOn];
+                                            const shouldShow = Array.isArray(parentValue) 
+                                                ? parentValue.includes(field.conditionalValue)
+                                                : parentValue === field.conditionalValue;
+                                            
+                                            if (!shouldShow) {
+                                                return null;
+                                            }
+                                        }
+                                        
+                                        return (
+                                            <DynamicField 
+                                                key={field.id}
+                                                field={field}
+                                                value={answers[field.id]}
+                                                onChange={(value) => handleAnswerChange(field.id, value)}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             </Accordion>
                         );

@@ -23,6 +23,10 @@ export interface BilanField {
     type: BilanFieldType;
     placeholder?: string;
     options?: string[];
+    hasOther?: boolean;
+    otherFieldId?: string;
+    conditionalOn?: string;
+    conditionalValue?: string;
 }
 
 export interface BilanSection {
