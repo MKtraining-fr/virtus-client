@@ -23,6 +23,18 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
     console.error('[signUp] Validation échouée:', validation.error);
     const errors = validation.error.errors;
     if (errors && errors.length > 0) {
+      // Regrouper les erreurs de mot de passe
+      const passwordErrors = errors.filter(e => e.path[0] === 'password');
+      if (passwordErrors.length > 0) {
+        const requirements = [
+          '• Au moins 8 caractères',
+          '• Au moins une majuscule',
+          '• Au moins une minuscule',
+          '• Au moins un chiffre',
+          '• Au moins un caractère spécial'
+        ];
+        throw new Error('Le mot de passe ne respecte pas les exigences:\n' + requirements.join('\n'));
+      }
       throw new Error(errors[0].message);
     }
     throw new Error('Données invalides');

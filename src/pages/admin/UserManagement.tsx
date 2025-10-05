@@ -292,15 +292,22 @@ const UserManagement: React.FC = () => {
                         <Input label="Nom" name="lastName" value={currentUser?.lastName || ''} onChange={handleFormChange} required />
                     </div>
                     <Input label="Email" name="email" type="email" value={currentUser?.email || ''} onChange={handleFormChange} required />
-                    <Input 
-                        label="Mot de passe" 
-                        name="password" 
-                        type="password" 
-                        value={currentUser?.password || ''} 
-                        onChange={handleFormChange} 
-                        required={modalMode === 'add'} 
-                        placeholder={modalMode === 'edit' ? "Laisser vide pour ne pas changer" : ""}
-                    />
+                    <div>
+                        <Input 
+                            label="Mot de passe" 
+                            name="password" 
+                            type="password" 
+                            value={currentUser?.password || ''} 
+                            onChange={handleFormChange} 
+                            required={modalMode === 'add'} 
+                            placeholder={modalMode === 'edit' ? "Laisser vide pour ne pas changer" : ""}
+                        />
+                        {modalMode === 'add' && (
+                            <p className="mt-1 text-xs text-gray-500">
+                                Le mot de passe doit contenir : 8 caractères minimum, une majuscule, une minuscule, un chiffre et un caractère spécial
+                            </p>
+                        )}
+                    </div>
                     <Select label="Profil" name="role" value={currentUser?.role || 'client'} onChange={handleFormChange}>
                         <option value="client">Client</option>
                         <option value="coach">Coach</option>
