@@ -331,14 +331,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const addUser = useCallback(async (userData: Partial<Client>): Promise<Client> => {
     // Vérifier que les champs requis sont présents
-    if (!userData.email || !userData.password || !userData.firstName || !userData.lastName) {
-      throw new Error('Email, mot de passe, prénom et nom sont requis');
+    if (!userData.email || !userData.firstName || !userData.lastName) {
+      throw new Error('Email, prénom et nom sont requis');
     }
+
+    // Générer un mot de passe temporaire sécurisé (ne sera jamais communiqué à l'utilisateur)
+    const generateSecurePassword = (): string => {
+      const length = 32;
+      const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+      let password = '';
+      
+      // Ajouter au moins un caractère de chaque type requis
+      password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)]; // Majuscule
+      password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)]; // Minuscule
+      password += '0123456789'[Math.floor(Math.random() * 10)]; // Chiffre
+      password += '!@#$%^&*'[Math.floor(Math.random() * 8)]; // Caractère spécial
+      
+      // Compléter avec des caractères aléatoires
+      for (let i = password.length; i < length; i++) {
+        password += charset[Math.floor(Math.random() * charset.length)];
+      }
+      
+      // Mélanger les caractères
+      return password.split('').sort(() => Math.random() - 0.5).join('');
+    };
+
+    const tempPassword = generateSecurePassword();
 
     // Utiliser signUp pour créer l'utilisateur dans Auth ET dans la table clients
     const signUpData: SignUpData = {
       email: userData.email,
-      password: userData.password,
+      password: tempPassword,
       firstName: userData.firstName,
       lastName: userData.lastName,
       phone: userData.phone,
@@ -350,12 +373,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (error) throw error;
     if (!authUser) throw new Error('Échec de la création de l\'utilisateur');
 
-    // Mettre à jour le statut dans la table clients si fourni
-    if (userData.status && userData.status !== 'active') {
+    // Mettre à jour le statut et coachId dans la table clients
+    const updateData: any = {};
+    if (userData.status) updateData.status = userData.status;
+    if (userData.coachId) updateData.coach_id = userData.coachId;
+    if (user?.id) updateData.coach_id = user.id; // Associer au coach connecté
+
+    if (Object.keys(updateData).length > 0) {
       await supabase
         .from('clients')
-        .update({ status: userData.status })
+        .update(updateData)
         .eq('id', authUser.id);
+    }
+
+    // Envoyer un email de réinitialisation de mot de passe
+    // Cela permettra au client de définir son propre mot de passe
+    try {
+      await supabase.auth.resetPasswordForEmail(userData.email, {
+        redirectTo: `${window.location.origin}/set-password`,
+      });
+      console.log('Email d\'invitation envoyé à:', userData.email);
+    } catch (emailError) {
+      console.error('Erreur lors de l\'envoi de l\'email d\'invitation:', emailError);
+      // Ne pas bloquer l'inscription si l'email échoue
     }
 
     // Récupérer le profil créé depuis la base de données
@@ -374,7 +414,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setClientsState(prevClients => [...prevClients, newClient]);
     
     return newClient;
-  }, []);
+  }, [user]);
 
   const updateUser = useCallback(async (userId: string, userData: Partial<Client>) => {
     // Convertir les données de camelCase vers snake_case pour Supabase

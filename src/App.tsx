@@ -8,6 +8,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 
 // Lazy loading des composants lourds
 const AuthPage = lazy(() => import('./pages/AuthPage'));
+const SetPassword = lazy(() => import('./pages/SetPassword'));
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const CoachLayout = lazy(() => import('./layouts/CoachLayout'));
 const ClientLayout = lazy(() => import('./layouts/ClientLayout'));
@@ -38,6 +39,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={!user ? <AuthPage /> : <Navigate to="/app" replace />} />
+          <Route path="/set-password" element={<SetPassword />} />
           <Route
             path="/app/*"
             element={
