@@ -37,8 +37,7 @@ export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Clien
  * Convertir un client de l'application vers le format Supabase
  */
 export function mapClientToSupabaseClient(client: Partial<Client>): Partial<SupabaseClient> {
-  return {
-    id: client.id,
+  const result: Partial<SupabaseClient> = {
     email: client.email,
     first_name: client.firstName,
     last_name: client.lastName,
@@ -46,6 +45,13 @@ export function mapClientToSupabaseClient(client: Partial<Client>): Partial<Supa
     role: client.role,
     coach_id: client.coachId || null,
   };
+  
+  // N'inclure l'ID que s'il est défini (pour les mises à jour)
+  if (client.id) {
+    result.id = client.id;
+  }
+  
+  return result;
 }
 
 /**
