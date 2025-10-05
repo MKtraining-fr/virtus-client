@@ -42,6 +42,7 @@ import {
   mapSupabaseMessageToMessage,
   mapSupabaseNotificationToNotification,
   mapClientToSupabaseClient,
+  mapSupabaseBilanTemplateToTemplate,
 } from '../services/typeMappers';
 
 export type User = Client;
@@ -199,6 +200,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         messagesData,
         notificationsData,
         foodItemsData,
+        bilanTemplatesData,
       ] = await Promise.all([
         supabase.from('clients').select('*'),
         supabase.from('exercises').select('*'),
@@ -208,6 +210,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         supabase.from('messages').select('*'),
         supabase.from('notifications').select('*'),
         supabase.from('food_items').select('*'),
+        supabase.from('bilan_templates').select('*'),
       ]);
 
       if (clientsData.error) {
@@ -238,6 +241,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       if (foodItemsData.data) {
         setFoodItemsState(foodItemsData.data as FoodItem[]);
+      }
+      if (bilanTemplatesData.data) {
+        setBilanTemplatesState(bilanTemplatesData.data.map(mapSupabaseBilanTemplateToTemplate));
       }
 
     } catch (error) {

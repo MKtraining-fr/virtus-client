@@ -214,3 +214,36 @@ export function mapNotificationToSupabaseNotification(notification: Partial<Noti
     read: notification.isRead || false,
   };
 }
+
+
+// ============================================================
+// BILAN TEMPLATES MAPPERS
+// ============================================================
+
+/**
+ * Convertir un template de bilan Supabase vers le format de l'application
+ */
+export function mapSupabaseBilanTemplateToTemplate(supabaseTemplate: any): BilanTemplate {
+  return {
+    id: supabaseTemplate.id,
+    name: supabaseTemplate.name,
+    coachId: supabaseTemplate.coach_id || 'system',
+    sections: supabaseTemplate.sections || [],
+  };
+}
+
+/**
+ * Convertir un template de bilan de l'application vers le format Supabase
+ */
+export function mapBilanTemplateToSupabaseTemplate(template: Partial<BilanTemplate>): any {
+  const supabaseTemplate: any = {};
+  
+  if (template.id !== undefined) supabaseTemplate.id = template.id;
+  if (template.name !== undefined) supabaseTemplate.name = template.name;
+  if (template.coachId !== undefined) {
+    supabaseTemplate.coach_id = template.coachId === 'system' ? null : template.coachId;
+  }
+  if (template.sections !== undefined) supabaseTemplate.sections = template.sections;
+  
+  return supabaseTemplate;
+}
