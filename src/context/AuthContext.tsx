@@ -73,6 +73,7 @@ interface AuthContextType {
   logout: () => void;
   register: (userData: SignUpData) => Promise<void>;
   addUser: (userData: Partial<Client>) => Promise<Client>;
+  updateUser: (userId: string, userData: Partial<Client>) => Promise<Client>;
   setClients: (clients: Client[]) => void;
   setExercises: (exercises: Exercise[]) => void;
   setPrograms: (programs: WorkoutProgram[]) => void;
@@ -341,6 +342,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return newClient;
   }, []);
 
+  const updateUser = useCallback(async (userId: string, userData: Partial<Client>) => {
+    // Convertir les données de camelCase vers snake_case pour Supabase
+    const updateData: any = {};
+    
+    if (userData.firstName !== undefined) updateData.first_name = userData.firstName;
+    if (userData.lastName !== undefined) updateData.last_name = userData.lastName;
+    if (userData.email !== undefined) updateData.email = userData.email;
+    if (userData.phone !== undefined) updateData.phone = userData.phone;
+    if (userData.role !== undefined) updateData.role = userData.role;
+    if (userData.coachId !== undefined) updateData.coach_id = userData.coachId;
+
+    // Mettre à jour dans Supabase
+    const { data, error } = await supabase
+      .from('clients')
+      .update(updateData)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    // Convertir les données retournées de snake_case vers camelCase
+    const updatedClient = mapSupabaseClientToClient(data);
+    
+    // Mettre à jour la liste locale des clients
+    setClientsState(prevClients => 
+      prevClients.map(client => 
+        client.id === userId ? updatedClient : client
+      )
+    );
+    
+    return updatedClient;
+  }, []);
+
   const addNotification = useCallback(
     async (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
       const { error } = await supabase.from('notifications').insert([
@@ -407,6 +442,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logout,
     register,
     addUser,
+    updateUser,
     setClients: setClientsState,
     setExercises: setExercisesState,
     setPrograms: setProgramsState,

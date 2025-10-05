@@ -18,7 +18,7 @@ const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null 
 };
 
 const UserManagement: React.FC = () => {
-    const { clients: allUsers, addUser, setClients } = useAuth();
+    const { clients: allUsers, addUser, updateUser, setClients } = useAuth();
     const [filter, setFilter] = useState('');
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState<'all' | 'coaches' | 'clients'>('all');
@@ -130,18 +130,8 @@ const UserManagement: React.FC = () => {
                     throw new Error("Le prénom, le nom et l'email sont requis.");
                 }
                 
-                const updatedUsers = allUsers.map(u => {
-                    if (u.id === currentUser.id) {
-                        const updatedUser = { ...u, ...currentUser };
-                        // Only update password if a new one is entered
-                        if (!currentUser.password) {
-                            updatedUser.password = u.password;
-                        }
-                        return updatedUser;
-                    }
-                    return u;
-                });
-                setClients(updatedUsers);
+                // Mettre à jour l'utilisateur dans Supabase
+                await updateUser(currentUser.id, currentUser);
             }
             setIsModalOpen(false);
             setCurrentUser(null);
