@@ -468,9 +468,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const deleteUser = useCallback(async (userId: string) => {
     // Supprimer de Supabase
     const { error } = await supabase
-      .from(\'clients\')
+      .from('clients')
       .delete()
-      .eq(\'id\', userId);
+      .eq('id', userId);
 
     if (error) throw error;
 
@@ -483,9 +483,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/set-password`,
       });
-      console.log(\'Email d\\\'invitation renvoyé à:\', email);
+      console.log('Email d\'invitation renvoyé à:', email);
     } catch (error) {
-      logger.error(\'Erreur lors du renvoi de l\\\'email d\\\'invitation:\', { error });
+      logger.error(\'Erreur lors du renvoi de l\'email d\'invitation:\', { error });
       throw error;
     }
   }, []);
