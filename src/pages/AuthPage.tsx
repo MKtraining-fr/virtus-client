@@ -6,6 +6,7 @@ import Button from '../components/Button';
 import Select from '../components/Select';
 import { Client } from '../types';
 import { ArrowLeftIcon } from '../constants/icons';
+import { resetPassword } from '../services/authService';
 
 const AuthPage: React.FC = () => {
   const [isLoginView, setIsLoginView] = useState(true);
@@ -17,6 +18,9 @@ const AuthPage: React.FC = () => {
   const [affiliationCode, setAffiliationCode] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
   const { login, register, clients, isDataLoading, dataError } = useAuth();
   const location = useLocation();
 
@@ -91,6 +95,24 @@ const AuthPage: React.FC = () => {
         
         await register(newUser);
       }
+    } catch (err: any) {
+      setError(err.message || 'Une erreur est survenue.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      if (!forgotPasswordEmail) {
+        throw new Error('Veuillez saisir votre adresse email.');
+      }
+      await resetPassword(forgotPasswordEmail);
+      setForgotPasswordSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue.');
     } finally {
@@ -208,12 +230,88 @@ const AuthPage: React.FC = () => {
                     </Button>
                 </div>
             ) : (
-                <Button type="submit" className="w-full" disabled={isFormDisabled}>
-                    {isLoading ? 'Chargement...' : 'Se connecter'}
-                </Button>
+                <>
+                  <Button type="submit" className="w-full" disabled={isFormDisabled}>
+                      {isLoading ? 'Chargement...' : 'Se connecter'}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-primary hover:underline mt-2 w-full text-center"
+                  >
+                    Mot de passe oublié ?
+                  </button>
+                </>
             )}
           </div>
         </form>
+
+        {/* Modal Mot de passe oublié */}
+        {showForgotPassword && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              {!forgotPasswordSuccess ? (
+                <>
+                  <h3 className="text-xl font-semibold mb-4">Réinitialiser le mot de passe</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+                  </p>
+                  <form onSubmit={handleForgotPassword}>
+                    <Input
+                      label="Adresse Email"
+                      id="forgot-email"
+                      type="email"
+                      value={forgotPasswordEmail}
+                      onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                    {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+                    <div className="flex gap-4 mt-6">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => {
+                          setShowForgotPassword(false);
+                          setForgotPasswordEmail('');
+                          setError('');
+                        }}
+                        disabled={isLoading}
+                      >
+                        Annuler
+                      </Button>
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? 'Envoi...' : 'Envoyer'}
+                      </Button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-xl font-semibold mb-4 text-green-600">Email envoyé !</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Un email contenant un lien de réinitialisation a été envoyé à <strong>{forgotPasswordEmail}</strong>.
+                  </p>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Veuillez vérifier votre boîte de réception et suivre les instructions.
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setForgotPasswordSuccess(false);
+                      setForgotPasswordEmail('');
+                      setError('');
+                    }}
+                    className="w-full"
+                  >
+                    Fermer
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

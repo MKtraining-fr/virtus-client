@@ -148,7 +148,7 @@ export const getClientProfile = async (userId: string): Promise<Client | null> =
  */
 export const resetPassword = async (email: string): Promise<void> => {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
+    redirectTo: `${window.location.origin}/set-password`,
   });
 
   if (error) {
