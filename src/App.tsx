@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
+import { AuthCallback } from './components/AuthCallback';
 
 // Lazy loading des composants lourds
 const AuthPage = lazy(() => import('./pages/AuthPage'));
@@ -35,6 +36,7 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
+      <AuthCallback />
       <Suspense fallback={<LoadingSpinner fullScreen message="Chargement..." />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
