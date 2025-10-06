@@ -16,7 +16,7 @@ export interface Database {
           first_name: string
           last_name: string
           phone: string | null
-          role: 'admin' | 'coach' | 'client'
+          role: string
           coach_id: string | null
           dob: string | null
           age: number | null
@@ -45,7 +45,7 @@ export interface Database {
           first_name: string
           last_name: string
           phone?: string | null
-          role?: 'admin' | 'coach' | 'client'
+          role: string
           coach_id?: string | null
           dob?: string | null
           age?: number | null
@@ -74,7 +74,7 @@ export interface Database {
           first_name?: string
           last_name?: string
           phone?: string | null
-          role?: 'admin' | 'coach' | 'client'
+          role?: string
           coach_id?: string | null
           dob?: string | null
           age?: number | null
@@ -109,6 +109,12 @@ export interface Database {
           difficulty: string | null
           video_url: string | null
           image_url: string | null
+          type: string | null
+          secondary_muscle_groups: string[] | null
+          alternative_1_id: string | null
+          alternative_2_id: string | null
+          created_by: string | null
+          is_public: boolean | null
           created_at: string
           updated_at: string
         }
@@ -122,6 +128,12 @@ export interface Database {
           difficulty?: string | null
           video_url?: string | null
           image_url?: string | null
+          type?: string | null
+          secondary_muscle_groups?: string[] | null
+          alternative_1_id?: string | null
+          alternative_2_id?: string | null
+          created_by?: string | null
+          is_public?: boolean | null
           created_at?: string
           updated_at?: string
         }
@@ -135,6 +147,12 @@ export interface Database {
           difficulty?: string | null
           video_url?: string | null
           image_url?: string | null
+          type?: string | null
+          secondary_muscle_groups?: string[] | null
+          alternative_1_id?: string | null
+          alternative_2_id?: string | null
+          created_by?: string | null
+          is_public?: boolean | null
           created_at?: string
           updated_at?: string
         }
@@ -144,10 +162,13 @@ export interface Database {
           id: string
           name: string
           description: string | null
-          client_id: string | null
           coach_id: string | null
-          duration_weeks: number | null
+          max_weeks: number | null
           goal: string | null
+          sessions_per_week: number | null
+          is_template: boolean | null
+          is_public: boolean | null
+          created_by: string | null
           created_at: string
           updated_at: string
         }
@@ -155,10 +176,13 @@ export interface Database {
           id?: string
           name: string
           description?: string | null
-          client_id?: string | null
           coach_id?: string | null
-          duration_weeks?: number | null
+          max_weeks?: number | null
           goal?: string | null
+          sessions_per_week?: number | null
+          is_template?: boolean | null
+          is_public?: boolean | null
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -166,10 +190,13 @@ export interface Database {
           id?: string
           name?: string
           description?: string | null
-          client_id?: string | null
           coach_id?: string | null
-          duration_weeks?: number | null
+          max_weeks?: number | null
           goal?: string | null
+          sessions_per_week?: number | null
+          is_template?: boolean | null
+          is_public?: boolean | null
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -180,8 +207,13 @@ export interface Database {
           program_id: string | null
           name: string
           day_of_week: number | null
-          exercises: Json | null
+          exercises: Json
           notes: string | null
+          description: string | null
+          week_number: number | null
+          session_order: number | null
+          is_template: boolean | null
+          created_by: string | null
           created_at: string
           updated_at: string
         }
@@ -190,8 +222,13 @@ export interface Database {
           program_id?: string | null
           name: string
           day_of_week?: number | null
-          exercises?: Json | null
+          exercises: Json
           notes?: string | null
+          description?: string | null
+          week_number?: number | null
+          session_order?: number | null
+          is_template?: boolean | null
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -200,8 +237,13 @@ export interface Database {
           program_id?: string | null
           name?: string
           day_of_week?: number | null
-          exercises?: Json | null
+          exercises?: Json
           notes?: string | null
+          description?: string | null
+          week_number?: number | null
+          session_order?: number | null
+          is_template?: boolean | null
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -209,40 +251,34 @@ export interface Database {
       nutrition_plans: {
         Row: {
           id: string
-          client_id: string | null
           name: string
           description: string | null
-          calories_target: number | null
-          protein_target: number | null
-          carbs_target: number | null
-          fat_target: number | null
-          meals: Json | null
+          coach_id: string | null
+          client_id: string | null
+          plan_type: string | null
+          content: Json
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          client_id?: string | null
           name: string
           description?: string | null
-          calories_target?: number | null
-          protein_target?: number | null
-          carbs_target?: number | null
-          fat_target?: number | null
-          meals?: Json | null
+          coach_id?: string | null
+          client_id?: string | null
+          plan_type?: string | null
+          content: Json
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          client_id?: string | null
           name?: string
           description?: string | null
-          calories_target?: number | null
-          protein_target?: number | null
-          carbs_target?: number | null
-          fat_target?: number | null
-          meals?: Json | null
+          coach_id?: string | null
+          client_id?: string | null
+          plan_type?: string | null
+          content?: Json
           created_at?: string
           updated_at?: string
         }
@@ -255,6 +291,8 @@ export interface Database {
           subject: string | null
           content: string
           read: boolean
+          is_voice: boolean | null
+          voice_url: string | null
           created_at: string
         }
         Insert: {
@@ -264,6 +302,8 @@ export interface Database {
           subject?: string | null
           content: string
           read?: boolean
+          is_voice?: boolean | null
+          voice_url?: string | null
           created_at?: string
         }
         Update: {
@@ -273,6 +313,8 @@ export interface Database {
           subject?: string | null
           content?: string
           read?: boolean
+          is_voice?: boolean | null
+          voice_url?: string | null
           created_at?: string
         }
       }
@@ -315,6 +357,10 @@ export interface Database {
           carbs: number | null
           fat: number | null
           serving_size: string | null
+          food_family: string | null
+          micronutrients: Json | null
+          created_by: string | null
+          is_public: boolean | null
           created_at: string
         }
         Insert: {
@@ -326,6 +372,10 @@ export interface Database {
           carbs?: number | null
           fat?: number | null
           serving_size?: string | null
+          food_family?: string | null
+          micronutrients?: Json | null
+          created_by?: string | null
+          is_public?: boolean | null
           created_at?: string
         }
         Update: {
@@ -337,7 +387,319 @@ export interface Database {
           carbs?: number | null
           fat?: number | null
           serving_size?: string | null
+          food_family?: string | null
+          micronutrients?: Json | null
+          created_by?: string | null
+          is_public?: boolean | null
           created_at?: string
+        }
+      }
+      bilan_templates: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          sections: Json
+          coach_id: string | null
+          is_public: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          sections: Json
+          coach_id?: string | null
+          is_public?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          sections?: Json
+          coach_id?: string | null
+          is_public?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      intensification_techniques: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          adds_sub_series: boolean | null
+          sub_series_config: Json | null
+          created_by: string | null
+          is_public: boolean | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          adds_sub_series?: boolean | null
+          sub_series_config?: Json | null
+          created_by?: string | null
+          is_public?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          adds_sub_series?: boolean | null
+          sub_series_config?: Json | null
+          created_by?: string | null
+          is_public?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      program_assignments: {
+        Row: {
+          id: string
+          program_id: string
+          client_id: string
+          coach_id: string
+          start_date: string
+          end_date: string | null
+          current_week: number | null
+          current_session: number | null
+          status: string | null
+          customizations: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          program_id: string
+          client_id: string
+          coach_id: string
+          start_date: string
+          end_date?: string | null
+          current_week?: number | null
+          current_session?: number | null
+          status?: string | null
+          customizations?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          program_id?: string
+          client_id?: string
+          coach_id?: string
+          start_date?: string
+          end_date?: string | null
+          current_week?: number | null
+          current_session?: number | null
+          status?: string | null
+          customizations?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      performance_logs: {
+        Row: {
+          id: string
+          client_id: string
+          program_assignment_id: string | null
+          session_id: string | null
+          session_date: string
+          week_number: number | null
+          session_number: number | null
+          exercises_performed: Json
+          session_order_modified: Json | null
+          questionnaire_responses: Json | null
+          total_duration_minutes: number | null
+          total_tonnage: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          program_assignment_id?: string | null
+          session_id?: string | null
+          session_date: string
+          week_number?: number | null
+          session_number?: number | null
+          exercises_performed: Json
+          session_order_modified?: Json | null
+          questionnaire_responses?: Json | null
+          total_duration_minutes?: number | null
+          total_tonnage?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          program_assignment_id?: string | null
+          session_id?: string | null
+          session_date?: string
+          week_number?: number | null
+          session_number?: number | null
+          exercises_performed?: Json
+          session_order_modified?: Json | null
+          questionnaire_responses?: Json | null
+          total_duration_minutes?: number | null
+          total_tonnage?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      recipes: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          ingredients: Json
+          preparation_steps: string[] | null
+          total_calories: number | null
+          total_protein: number | null
+          total_carbs: number | null
+          total_fat: number | null
+          servings: number | null
+          prep_time_minutes: number | null
+          cook_time_minutes: number | null
+          image_url: string | null
+          created_by: string | null
+          is_public: boolean | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          ingredients: Json
+          preparation_steps?: string[] | null
+          total_calories?: number | null
+          total_protein?: number | null
+          total_carbs?: number | null
+          total_fat?: number | null
+          servings?: number | null
+          prep_time_minutes?: number | null
+          cook_time_minutes?: number | null
+          image_url?: string | null
+          created_by?: string | null
+          is_public?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          ingredients?: Json
+          preparation_steps?: string[] | null
+          total_calories?: number | null
+          total_protein?: number | null
+          total_carbs?: number | null
+          total_fat?: number | null
+          servings?: number | null
+          prep_time_minutes?: number | null
+          cook_time_minutes?: number | null
+          image_url?: string | null
+          created_by?: string | null
+          is_public?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      nutrition_plan_assignments: {
+        Row: {
+          id: string
+          nutrition_plan_id: string
+          client_id: string
+          coach_id: string
+          start_date: string
+          end_date: string | null
+          status: string | null
+          customizations: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nutrition_plan_id: string
+          client_id: string
+          coach_id: string
+          start_date: string
+          end_date?: string | null
+          status?: string | null
+          customizations?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nutrition_plan_id?: string
+          client_id?: string
+          coach_id?: string
+          start_date?: string
+          end_date?: string | null
+          status?: string | null
+          customizations?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      nutrition_logs: {
+        Row: {
+          id: string
+          client_id: string
+          nutrition_plan_assignment_id: string | null
+          log_date: string
+          meals: Json
+          total_calories: number | null
+          total_protein: number | null
+          total_carbs: number | null
+          total_fat: number | null
+          adherence_score: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          nutrition_plan_assignment_id?: string | null
+          log_date: string
+          meals: Json
+          total_calories?: number | null
+          total_protein?: number | null
+          total_carbs?: number | null
+          total_fat?: number | null
+          adherence_score?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          nutrition_plan_assignment_id?: string | null
+          log_date?: string
+          meals?: Json
+          total_calories?: number | null
+          total_protein?: number | null
+          total_carbs?: number | null
+          total_fat?: number | null
+          adherence_score?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
         }
       }
     }
