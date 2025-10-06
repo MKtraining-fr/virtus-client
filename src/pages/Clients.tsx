@@ -144,39 +144,40 @@ const Clients: React.FC = () => {
                                 {renderHeader('Âge', 'age')}
                                 {renderHeader('Sexe', 'sex')}
                                 {renderHeader('Email', 'email')}
-                                {renderHeader(\'Téléphone\', \'phone\')}
-                                <th className=\'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\'>Actions</th>
+                                {renderHeader('Téléphone', 'phone')}
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className=\'bg-white divide-y divide-gray-200\'>
+                        <tbody className="bg-white divide-y divide-gray-200">
                             {filteredClients.map(client => (
-                                <tr key={client.id} className=\'hover:bg-gray-50 cursor-pointer\' onClick={() => handleRowClick(client.id!)}>
-                                    <td className=\'p-4\' onClick={(e) => e.stopPropagation()}>
-                                        <input type=\'checkbox\' onChange={() => handleSelectOne(client.id!)} checked={selectedClients.includes(client.id!)} />
+                                <tr key={client.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleRowClick(client.id!)}>
+                                    <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                                        <input type="checkbox" onChange={() => handleSelectOne(client.id!)} checked={selectedClients.includes(client.id!)} />
                                     </td>
-                                    <td className=\'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900\'>{client.lastName}</td>
-                                    <td className=\'px-6 py-4 whitespace-nowrap text-sm text-gray-500\'>{client.firstName}</td>
-                                    <td className=\'px-6 py-4 whitespace-nowrap text-sm text-gray-500\'>{client.age}</td>
-                                    <td className=\'px-6 py-4 whitespace-nowrap text-sm text-gray-500\'>{client.sex}</td>
-                                    <td className=\'px-6 py-4 whitespace-nowrap text-sm text-gray-500\'>{client.email}</td>
-                                    <td className=\'px-6 py-4 whitespace-nowrap text-sm text-gray-500\'>{client.phone}</td>
-                                    <td className=\'px-6 py-4 whitespace-nowrap text-right text-sm font-medium\' onClick={(e) => e.stopPropagation()}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.lastName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.firstName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.age}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.sex}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.email}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.phone}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
                                         <Button
-                                            variant=\'secondary\'
-                                            onClick={async () => {
+                                            variant="secondary"
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
                                                 if (client.email) {
                                                     try {
                                                         await resendInvitation(client.email);
-                                                        alert(`Email d\'invitation renvoyé à ${client.email}`);
+                                                        alert(`Email d'invitation renvoyé à ${client.email}`);
                                                     } catch (error) {
-                                                        alert(`Erreur lors du renvoi de l\'email: ${error.message}`);
+                                                        alert(`Erreur lors du renvoi de l'email: ${error.message}`);
                                                     }
                                                 } else {
-                                                    alert(\'L\'adresse email du client est manquante.\');
+                                                    alert('L\'adresse email du client est manquante.');
                                                 }
                                             }}
                                         >
-                                            Renvoyer l\'invitation
+                                            Renvoyer l'invitation
                                         </Button>
                                     </td>
                                 </tr>
@@ -187,4 +188,7 @@ const Clients: React.FC = () => {
             </Card>
         </div>
     );
-};;
+};
+
+export default Clients;
+
