@@ -485,7 +485,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
       console.log('Email d\'invitation renvoyé à:', email);
     } catch (error) {
-      logger.error(\'Erreur lors du renvoi de l\'email d\'invitation:\', { error });
+      logger.error('Erreur lors du renvoi de l\'email d\'invitation:', { error });
       throw error;
     }
   }, []);
