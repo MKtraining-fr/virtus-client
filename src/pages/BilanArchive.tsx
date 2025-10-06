@@ -18,7 +18,7 @@ const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null 
 };
 
 const BilanArchive: React.FC = () => {
-    const { user, clients: allClients, setClients, updateUser } = useAuth();
+    const { user, clients: allClients, setClients, updateUser, deleteUser } = useAuth();
     const [selectedArchives, setSelectedArchives] = useState<string[]>([]);
     const [filter, setFilter] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,12 +62,16 @@ const BilanArchive: React.FC = () => {
         }
     };
 
-    const handleDeleteBilan = (bilanId: string) => {
+    const handleDeleteBilan = async (bilanId: string) => {
         if (window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement ce bilan ? Cette action est irréversible.`)) {
-            const updatedClients = allClients.filter(c => c.id !== bilanId);
-            setClients(updatedClients);
-            alert(`Bilan de ${selectedBilan?.firstName} ${selectedBilan?.lastName} supprimé avec succès.`);
-            closeModal();
+            try {
+                await deleteUser(bilanId);
+                alert(`Bilan de ${selectedBilan?.firstName} ${selectedBilan?.lastName} supprimé avec succès.`);
+                closeModal();
+            } catch (error) {
+                console.error("Erreur lors de la suppression du bilan:", error);
+                alert("Erreur lors de la suppression du bilan. Veuillez réessayer.");
+            }
         }
     };
     
@@ -95,14 +99,20 @@ const BilanArchive: React.FC = () => {
         }
     };
     
-    const handleDeleteSelected = () => {
+    const handleDeleteSelected = async () => {
         if (selectedArchives.length === 0) return;
         const count = selectedArchives.length;
         if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${count} bilan(s) ? Cette action est irréversible.`)) {
-            const updatedClients = allClients.filter(client => !selectedArchives.includes(client.id));
-            setClients(updatedClients);
-            setSelectedArchives([]);
-            alert(`${count} bilan(s) supprimé(s) avec succès.`);
+            try {
+                for (const bilanId of selectedArchives) {
+                    await deleteUser(bilanId);
+                }
+                setSelectedArchives([]);
+                alert(`${count} bilan(s) supprimé(s) avec succès.`);
+            } catch (error) {
+                console.error("Erreur lors de la suppression des bilans:", error);
+                alert("Erreur lors de la suppression des bilans. Veuillez réessayer.");
+            }
         }
     };
 

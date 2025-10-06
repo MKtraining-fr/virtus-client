@@ -18,7 +18,7 @@ const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null 
 
 
 const Clients: React.FC = () => {
-    const { user, clients: allClients, setClients, reloadData, isDataLoading } = useAuth();
+    const { user, clients: allClients, setClients, reloadData, isDataLoading, deleteUser } = useAuth();
     const [selectedClients, setSelectedClients] = useState<string[]>([]);
     const [filter, setFilter] = useState('');
     const navigate = useNavigate();
@@ -74,15 +74,21 @@ const Clients: React.FC = () => {
         }
     };
 
-    const handleDeleteSelected = () => {
+    const handleDeleteSelected = async () => {
         if (selectedClients.length === 0) return;
         const count = selectedClients.length;
         if (window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement ${count} client(s) ? Cette action est irréversible.`)) {
-            const idsToDelete = new Set(selectedClients);
-            const updatedClients = allClients.filter(c => !idsToDelete.has(c.id));
-            setClients(updatedClients);
-            setSelectedClients([]);
-            alert(`${count} client(s) supprimé(s) avec succès.`);
+            try {
+                // Supprimer chaque client de Supabase
+                for (const clientId of selectedClients) {
+                    await deleteUser(clientId);
+                }
+                setSelectedClients([]);
+                alert(`${count} client(s) supprimé(s) avec succès.`);
+            } catch (error) {
+                console.error('Erreur lors de la suppression:', error);
+                alert('Erreur lors de la suppression des clients. Veuillez réessayer.');
+            }
         }
     };
 
