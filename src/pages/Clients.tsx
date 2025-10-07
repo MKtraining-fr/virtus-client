@@ -169,8 +169,10 @@ const Clients: React.FC = () => {
                                                     try {
                                                         await resendInvitation(client.email);
                                                         alert(`Email d'invitation renvoyé à ${client.email}`);
-                                                    } catch (error) {
-                                                        alert(`Erreur lors du renvoi de l'email: ${error.message}`);
+                                                    } catch (error: any) {
+                                                        console.error('Erreur complète:', error);
+                                                        const errorMessage = error?.message || error?.error_description || String(error);
+                                                        alert(`Erreur lors du renvoi de l'email: ${errorMessage}`);
                                                     }
                                                 } else {
                                                     alert('L\'adresse email du client est manquante.');
