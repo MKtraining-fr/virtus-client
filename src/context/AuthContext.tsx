@@ -28,6 +28,7 @@ import { supabase } from '../services/supabase';
 import {
   signIn,
   signUp,
+  resetPassword,
   signOutUser,
   onAuthStateChange,
   getClientProfile,
@@ -480,9 +481,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const resendInvitation = useCallback(async (email: string) => {
     try {
-      await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/set-password`,
-      });
+      await resetPassword(email);
       console.log('Email d\'invitation renvoyé à:', email);
     } catch (error) {
       logger.error('Erreur lors du renvoi de l\'email d\'invitation:', { error });
