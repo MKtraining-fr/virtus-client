@@ -216,15 +216,16 @@ export const importExercisesFromCSV = async (file: File, coachId: string): Promi
               throw new Error(`Exercice déjà existant: ${row.name}`);
             }
 
-            // Préparer les données
+            // Préparer les données (format Supabase snake_case)
             const exerciseData = {
               name: row.name.trim(),
               category: row.category.trim(),
-              description: row.description?.trim() || '',
-              video_url: row.videoUrl?.trim() || '',
-              illustration_url: row.illustrationUrl?.trim() || '',
-              equipment: row.equipment?.trim() || '',
-              muscle_groups: row.muscleGroups ? row.muscleGroups.split('|').map((m: string) => m.trim()) : [],
+              description: row.description?.trim() || null,
+              video_url: row.videoUrl?.trim() || null,
+              image_url: row.illustrationUrl?.trim() || null,
+              equipment: row.equipment?.trim() || null,
+              muscle_group: row.muscleGroups ? row.muscleGroups.split('|').map((m: string) => m.trim()).join('|') : null,
+              difficulty: row.difficulty?.trim() || null,
               coach_id: coachId,
             };
 
