@@ -53,17 +53,16 @@
     <div id="modal-root"></div>
     <script type="module" src="/index.tsx"></script>
 
-    <!-- PWA Service Worker Registration -->
+    <!-- Service Worker désactivé - Causait des problèmes de cache -->
     <script>
+        // Désinstaller les anciens Service Workers
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                    })
-                    .catch(error => {
-                        console.log('ServiceWorker registration failed: ', error);
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister().then(function(success) {
+                        console.log('Service Worker désenregistré:', success);
                     });
+                }
             });
         }
     </script>

@@ -165,17 +165,33 @@ const Clients: React.FC = () => {
                                             variant="secondary"
                                             onClick={async (e) => {
                                                 e.stopPropagation();
-                                                if (client.email) {
-                                                    try {
-                                                        await resendInvitation(client.email);
-                                                        alert(`Email d'invitation renvoyé à ${client.email}`);
-                                                    } catch (error: any) {
-                                                        console.error('Erreur complète:', error);
-                                                        const errorMessage = error?.message || error?.error_description || String(error);
-                                                        alert(`Erreur lors du renvoi de l'email: ${errorMessage}`);
-                                                    }
-                                                } else {
+                                                if (!client.email) {
                                                     alert('L\'adresse email du client est manquante.');
+                                                    return;
+                                                }
+                                                
+                                                try {
+                                                    await resendInvitation(client.email);
+                                                    alert(`✅ Email d'invitation envoyé avec succès à ${client.email}\n\nLe client recevra un email lui permettant de définir son mot de passe.`);
+                                                } catch (error: any) {
+                                                    console.error('Erreur lors du renvoi de l\'invitation:', error);
+                                                    
+                                                    // Gérer les erreurs spécifiques
+                                                    let errorMessage = 'Une erreur est survenue lors de l\'envoi de l\'email.';
+                                                    
+                                                    if (error?.message) {
+                                                        if (error.message.includes('rate limit')) {
+                                                            errorMessage = '⚠️ Trop de tentatives d\'envoi.\n\nVeuillez réessayer dans quelques minutes.';
+                                                        } else if (error.message.includes('SMTP')) {
+                                                            errorMessage = '⚠️ Erreur de configuration email.\n\nLe service SMTP n\'est pas configuré. Veuillez consulter le guide CONFIGURATION_BREVO_SMTP.md pour configurer Brevo SMTP dans Supabase.';
+                                                        } else if (error.message.includes('not found')) {
+                                                            errorMessage = '⚠️ Utilisateur non trouvé.\n\nCette adresse email n\'est pas enregistrée dans le système d\'authentification.';
+                                                        } else {
+                                                            errorMessage = `❌ Erreur: ${error.message}`;
+                                                        }
+                                                    }
+                                                    
+                                                    alert(errorMessage);
                                                 }
                                             }}
                                         >

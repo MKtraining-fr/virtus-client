@@ -111,10 +111,37 @@ const AuthPage: React.FC = () => {
       if (!forgotPasswordEmail) {
         throw new Error('Veuillez saisir votre adresse email.');
       }
+      
+      // Valider le format de l'email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(forgotPasswordEmail)) {
+        throw new Error('Veuillez saisir une adresse email valide.');
+      }
+      
       await resetPassword(forgotPasswordEmail);
       setForgotPasswordSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue.');
+      console.error('Erreur lors de la réinitialisation:', err);
+      
+      // Gérer les erreurs spécifiques
+      let errorMessage = 'Une erreur est survenue.';
+      
+      if (err?.message) {
+        if (err.message.includes('rate limit')) {
+          errorMessage = 'Trop de tentatives. Veuillez réessayer dans quelques minutes.';
+        } else if (err.message.includes('SMTP')) {
+          errorMessage = 'Le service d\'envoi d\'emails n\'est pas configuré. Veuillez contacter l\'administrateur.';
+        } else if (err.message.includes('not found')) {
+          // Pour des raisons de sécurité, on ne révèle pas si l'email existe ou non
+          // On affiche quand même un message de succès
+          setForgotPasswordSuccess(true);
+          return;
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

@@ -481,10 +481,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const resendInvitation = useCallback(async (email: string) => {
     try {
+      logger.info('Tentative de renvoi d\'invitation', { email });
       await resetPassword(email);
-      console.log('Email d\'invitation renvoyé à:', email);
+      logger.info('Email d\'invitation renvoyé avec succès', { email });
     } catch (error) {
-      logger.error('Erreur lors du renvoi de l\'email d\'invitation:', { error });
+      logger.error('Erreur lors du renvoi de l\'email d\'invitation', { error, email });
       throw error;
     }
   }, []);
@@ -756,6 +757,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     stopImpersonating,
     setTheme,
     reloadData: loadData,
+    resendInvitation,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
