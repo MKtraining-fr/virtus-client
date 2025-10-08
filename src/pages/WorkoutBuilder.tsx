@@ -118,7 +118,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         if (mode === 'client') {
             return exerciseDBFromAuth.filter(ex => ex.coachId === 'system' || ex.coachId === user?.coachId);
         }
-        return exerciseDBFromAuth.filter(ex => ex.coachId === 'system' || ex.coachId === user?.id);
+        return exerciseDBFromAuth.filter(ex => ex.coachId === 'system' || ex.coachId === user?.id || !ex.coachId);
     }, [exerciseDBFromAuth, user, mode]);
     
      const handleClientSelectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
