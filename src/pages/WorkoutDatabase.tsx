@@ -136,7 +136,7 @@ const WorkoutDatabase: React.FC = () => {
     };
 
     const availableExercises = useMemo(() => {
-        return exercises.filter(ex => ex.coachId === 'system' || ex.coachId === user?.id);
+        return exercises.filter(ex => ex.coachId === 'system' || ex.coachId === user?.id || !ex.coachId);
     }, [exercises, user]);
 
     const filteredExercises = filter === 'All' ? availableExercises : availableExercises.filter(e => e.category === filter);

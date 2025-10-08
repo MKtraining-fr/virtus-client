@@ -62,7 +62,7 @@ const ClientWorkoutBuilder: React.FC = () => {
     const activeSession = useMemo(() => sessions.find(s => s.id === activeSessionId), [sessions, activeSessionId]);
     
     const availableExercises = useMemo(() => {
-        return exerciseDB.filter(ex => ex.coachId === 'system' || ex.coachId === user?.coachId);
+        return exerciseDB.filter(ex => ex.coachId === 'system' || ex.coachId === user?.coachId || !ex.coachId);
     }, [exerciseDB, user]);
 
     const handleWeekCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {

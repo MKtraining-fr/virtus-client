@@ -8,7 +8,7 @@ const EchauffementLibrary: React.FC = () => {
     const echauffementExercises = useMemo(() => {
         return exercises.filter(ex => 
             ex.category === 'Échauffement' &&
-            (ex.coachId === 'system' || ex.coachId === user?.coachId)
+            (ex.coachId === 'system' || ex.coachId === user?.coachId || !ex.coachId)
         );
     }, [exercises, user]);
 

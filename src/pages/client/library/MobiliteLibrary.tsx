@@ -8,7 +8,7 @@ const MobiliteLibrary: React.FC = () => {
     const mobiliteExercises = useMemo(() => {
         return exercises.filter(ex => 
             ex.category === 'Mobilité' &&
-            (ex.coachId === 'system' || ex.coachId === user?.coachId)
+            (ex.coachId === 'system' || ex.coachId === user?.coachId || !ex.coachId)
         );
     }, [exercises, user]);
 

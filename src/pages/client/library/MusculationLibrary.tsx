@@ -8,7 +8,7 @@ const MusculationLibrary: React.FC = () => {
     const musculationExercises = useMemo(() => {
         return exercises.filter(ex => 
             ex.category === 'Musculation' &&
-            (ex.coachId === 'system' || ex.coachId === user?.coachId)
+            (ex.coachId === 'system' || ex.coachId === user?.coachId || !ex.coachId)
         );
     }, [exercises, user]);
 
