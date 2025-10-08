@@ -93,9 +93,12 @@ const AuthPage: React.FC = () => {
             }
         }
         
+        console.log('Tentative d\'enregistrement de l\'utilisateur:', newUser.email);
         await register(newUser);
+        console.log('Enregistrement Supabase réussi.');
       }
     } catch (err: any) {
+      console.error('Erreur lors de l\'inscription:', err);
       setError(err.message || 'Une erreur est survenue.');
     } finally {
       setIsLoading(false);
@@ -345,3 +348,4 @@ const AuthPage: React.FC = () => {
 };
 
 export default AuthPage;
+
