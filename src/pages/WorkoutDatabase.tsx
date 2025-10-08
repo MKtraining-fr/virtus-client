@@ -45,6 +45,9 @@ const WorkoutDatabase: React.FC = () => {
 
     const [muscleGroupSearch, setMuscleGroupSearch] = useState('');
     const [showMuscleGroupSuggestions, setShowMuscleGroupSuggestions] = useState(false);
+    
+    const [secondaryMuscleGroupSearch, setSecondaryMuscleGroupSearch] = useState('');
+    const [showSecondaryMuscleGroupSuggestions, setShowSecondaryMuscleGroupSuggestions] = useState(false);
 
 
     const handleCardClick = (exercise: Exercise) => {
@@ -112,6 +115,18 @@ const WorkoutDatabase: React.FC = () => {
     const removeMuscleGroup = (group: string) => {
         setNewExercise(prev => ({...prev, muscleGroups: prev.muscleGroups?.filter(g => g !== group)}));
     };
+    
+    const addSecondaryMuscleGroup = (group: string) => {
+        if (!newExercise.secondaryMuscleGroups?.includes(group)) {
+            setNewExercise(prev => ({ ...prev, secondaryMuscleGroups: [...(prev.secondaryMuscleGroups || []), group]}));
+        }
+        setSecondaryMuscleGroupSearch('');
+        setShowSecondaryMuscleGroupSuggestions(false);
+    };
+
+    const removeSecondaryMuscleGroup = (group: string) => {
+        setNewExercise(prev => ({...prev, secondaryMuscleGroups: prev.secondaryMuscleGroups?.filter(g => g !== group)}));
+    };
 
     const handleAddExercise = (e: React.FormEvent) => {
         e.preventDefault();
@@ -151,6 +166,12 @@ const WorkoutDatabase: React.FC = () => {
         g.toLowerCase().includes(muscleGroupSearch.toLowerCase()) &&
         !newExercise.muscleGroups?.includes(g) &&
         muscleGroupSearch.length > 0
+    );
+    
+    const filteredSecondaryMuscleGroupSuggestions = MUSCLE_GROUPS.filter(g =>
+        g.toLowerCase().includes(secondaryMuscleGroupSearch.toLowerCase()) &&
+        !newExercise.secondaryMuscleGroups?.includes(g) &&
+        secondaryMuscleGroupSearch.length > 0
     );
     
     const alternativeExercisesForModal = useMemo(() => {
@@ -246,7 +267,7 @@ const WorkoutDatabase: React.FC = () => {
                                     <p className="text-gray-600">{selectedExercise.equipment}</p>
                                 </div>
                                 <div>
-                                    <h4 className="font-semibold text-lg mb-2 text-gray-800">Groupes Musculaires</h4>
+                                    <h4 className="font-semibold text-lg mb-2 text-gray-800">Groupes Musculaires Principaux</h4>
                                     {(selectedExercise.muscleGroups && selectedExercise.muscleGroups.length > 0) ? (
                                         <div className="flex flex-wrap gap-2">
                                             {selectedExercise.muscleGroups.map(group => (
@@ -258,6 +279,17 @@ const WorkoutDatabase: React.FC = () => {
                                     )}
                                 </div>
                             </div>
+                            
+                            {selectedExercise.secondaryMuscleGroups && selectedExercise.secondaryMuscleGroups.length > 0 && (
+                                <div>
+                                    <h4 className="font-semibold text-lg mb-2 text-gray-800">Groupes Musculaires Secondaires</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedExercise.secondaryMuscleGroups.map(group => (
+                                            <span key={group} className="bg-blue-100 text-blue-700 text-sm font-medium px-3 py-1 rounded-full">{group}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             
                             <div>
                                 <h4 className="font-semibold text-lg mb-2 text-gray-800">Mouvements Alternatifs</h4>
@@ -301,7 +333,7 @@ const WorkoutDatabase: React.FC = () => {
                     </Select>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Groupes musculaires</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Groupes musculaires principaux</label>
                         <div className="relative">
                             <Input
                                 placeholder="Rechercher un groupe musculaire..."
@@ -329,6 +361,42 @@ const WorkoutDatabase: React.FC = () => {
                                  <span key={group} className="flex items-center bg-primary/10 text-primary text-sm font-medium px-2 py-1 rounded-full">
                                      {group}
                                      <button type="button" onClick={() => removeMuscleGroup(group)} className="ml-2 text-primary hover:text-red-500">
+                                         <XMarkIcon className="w-4 h-4" />
+                                     </button>
+                                 </span>
+                             ))}
+                         </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Groupes musculaires secondaires</label>
+                        <div className="relative">
+                            <Input
+                                placeholder="Rechercher un groupe musculaire secondaire..."
+                                value={secondaryMuscleGroupSearch}
+                                onChange={e => setSecondaryMuscleGroupSearch(e.target.value)}
+                                onFocus={() => setShowSecondaryMuscleGroupSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowSecondaryMuscleGroupSuggestions(false), 200)}
+                            />
+                             {showSecondaryMuscleGroupSuggestions && filteredSecondaryMuscleGroupSuggestions.length > 0 && (
+                                <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                                    {filteredSecondaryMuscleGroupSuggestions.map(group => (
+                                        <div 
+                                            key={group}
+                                            onMouseDown={() => addSecondaryMuscleGroup(group)}
+                                            className="p-2 hover:bg-gray-100 cursor-pointer"
+                                        >
+                                            {group}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                             {newExercise.secondaryMuscleGroups?.map(group => (
+                                 <span key={group} className="flex items-center bg-blue-100 text-blue-700 text-sm font-medium px-2 py-1 rounded-full">
+                                     {group}
+                                     <button type="button" onClick={() => removeSecondaryMuscleGroup(group)} className="ml-2 text-blue-700 hover:text-red-500">
                                          <XMarkIcon className="w-4 h-4" />
                                      </button>
                                  </span>

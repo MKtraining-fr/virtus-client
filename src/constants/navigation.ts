@@ -20,6 +20,7 @@ export const ADMIN_NAV_ITEMS: Omit<NavItem, 'subItems'>[] = [
   { name: 'Formations Pro', path: '/app/pro-formations', icon: AcademicCapIcon },
   { name: 'Formations Clients', path: '/app/client-formations', icon: BookOpenIcon },
   { name: 'Boutique', path: '/app/shop', icon: ShoppingBagIcon },
+  { name: 'Exercices', path: '/app/exercises', icon: FireIcon },
   { name: 'Statistiques', path: '/app/stats', icon: ChartBarIcon },
   { name: 'Import', path: '/app/import', icon: ArrowDownTrayIcon },
 ];

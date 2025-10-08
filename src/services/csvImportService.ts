@@ -225,6 +225,7 @@ export const importExercisesFromCSV = async (file: File, coachId: string): Promi
               image_url: row.illustrationUrl?.trim() || null,
               equipment: row.equipment?.trim() || null,
               muscle_group: row.muscleGroups ? row.muscleGroups.split('|').map((m: string) => m.trim()).join('|') : null,
+              secondary_muscle_groups: row.secondaryMuscleGroups ? row.secondaryMuscleGroups.split('|').map((m: string) => m.trim()) : null,
               difficulty: row.difficulty?.trim() || null,
             };
 

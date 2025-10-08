@@ -31,11 +31,11 @@ Marie,Martin,marie.martin@example.com,0687654321,client,prospect
 
 ---
 
-### 2. `exercises_example.csv` - Exercices
+### 2. `exercises_example.csv` et `exercises_example_v2.csv` - Exercices
 
 **Champs requis** : `name`, `category`
 
-**Champs optionnels** : `description`, `equipment`, `muscleGroups`, `videoUrl`, `illustrationUrl`
+**Champs optionnels** : `description`, `equipment`, `muscleGroups`, `secondaryMuscleGroups`, `videoUrl`, `illustrationUrl`, `difficulty`
 
 **Valeurs possibles pour `category`** :
 - `Musculation`
@@ -45,15 +45,18 @@ Marie,Martin,marie.martin@example.com,0687654321,client,prospect
 - `Gainage`
 
 **Format spécial** :
-- `muscleGroups` : Séparer les groupes musculaires par `|` (ex: `Pectoraux|Triceps|Épaules`)
-- `equipment` : Séparer les équipements par `|` (ex: `Barre|Banc`)
+- `muscleGroups` : Groupes musculaires **principaux** sollicités, séparés par `|` (ex: `Pectoraux`)
+- `secondaryMuscleGroups` : Groupes musculaires **secondaires** sollicités, séparés par `|` (ex: `Triceps|Épaules`)
+- `equipment` : Équipements nécessaires, séparés par `|` (ex: `Barre|Banc`)
 
-**Exemple** :
+**Exemple (v2 avec groupes secondaires)** :
 ```csv
-name,category,description,equipment,muscleGroups
-Développé couché,Musculation,Exercice pour les pectoraux,Barre|Banc,Pectoraux|Triceps|Épaules
-Squat,Musculation,Exercice pour les jambes,Barre,Quadriceps|Fessiers|Ischio-jambiers
+name,category,description,equipment,muscleGroups,secondaryMuscleGroups,difficulty
+Développé couché,Musculation,Exercice pour les pectoraux,Barre|Banc,Pectoraux,Triceps|Épaules,Intermédiaire
+Squat,Musculation,Exercice pour les jambes,Barre,Quadriceps|Fessiers,Ischio-jambiers|Mollets|Lombaires,Avancé
 ```
+
+**Note** : Le fichier `exercises_example_v2.csv` inclut le nouveau champ `secondaryMuscleGroups` pour une meilleure précision des muscles sollicités.
 
 ---
 

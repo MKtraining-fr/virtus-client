@@ -10,6 +10,7 @@ import ProFormationManagement from '../pages/admin/ProFormationManagement.tsx';
 import AdminStatistics from '../pages/admin/AdminStatistics.tsx';
 import ShopManagement from '../pages/admin/ShopManagement.tsx';
 import ClientFormationManagement from '../pages/admin/ClientFormationManagement.tsx';
+import WorkoutDatabase from '../pages/WorkoutDatabase.tsx';
 
 const AdminLayout: React.FC = () => {
   return (
@@ -26,6 +27,7 @@ const AdminLayout: React.FC = () => {
             <Route path="pro-formations" element={<ProFormationManagement />} />
             <Route path="client-formations" element={<ClientFormationManagement />} />
             <Route path="shop" element={<ShopManagement />} />
+            <Route path="exercises" element={<WorkoutDatabase />} />
             <Route path="import" element={<DataImport />} />
             <Route path="*" element={<Navigate to="/app" replace />} />
           </Routes>

@@ -107,12 +107,13 @@ export function mapSupabaseExerciseToExercise(supabaseExercise: SupabaseExercise
     id: supabaseExercise.id,
     name: supabaseExercise.name,
     description: supabaseExercise.description || '',
-    category: supabaseExercise.category || '',
-    muscleGroup: supabaseExercise.muscle_group || '',
+    category: supabaseExercise.category as any || '',
+    muscleGroups: supabaseExercise.muscle_group ? supabaseExercise.muscle_group.split('|').map(m => m.trim()) : [],
+    secondaryMuscleGroups: supabaseExercise.secondary_muscle_groups || [],
     equipment: supabaseExercise.equipment || '',
     difficulty: supabaseExercise.difficulty || '',
     videoUrl: supabaseExercise.video_url || '',
-    imageUrl: supabaseExercise.image_url || '',
+    illustrationUrl: supabaseExercise.image_url || '',
   } as Exercise;
 }
 
@@ -125,11 +126,12 @@ export function mapExerciseToSupabaseExercise(exercise: Partial<Exercise>): Part
     name: exercise.name,
     description: exercise.description || null,
     category: exercise.category || null,
-    muscle_group: exercise.muscleGroup || null,
+    muscle_group: exercise.muscleGroups ? exercise.muscleGroups.join('|') : null,
+    secondary_muscle_groups: exercise.secondaryMuscleGroups || null,
     equipment: exercise.equipment || null,
     difficulty: exercise.difficulty || null,
     video_url: exercise.videoUrl || null,
-    image_url: exercise.imageUrl || null,
+    image_url: exercise.illustrationUrl || null,
   };
 }
 

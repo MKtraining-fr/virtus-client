@@ -190,7 +190,8 @@ export interface Exercise {
     illustrationUrl: string;
     equipment?: string;
     alternativeIds?: string[];
-    muscleGroups?: string[];
+    muscleGroups?: string[]; // Groupes musculaires principaux
+    secondaryMuscleGroups?: string[]; // Groupes musculaires secondaires
     coachId?: 'system' | string;
 }
 

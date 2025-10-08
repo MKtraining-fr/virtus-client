@@ -1,0 +1,11 @@
+name,category,description,videoUrl,illustrationUrl,equipment,muscleGroups,secondaryMuscleGroups,difficulty
+Développé couché,Musculation,Exercice de base pour les pectoraux,https://www.youtube.com/embed/abc123,https://example.com/bench-press.jpg,Barre|Banc,Pectoraux,Triceps|Épaules,Intermédiaire
+Squat,Musculation,Exercice fondamental pour les jambes,https://www.youtube.com/embed/def456,https://example.com/squat.jpg,Barre|Rack,Quadriceps|Fessiers,Ischio-jambiers|Mollets|Lombaires,Avancé
+Traction,Musculation,Exercice au poids du corps pour le dos,https://www.youtube.com/embed/ghi789,https://example.com/pull-up.jpg,Barre de traction,Dorsaux,Biceps|Avant-bras,Intermédiaire
+Développé militaire,Musculation,Exercice pour les épaules,https://www.youtube.com/embed/jkl012,https://example.com/ohp.jpg,Barre,Épaules,Triceps|Trapèzes,Intermédiaire
+Soulevé de terre,Musculation,Exercice complet pour le corps,https://www.youtube.com/embed/mno345,https://example.com/deadlift.jpg,Barre,Lombaires|Fessiers|Ischio-jambiers,Trapèzes|Dorsaux|Avant-bras,Avancé
+Curl biceps,Musculation,Exercice d'isolation pour les biceps,https://www.youtube.com/embed/pqr678,https://example.com/curl.jpg,Haltères,Biceps,Avant-bras,Débutant
+Extension triceps,Musculation,Exercice d'isolation pour les triceps,https://www.youtube.com/embed/stu901,https://example.com/triceps.jpg,Haltères,Triceps,,Débutant
+Étirement des ischio-jambiers,Mobilité,Étirement pour améliorer la flexibilité,https://www.youtube.com/embed/vwx234,https://example.com/hamstring-stretch.jpg,Aucun,Ischio-jambiers,,Débutant
+Rotation des épaules,Échauffement,Échauffement pour préparer les épaules,https://www.youtube.com/embed/yza567,https://example.com/shoulder-rotation.jpg,Aucun,Épaules,,Débutant
+Jumping jacks,Échauffement,Échauffement cardio complet,https://www.youtube.com/embed/bcd890,https://example.com/jumping-jacks.jpg,Aucun,Corps entier,,Débutant
