@@ -1,0 +1,6 @@
+firstName,lastName,email,phone,role,status,sex,dob,height,weight,objective,notes,medicalHistory,allergies,foodAversions,generalHabits
+Jean,Dupont,jean.dupont@example.com,0612345678,client,active,Homme,1990-05-15,180,75,Perte de poids,Client motivé,Aucun antécédent,Aucune,Gluten,Mange équilibré
+Marie,Martin,marie.martin@example.com,0687654321,client,prospect,Femme,1985-08-22,165,60,Prise de masse,Nouvelle cliente,Asthme léger,Lactose,Fruits de mer,Végétarienne
+Pierre,Durand,pierre.durand@example.com,0698765432,coach,active,Homme,1988-03-10,175,80,Coach sportif,Coach certifié,Aucun,Aucune,Aucune,Sportif régulier
+Sophie,Bernard,sophie.bernard@example.com,0623456789,client,active,Femme,1992-11-30,170,65,Remise en forme,Reprise après blessure,Entorse cheville 2023,Aucune,Épices fortes,Mange bio
+Luc,Petit,luc.petit@example.com,0634567890,client,prospect,Homme,1995-07-18,182,90,Perte de poids,Débutant,Aucun,Arachides,Poisson,Fast-food régulier

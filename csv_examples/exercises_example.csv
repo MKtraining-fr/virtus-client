@@ -1,0 +1,11 @@
+name,category,description,equipment,muscleGroups,videoUrl,illustrationUrl
+Développé couché,Musculation,Exercice de base pour les pectoraux. Allongé sur un banc plat avec une barre.,Barre|Banc,Pectoraux|Triceps|Épaules,https://youtube.com/watch?v=example1,https://example.com/images/bench-press.jpg
+Squat,Musculation,Exercice roi pour les jambes. Debout avec une barre sur les épaules.,Barre|Rack,Quadriceps|Fessiers|Ischio-jambiers,https://youtube.com/watch?v=example2,https://example.com/images/squat.jpg
+Traction,Musculation,Exercice pour le dos. Suspendu à une barre fixe.,Barre de traction,Dorsaux|Biceps,https://youtube.com/watch?v=example3,https://example.com/images/pull-up.jpg
+Pompes,Musculation,Exercice au poids du corps pour les pectoraux.,Aucun,Pectoraux|Triceps|Épaules,https://youtube.com/watch?v=example4,https://example.com/images/push-up.jpg
+Soulevé de terre,Musculation,Exercice complet pour tout le corps. Soulever une barre depuis le sol.,Barre,Dos|Fessiers|Ischio-jambiers|Trapèzes,https://youtube.com/watch?v=example5,https://example.com/images/deadlift.jpg
+Curl biceps,Musculation,Isolation des biceps avec haltères.,Haltères,Biceps,https://youtube.com/watch?v=example6,https://example.com/images/bicep-curl.jpg
+Étirement dos chat,Mobilité,Étirement du dos en position quadrupède.,Tapis,Dos,https://youtube.com/watch?v=example7,https://example.com/images/cat-stretch.jpg
+Rotation épaules,Échauffement,Échauffement des épaules par rotations.,Aucun,Épaules,https://youtube.com/watch?v=example8,https://example.com/images/shoulder-rotation.jpg
+Fentes,Musculation,Exercice pour les jambes en alternance.,Aucun|Haltères,Quadriceps|Fessiers,https://youtube.com/watch?v=example9,https://example.com/images/lunges.jpg
+Planche,Gainage,Gainage statique pour les abdominaux.,Aucun,Abdominaux|Dos,https://youtube.com/watch?v=example10,https://example.com/images/plank.jpg

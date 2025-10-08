@@ -110,6 +110,7 @@ interface AuthContextType {
   stopImpersonating: () => void;
   setTheme: (theme: 'light' | 'dark') => void;
   reloadData: () => Promise<void>;
+  reloadAllData: () => Promise<void>;
   resendInvitation: (email: string) => Promise<void>;
 }
 
@@ -757,6 +758,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     stopImpersonating,
     setTheme,
     reloadData: loadData,
+    reloadAllData: loadData,
     resendInvitation,
   };
 
