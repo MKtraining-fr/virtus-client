@@ -204,12 +204,11 @@ export const importExercisesFromCSV = async (file: File, coachId: string): Promi
               throw new Error('Champs requis manquants (name, category)');
             }
 
-            // Vérifier si l'exercice existe déjà
+            // Vérifier si l'exercice existe déjà (par nom uniquement)
             const { data: existing } = await supabase
               .from('exercises')
               .select('id')
               .eq('name', row.name.trim())
-              .eq('coach_id', coachId)
               .single();
 
             if (existing) {
@@ -217,6 +216,7 @@ export const importExercisesFromCSV = async (file: File, coachId: string): Promi
             }
 
             // Préparer les données (format Supabase snake_case)
+            // Note: coach_id n'existe pas dans la table exercises, les exercices sont globaux
             const exerciseData = {
               name: row.name.trim(),
               category: row.category.trim(),
@@ -226,7 +226,6 @@ export const importExercisesFromCSV = async (file: File, coachId: string): Promi
               equipment: row.equipment?.trim() || null,
               muscle_group: row.muscleGroups ? row.muscleGroups.split('|').map((m: string) => m.trim()).join('|') : null,
               difficulty: row.difficulty?.trim() || null,
-              coach_id: coachId,
             };
 
             // Insérer dans Supabase
