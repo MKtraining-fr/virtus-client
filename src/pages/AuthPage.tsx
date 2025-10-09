@@ -9,6 +9,7 @@ import { ArrowLeftIcon } from '../constants/icons';
 import { resetPassword } from '../services/authService';
 
 const AuthPage: React.FC = () => {
+  console.log("AuthPage component rendered.");
   const [isLoginView, setIsLoginView] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
