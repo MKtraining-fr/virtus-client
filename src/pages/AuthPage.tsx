@@ -93,9 +93,7 @@ const AuthPage: React.FC = () => {
             }
         }
         
-        console.log('Tentative d\'enregistrement de l\'utilisateur:', newUser.email);
         await register(newUser);
-        console.log('Enregistrement Supabase réussi.');
       }
     } catch (err: any) {
       console.error('Erreur lors de l\'inscription:', err);
@@ -116,7 +114,10 @@ const AuthPage: React.FC = () => {
       }
       
       // Valider le format de l'email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailRegex = /^[^
+@]+@[^
+@]+\.[^
+@]+$/;
       if (!emailRegex.test(forgotPasswordEmail)) {
         throw new Error('Veuillez saisir une adresse email valide.');
       }
