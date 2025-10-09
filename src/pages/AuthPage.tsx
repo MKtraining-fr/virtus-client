@@ -41,6 +41,15 @@ const AuthPage: React.FC = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    console.log('AuthPage: handleSubmit appelé.');
+    console.log('AuthPage: isLoginView =', isLoginView);
+    console.log('AuthPage: firstName =', firstName);
+    console.log('AuthPage: lastName =', lastName);
+    console.log('AuthPage: email =', email);
+    console.log('AuthPage: password =', password ? '*****' : 'vide');
+    console.log('AuthPage: role =', role);
+    console.log('AuthPage: affiliationCode =', affiliationCode);
+
 
     try {
       if (!isLoginView) {
