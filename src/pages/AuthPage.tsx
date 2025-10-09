@@ -114,10 +114,7 @@ const AuthPage: React.FC = () => {
       }
       
       // Valider le format de l'email
-      const emailRegex = /^[^
-@]+@[^
-@]+\.[^
-@]+$/;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(forgotPasswordEmail)) {
         throw new Error('Veuillez saisir une adresse email valide.');
       }
