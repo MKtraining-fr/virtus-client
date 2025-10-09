@@ -41,75 +41,14 @@ const AuthPage: React.FC = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    console.log('AuthPage: handleSubmit appelé.');
-    console.log('AuthPage: isLoginView =', isLoginView);
-    console.log('AuthPage: firstName =', firstName);
-    console.log('AuthPage: lastName =', lastName);
-    console.log('AuthPage: email =', email);
-    console.log('AuthPage: password =', password ? '*****' : 'vide');
-    console.log('AuthPage: role =', role);
-    console.log('AuthPage: affiliationCode =', affiliationCode);
-
-
-    try {
-      if (!isLoginView) {
-        if (isDataLoading) {
-          throw new Error('Les données nécessaires sont encore en cours de chargement. Veuillez patienter.');
-        }
-        if (dataError) {
-          throw new Error("La création de compte est momentanément indisponible. Veuillez réessayer plus tard.");
-        }
-      }
-
-      if (isLoginView) {
-        await login(email, password);
-        // La navigation est gérée dans la fonction de connexion
-      } else {
-        // Validation de base
-        if (!firstName || !lastName || !email || !password) {
-            throw new Error("Tous les champs sont requis.");
-        }
-        const newUser: Omit<Client, 'id'> = {
-            firstName,
-            lastName,
-            email,
-            password,
-            role,
-            status: 'active', // Statut par défaut
-            age: 0, // Devrait être collecté dans un formulaire plus détaillé
-            sex: 'Homme',
-            phone: '',
-            registrationDate: new Date().toISOString().split('T')[0],
-            objective: '',
-            notes: '',
-            medicalInfo: { history: '', allergies: '' },
-            nutrition: { measurements: {}, weightHistory: [], calorieHistory: [], macros: { protein: 0, carbs: 0, fat: 0 }, historyLog: [] },
-            performanceLog: [],
-            assignedPrograms: [],
-        };
-        
-        if (role === 'client' && affiliationCode) {
-             if (!/^\d{6}$/.test(affiliationCode)) {
-                throw new Error("Le code d'affiliation doit être composé de 6 chiffres.");
-            }
-            const coach = clients.find(
-              (user) => user.role === 'coach' && user.affiliationCode === affiliationCode
-            );
-            if (coach) {
-              newUser.coachId = coach.id;
-            } else {
-              throw new Error("Code d'affiliation invalide.");
-            }
-        }
-        
-        await register(newUser);
-      }
-    } catch (err: any) {
-      console.error('Erreur lors de l\'inscription:', err);
-      setError(err.message || 'Une erreur est survenue.');
-    } finally {
-      setIsLoading(false);
-    }
+    console.log('Formulaire soumis !');
+    console.log('Email:', email);
+    console.log('Password:', password ? '*****' : 'vide');
+    console.log('FirstName:', firstName);
+    console.log('LastName:', lastName);
+    console.log('Role:', role);
+    console.log('AffiliationCode:', affiliationCode);
+    setIsLoading(false);
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -168,7 +107,7 @@ const AuthPage: React.FC = () => {
             {isLoginView ? 'Connexion à Virtus' : 'Créer un compte'}
           </h1>
           <p className="mt-2 text-sm text-gray-600">
-            {isLoginView ? 'Pas encore de compte ?' : 'Vous avez déjà un compte ?'}{' '}
+            {isLoginView ? 'Pas encore de compte ?' : 'Vous avez déjà un compte ?'}{" "}
             <button
               onClick={() => { setIsLoginView(!isLoginView); setError(''); }}
               className="font-medium text-primary hover:underline"
