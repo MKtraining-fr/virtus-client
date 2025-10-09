@@ -202,7 +202,7 @@ const AuthPage: React.FC = () => {
                         Retour
                     </Button>
                     <Button type="submit" className="w-full" disabled={isFormDisabled}>
-                        {isLoading ? 'Chargement...' : "S'inscrire"}
+                        {isFormDisabled ? 'Bouton désactivé' : (isLoading ? 'Chargement...' : "S'inscrire")}
                     </Button>
                 </div>
             ) : (
