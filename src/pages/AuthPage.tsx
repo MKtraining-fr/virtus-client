@@ -164,8 +164,8 @@ const AuthPage: React.FC = () => {
                         onChange={(e) => setAffiliationCode(e.target.value)}
                         placeholder="Code à 6 chiffres"
                         maxLength={6}
-                        pattern="\\d{6}"
-                        title="Le code doit contenir 6 chiffres."
+                        pattern="^$|\\d{6}" // Permet un champ vide ou 6 chiffres
+                        title="Le code doit contenir 6 chiffres ou être vide."
                         disabled={isFormDisabled}
                     />
                  )}
@@ -295,4 +295,3 @@ const AuthPage: React.FC = () => {
 };
 
 export default AuthPage;
-
