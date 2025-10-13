@@ -85,7 +85,7 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
 
   if (profileError) {
     logger.error("Erreur lors de la création du profil client:", { error: profileError, clientProfile });
-    // Ne pas bloquer l'inscription si le profil échoue
+    throw profileError; // Bloquer l'inscription si le profil échoue
   } else {
     logger.info("Profil client créé avec succès dans la base de données", { userId: clientProfile.id, email: clientProfile.email });
   }
