@@ -43,16 +43,30 @@ const AuthPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
-    console.log('Formulaire soumis !');
-    console.log('Email:', email);
-    console.log('Password:', password ? '*****' : 'vide');
-    console.log('FirstName:', firstName);
-    console.log('LastName:', lastName);
-    console.log('Role:', role);
-    console.log('AffiliationCode:', affiliationCode);
-    setIsLoading(false);
+
+    try {
+      if (isLoginView) {
+        await login(email, password);
+      } else {
+        const signUpData = {
+          email,
+          password,
+          firstName,
+          lastName,
+          role,
+          affiliationCode: affiliationCode.trim() ? affiliationCode : undefined,
+          coachId: undefined, // Ajout explicite de coachId comme undefined pour les inscriptions directes
+        };
+        await register(signUpData);
+      }
+    } catch (err: any) {
+      console.error("Erreur lors de la soumission du formulaire:", err);
+      setError(err?.message || "Une erreur est survenue. Veuillez réessayer.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
