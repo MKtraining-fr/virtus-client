@@ -26,6 +26,9 @@ const AuthPage: React.FC = () => {
   const location = useLocation();
 
   const isFormDisabled = isLoading || isDataLoading;
+  console.log("AuthPage - isLoading:", isLoading);
+  console.log("AuthPage - isDataLoading:", isDataLoading);
+  console.log("AuthPage - isFormDisabled:", isFormDisabled);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

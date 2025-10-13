@@ -322,8 +322,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = useCallback(
     async (userData: SignUpData) => {
       try {
-        await signUp(userData);
-        navigate('/');
+        // Extraire le coachId des données utilisateur si présent
+        const { coachId, ...restUserData } = userData;
+
+        // Appeler la fonction signUp avec les données utilisateur et le coachId
+        const finalUserData = { ...restUserData, coachId };
+        await signUp(finalUserData);
+        // Si l'inscription réussit, naviguer vers la page de confirmation d'email ou de succès
+        // Supabase envoie un email de confirmation par défaut. L'utilisateur doit confirmer son email.
+        // On peut rediriger vers une page d'information en attendant la confirmation.
+        navigate("/check-email");
       } catch (error) {
         logger.error('Échec de l\'inscription', { error, email: userData.email });
         throw error;
@@ -348,7 +356,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)]; // Majuscule
       password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)]; // Minuscule
       password += '0123456789'[Math.floor(Math.random() * 10)]; // Chiffre
-      password += '!@#$%^&*'[Math.floor(Math.random() * 8)]; // Caractère spécial
+      password += '!@#$%^&*' [Math.floor(Math.random() * 8)]; // Caractère spécial
       
       // Compléter avec des caractères aléatoires
       for (let i = password.length; i < length; i++) {
@@ -369,6 +377,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       lastName: userData.lastName,
       phone: userData.phone,
       role: userData.role || 'client',
+      coachId: userData.coachId, // Passer le coachId à signUp
     };
 
     const { user: authUser, error } = await signUp(signUpData);
@@ -390,6 +399,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     delete updateData.last_name;
     delete updateData.phone;
     delete updateData.role;
+    delete updateData.coach_id; // Supprimer pour éviter la duplication si déjà passé par signUp
 
     // Mettre à jour le profil complet dans la table clients
     const { error: updateError } = await supabase
@@ -468,7 +478,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const deleteUser = useCallback(async (userId: string) => {
-    // Supprimer de Supabase
     const { error } = await supabase
       .from('clients')
       .delete()
@@ -476,53 +485,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (error) throw error;
 
-    // Mettre à jour la liste locale des clients
     setClientsState(prevClients => prevClients.filter(client => client.id !== userId));
   }, []);
 
-  const resendInvitation = useCallback(async (email: string) => {
-    try {
-      logger.info('Tentative de renvoi d\'invitation', { email });
-      await resetPassword(email);
-      logger.info('Email d\'invitation renvoyé avec succès', { email });
-    } catch (error) {
-      logger.error('Erreur lors du renvoi de l\'email d\'invitation', { error, email });
-      throw error;
-    }
-  }, []);
-
-  // ===== PROGRAMMES D'ENTRAÎNEMENT =====
-  
   const addProgram = useCallback(async (programData: Omit<WorkoutProgram, 'id'>) => {
-    const programToInsert = {
-      name: programData.name,
-      objective: programData.objective || null,
-      week_count: programData.weekCount,
-      sessions_by_week: programData.sessionsByWeek,
-      created_by: user?.id,
-    };
-
     const { data, error } = await supabase
       .from('programs')
-      .insert([programToInsert])
+      .insert({
+        coach_id: user?.id, // Associer le programme au coach connecté
+        name: programData.name,
+        description: programData.description,
+        duration_weeks: programData.durationWeeks,
+        client_id: programData.clientId,
+        exercises: programData.exercises,
+        created_at: new Date().toISOString(),
+      })
       .select()
       .single();
 
     if (error) throw error;
-    
+
     const newProgram = mapSupabaseProgramToProgram(data);
-    setProgramsState(prev => [...prev, newProgram]);
-    
+    setProgramsState(prevPrograms => [...prevPrograms, newProgram]);
     return newProgram;
   }, [user]);
 
   const updateProgram = useCallback(async (programId: string, programData: Partial<WorkoutProgram>) => {
     const updateData: any = {};
-    
     if (programData.name !== undefined) updateData.name = programData.name;
-    if (programData.objective !== undefined) updateData.objective = programData.objective;
-    if (programData.weekCount !== undefined) updateData.week_count = programData.weekCount;
-    if (programData.sessionsByWeek !== undefined) updateData.sessions_by_week = programData.sessionsByWeek;
+    if (programData.description !== undefined) updateData.description = programData.description;
+    if (programData.durationWeeks !== undefined) updateData.duration_weeks = programData.durationWeeks;
+    if (programData.clientId !== undefined) updateData.client_id = programData.clientId;
+    if (programData.exercises !== undefined) updateData.exercises = programData.exercises;
 
     const { data, error } = await supabase
       .from('programs')
@@ -532,10 +526,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .single();
 
     if (error) throw error;
-    
+
     const updatedProgram = mapSupabaseProgramToProgram(data);
-    setProgramsState(prev => prev.map(p => p.id === programId ? updatedProgram : p));
-    
+    setProgramsState(prevPrograms =>
+      prevPrograms.map(program =>
+        program.id === programId ? updatedProgram : program
+      )
+    );
     return updatedProgram;
   }, []);
 
@@ -546,42 +543,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .eq('id', programId);
 
     if (error) throw error;
-    
-    setProgramsState(prev => prev.filter(p => p.id !== programId));
+
+    setProgramsState(prevPrograms => prevPrograms.filter(program => program.id !== programId));
   }, []);
 
-  // ===== PLANS NUTRITIONNELS =====
-  
   const addNutritionPlan = useCallback(async (planData: Omit<NutritionPlan, 'id'>) => {
-    const planToInsert = {
-      name: planData.name,
-      client_id: planData.clientId,
-      meals: planData.meals,
-      notes: planData.notes || null,
-      created_by: user?.id,
-    };
-
     const { data, error } = await supabase
       .from('nutrition_plans')
-      .insert([planToInsert])
+      .insert({
+        coach_id: user?.id, // Associer le plan nutritionnel au coach connecté
+        name: planData.name,
+        description: planData.description,
+        client_id: planData.clientId,
+        meals: planData.meals,
+        created_at: new Date().toISOString(),
+      })
       .select()
       .single();
 
     if (error) throw error;
-    
+
     const newPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
-    setNutritionPlansState(prev => [...prev, newPlan]);
-    
+    setNutritionPlansState(prevPlans => [...prevPlans, newPlan]);
     return newPlan;
   }, [user]);
 
   const updateNutritionPlan = useCallback(async (planId: string, planData: Partial<NutritionPlan>) => {
     const updateData: any = {};
-    
     if (planData.name !== undefined) updateData.name = planData.name;
+    if (planData.description !== undefined) updateData.description = planData.description;
     if (planData.clientId !== undefined) updateData.client_id = planData.clientId;
     if (planData.meals !== undefined) updateData.meals = planData.meals;
-    if (planData.notes !== undefined) updateData.notes = planData.notes;
 
     const { data, error } = await supabase
       .from('nutrition_plans')
@@ -591,10 +583,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .single();
 
     if (error) throw error;
-    
+
     const updatedPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
-    setNutritionPlansState(prev => prev.map(p => p.id === planId ? updatedPlan : p));
-    
+    setNutritionPlansState(prevPlans =>
+      prevPlans.map(plan =>
+        plan.id === planId ? updatedPlan : plan
+      )
+    );
     return updatedPlan;
   }, []);
 
@@ -605,31 +600,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .eq('id', planId);
 
     if (error) throw error;
-    
-    setNutritionPlansState(prev => prev.filter(p => p.id !== planId));
+
+    setNutritionPlansState(prevPlans => prevPlans.filter(plan => plan.id !== planId));
   }, []);
 
-  // ===== MESSAGES =====
-  
   const addMessage = useCallback(async (messageData: Omit<Message, 'id' | 'timestamp'>) => {
-    const messageToInsert = {
-      sender_id: messageData.senderId,
-      recipient_id: messageData.recipientId,
-      content: messageData.content,
-      is_read: false,
-    };
-
     const { data, error } = await supabase
       .from('messages')
-      .insert([messageToInsert])
+      .insert({
+        sender_id: messageData.senderId,
+        receiver_id: messageData.receiverId,
+        content: messageData.content,
+        is_read: false,
+        timestamp: new Date().toISOString(),
+      })
       .select()
       .single();
 
     if (error) throw error;
-    
+
     const newMessage = mapSupabaseMessageToMessage(data);
-    setMessagesState(prev => [...prev, newMessage]);
-    
+    setMessagesState(prevMessages => [...prevMessages, newMessage]);
     return newMessage;
   }, []);
 
@@ -642,10 +633,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .single();
 
     if (error) throw error;
-    
+
     const updatedMessage = mapSupabaseMessageToMessage(data);
-    setMessagesState(prev => prev.map(m => m.id === messageId ? updatedMessage : m));
-    
+    setMessagesState(prevMessages =>
+      prevMessages.map(message =>
+        message.id === messageId ? updatedMessage : message
+      )
+    );
     return updatedMessage;
   }, []);
 
@@ -656,119 +650,205 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .eq('id', messageId);
 
     if (error) throw error;
-    
-    setMessagesState(prev => prev.filter(m => m.id !== messageId));
+
+    setMessagesState(prevMessages => prevMessages.filter(message => message.id !== messageId));
   }, []);
 
-  const addNotification = useCallback(
-    async (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
-      const { error } = await supabase.from('notifications').insert([
-        {
-          user_id: user?.id,
-          title: notification.title,
-          message: notification.message,
-          type: notification.type,
-          read: false,
-        },
-      ]);
+  const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
+    const { error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: notification.userId,
+        type: notification.type,
+        message: notification.message,
+        link: notification.link,
+        is_read: false,
+        timestamp: new Date().toISOString(),
+      });
 
-      if (error) {
-        logger.error('Échec de l\'ajout de la notification', { error });
-        throw error;
-      }
-    },
-    [user],
-  );
+    if (error) {
+      logger.error('Erreur lors de l\'ajout de la notification', { error, notification });
+    }
+  }, []);
 
-  const impersonate = useCallback(
-    (userId: string) => {
-      if (!user) return;
-      setOriginalUser(user);
-      const targetClient = clients.find((c) => c.id === userId);
-      if (targetClient) {
-        setUser(targetClient);
-      }
-    },
-    [user, clients],
-  );
+  const impersonate = useCallback(async (userId: string) => {
+    if (!user) return;
+
+    setOriginalUser(user);
+    sessionStorage.setItem(ORIGINAL_USER_SESSION_KEY, JSON.stringify(user));
+
+    const clientProfile = await getClientProfile(userId);
+    if (clientProfile) {
+      setUser(clientProfile);
+      navigate('/');
+    } else {
+      logger.error('Profil client introuvable pour l\'impersonation', { userId });
+    }
+  }, [user, navigate]);
 
   const stopImpersonating = useCallback(() => {
     if (originalUser) {
       setUser(originalUser);
       setOriginalUser(null);
+      sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
+      navigate('/');
     }
-  }, [originalUser]);
+  }, [originalUser, navigate]);
 
-  const value: AuthContextType = {
-    user,
-    originalUser,
-    theme,
-    clients,
-    exercises,
-    programs,
-    sessions,
-    nutritionPlans,
-    messages,
-    clientFormations,
-    professionalFormations,
-    notifications,
-    foodItems,
-    bilanTemplates,
-    partners,
-    products,
-    intensificationTechniques,
-    recipes,
-    meals,
-    isDataLoading,
-    dataError,
-    isAuthLoading,
-    login,
-    logout,
-    register,
-    addUser,
-    updateUser,
-    deleteUser,
-    setClients: setClientsState,
-    setExercises: setExercisesState,
-    setPrograms: setProgramsState,
-    setSessions: setSessionsState,
-    setNutritionPlans: setNutritionPlansState,
-    setMessages: setMessagesState,
-    setClientFormations: setClientFormationsState,
-    setProfessionalFormations: setProfessionalFormationsState,
-    setNotifications: setNotificationsState,
-    setFoodItems: setFoodItemsState,
-    setBilanTemplates: setBilanTemplatesState,
-    setPartners: setPartnersState,
-    setProducts: setProductsState,
-    setIntensificationTechniques: setIntensificationTechniquesState,
-    setRecipes: setRecipesState,
-    setMeals: setMealsState,
-    addProgram,
-    updateProgram,
-    deleteProgram,
-    addNutritionPlan,
-    updateNutritionPlan,
-    deleteNutritionPlan,
-    addMessage,
-    markMessageAsRead,
-    deleteMessage,
-    addNotification,
-    impersonate,
-    stopImpersonating,
-    setTheme,
-    reloadData: loadData,
-    reloadAllData: loadData,
-    resendInvitation,
-  };
+  const reloadData = useCallback(async () => {
+    await loadData();
+  }, [loadData]);
+
+  const reloadAllData = useCallback(async () => {
+    setIsAuthLoading(true);
+    const supabaseUser = (await supabase.auth.getUser()).data.user;
+    if (supabaseUser) {
+      const clientProfile = await getClientProfile(supabaseUser.id);
+      if (clientProfile) {
+        setUser(clientProfile);
+      } else {
+        logger.error('Profil client introuvable lors du rechargement complet', { userId: supabaseUser.id });
+        setUser(null);
+      }
+    } else {
+      setUser(null);
+    }
+    setIsAuthLoading(false);
+    await loadData();
+  }, [loadData]);
+
+  const resendInvitation = useCallback(async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/set-password`,
+      });
+      if (error) throw error;
+      logger.info('Email d\'invitation renvoyé avec succès', { email });
+    } catch (error) {
+      logger.error('Échec du renvoi de l\'email d\'invitation', { error, email });
+      throw error;
+    }
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      originalUser,
+      theme,
+      clients,
+      exercises,
+      programs,
+      sessions,
+      nutritionPlans,
+      messages,
+      clientFormations,
+      professionalFormations,
+      notifications,
+      foodItems,
+      bilanTemplates,
+      partners,
+      products,
+      intensificationTechniques,
+      recipes,
+      meals,
+      isDataLoading,
+      dataError,
+      isAuthLoading,
+      login,
+      logout,
+      register,
+      addUser,
+      updateUser,
+      deleteUser,
+      setClients: setClientsState,
+      setExercises: setExercisesState,
+      setPrograms: setProgramsState,
+      setSessions: setSessionsState,
+      setNutritionPlans: setNutritionPlansState,
+      setMessages: setMessagesState,
+      setClientFormations: setClientFormationsState,
+      setProfessionalFormations: setProfessionalFormationsState,
+      setNotifications: setNotificationsState,
+      setFoodItems: setFoodItemsState,
+      setBilanTemplates: setBilanTemplatesState,
+      setPartners: setPartnersState,
+      setProducts: setProductsState,
+      setIntensificationTechniques: setIntensificationTechniquesState,
+      setRecipes: setRecipesState,
+      setMeals: setMealsState,
+      addProgram,
+      updateProgram,
+      deleteProgram,
+      addNutritionPlan,
+      updateNutritionPlan,
+      deleteNutritionPlan,
+      addMessage,
+      markMessageAsRead,
+      deleteMessage,
+      addNotification,
+      impersonate,
+      stopImpersonating,
+      setTheme,
+      reloadData,
+      reloadAllData,
+      resendInvitation,
+    }),
+    [
+      user,
+      originalUser,
+      theme,
+      clients,
+      exercises,
+      programs,
+      sessions,
+      nutritionPlans,
+      messages,
+      clientFormations,
+      professionalFormations,
+      notifications,
+      foodItems,
+      bilanTemplates,
+      partners,
+      products,
+      intensificationTechniques,
+      recipes,
+      meals,
+      isDataLoading,
+      dataError,
+      isAuthLoading,
+      login,
+      logout,
+      register,
+      addUser,
+      updateUser,
+      deleteUser,
+      addProgram,
+      updateProgram,
+      deleteProgram,
+      addNutritionPlan,
+      updateNutritionPlan,
+      deleteNutritionPlan,
+      addMessage,
+      markMessageAsRead,
+      deleteMessage,
+      addNotification,
+      impersonate,
+      stopImpersonating,
+      setTheme,
+      reloadData,
+      reloadAllData,
+      resendInvitation,
+    ],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth doit être utilisé au sein d\'un AuthProvider');
   }
   return context;
 };
+

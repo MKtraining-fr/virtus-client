@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { Client } from '../types';
 import { SignInSchema, SignUpSchema } from '../validation/schemas';
+import { logger } from '../utils/logger';
 
 export interface SignUpData {
   email: string;
@@ -9,6 +10,8 @@ export interface SignUpData {
   lastName: string;
   phone?: string;
   role?: 'admin' | 'coach' | 'client';
+  affiliationCode?: string;
+  coachId?: string;
 }
 
 /**
@@ -47,6 +50,8 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
         last_name: userData.lastName,
         phone: userData.phone || '',
         role: userData.role || 'client',
+        affiliation_code: userData.affiliationCode || null,
+        coach_id: userData.coachId || null,
       },
     },
   });
@@ -56,8 +61,11 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
   }
 
   if (!authData.user) {
-    throw new Error('Échec de la création du compte');
+    logger.error("Échec de la création du compte, pas d'utilisateur retourné", { email: userData.email });
+    throw new Error("Échec de la création du compte");
   }
+
+  logger.info("Utilisateur Supabase créé avec succès, en attente de confirmation par e-mail", { userId: authData.user.id, email: userData.email });
 
   // Créer le profil client dans la base de données
   const clientProfile = {
@@ -67,6 +75,8 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
     last_name: userData.lastName,
     phone: userData.phone || '',
     role: userData.role || 'client',
+    affiliation_code: userData.affiliationCode || null,
+    coach_id: userData.coachId || null,
   };
 
   const { error: profileError } = await supabase
@@ -74,8 +84,10 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
     .insert([clientProfile]);
 
   if (profileError) {
-    console.error('Erreur lors de la création du profil:', profileError);
+    logger.error("Erreur lors de la création du profil client:", { error: profileError, clientProfile });
     // Ne pas bloquer l'inscription si le profil échoue
+  } else {
+    logger.info("Profil client créé avec succès dans la base de données", { userId: clientProfile.id, email: clientProfile.email });
   }
 
   return { user: authData.user, error: null };
@@ -152,8 +164,10 @@ export const resetPassword = async (email: string): Promise<void> => {
   });
 
   if (error) {
+    logger.error("Échec de l'envoi de l'e-mail de réinitialisation de mot de passe", { error, email });
     throw error;
   }
+  logger.info("E-mail de réinitialisation de mot de passe envoyé avec succès", { email });
 };
 
 /**
@@ -168,3 +182,4 @@ export const updatePassword = async (newPassword: string): Promise<void> => {
     throw error;
   }
 };
+
