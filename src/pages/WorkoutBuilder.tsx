@@ -56,8 +56,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     const [isFilterSidebarVisible, setIsFilterSidebarVisible] = useState(true);
     
     const [isGeneralInfoVisible, setIsGeneralInfoVisible] = useState(false);
-    const [programName, setProgramName] = useState(programDraft?.name || \'Nouveau programme\'); const [objective, setObjective] = useState(programDraft?.objective || \'\');
-    const [weekCount, setWeekCount] = useState<number | \'\'>((programDraft?.weekCount && programDraft.weekCount > 0) ? programDraft.weekCount : 1); // State for Week 1 creation lock
+    const [programName, setProgramName] = useState(programDraft?.name || 'Nouveau programme');
+    const [objective, setObjective] = useState(programDraft?.objective || '');
+    const [weekCount, setWeekCount] = useState<number | ''>((programDraft?.weekCount && programDraft.weekCount > 0) ? programDraft.weekCount : 1); // State for Week 1 creation lock
     const [isWeek1LockActive, setIsWeek1LockActive] = useState(false);
 
     const handleWeekCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,8 +221,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
                  setIsEditMode(false);
                  setSessionsByWeek(programDraft?.sessionsByWeek || { 1: JSON.parse(JSON.stringify(initialSessions)) });
-                 setProgramName(programDraft?.name || \"Nouveau programme\");
-                 setObjective(programDraft?.objective || \"\");
+                 setProgramName(programDraft?.name || "Nouveau programme");
+                 setObjective(programDraft?.objective || "");
                  setWeekCount((programDraft?.weekCount && programDraft.weekCount > 0) ? programDraft.weekCount : 1);
             }
         } else {
@@ -234,8 +235,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 }
             }
             setSessionsByWeek(programDraft?.sessionsByWeek || { 1: JSON.parse(JSON.stringify(initialSessions)) });
-            setProgramName(programDraft?.name || \"Nouveau programme\");
-            setObjective(programDraft?.objective || \"\");
+            setProgramName(programDraft?.name || "Nouveau programme");
+            setObjective(programDraft?.objective || "");
             setWeekCount((programDraft?.weekCount && programDraft.weekCount > 0) ? programDraft.weekCount : 1);
         }
         setIsLoading(false);
