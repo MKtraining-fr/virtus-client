@@ -6,9 +6,13 @@ import Select from '../components/Select.tsx';
 import Button from '../components/Button.tsx';
 import ToggleSwitch from '../components/ToggleSwitch.tsx';
 import ExerciseFilterSidebar from '../components/ExerciseFilterSidebar.tsx';
-import { Exercise, WorkoutExercise, WorkoutSession, WorkoutProgram, Client } from '../types.ts';
+import { Exercise, WorkoutExercise, WorkoutSession, WorkoutProgram, Client, Program as SupabaseProgram, Session as SupabaseSession, SessionExercise as SupabaseSessionExercise } from '../types.ts';
+import { useLocalStorage } from '../hooks/useLocalStorage.ts';
+import { mapWorkoutProgramToProgram, mapWorkoutSessionToSession, mapWorkoutExerciseToSessionExercise, reconstructWorkoutProgram } from '../utils/workoutMapper.ts';
+import { getProgramById, getSessionsByProgramId, getSessionExercisesBySessionId, createProgram, updateProgram, createSession, updateSession, deleteSession, createSessionExercise, updateSessionExercise, deleteSessionExercise, getExercisesByIds } from '../services/programService.ts';
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
+import { Program, Session, SessionExercise } from '../services/programService';
 import {
     FolderIcon, EllipsisHorizontalIcon, PlusIcon, DocumentDuplicateIcon, TrashIcon, XMarkIcon,
     ChevronDoubleRightIcon, ChevronUpIcon, ListBulletIcon, LockClosedIcon
@@ -34,7 +38,11 @@ interface WorkoutBuilderProps {
 }
 
 const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
-    const { user, clients, exercises: exerciseDBFromAuth, programs, setPrograms, addProgram, updateProgram, sessions: allSessions, setSessions: setAllSessions, setClients, addNotification } = useAuth();
+    const { user, clients, exercises: exerciseDBFromAuth, setClients, addNotification } = useAuth();
+    const [programDraft, setProgramDraft] = useLocalStorage<WorkoutProgram | null>('workout_draft', null);
+    const [lastSavedAt, setLastSavedAt] = useLocalStorage<string | null>('last_saved_at', null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
@@ -48,11 +56,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     const [isFilterSidebarVisible, setIsFilterSidebarVisible] = useState(true);
     
     const [isGeneralInfoVisible, setIsGeneralInfoVisible] = useState(false);
-    const [programName, setProgramName] = useState('Nouveau programme');
-    const [objective, setObjective] = useState('');
-    const [weekCount, setWeekCount] = useState<number | ''>(8);
-
-    // State for Week 1 creation lock
+    const [programName, setProgramName] = useState(programDraft?.name || \'Nouveau programme\'); const [objective, setObjective] = useState(programDraft?.objective || \'\');
+    const [weekCount, setWeekCount] = useState<number | \'\'>((programDraft?.weekCount && programDraft.weekCount > 0) ? programDraft.weekCount : 1); // State for Week 1 creation lock
     const [isWeek1LockActive, setIsWeek1LockActive] = useState(false);
 
     const handleWeekCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,7 +98,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     }, [selectedClient, clients]);
     
     // Core state for weekly customization
-    const [sessionsByWeek, setSessionsByWeek] = useState<Record<number, WorkoutSession[]>>({ 1: JSON.parse(JSON.stringify(initialSessions)) });
+    const [sessionsByWeek, setSessionsByWeek] = useState<Record<number, WorkoutSession[]>>(programDraft?.sessionsByWeek || { 1: JSON.parse(JSON.stringify(initialSessions)) });
     const [selectedWeek, setSelectedWeek] = useState<number>(1);
     const [activeSessionId, setActiveSessionId] = useState(1);
     
@@ -150,26 +155,74 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         const clientIdFromUrl = searchParams.get('clientId');
         const programIdToEdit = searchParams.get('editProgramId');
 
-        if (programIdToEdit && clients && programs) {
-            const clientToEdit = clients.find(c => c.id === clientIdFromUrl);
-            const programToEdit = clientToEdit?.assignedPrograms?.find(p => p.id === programIdToEdit) || programs.find(p => p.id === programIdToEdit);
-            
-            if (clientToEdit && programToEdit) {
-                setIsEditMode(true);
-                setEditProgramId(programIdToEdit);
-                setProgramName(programToEdit.name);
-                setObjective(programToEdit.objective);
-                setWeekCount(programToEdit.weekCount);
-                setSessionsByWeek(JSON.parse(JSON.stringify(programToEdit.sessionsByWeek)));
-                setSelectedClient(clientToEdit.id);
-                setWorkoutMode('program');
+        const loadProgramFromSupabase = async (programId: string) => {
+            setIsLoading(true);
+            try {
+                const program = await getProgramById(programId);
+                if (!program) {
+                    addNotification({ message: "Programme non trouvé dans Supabase.", type: "error" });
+                    navigate("/programmes");
+                    return;
+                }
 
-                const lockWeek = clientToEdit.programWeek || 1;
-                const lockSessionIndex = (clientToEdit.sessionProgress || 1) - 1; 
-                setLockedUntil({ week: lockWeek, sessionIndex: lockSessionIndex });
-            } else {
+                const sessions = await getSessionsByProgramId(programId);
+                const allSessionExercises: Map<string, SupabaseSessionExercise[]> = new Map();
+                const exerciseIds = new Set<string>();
+
+                for (const session of sessions) {
+                    const exercises = await getSessionExercisesBySessionId(session.id);
+                    allSessionExercises.set(session.id, exercises);
+                    exercises.forEach(ex => {
+                        if (ex.exercise_id) exerciseIds.add(ex.exercise_id);
+                    });
+                }
+
+                const exerciseDetails = await getExercisesByIds(Array.from(exerciseIds));
+                const exerciseNamesMap = new Map<string, { name: string; illustrationUrl: string }>();
+                exerciseDetails.forEach(ex => exerciseNamesMap.set(ex.id, { name: ex.name, illustrationUrl: ex.illustration_url || '' }));
+
+                const workoutProgram = reconstructWorkoutProgram(program, sessions, allSessionExercises, exerciseNamesMap);
+
+                setProgramName(workoutProgram.name);
+                setObjective(workoutProgram.objective);
+                setWeekCount(workoutProgram.weekCount);
+                setSessionsByWeek(workoutProgram.sessionsByWeek);
+                setEditProgramId(programId);
+                setIsEditMode(true);
+                setProgramDraft(workoutProgram); // Save to draft on load
+                setLastSavedAt(new Date().toISOString());
+
+                if (clientIdFromUrl) {
+                    setSelectedClient(clientIdFromUrl);
+                    const client = clients.find(c => c.id === clientIdFromUrl);
+                    if (client) {
+                        const lockWeek = client.programWeek || 1;
+                        const lockSessionIndex = (client.sessionProgress || 1) - 1;
+                        setLockedUntil({ week: lockWeek, sessionIndex: lockSessionIndex });
+                    }
+                }
+            } catch (error) {
+                console.error("Erreur lors du chargement du programme depuis Supabase:", error);
+                addNotification({ message: "Erreur lors du chargement du programme.", type: "error" });
+                navigate("/programmes");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        setIsLoading(true);
+        const clientIdFromUrl = searchParams.get(\'clientId\');
+        const programIdToEdit = searchParams.get(\'editProgramId\');
+
+        if (programIdToEdit) {
+            loadProgramFromSupabase(programIdToEdit);
+        } else {
+
                  setIsEditMode(false);
-                 setSessionsByWeek({ 1: JSON.parse(JSON.stringify(initialSessions)) });
+                 setSessionsByWeek(programDraft?.sessionsByWeek || { 1: JSON.parse(JSON.stringify(initialSessions)) });
+                 setProgramName(programDraft?.name || \"Nouveau programme\");
+                 setObjective(programDraft?.objective || \"\");
+                 setWeekCount((programDraft?.weekCount && programDraft.weekCount > 0) ? programDraft.weekCount : 1);
             }
         } else {
             setIsEditMode(false);
@@ -180,10 +233,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     setObjective(client.objective || '');
                 }
             }
-            setSessionsByWeek({ 1: JSON.parse(JSON.stringify(initialSessions)) });
+            setSessionsByWeek(programDraft?.sessionsByWeek || { 1: JSON.parse(JSON.stringify(initialSessions)) });
+            setProgramName(programDraft?.name || \"Nouveau programme\");
+            setObjective(programDraft?.objective || \"\");
+            setWeekCount((programDraft?.weekCount && programDraft.weekCount > 0) ? programDraft.weekCount : 1);
         }
         setIsLoading(false);
-    }, [searchParams, clients, programs, clientOptions]);
+    }, [searchParams, clients, clientOptions, programDraft, lastSavedAt]);
 
 
     // Sync sessionsByWeek with weekCount
@@ -213,6 +269,26 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             setSelectedWeek(1);
         }
     }, [weekCount, workoutMode, isLoading]);
+
+    // Auto-save to localStorage and track unsaved changes
+    useEffect(() => {
+        if (isLoading) return;
+
+        const currentProgramState: WorkoutProgram = {
+            id: editProgramId || "new-program",
+            name: programName,
+            objective: objective,
+            weekCount: Number(weekCount),
+            sessionsByWeek: sessionsByWeek,
+        };
+
+        if (JSON.stringify(programDraft) !== JSON.stringify(currentProgramState)) {
+            setProgramDraft(currentProgramState);
+            setHasUnsavedChanges(true);
+        } else {
+            setHasUnsavedChanges(false);
+        }
+    }, [programName, objective, weekCount, sessionsByWeek, editProgramId, isLoading, programDraft, setProgramDraft]);
     
     useEffect(() => {
         if (!sessions.some(s => s.id === activeSessionId) && sessions.length > 0) {
@@ -224,6 +300,80 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     // --- STATE UPDATE LOGIC ---
     
     // Abstracted state updater for CONTENT changes (respects week 1 as template)
+    // This function will now also trigger the auto-save effect via state updates
+
+    const handleSaveProgram = async () => {
+        if (!user?.id) {
+            addNotification({ message: "Vous devez être connecté pour sauvegarder un programme.", type: "error" });
+            return;
+        }
+        if (!programName.trim()) {
+            addNotification({ message: "Le nom du programme ne peut pas être vide.", type: "error" });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const programToSave: WorkoutProgram = {
+                id: editProgramId || "",
+                name: programName,
+                objective: objective,
+                weekCount: Number(weekCount),
+                sessionsByWeek: sessionsByWeek,
+            };
+
+            let savedProgramId = editProgramId;
+            if (editProgramId) {
+                // Update existing program
+                await updateProgram(editProgramId, programToSave, user.id);
+                addNotification({ message: "Programme mis à jour avec succès !", type: "success" });
+            } else {
+                // Create new program
+                const newProgram = await createProgram(programToSave, user.id);
+                savedProgramId = newProgram.id;
+                setEditProgramId(newProgram.id);
+                addNotification({ message: "Programme créé avec succès !", type: "success" });
+                navigate(`/workout-builder?editProgramId=${newProgram.id}`);
+            }
+
+            // Handle sessions and exercises (simplified for now, full logic will be more complex)
+            // This part needs to be refined to handle diffing and proper CRUD for sessions/exercises
+            // For now, let's assume we re-create/update all sessions and exercises associated with the program
+
+            // Clear existing sessions/exercises for this program in Supabase if updating
+            // This is a simplistic approach and should be optimized later for performance
+            if (savedProgramId) {
+                const existingSessions = await getSessionsByProgramId(savedProgramId);
+                for (const session of existingSessions) {
+                    await deleteSession(session.id);
+                }
+            }
+
+            for (const weekNum in sessionsByWeek) {
+                for (const workoutSession of sessionsByWeek[weekNum]) {
+                    if (!savedProgramId) continue; // Should not happen if program creation was successful
+
+                    const newSession = await createSession(workoutSession, savedProgramId, Number(weekNum), user.id);
+
+                    for (const workoutExercise of workoutSession.exercises) {
+                        if (!newSession.id) continue;
+                        await createSessionExercise(workoutExercise, newSession.id);
+                    }
+                }
+            }
+
+            setLastSavedAt(new Date().toISOString());
+            setHasUnsavedChanges(false);
+            setProgramDraft(null); // Clear draft after successful save
+
+        } catch (error) {
+            console.error("Erreur lors de la sauvegarde du programme:", error);
+            addNotification({ message: "Erreur lors de la sauvegarde du programme.", type: "error" });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const updateContentState = useCallback((updateFn: (sessions: WorkoutSession[]) => WorkoutSession[]) => {
         if (selectedWeek === 1 && workoutMode === 'program') {
             setSessionsByWeek(prev => {
@@ -707,14 +857,31 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                             value={workoutMode}
                             onChange={(v) => setWorkoutMode(v as 'session' | 'program')}
                         />
+                        <div className="flex items-center gap-4">
+                            {hasUnsavedChanges && (
+                                <span className="text-sm text-yellow-600 flex items-center animate-pulse">
+                                    <span className="relative flex h-2 w-2 mr-1">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                                    </span>
+                                    Modifications non sauvegardées
+                                </span>
+                            )}
+                            <Button onClick={handleSaveProgram} disabled={isSaving || !hasUnsavedChanges}>
+                                {isSaving ? 'Sauvegarde...' : 'Sauvegarder le programme'}
+                            </Button>
+                        </div>
                         {workoutMode === 'program' && (
-                            <div className="flex items-center gap-2">
-                                <Select label="Semaine" id="week-selector" value={selectedWeek} onChange={e => setSelectedWeek(Number(e.target.value))}>
-                                    {[...Array(Number(weekCount) || 1)].map((_, i) => (
-                                        <option key={i + 1} value={i + 1}>Semaine {i + 1}</option>
-                                    ))}
-                                </Select>
-                            </div>
+                                <div className="flex items-center gap-2">
+                                    <Select label="Semaine" id="week-selector" value={selectedWeek} onChange={e => setSelectedWeek(Number(e.target.value))}>
+                                        {[...Array(Number(weekCount) || 1)].map((_, i) => (
+                                            <option key={i + 1} value={i + 1}>Semaine {i + 1}</option>
+                                        ))}
+                                    </Select>
+                                </div>
+                                {lastSavedAt && (
+                                    <span className="text-xs text-gray-500">Dernière sauvegarde: {new Date(lastSavedAt).toLocaleTimeString()}</span>
+                                )}
                         )}
                     </div>
                     
