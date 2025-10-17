@@ -140,7 +140,7 @@ const WorkoutLibrary: React.FC = () => {
                     ) : programs.length === 0 ? (
                         <p className="text-gray-500">Aucun programme enregistré pour le moment.</p>
                     ) : (
-                    {programs.map(program => (
+                        programs.map(program => (
                         <Card key={program.id} className="flex flex-col">
                            <div className="p-6 flex-grow">
                              <h3 className="text-lg font-semibold text-gray-900">{program.name}</h3>
@@ -162,7 +162,7 @@ const WorkoutLibrary: React.FC = () => {
                     ) : sessions.length === 0 ? (
                         <p className="text-gray-500">Aucune séance enregistrée pour le moment.</p>
                     ) : (
-                    {sessions.map((session: WorkoutSession) => (
+                        sessions.map((session: WorkoutSession) => (
                         <Card key={session.id} className="flex flex-col">
                            <div className="p-6 flex-grow">
                              <h3 className="text-lg font-semibold text-gray-900">{session.name}</h3>
