@@ -118,6 +118,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
     // Derived state for the currently active UI
     const sessions = useMemo(() => sessionsByWeek[selectedWeek] || [], [sessionsByWeek, selectedWeek]);
+    const allSessions = useMemo(() => Object.values(sessionsByWeek).flat(), [sessionsByWeek]);
     const activeSession = useMemo(() => sessions.find(s => s.id === activeSessionId), [sessions, activeSessionId]);
 
     const availableExercises = useMemo(() => {
@@ -172,22 +173,22 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
                 for (const session of sessions) {
                     const exercises = await getSessionExercisesBySessionId(session.id);
-                    allSessionExercises.set(session.id, exercises);
+                    allSessionExercises.set(session.id, exercises || []); // Ensure exercises is an array
                     exercises.forEach(ex => {
                         if (ex.exercise_id) exerciseIds.add(ex.exercise_id);
                     });
                 }
 
-                const exerciseDetails = await getExercisesByIds(Array.from(exerciseIds));
+                const exerciseDetails = exerciseIds.size > 0 ? await getExercisesByIds(Array.from(exerciseIds)) : [];
                 const exerciseNamesMap = new Map<string, { name: string; illustrationUrl: string }>();
                 exerciseDetails.forEach(ex => exerciseNamesMap.set(ex.id, { name: ex.name, illustrationUrl: ex.illustration_url || '' }));
 
-                const workoutProgram = reconstructWorkoutProgram(program, sessions, allSessionExercises, exerciseNamesMap);
+                const workoutProgram = reconstructWorkoutProgram(program, sessions || [], allSessionExercises, exerciseNamesMap);
 
-                setProgramName(workoutProgram.name);
-                setObjective(workoutProgram.objective);
-                setWeekCount(workoutProgram.weekCount);
-                setSessionsByWeek(workoutProgram.sessionsByWeek);
+                setProgramName(workoutProgram.name || program.name);
+                setObjective(workoutProgram.objective || program.objective || "");
+                setWeekCount(workoutProgram.weekCount || program.week_count);
+                setSessionsByWeek(workoutProgram.sessionsByWeek || {});
                 setEditProgramId(programId);
                 setIsEditMode(true);
                 setProgramDraft(workoutProgram); // Save to draft on load
@@ -779,7 +780,7 @@ const useSupabaseWorkoutData = (coachId: string | undefined, addNotification: an
                         });
                     }
 
-                    const exerciseDetails = await getExercisesByIds(Array.from(exerciseIds));
+                    const exerciseDetails = exerciseIds.size > 0 ? await getExercisesByIds(Array.from(exerciseIds)) : [];
                     const exerciseNamesMap = new Map<string, { name: string; illustrationUrl: string }>();
                     exerciseDetails.forEach(ex => exerciseNamesMap.set(ex.id, { name: ex.name, illustrationUrl: ex.illustration_url || '' }));
 
