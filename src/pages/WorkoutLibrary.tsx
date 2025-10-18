@@ -53,7 +53,6 @@ const WorkoutLibrary: React.FC = () => {
 
         let programToAssign: WorkoutProgram;
 
-        // Type guard to check if item is a session and convert it to a program
         if ('exercises' in itemToAssign && !('sessionsByWeek' in itemToAssign)) {
             const session = itemToAssign as WorkoutSession;
             programToAssign = {
@@ -72,12 +71,11 @@ const WorkoutLibrary: React.FC = () => {
                 const isAlreadyAssigned = client.assignedPrograms?.some(p => p.id === programToAssign.id);
                     if (isAlreadyAssigned) {
                         addNotification({ message: `Le programme '${programToAssign.name}' est déjà assigné à ${client.firstName}.`, type: "info" });
-                        return client; // Do not re-assign
+                        return client;
                     }
 
                 const hasCurrentProgram = client.assignedPrograms && client.assignedPrograms.length > 0;
                 if (hasCurrentProgram) {
-                    // Add as next program
                     const updatedPrograms = [...client.assignedPrograms];
                     updatedPrograms.splice(1, 0, programToAssign);
                     return {
@@ -86,7 +84,6 @@ const WorkoutLibrary: React.FC = () => {
                         viewed: false,
                     };
                 } else {
-                    // Set as current program
                     return { 
                         ...client, 
                         assignedPrograms: [programToAssign],
@@ -256,7 +253,6 @@ const useSupabaseWorkoutData = (coachId: string | undefined, addNotification: an
                     const workoutProgram = reconstructWorkoutProgram(program, supabaseSessions, allSessionExercises, exerciseNamesMap);
                     allWorkoutPrograms.push(workoutProgram);
 
-                    // Extract all sessions from this program to display in the sessions tab
                     Object.values(workoutProgram.sessionsByWeek).forEach(weekSessions => {
                         allWorkoutSessions.push(...weekSessions);
                     });
