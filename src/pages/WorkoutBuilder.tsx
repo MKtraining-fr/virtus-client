@@ -87,7 +87,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         );
         return [
             { id: '0', name: 'Aucun client' }, 
-            ...myClients.map(c => ({ id: c.id, name: `${c.firstName} ${c.lastName}` }))
+            ...(myClients || []).map(c => ({ id: c.id, name: `${c.firstName} ${c.lastName}` }))
         ];
     }, [clients, user]);
 
@@ -117,24 +117,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     const sessionDragOverItem = useRef<number | null>(null);
 
     // Derived state for the currently active UI
-    const sessions = useMemo(() => {
-        console.log('sessionsByWeek:', sessionsByWeek);
-        console.log('selectedWeek:', selectedWeek);
-        return sessionsByWeek[selectedWeek] || [];
-    }, [sessionsByWeek, selectedWeek]);
-    const allSessions = useMemo(() => {
-        console.log('sessionsByWeek for allSessions:', sessionsByWeek);
-        // Ensure sessionsByWeek is an object before calling Object.values
-        if (!sessionsByWeek || typeof sessionsByWeek !== 'object') {
-            return [];
-        }
-        return Object.values(sessionsByWeek).flat();
-    }, [sessionsByWeek]);
-    const activeSession = useMemo(() => {
-        console.log('sessions for activeSession:', sessions);
-        console.log('activeSessionId:', activeSessionId);
-        return sessions.find(s => s.id === activeSessionId);
-    }, [sessions, activeSessionId]);
+    const sessions = useMemo(() => sessionsByWeek[selectedWeek] || [], [sessionsByWeek, selectedWeek]);
+    const activeSession = useMemo(() => sessions.find(s => s.id === activeSessionId), [sessions, activeSessionId]);
 
     const availableExercises = useMemo(() => {
         if (mode === 'client') {
@@ -182,24 +166,23 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     return;
                 }
 
-                const sessions = await getSessionsByProgramId(programId);
+                const supabaseSessions = await getSessionsByProgramId(programId);
                 const allSessionExercises: Map<string, SupabaseSessionExercise[]> = new Map();
                 const exerciseIds = new Set<string>();
 
-                for (const session of sessions) {
+                for (const session of supabaseSessions || []) {
                     const exercises = await getSessionExercisesBySessionId(session.id);
-                    allSessionExercises.set(session.id, exercises || []); // Ensure exercises is an array
-                    exercises.forEach(ex => {
+                    allSessionExercises.set(session.id, exercises || []);
+                    (exercises || []).forEach(ex => {
                         if (ex.exercise_id) exerciseIds.add(ex.exercise_id);
                     });
                 }
 
                 const exerciseDetails = exerciseIds.size > 0 ? await getExercisesByIds(Array.from(exerciseIds)) : [];
                 const exerciseNamesMap = new Map<string, { name: string; illustrationUrl: string }>();
-                exerciseDetails.forEach(ex => exerciseNamesMap.set(ex.id, { name: ex.name, illustrationUrl: ex.illustration_url || '' }));
+                (exerciseDetails || []).forEach(ex => exerciseNamesMap.set(ex.id, { name: ex.name, illustrationUrl: ex.illustration_url || '' }));
 
-                console.log('Reconstructing workout program with sessions:', sessions);
-                const workoutProgram = reconstructWorkoutProgram(program, sessions || [], allSessionExercises, exerciseNamesMap);
+                const workoutProgram = reconstructWorkoutProgram(program, supabaseSessions || [], allSessionExercises, exerciseNamesMap);
 
                 setProgramName(workoutProgram.name || program.name);
                 setObjective(workoutProgram.objective || program.objective || "");
@@ -231,23 +214,12 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         const loadSessionFromSupabase = async (sessionId: string) => {
             setIsLoading(true);
             try {
-                // Logic to load a single session and convert it into a single-week program
-                // This part needs to be implemented based on how individual sessions are stored/retrieved
-                // For now, let's assume we can get the session and its exercises directly
-                // This might involve fetching the session itself and then its exercises
-
-                // Placeholder for session loading logic
-                // Example: const sessionData = await getSessionById(sessionId);
-                // Then reconstruct a WorkoutProgram for a single session
-
-                addNotification({ message: "Chargement de session individuelle non implémenté. Chargez via le programme parent.", type: "warning" });
-                navigate("/programmes"); // Redirect for now as direct session loading is complex
-
+                // This logic needs to be fully implemented
+                addNotification({ message: "Le chargement de session unique n'est pas encore implémenté.", type: "info" });
+                setIsLoading(false);
             } catch (error) {
-                console.error("Erreur lors du chargement de la session depuis Supabase:", error);
+                console.error("Erreur lors du chargement de la session:", error);
                 addNotification({ message: "Erreur lors du chargement de la session.", type: "error" });
-                navigate("/programmes");
-            } finally {
                 setIsLoading(false);
             }
         };
@@ -256,506 +228,233 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             loadProgramFromSupabase(programIdToEdit);
         } else if (sessionIdToEdit) {
             loadSessionFromSupabase(sessionIdToEdit);
+        } else if (programDraft) {
+            setProgramName(programDraft.name || 'Nouveau programme');
+            setObjective(programDraft.objective || '');
+            setWeekCount(programDraft.weekCount || 1);
+            setSessionsByWeek(programDraft.sessionsByWeek || { 1: JSON.parse(JSON.stringify(initialSessions)) });
+            setIsLoading(false);
         } else {
-            // No program or session ID in URL, load from draft or initial state
-            setIsEditMode(false);
-            if (programDraft) {
-                setProgramName(programDraft.name);
-                setObjective(programDraft.objective);
-                setWeekCount(programDraft.weekCount);
-                setSessionsByWeek(programDraft.sessionsByWeek);
-                if (clientIdFromUrl && clients.some(c => c.id === clientIdFromUrl)) {
-                    setSelectedClient(clientIdFromUrl);
-                }
-                addNotification({ message: "Brouillon chargé depuis le stockage local.", type: "info" });
-            } else {
-                setProgramName('Nouveau programme');
-                setObjective('');
-                setWeekCount(1);
-                setSessionsByWeek({ 1: JSON.parse(JSON.stringify(initialSessions)) });
-            }
             setIsLoading(false);
         }
-    }, [searchParams, addNotification, navigate, clients, programDraft, setProgramDraft, setLastSavedAt]);
+    }, [searchParams, user, clients, addNotification, navigate, setProgramDraft]);
 
-    // Effect for auto-saving draft to localStorage
+    // Auto-save to local storage
     useEffect(() => {
-        if (!isLoading && programName && objective && weekCount > 0 && Object.keys(sessionsByWeek).length > 0) {
-            const currentProgram: WorkoutProgram = {
-                id: editProgramId || `draft-${Date.now()}`,
-                name: programName,
-                objective: objective,
-                weekCount: typeof weekCount === 'number' ? weekCount : 1,
-                sessionsByWeek: sessionsByWeek,
-                coachId: user?.id || 'unknown',
-                clientId: selectedClient === '0' ? null : selectedClient,
-            };
-            setProgramDraft(currentProgram);
-            setHasUnsavedChanges(true);
-        }
-    }, [programName, objective, weekCount, sessionsByWeek, user, selectedClient, editProgramId, setProgramDraft, isLoading]);
-
-    // Effect to reset hasUnsavedChanges when saving is complete or draft is loaded
-    useEffect(() => {
-        if (!isSaving && hasUnsavedChanges && lastSavedAt) {
-            // This means a save operation just completed, so changes are now saved
-            setHasUnsavedChanges(false);
-        }
-    }, [isSaving, lastSavedAt, hasUnsavedChanges]);
-
-    const handleAddWeek = () => {
-        setSessionsByWeek(prev => ({
-            ...prev,
-            [Object.keys(prev).length + 1]: JSON.parse(JSON.stringify(initialSessions))
-        }));
+        const currentProgram: WorkoutProgram = {
+            name: programName,
+            objective: objective,
+            weekCount: Number(weekCount) || 1,
+            sessionsByWeek: sessionsByWeek,
+        };
+        setProgramDraft(currentProgram);
         setHasUnsavedChanges(true);
-    };
-
-    const handleRemoveWeek = (weekNumber: number) => {
-        if (Object.keys(sessionsByWeek).length <= 1) {
-            addNotification({ message: "Impossible de supprimer la dernière semaine.", type: "error" });
-            return;
-        }
-        setSessionsByWeek(prev => {
-            const newSessionsByWeek = { ...prev };
-            delete newSessionsByWeek[weekNumber];
-            // Re-index weeks if necessary, or just leave as is if keys are not strictly sequential
-            return newSessionsByWeek;
-        });
-        setSelectedWeek(prev => (prev === weekNumber ? 1 : prev)); // Go to week 1 if current week is deleted
-        setHasUnsavedChanges(true);
-    };
-
-    const handleAddSession = (weekNumber: number) => {
-        setSessionsByWeek(prev => {
-            const newSessions = prev[weekNumber] ? [...prev[weekNumber]] : [];
-            const newSessionId = newSessions.length > 0 ? Math.max(...newSessions.map(s => s.id)) + 1 : 1;
-            newSessions.push({ id: newSessionId, name: `Séance ${newSessionId}`, exercises: [] });
-            return {
-                ...prev,
-                [weekNumber]: newSessions
-            };
-        });
-        setHasUnsavedChanges(true);
-    };
-
-    const handleRemoveSession = (weekNumber: number, sessionId: number) => {
-        if (sessionsByWeek[weekNumber]?.length <= 1) {
-            addNotification({ message: "Impossible de supprimer la dernière séance de la semaine.", type: "error" });
-            return;
-        }
-        setSessionsByWeek(prev => {
-            const newSessionsByWeek = { ...prev };
-            newSessionsByWeek[weekNumber] = newSessionsByWeek[weekNumber].filter(s => s.id !== sessionId);
-            return newSessionsByWeek;
-        });
-        if (activeSessionId === sessionId) {
-            setActiveSessionId(sessionsByWeek[weekNumber][0]?.id || 1); // Set active to first session of the week
-        }
-        setHasUnsavedChanges(true);
-    };
-
-    const handleUpdateSessionName = (weekNumber: number, sessionId: number, newName: string) => {
-        setSessionsByWeek(prev => {
-            const newSessionsByWeek = { ...prev };
-            newSessionsByWeek[weekNumber] = newSessionsByWeek[weekNumber].map(s => 
-                s.id === sessionId ? { ...s, name: newName } : s
-            );
-            return newSessionsByWeek;
-        });
-        setHasUnsavedChanges(true);
-    };
-
-    const handleAddExercise = (sessionId: number, exercise: Exercise) => {
-        setSessionsByWeek(prev => {
-            const newSessionsByWeek = { ...prev };
-            newSessionsByWeek[selectedWeek] = newSessionsByWeek[selectedWeek].map(s => 
-                s.id === sessionId
-                    ? { 
-                        ...s, 
-                        exercises: [...s.exercises, { 
-                            id: s.exercises.length > 0 ? Math.max(...s.exercises.map(ex => ex.id)) + 1 : 1, 
-                            exerciseId: exercise.id, 
-                            name: exercise.name,
-                            illustrationUrl: exercise.illustrationUrl,
-                            sets: 3, 
-                            reps: 10, 
-                            rpe: 7, 
-                            tempo: '2-0-X-0', 
-                            rest: 60, 
-                            notes: '' 
-                        }]
-                    }
-                    : s
-            );
-            return newSessionsByWeek;
-        });
-        setHasUnsavedChanges(true);
-    };
-
-    const handleUpdateExercise = (sessionId: number, exerciseId: number, updatedFields: Partial<WorkoutExercise>) => {
-        setSessionsByWeek(prev => {
-            const newSessionsByWeek = { ...prev };
-            newSessionsByWeek[selectedWeek] = newSessionsByWeek[selectedWeek].map(s => 
-                s.id === sessionId
-                    ? { 
-                        ...s, 
-                        exercises: s.exercises.map(ex => 
-                            ex.id === exerciseId ? { ...ex, ...updatedFields } : ex
-                        )
-                    }
-                    : s
-            );
-            return newSessionsByWeek;
-        });
-        setHasUnsavedChanges(true);
-    };
-
-    const handleRemoveExercise = (sessionId: number, exerciseId: number) => {
-        setSessionsByWeek(prev => {
-            const newSessionsByWeek = { ...prev };
-            newSessionsByWeek[selectedWeek] = newSessionsByWeek[selectedWeek].map(s => 
-                s.id === sessionId
-                    ? { ...s, exercises: s.exercises.filter(ex => ex.id !== exerciseId) }
-                    : s
-            );
-            return newSessionsByWeek;
-        });
-        setHasUnsavedChanges(true);
-    };
-
-    const handleDuplicateExercise = (sessionId: number, exerciseToDuplicate: WorkoutExercise) => {
-        setSessionsByWeek(prev => {
-            const newSessionsByWeek = { ...prev };
-            newSessionsByWeek[selectedWeek] = newSessionsByWeek[selectedWeek].map(s => {
-                if (s.id === sessionId) {
-                    const newExercises = [...s.exercises];
-                    const newExerciseId = newExercises.length > 0 ? Math.max(...newExercises.map(ex => ex.id)) + 1 : 1;
-                    newExercises.splice(s.exercises.indexOf(exerciseToDuplicate) + 1, 0, { ...exerciseToDuplicate, id: newExerciseId });
-                    return { ...s, exercises: newExercises };
-                }
-                return s;
-            });
-            return newSessionsByWeek;
-        });
-        setHasUnsavedChanges(true);
-    };
-
-    const handleMoveExercise = (sessionId: number, fromIndex: number, toIndex: number) => {
-        setSessionsByWeek(prev => {
-            const newSessionsByWeek = { ...prev };
-            newSessionsByWeek[selectedWeek] = newSessionsByWeek[selectedWeek].map(s => {
-                if (s.id === sessionId) {
-                    const newExercises = [...s.exercises];
-                    const [movedExercise] = newExercises.splice(fromIndex, 1);
-                    newExercises.splice(toIndex, 0, movedExercise);
-                    return { ...s, exercises: newExercises };
-                }
-                return s;
-            });
-            return newSessionsByWeek;
-        });
-        setHasUnsavedChanges(true);
-    };
-
-    const handleDragStart = useCallback((e: React.DragEvent, position: number) => {
-        exerciseDragItem.current = position;
-    }, []);
-
-    const handleDragEnter = useCallback((e: React.DragEvent, position: number) => {
-        exerciseDragOverItem.current = position;
-    }, []);
-
-    const handleDrop = useCallback((sessionId: number) => {
-        if (exerciseDragItem.current !== null && exerciseDragOverItem.current !== null) {
-            handleMoveExercise(sessionId, exerciseDragItem.current, exerciseDragOverItem.current);
-            exerciseDragItem.current = null;
-            exerciseDragOverItem.current = null;
-        }
-    }, [handleMoveExercise]);
-
-    const handleSessionDragStart = useCallback((e: React.DragEvent, sessionId: number) => {
-        sessionDragItem.current = sessionId;
-    }, []);
-
-    const handleSessionDragEnter = useCallback((e: React.DragEvent, sessionId: number) => {
-        sessionDragOverItem.current = sessionId;
-    }, []);
-
-    const handleSessionDrop = useCallback(() => {
-        if (sessionDragItem.current !== null && sessionDragOverItem.current !== null) {
-            setSessionsByWeek(prev => {
-                const newSessions = [...prev[selectedWeek]];
-                const fromIndex = newSessions.findIndex(s => s.id === sessionDragItem.current);
-                const toIndex = newSessions.findIndex(s => s.id === sessionDragOverItem.current);
-
-                if (fromIndex !== -1 && toIndex !== -1) {
-                    const [movedSession] = newSessions.splice(fromIndex, 1);
-                    newSessions.splice(toIndex, 0, movedSession);
-                }
-                return { ...prev, [selectedWeek]: newSessions };
-            });
-            setHasUnsavedChanges(true);
-            sessionDragItem.current = null;
-            sessionDragOverItem.current = null;
-        }
-    }, [selectedWeek]);
+    }, [programName, objective, weekCount, sessionsByWeek, setProgramDraft]);
 
     const onSave = async () => {
-        if (!user?.id) {
+        if (!user) {
             addNotification({ message: "Vous devez être connecté pour sauvegarder un programme.", type: "error" });
             return;
         }
 
         setIsSaving(true);
+        setHasUnsavedChanges(false);
+
         try {
-            const programToSave: WorkoutProgram = {
-                id: editProgramId || `program-${Date.now()}`,
+            const programInput: ProgramInput = {
                 name: programName,
                 objective: objective,
-                weekCount: typeof weekCount === 'number' ? weekCount : 1,
-                sessionsByWeek: sessionsByWeek,
-                coachId: user.id,
-                clientId: selectedClient === '0' ? null : selectedClient,
+                week_count: Number(weekCount) || 1,
             };
 
+            let savedProgram: SupabaseProgram | null = null;
             if (isEditMode && editProgramId) {
-                // Update existing program
-                await updateProgram(editProgramId, programToSave);
-                addNotification({ message: "Programme mis à jour avec succès !", type: "success" });
+                savedProgram = await updateProgram(editProgramId, programInput);
             } else {
-                // Create new program
-                const newProgramId = await createProgram(programToSave);
-                setEditProgramId(newProgramId); // Set the new ID for future updates
-                setIsEditMode(true);
-                addNotification({ message: "Programme créé avec succès !", type: "success" });
+                savedProgram = await createProgram(programInput);
+                if (savedProgram) {
+                    setEditProgramId(savedProgram.id);
+                    setIsEditMode(true);
+                }
             }
-            setProgramDraft(null); // Clear draft after successful save
+
+            if (!savedProgram) {
+                throw new Error("La sauvegarde du programme a échoué.");
+            }
+
+            const allCurrentSessions = Object.values(sessionsByWeek).flat();
+            const allSupabaseSessions = await getSessionsByProgramId(savedProgram.id);
+
+            // Sync sessions
+            for (const week in sessionsByWeek) {
+                for (const session of sessionsByWeek[week] || []) {
+                    const sessionInput: SessionInput = {
+                        program_id: savedProgram.id,
+                        name: session.name,
+                        week_number: parseInt(week, 10),
+                        session_order: sessionsByWeek[week].indexOf(session),
+                    };
+
+                    let savedSession: SupabaseSession | null = null;
+                    if (typeof session.id === 'string' && session.id.includes('-')) {
+                        savedSession = await updateSession(session.id, sessionInput);
+                    } else {
+                        savedSession = await createSession(sessionInput);
+                    }
+
+                    if (!savedSession) continue;
+
+                    // Sync exercises
+                    const allSupabaseExercises = await getSessionExercisesBySessionId(savedSession.id);
+                    for (const exercise of session.exercises || []) {
+                        const exerciseInput: SessionExerciseInput = {
+                            session_id: savedSession.id,
+                            exercise_id: String(exercise.id), // Ensure exercise_id is a string
+                            order: (session.exercises || []).indexOf(exercise),
+                            sets: exercise.sets,
+                            reps: exercise.reps,
+                            rpe: exercise.rpe,
+                            tempo: exercise.tempo,
+                            rest: exercise.rest,
+                            notes: exercise.notes,
+                        };
+
+                        if (typeof exercise.supaId === 'string' && exercise.supaId.includes('-')) {
+                            await updateSessionExercise(exercise.supaId, exerciseInput);
+                        } else {
+                            await createSessionExercise(exerciseInput);
+                        }
+                    }
+
+                    // Delete exercises not in the current session
+                    for (const supaEx of allSupabaseExercises) {
+                        if (!(session.exercises || []).some(ex => ex.supaId === supaEx.id)) {
+                            await deleteSessionExercise(supaEx.id);
+                        }
+                    }
+                }
+            }
+
+            // Delete sessions not in the current program
+            for (const supaSession of allSupabaseSessions) {
+                if (!allCurrentSessions.some(s => s.id === supaSession.id)) {
+                    await deleteSession(supaSession.id);
+                }
+            }
+
             setLastSavedAt(new Date().toISOString());
-            setHasUnsavedChanges(false);
+            addNotification({ message: "Programme sauvegardé avec succès !", type: "success" });
+
         } catch (error) {
             console.error("Erreur lors de la sauvegarde du programme:", error);
             addNotification({ message: "Erreur lors de la sauvegarde du programme.", type: "error" });
+            setHasUnsavedChanges(true);
         } finally {
             setIsSaving(false);
         }
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-screen">
-                <p className="text-gray-600 text-lg">Chargement du programme...</p>
-            </div>
-        );
-    }
-
     return (
-        <div className="flex h-full bg-gray-100">
-            {/* Sidebar */}
-            <div className={`bg-white shadow-lg p-6 flex flex-col transition-all duration-300 ease-in-out ${isFilterSidebarVisible ? 'w-80' : 'w-20'} overflow-hidden`}>
-                <button 
-                    onClick={() => setIsFilterSidebarVisible(!isFilterSidebarVisible)}
-                    className="p-2 rounded-full hover:bg-gray-200 self-end mb-4"
-                    title={isFilterSidebarVisible ? "Masquer la barre latérale" : "Afficher la barre latérale"}
-                >
-                    <ChevronDoubleRightIcon className={`h-5 w-5 text-gray-600 ${isFilterSidebarVisible ? '' : 'rotate-180'}`} />
-                </button>
-                {isFilterSidebarVisible ? (
-                    <ExerciseFilterSidebar
-                        availableExercises={availableExercises}
-                        onAddExercise={(exercise) => activeSession && handleAddExercise(activeSession.id, exercise)}
-                        selectedExerciseIds={selectedExerciseIds}
-                        setSelectedExerciseIds={setSelectedExerciseIds}
-                        draggedOverExerciseId={draggedOverExerciseId}
-                        setDraggedOverExerciseId={setDraggedOverExerciseId}
-                        activeSearchBox={activeSearchBox}
-                        setActiveSearchBox={setActiveSearchBox}
-                    />
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-full">
-                        <ListBulletIcon className="h-8 w-8 text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-500 text-center">Filtres</p>
-                    </div>
-                )}
+        <div className="flex h-screen bg-gray-100">
+            <div className={`transition-all duration-300 ${isFilterSidebarVisible ? 'w-1/4' : 'w-0'} overflow-hidden`}>
+                <ExerciseFilterSidebar />
             </div>
 
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col p-8 overflow-auto">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold text-gray-800">{programName}</h1>
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="bg-white shadow-md p-4 flex justify-between items-center z-10">
                     <div className="flex items-center space-x-4">
-                        {hasUnsavedChanges && (
-                            <span className="text-sm text-yellow-600 flex items-center">
-                                <span className="relative flex h-2 w-2 mr-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
-                                </span>
-                                Modifications non sauvegardées
-                            </span>
-                        )}
-                        <Button onClick={onSave} disabled={isSaving || !hasUnsavedChanges}>
+                        <Button onClick={() => setIsFilterSidebarVisible(!isFilterSidebarVisible)} variant="ghost" size="icon">
+                            <ChevronDoubleRightIcon className={`h-6 w-6 transition-transform duration-300 ${isFilterSidebarVisible ? 'rotate-180' : ''}`} />
+                        </Button>
+                        <h1 className="text-2xl font-bold">Créateur de Programme</h1>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                        {hasUnsavedChanges && <span className="text-sm text-gray-500 italic">Modifications non sauvegardées</span>}
+                        <Button onClick={onSave} disabled={isSaving}>
                             {isSaving ? 'Sauvegarde...' : 'Sauvegarder le programme'}
                         </Button>
                     </div>
                 </div>
 
-                {/* General Info */}
-                <div className="bg-white rounded-lg shadow p-6 mb-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold text-gray-800">Informations générales</h2>
-                        <button onClick={() => setIsGeneralInfoVisible(!isGeneralInfoVisible)} className="text-primary hover:text-primary-dark">
-                            {isGeneralInfoVisible ? 'Masquer' : 'Afficher'}
-                        </button>
-                    </div>
-                    {isGeneralInfoVisible && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                                label="Nom du programme"
-                                value={programName}
-                                onChange={(e) => { setProgramName(e.target.value); setHasUnsavedChanges(true); }}
-                                placeholder="Ex: Programme Prise de Masse"
-                            />
-                            <Input
-                                label="Objectif"
-                                value={objective}
-                                onChange={(e) => { setObjective(e.target.value); setHasUnsavedChanges(true); }}
-                                placeholder="Ex: Développer la masse musculaire"
-                            />
-                             <Input
-                                label="Nombre de semaines"
-                                type="number"
-                                value={weekCount}
-                                onChange={handleWeekCountChange}
-                                onBlur={handleWeekCountBlur}
-                                min="1"
-                                max="52"
-                            />
-                             {user?.role === 'coach' && ( // Only show client selector for coaches
-                                <Select
-                                    label="Assigner à un client"
-                                    value={selectedClient}
-                                    onChange={handleClientSelectionChange}
-                                    options={clientOptions.map(c => ({ value: c.id, label: c.name }))}
-                                />
+                <div className="flex-1 overflow-y-auto p-6">
+                    {/* General Program Info */}
+                    <Card className="mb-6">
+                        <div className="p-4">
+                            <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsGeneralInfoVisible(!isGeneralInfoVisible)}>
+                                <h2 className="text-lg font-semibold">Informations Générales</h2>
+                                <ChevronUpIcon className={`h-5 w-5 transition-transform duration-200 ${isGeneralInfoVisible ? '' : 'rotate-180'}`} />
+                            </div>
+                            {isGeneralInfoVisible && (
+                                <div className="mt-4 space-y-4">
+                                    <Input label="Nom du programme" value={programName} onChange={(e) => setProgramName(e.target.value)} />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Select label="Client" value={selectedClient} onChange={handleClientSelectionChange} options={clientOptions} />
+                                        <Input label="Objectif" value={objective} onChange={(e) => setObjective(e.target.value)} />
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Input type="number" label="Nombre de semaines" value={weekCount} onChange={handleWeekCountChange} onBlur={handleWeekCountBlur} min={1} max={52} />
+                                        <ToggleSwitch label="Mode Programme" checked={workoutMode === 'program'} onChange={() => setWorkoutMode(workoutMode === 'program' ? 'session' : 'program')} />
+                                    </div>
+                                </div>
                             )}
                         </div>
-                    )}
-                </div>
+                    </Card>
 
-                {/* Week Navigation */}
-                <div className="flex space-x-2 mb-6 overflow-x-auto pb-2">
-                    {Object.keys(sessionsByWeek).map(weekNum => (
-                        <Button
-                            key={weekNum}
-                            variant={selectedWeek === parseInt(weekNum) ? 'primary' : 'secondary'}
-                            onClick={() => setSelectedWeek(parseInt(weekNum))}
-                            className="flex-shrink-0"
-                        >
-                            Semaine {weekNum}
-                        </Button>
-                    ))}
-                    <Button onClick={handleAddWeek} variant="secondary" className="flex-shrink-0">
-                        <PlusIcon className="h-4 w-4 mr-2" /> Ajouter Semaine
-                    </Button>
-                    {Object.keys(sessionsByWeek).length > 1 && (
-                        <Button onClick={() => handleRemoveWeek(selectedWeek)} variant="danger" className="flex-shrink-0">
-                            <TrashIcon className="h-4 w-4 mr-2" /> Supprimer Semaine {selectedWeek}
-                        </Button>
-                    )}
-                </div>
-
-                {/* Sessions for selected week */}
-                <div className="flex-1 bg-white rounded-lg shadow p-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold text-gray-800">Semaine {selectedWeek}</h2>
-                        <div className="flex space-x-2">
-                            <Button onClick={() => handleAddSession(selectedWeek)} variant="secondary">
-                                <PlusIcon className="h-4 w-4 mr-2" /> Ajouter Séance
-                            </Button>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {sessions.length === 0 ? (
-                            <p className="text-gray-500">Aucune séance pour cette semaine. Ajoutez-en une !</p>
-                        ) : (
-                            sessions.map((session, index) => (
-                                <Card 
-                                    key={session.id} 
-                                    className={`relative flex flex-col ${activeSessionId === session.id ? 'border-primary-dark border-2' : ''}`}
-                                    draggable={true}
-                                    onDragStart={(e) => handleSessionDragStart(e, session.id)}
-                                    onDragEnter={(e) => handleSessionDragEnter(e, session.id)}
-                                    onDragEnd={handleSessionDrop}
-                                    onDragOver={(e) => e.preventDefault()}
+                    {/* Weekly Tabs */}
+                    {workoutMode === 'program' && (
+                        <div className="mb-4 flex space-x-2 overflow-x-auto">
+                            {[...Array(Number(weekCount) || 1)].map((_, i) => (
+                                <Button 
+                                    key={i + 1} 
+                                    onClick={() => setSelectedWeek(i + 1)} 
+                                    variant={selectedWeek === i + 1 ? 'solid' : 'outline'}
+                                    disabled={isWeek1LockActive && i + 1 !== 1}
                                 >
-                                    {lockedUntil && lockedUntil.week === selectedWeek && lockedUntil.sessionIndex >= index && (
-                                        <div className="absolute inset-0 bg-gray-200 bg-opacity-75 flex items-center justify-center z-10 rounded-lg">
-                                            <LockClosedIcon className="h-8 w-8 text-gray-600" />
-                                            <span className="ml-2 text-gray-700 font-medium">Verrouillé</span>
-                                        </div>
-                                    )}
-                                    <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                                        <Input
-                                            type="text"
-                                            value={session.name}
-                                            onChange={(e) => handleUpdateSessionName(selectedWeek, session.id, e.target.value)}
-                                            className="text-lg font-semibold border-none focus:ring-0 p-0"
-                                            disabled={lockedUntil && lockedUntil.week === selectedWeek && lockedUntil.sessionIndex >= index}
-                                        />
-                                        <div className="flex space-x-2">
-                                            <Button 
-                                                variant="secondary" 
-                                                size="sm" 
-                                                onClick={() => setActiveSessionId(session.id)}
-                                                disabled={lockedUntil && lockedUntil.week === selectedWeek && lockedUntil.sessionIndex >= index}
-                                            >
-                                                <ChevronDoubleRightIcon className="h-4 w-4" />
-                                            </Button>
-                                            <Button 
-                                                variant="danger" 
-                                                size="sm" 
-                                                onClick={() => handleRemoveSession(selectedWeek, session.id)}
-                                                disabled={lockedUntil && lockedUntil.week === selectedWeek && lockedUntil.sessionIndex >= index}
-                                            >
-                                                <TrashIcon className="h-4 w-4" />
-                                            </Button>
+                                    Semaine {i + 1}
+                                    {isWeek1LockActive && i + 1 !== 1 && <LockClosedIcon className="h-4 w-4 ml-2" />}
+                                </Button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Sessions Section */}
+                    <div className="flex space-x-4">
+                        {(sessions || []).map((session, sessionIndex) => (
+                            <Card key={session.id} className="w-1/3 flex-shrink-0">
+                                <div className="p-4">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <Input value={session.name} onChange={(e) => { /* Update session name */ }} className="text-lg font-bold" />
+                                        <div className="flex items-center space-x-2">
+                                            <Button variant="ghost" size="icon"><DocumentDuplicateIcon className="h-5 w-5" /></Button>
+                                            <Button variant="ghost" size="icon"><TrashIcon className="h-5 w-5" /></Button>
                                         </div>
                                     </div>
-                                    <div className="p-4 flex-grow">
-                                        {session.exercises.length === 0 ? (
-                                            <p className="text-gray-500 text-sm">Glissez-déposez des exercices ici ou utilisez le panneau latéral.</p>
-                                        ) : (
-                                            <ul className="space-y-3">
-                                                {session.exercises.map((exercise, exIndex) => (
-                                                    <li
-                                                        key={exercise.id}
-                                                        className={`bg-gray-50 p-3 rounded-md border border-gray-200 flex items-center justify-between ${exerciseDragItem.current === exIndex ? 'opacity-50' : ''}`}
-                                                        draggable={!(lockedUntil && lockedUntil.week === selectedWeek && lockedUntil.sessionIndex >= index)}
-                                                        onDragStart={(e) => handleDragStart(e, exIndex)}
-                                                        onDragEnter={(e) => handleDragEnter(e, exIndex)}
-                                                        onDragEnd={() => handleDrop(session.id)}
-                                                        onDragOver={(e) => e.preventDefault()}
-                                                    >
-                                                        <div className="flex-grow">
-                                                            <p className="font-medium text-gray-800">{exercise.name}</p>
-                                                            <p className="text-sm text-gray-600">{exercise.sets} séries de {exercise.reps} reps</p>
-                                                        </div>
-                                                        <div className="flex space-x-1">
-                                                            <Button variant="ghost" size="sm" onClick={() => handleDuplicateExercise(session.id, exercise)}><DocumentDuplicateIcon className="h-4 w-4" /></Button>
-                                                            <Button variant="ghost" size="sm" onClick={() => handleRemoveExercise(session.id, exercise.id)}><TrashIcon className="h-4 w-4" /></Button>
-                                                            <Button variant="ghost" size="sm" onClick={() => { setActiveSearchBox({ sessionId: session.id, exerciseId: exercise.id }); setSelectedExerciseIds([exercise.exerciseId]); }}>
-                                                                <EllipsisHorizontalIcon className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
+
+                                    {/* Exercises List */}
+                                    <div className="space-y-2">
+                                        {(session.exercises || []).map((exercise, exerciseIndex) => (
+                                            <div key={exercise.id} className="p-2 border rounded-md">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-semibold">{exercise.name}</span>
+                                                    <Button variant="ghost" size="icon"><XMarkIcon className="h-4 w-4" /></Button>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
+                                                    <Input label="Sets" type="number" value={exercise.sets} onChange={(e) => { /* Update sets */ }} />
+                                                    <Input label="Reps" type="number" value={exercise.reps} onChange={(e) => { /* Update reps */ }} />
+                                                    <Input label="RPE" type="number" value={exercise.rpe || ''} onChange={(e) => { /* Update RPE */ }} />
+                                                    <Input label="Tempo" value={exercise.tempo || ''} onChange={(e) => { /* Update tempo */ }} />
+                                                    <Input label="Repos (s)" type="number" value={exercise.rest || ''} onChange={(e) => { /* Update rest */ }} />
+                                                </div>
+                                                <Input label="Notes" value={exercise.notes || ''} onChange={(e) => { /* Update notes */ }} className="mt-2" />
+                                            </div>
+                                        ))}
                                     </div>
-                                </Card>
-                            ))
-                        )}
+
+                                    <Button variant="outline" className="w-full mt-4">Ajouter un exercice</Button>
+                                </div>
+                            </Card>
+                        ))}
+                        <Button variant="outline" className="self-start"><PlusIcon className="h-5 w-5 mr-2" /> Ajouter une séance</Button>
                     </div>
                 </div>
             </div>
@@ -764,61 +463,3 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 };
 
 export default WorkoutBuilder;
-
-// Hook to fetch and process programs/sessions from Supabase
-const useSupabaseWorkoutData = (coachId: string | undefined, addNotification: any) => {
-    const [programs, setPrograms] = useState<WorkoutProgram[]>([]);
-    const [sessions, setSessions] = useState<WorkoutSession[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchProgramsAndSessions = async () => {
-            if (!coachId) {
-                setIsLoading(false);
-                return;
-            }
-            setIsLoading(true);
-            try {
-                const supabasePrograms = await getProgramsByCoachId(coachId);
-                const allWorkoutPrograms: WorkoutProgram[] = [];
-                const allWorkoutSessions: WorkoutSession[] = [];
-
-                for (const program of supabasePrograms) {
-                    const supabaseSessions = await getSessionsByProgramId(program.id);
-                    const allSessionExercises: Map<string, SupabaseSessionExercise[]> = new Map();
-                    const exerciseIds = new Set<string>();
-
-                    for (const session of supabaseSessions) {
-                        const exercises = await getSessionExercisesBySessionId(session.id);
-                        allSessionExercises.set(session.id, exercises);
-                        exercises.forEach(ex => {
-                            if (ex.exercise_id) exerciseIds.add(ex.exercise_id);
-                        });
-                    }
-
-                    const exerciseDetails = exerciseIds.size > 0 ? await getExercisesByIds(Array.from(exerciseIds)) : [];
-                    const exerciseNamesMap = new Map<string, { name: string; illustrationUrl: string }>();
-                    exerciseDetails.forEach(ex => exerciseNamesMap.set(ex.id, { name: ex.name, illustrationUrl: ex.illustration_url || '' }));
-
-                    const workoutProgram = reconstructWorkoutProgram(program, supabaseSessions, allSessionExercises, exerciseNamesMap);
-                    allWorkoutPrograms.push(workoutProgram);
-
-                    Object.values(workoutProgram.sessionsByWeek).forEach(weekSessions => {
-                        allWorkoutSessions.push(...weekSessions);
-                    });
-                }
-                setPrograms(allWorkoutPrograms);
-                setSessions(allWorkoutSessions);
-            } catch (error) {
-                console.error("Erreur lors du chargement des programmes/sessions depuis Supabase:", error);
-                addNotification({ message: "Erreur lors du chargement des programmes et sessions.", type: "error" });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchProgramsAndSessions();
-    }, [coachId, addNotification]);
-
-    return { programs, sessions, isLoading };
-};
