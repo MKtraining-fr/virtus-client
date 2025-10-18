@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -151,8 +151,9 @@ const WorkoutLibrary: React.FC = () => {
                                     <Button size="sm" onClick={() => handleOpenAssignModal(program)}>Assigner</Button>
                                 </div>
                             </Card>
-                        ))}
-                    </div>
+                        ))
+                    )}
+                </div>
             )}
             
             {activeTab === 'sessions' && (
@@ -173,8 +174,9 @@ const WorkoutLibrary: React.FC = () => {
                                     <Button size="sm" onClick={() => handleOpenAssignModal(session)}>Assigner</Button>
                                 </div>
                             </Card>
-                        ))}
-                    </div>
+                        ))
+                    )}
+                </div>
             )}
 
             {isAssignModalOpen && itemToAssign && (
