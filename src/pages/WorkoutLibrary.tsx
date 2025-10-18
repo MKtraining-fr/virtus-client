@@ -141,18 +141,18 @@ const WorkoutLibrary: React.FC = () => {
                         <p className="text-gray-500">Aucun programme enregistré pour le moment.</p>
                     ) : (
                         programs.map(program => (
-                        <Card key={program.id} className="flex flex-col">
-                           <div className="p-6 flex-grow">
-                             <h3 className="text-lg font-semibold text-gray-900">{program.name}</h3>
-                             <p className="text-sm text-gray-500 mt-1">{program.sessionsByWeek[1]?.length || 0} séances · {program.weekCount} semaines</p>
-                           </div>
-                           <div className="bg-gray-50 p-4 flex justify-end space-x-2">
-                                <Button variant="secondary" size="sm" onClick={() => navigate(`/app/musculation/createur?editProgramId=${program.id}`)}>Modifier</Button>
-                                <Button size="sm" onClick={() => handleOpenAssignModal(program)}>Assigner</Button>
-                           </div>
-                        </Card>
-                    ))}
-                </div>
+                            <Card key={program.id} className="flex flex-col">
+                                <div className="p-6 flex-grow">
+                                    <h3 className="text-lg font-semibold text-gray-900">{program.name}</h3>
+                                    <p className="text-sm text-gray-500 mt-1">{program.sessionsByWeek[1]?.length || 0} séances · {program.weekCount} semaines</p>
+                                </div>
+                                <div className="bg-gray-50 p-4 flex justify-end space-x-2">
+                                    <Button variant="secondary" size="sm" onClick={() => navigate(`/app/musculation/createur?editProgramId=${program.id}`)}>Modifier</Button>
+                                    <Button size="sm" onClick={() => handleOpenAssignModal(program)}>Assigner</Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
             )}
             
             {activeTab === 'sessions' && (
@@ -163,18 +163,18 @@ const WorkoutLibrary: React.FC = () => {
                         <p className="text-gray-500">Aucune séance enregistrée pour le moment.</p>
                     ) : (
                         sessions.map((session: WorkoutSession) => (
-                        <Card key={session.id} className="flex flex-col">
-                           <div className="p-6 flex-grow">
-                             <h3 className="text-lg font-semibold text-gray-900">{session.name}</h3>
-                             <p className="text-sm text-gray-500 mt-1">{session.exercises.length} exercices</p>
-                           </div>
-                           <div className="bg-gray-50 p-4 flex justify-end space-x-2">
-                                <Button variant="secondary" size="sm" onClick={() => navigate(`/app/musculation/createur?editProgramId=${session.programId}&editSessionId=${session.id}`)}>Voir</Button>
-                                <Button size="sm" onClick={() => handleOpenAssignModal(session)}>Assigner</Button>
-                           </div>
-                        </Card>
-                    ))}
-                </div>
+                            <Card key={session.id} className="flex flex-col">
+                                <div className="p-6 flex-grow">
+                                    <h3 className="text-lg font-semibold text-gray-900">{session.name}</h3>
+                                    <p className="text-sm text-gray-500 mt-1">{session.exercises.length} exercices</p>
+                                </div>
+                                <div className="bg-gray-50 p-4 flex justify-end space-x-2">
+                                    <Button variant="secondary" size="sm" onClick={() => navigate(`/app/musculation/createur?editProgramId=${session.programId}&editSessionId=${session.id}`)}>Voir</Button>
+                                    <Button size="sm" onClick={() => handleOpenAssignModal(session)}>Assigner</Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
             )}
 
             {isAssignModalOpen && itemToAssign && (
