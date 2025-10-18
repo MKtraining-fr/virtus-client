@@ -94,12 +94,19 @@ export const mapSessionExerciseToWorkoutExercise = (
 
   // Créer les détails pour chaque série
   const sets = sessionExercise.sets || 0;
-  const details = Array.from({ length: sets }, () => ({
-    reps: sessionExercise.reps || '12',
-    load: { value: loadValue, unit: loadUnit as 'kg' | 'lbs' | '%' },
-    tempo: sessionExercise.tempo || '2010',
-    rest: sessionExercise.rest_time || '60s',
-  }));
+  const details = (sessionExercise.details && sessionExercise.details.length > 0)
+    ? sessionExercise.details.map(d => ({
+        reps: d.reps || '12',
+        load: d.load || { value: '', unit: 'kg' }, // Assuming load is also an object
+        tempo: d.tempo || '2010',
+        rest: d.rest || '60s',
+      }))
+    : Array.from({ length: sets }, () => ({
+        reps: sessionExercise.reps || '12',
+        load: { value: loadValue, unit: loadUnit as 'kg' | 'lbs' | '%' },
+        tempo: sessionExercise.tempo || '2010',
+        rest: sessionExercise.rest_time || '60s',
+      }));
 
   return {
     id: sessionExercise.exercise_order,
@@ -108,8 +115,8 @@ export const mapSessionExerciseToWorkoutExercise = (
     illustrationUrl: illustrationUrl || '',
     sets: String(sets),
     details,
-    intensification: sessionExercise.intensification || '',
-    notes: sessionExercise.notes || '',
+    intensification: sessionExercise.intensification || [],
+    notes: sessionExercise.notes || null,
     alternatives: sessionExercise.alternatives || [],
   };
 };

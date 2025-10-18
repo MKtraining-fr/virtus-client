@@ -217,12 +217,19 @@ export interface SessionExercise {
   session_id: string;
   exercise_id: string;
   order: number;
-  sets: number;
+    sets: number;
+    details?: { 
+        reps: string; 
+        load: string; 
+        tempo: string; 
+        rest: string; 
+    }[];
   reps: number;
   rpe?: number;
   tempo?: string;
   rest?: number;
-  notes?: string;
+    notes?: string;
+    alternatives?: { id: string, name: string, illustrationUrl: string }[];
   created_at: string;
   updated_at: string;
 }
