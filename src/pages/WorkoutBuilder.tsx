@@ -117,9 +117,24 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     const sessionDragOverItem = useRef<number | null>(null);
 
     // Derived state for the currently active UI
-    const sessions = useMemo(() => sessionsByWeek[selectedWeek] || [], [sessionsByWeek, selectedWeek]);
-    const allSessions = useMemo(() => Object.values(sessionsByWeek).flat(), [sessionsByWeek]);
-    const activeSession = useMemo(() => sessions.find(s => s.id === activeSessionId), [sessions, activeSessionId]);
+    const sessions = useMemo(() => {
+        console.log('sessionsByWeek:', sessionsByWeek);
+        console.log('selectedWeek:', selectedWeek);
+        return sessionsByWeek[selectedWeek] || [];
+    }, [sessionsByWeek, selectedWeek]);
+    const allSessions = useMemo(() => {
+        console.log('sessionsByWeek for allSessions:', sessionsByWeek);
+        // Ensure sessionsByWeek is an object before calling Object.values
+        if (!sessionsByWeek || typeof sessionsByWeek !== 'object') {
+            return [];
+        }
+        return Object.values(sessionsByWeek).flat();
+    }, [sessionsByWeek]);
+    const activeSession = useMemo(() => {
+        console.log('sessions for activeSession:', sessions);
+        console.log('activeSessionId:', activeSessionId);
+        return sessions.find(s => s.id === activeSessionId);
+    }, [sessions, activeSessionId]);
 
     const availableExercises = useMemo(() => {
         if (mode === 'client') {
@@ -183,6 +198,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 const exerciseNamesMap = new Map<string, { name: string; illustrationUrl: string }>();
                 exerciseDetails.forEach(ex => exerciseNamesMap.set(ex.id, { name: ex.name, illustrationUrl: ex.illustration_url || '' }));
 
+                console.log('Reconstructing workout program with sessions:', sessions);
                 const workoutProgram = reconstructWorkoutProgram(program, sessions || [], allSessionExercises, exerciseNamesMap);
 
                 setProgramName(workoutProgram.name || program.name);
