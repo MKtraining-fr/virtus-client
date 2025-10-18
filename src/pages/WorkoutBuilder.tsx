@@ -745,7 +745,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                                                     >
                                                         <div className="flex-grow">
                                                             <p className="font-medium text-gray-800">{exercise.name}</p>
-                                                            <p className="text-sm text-gray-600">{exercise.sets} séries de {exercise.reps} reps</p>
+                                                            {/* Render details if available */}
+                                                            {(exercise.details ?? []).map((detail, detailIndex) => (
+                                                                <p key={detailIndex} className="text-sm text-gray-600">{detail.sets} séries de {detail.reps} reps</p>
+                                                            ))}
+                                                            {/* Render alternatives if available */}
+                                                            {(exercise.alternatives ?? []).map((alt, altIndex) => (
+                                                                <p key={altIndex} className="text-sm text-gray-500 italic">Alternative: {alt.name}</p>
+                                                            ))}
                                                         </div>
                                                         <div className="flex space-x-1">
                                                             <Button variant="ghost" size="sm" onClick={() => handleDuplicateExercise(session.id, exercise)}><DocumentDuplicateIcon className="h-4 w-4" /></Button>
