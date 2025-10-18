@@ -87,7 +87,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         );
         return [
             { id: '0', name: 'Aucun client' }, 
-            ...myClients.map(c => ({ id: c.id, name: `${c.firstName} ${c.lastName}` }))
+            ...(myClients || []).map(c => ({ id: c.id, name: `${c.firstName} ${c.lastName}` }))
         ];
     }, [clients, user]);
 
@@ -99,7 +99,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     }, [selectedClient, clients]);
     
     // Core state for weekly customization
-    const [sessionsByWeek, setSessionsByWeek] = useState<Record<number, WorkoutSession[]>>(programDraft?.sessionsByWeek || { 1: JSON.parse(JSON.stringify(initialSessions)) });
+    const [sessionsByWeek, setSessionsByWeek] = useState<Record<number, WorkoutSession[]>>(() => {
+        const initial = programDraft?.sessionsByWeek;
+        if (initial && typeof initial === 'object' && Object.keys(initial).length > 0) {
+            return initial;
+        }
+        return { 1: JSON.parse(JSON.stringify(initialSessions)) };
+    });
     const [selectedWeek, setSelectedWeek] = useState<number>(1);
     const [activeSessionId, setActiveSessionId] = useState(1);
     
