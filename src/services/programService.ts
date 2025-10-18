@@ -41,21 +41,18 @@ export const createProgram = async (programData: ProgramInput): Promise<Program 
 };
 
 // Récupérer tous les programmes d'un coach
-export const getCoachPrograms = async (): Promise<Program[]> => {
+export const getProgramsByCoachId = async (coachId: string): Promise<Program[]> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
     const { data, error } = await supabase
       .from('programs')
       .select('*')
-      .eq('coach_id', user.id)
+      .eq('coach_id', coachId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error fetching coach programs:', error);
+    console.error('Error fetching programs by coach ID:', error);
     return [];
   }
 };
