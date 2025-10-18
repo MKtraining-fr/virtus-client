@@ -43,6 +43,8 @@ export const createProgram = async (programData: ProgramInput): Promise<Program 
 // Récupérer tous les programmes d'un coach
 export const getProgramsByCoachId = async (coachId: string): Promise<Program[]> => {
   try {
+    // L'authentification de l'utilisateur est gérée par l'appelant qui fournit le coachId.
+    // Pas besoin de vérifier l'authentification ici, car coachId est passé en argument.
     const { data, error } = await supabase
       .from('programs')
       .select('*')
