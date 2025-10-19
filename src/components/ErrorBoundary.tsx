@@ -38,9 +38,11 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Logger l'erreur
-    logError('Erreur capturée par Error Boundary', error, {
-      componentStack: errorInfo.componentStack,
-    });
+    console.error('Erreur capturée par Error Boundary:', error);
+    console.error('Stack trace du composant:', errorInfo.componentStack);
+    if (error.stack) {
+      console.error('Stack trace de l\'erreur:', error.stack);
+    }
 
     // Appeler le callback personnalisé si fourni
     if (this.props.onError) {
