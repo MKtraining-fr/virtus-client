@@ -45,6 +45,7 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
     email: userData.email,
     password: userData.password,
     options: {
+      emailRedirectTo: `${window.location.origin}/set-password`,
       data: {
         first_name: userData.firstName,
         last_name: userData.lastName,
@@ -182,4 +183,5 @@ export const updatePassword = async (newPassword: string): Promise<void> => {
     throw error;
   }
 };
+
 
