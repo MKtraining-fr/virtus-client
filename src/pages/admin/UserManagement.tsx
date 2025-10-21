@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Client } from '../../types';
 import Card from '../../components/Card';
 import Input from '../../components/Input';
@@ -6,7 +6,9 @@ import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Select from '../../components/Select';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { useSortableData } from '../../hooks/useSortableData';
+import { logger } from '../../utils/logger';
 
 const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null }) => {
   return (
@@ -18,7 +20,8 @@ const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null 
 };
 
 const UserManagement: React.FC = () => {
-    const { clients: allUsers, addUser, updateUser, setClients } = useAuth();
+    const navigate = useNavigate();
+    const { clients: allUsers, addUser, updateUser, deleteUser, reloadData } = useAuth();
     const [filter, setFilter] = useState('');
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState<'all' | 'coaches' | 'clients'>('all');
@@ -52,6 +55,7 @@ const UserManagement: React.FC = () => {
     }, [sortedUsers, filter]);
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        logger.info('handleSelectAll called', { checked: e.target.checked });
         if (e.target.checked) {
             const selectableUsers = filteredUsers
                 .filter(u => u.role !== 'admin')
@@ -63,20 +67,37 @@ const UserManagement: React.FC = () => {
     };
 
     const handleSelectOne = (id: string) => {
-        setSelectedUsers(prev =>
-            prev.includes(id) ? prev.filter(userId => userId !== id) : [...prev, id]
-        );
+        logger.info('handleSelectOne called', { id });
+        setSelectedUsers(prev => {
+            const newSelection = prev.includes(id) ? prev.filter(userId => userId !== id) : [...prev, id];
+            logger.info('Selected users updated', { newSelection });
+            return newSelection;
+        });
     };
 
-    const handleDeleteSelected = () => {
-        if (selectedUsers.length === 0) return;
+    const handleDeleteSelected = async () => {
+        logger.info('handleDeleteSelected called', { selectedUsers });
+        if (selectedUsers.length === 0) {
+            logger.warn('handleDeleteSelected called with no users selected');
+            return;
+        }
         const count = selectedUsers.length;
         if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${count} utilisateur(s) ? Cette action est irréversible.`)) {
-            const idsToDelete = new Set(selectedUsers);
-            const updatedUsers = allUsers.filter(u => !idsToDelete.has(u.id));
-            setClients(updatedUsers);
-            setSelectedUsers([]);
-            alert(`${count} utilisateur(s) ont été supprimés.`);
+            try {
+                setIsLoading(true);
+                logger.info('Attempting to delete users', { selectedUsers });
+                await Promise.all(selectedUsers.map(userId => deleteUser(userId)));
+                setSelectedUsers([]);
+                alert(`${count} utilisateur(s) ont été supprimés.`);
+                logger.info('Users deleted successfully, reloading data');
+                reloadData(); // Reload data from Supabase to reflect changes
+            } catch (error) {
+                console.error("Erreur lors de la suppression des utilisateurs:", error);
+                logger.error('Error deleting users', { error });
+                alert("Erreur lors de la suppression des utilisateurs.");
+            } finally {
+                setIsLoading(false);
+            }
         }
     };
     
@@ -135,6 +156,7 @@ const UserManagement: React.FC = () => {
             }
             setIsModalOpen(false);
             setCurrentUser(null);
+            reloadData(); // Ensure data is reloaded after add/edit
         } catch (err: any) {
             setError(err.message || "Une erreur est survenue.");
         } finally {
@@ -249,82 +271,68 @@ const UserManagement: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {user.role === 'client' ? (() => {
-                                            const assignedCoach = coaches.find(c => c.id === user.coachId);
-                                            return assignedCoach ? `${assignedCoach.firstName} ${assignedCoach.lastName}` : 'Indépendant';
-                                        })() : '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{user.affiliationCode || '-'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {user.role !== 'admin' && (
-                                            <Button variant="secondary" size="sm" onClick={() => openEditModal(user)}>
-                                                Modifier
-                                            </Button>
-                                        )}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.coachId || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.affiliationCode || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button onClick={() => openEditModal(user)} className="text-indigo-600 hover:text-indigo-900 mr-4">Éditer</button>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
-                 {filteredUsers.length === 0 && (
-                    <div className="text-center p-6 text-gray-500">
-                        Aucun utilisateur trouvé.
-                    </div>
-                )}
             </Card>
 
-             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={modalMode === 'add' ? "Ajouter un nouvel utilisateur" : "Modifier l'utilisateur"}>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={modalMode === 'add' ? 'Ajouter un utilisateur' : 'Éditer l\'utilisateur'}>
+                <form onSubmit={handleSubmit}>
+                    {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
+                    <div className="mb-4">
                         <Input label="Prénom" name="firstName" value={currentUser?.firstName || ''} onChange={handleFormChange} required />
+                    </div>
+                    <div className="mb-4">
                         <Input label="Nom" name="lastName" value={currentUser?.lastName || ''} onChange={handleFormChange} required />
                     </div>
-                    <Input label="Email" name="email" type="email" value={currentUser?.email || ''} onChange={handleFormChange} required />
-                    <div>
-                        <Input 
-                            label="Mot de passe" 
-                            name="password" 
-                            type="password" 
-                            value={currentUser?.password || ''} 
-                            onChange={handleFormChange} 
-                            required={modalMode === 'add'} 
-                            placeholder={modalMode === 'edit' ? "Laisser vide pour ne pas changer" : ""}
-                        />
-                        {modalMode === 'add' && (
-                            <p className="mt-1 text-xs text-gray-500">
-                                Le mot de passe doit contenir : 8 caractères minimum, une majuscule, une minuscule, un chiffre et un caractère spécial
-                            </p>
-                        )}
+                    <div className="mb-4">
+                        <Input label="Email" name="email" type="email" value={currentUser?.email || ''} onChange={handleFormChange} required />
                     </div>
-                    <Select label="Profil" name="role" value={currentUser?.role || 'client'} onChange={handleFormChange}>
-                        <option value="client">Client</option>
-                        <option value="coach">Coach</option>
-                    </Select>
-                    
-                    {currentUser?.role === 'client' && (
-                        <Select label="Coach Rattaché" name="coachId" value={currentUser.coachId || ''} onChange={handleFormChange}>
-                            <option value="">Indépendant</option>
-                            {coaches.map(coach => (
-                                <option key={coach.id} value={coach.id}>{coach.firstName} {coach.lastName}</option>
-                            ))}
-                        </Select>
+                    {modalMode === 'add' && (
+                        <div className="mb-4">
+                            <Input label="Mot de passe" name="password" type="password" value={currentUser?.password || ''} onChange={handleFormChange} required />
+                        </div>
                     )}
-
-
-                    {error && <p className="text-sm text-red-600 text-center">{error}</p>}
-
-                    <div className="flex justify-end pt-4 space-x-2">
-                        <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>Annuler</Button>
-                        <Button type="submit" disabled={isLoading}>
-                            {isLoading ? 'Enregistrement...' : 'Enregistrer'}
-                        </Button>
+                    <div className="mb-4">
+                        <Select
+                            label="Rôle"
+                            name="role"
+                            value={currentUser?.role || 'client'}
+                            onChange={handleFormChange}
+                            options={[
+                                { value: 'client', label: 'Client' },
+                                { value: 'coach', label: 'Coach' },
+                                { value: 'admin', label: 'Admin' },
+                            ]}
+                            required
+                        />
                     </div>
+                    {currentUser?.role === 'client' && (
+                        <div className="mb-4">
+                            <Select
+                                label="Coach Rattaché"
+                                name="coachId"
+                                value={currentUser?.coachId || ''}
+                                onChange={handleFormChange}
+                                options={[
+                                    { value: '', label: 'Aucun' },
+                                    ...coaches.map(coach => ({ value: coach.id, label: `${coach.firstName} ${coach.lastName}` }))
+                                ]}
+                            />
+                        </div>
+                    )}
+                    <Button type="submit" disabled={isLoading}>{isLoading ? 'Chargement...' : (modalMode === 'add' ? 'Ajouter' : 'Mettre à jour')}</Button>
                 </form>
             </Modal>
         </div>
     );
-}
+};
 
 export default UserManagement;
