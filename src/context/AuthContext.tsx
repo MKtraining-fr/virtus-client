@@ -34,6 +34,7 @@ import {
   onAuthStateChange,
   getClientProfile,
   SignUpData,
+  deleteUserAndProfile, 
 } from '../services/authService';
 import { logger } from '../utils/logger';
 import {
@@ -291,447 +292,316 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [theme]);
 
-  const setTheme = useCallback((newTheme: 'light' | 'dark') => {
-    setThemeState(newTheme);
+  const login = useCallback(async (email, password) => {
+    setIsAuthLoading(true);
+    try {
+      await signIn(email, password);
+      // Pas besoin de recharger les données ici, onAuthStateChange s'en chargera
+    } catch (error) {
+      logger.error('Erreur de connexion', { error });
+      throw error;
+    } finally {
+      setIsAuthLoading(false);
+    }
   }, []);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      try {
-        await signIn(email, password);
-        navigate('/');
-      } catch (error) {
-        logger.error('Échec de la connexion', { error, email });
-        throw error;
-      }
-    },
-    [navigate],
-  );
-
   const logout = useCallback(async () => {
+    setIsAuthLoading(true);
     try {
       await signOutUser();
       setUser(null);
       setOriginalUser(null);
+      sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
       navigate('/login');
     } catch (error) {
-      logger.error('Échec de la déconnexion', { error });
+      logger.error('Erreur de déconnexion', { error });
       throw error;
+    } finally {
+      setIsAuthLoading(false);
     }
   }, [navigate]);
 
-  const register = useCallback(
-    async (userData: SignUpData) => {
-      try {
-        // Extraire le coachId des données utilisateur si présent
-        const { coachId, ...restUserData } = userData;
-
-        // Appeler la fonction signUp avec les données utilisateur et le coachId
-        const finalUserData = { ...restUserData, coachId };
-        await signUp(finalUserData);
-        // Si l'inscription réussit, naviguer vers la page de confirmation d'email ou de succès
-        // Supabase envoie un email de confirmation par défaut. L'utilisateur doit confirmer son email.
-        // On peut rediriger vers une page d'information en attendant la confirmation.
-        navigate("/check-email");
-      } catch (error) {
-        logger.error('Échec de l\'inscription', { error, email: userData.email });
-        throw error;
-      }
-    },
-    [navigate],
-  );
+  const register = useCallback(async (userData: SignUpData) => {
+    setIsAuthLoading(true);
+    try {
+      await signUp(userData);
+    } catch (error) {
+      logger.error('Erreur d\'inscription', { error });
+      throw error;
+    } finally {
+      setIsAuthLoading(false);
+    }
+  }, []);
 
   const addUser = useCallback(async (userData: Partial<Client>): Promise<Client> => {
-    // Vérifier que les champs requis sont présents
-    if (!userData.email || !userData.firstName || !userData.lastName) {
-      throw new Error('Email, prénom et nom sont requis');
-    }
-
-    // Générer un mot de passe temporaire sécurisé (ne sera jamais communiqué à l'utilisateur)
-    const generateSecurePassword = (): string => {
-      const length = 32;
-      const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
-      let password = '';
-      
-      // Ajouter au moins un caractère de chaque type requis
-      password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)]; // Majuscule
-      password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)]; // Minuscule
-      password += '0123456789'[Math.floor(Math.random() * 10)]; // Chiffre
-      password += '!@#$%^&*' [Math.floor(Math.random() * 8)]; // Caractère spécial
-      
-      // Compléter avec des caractères aléatoires
-      for (let i = password.length; i < length; i++) {
-        password += charset[Math.floor(Math.random() * charset.length)];
-      }
-      
-      // Mélanger les caractères
-      return password.split('').sort(() => Math.random() - 0.5).join('');
-    };
-
-    const tempPassword = generateSecurePassword();
-
-    // Utiliser signUp pour créer l'utilisateur dans Auth ET dans la table clients
-    const signUpData: SignUpData = {
-      email: userData.email,
-      password: tempPassword,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      phone: userData.phone,
-      role: userData.role || 'client',
-      coachId: userData.coachId, // Passer le coachId à signUp
-    };
-
-    const { user: authUser, error } = await signUp(signUpData);
-    
-    if (error) throw error;
-    if (!authUser) throw new Error('Échec de la création de l\'utilisateur');
-
-    // Préparer toutes les données du profil client pour la mise à jour
-    const updateData = mapClientToSupabaseClient({
-      ...userData,
-      id: authUser.id,
-      coachId: user?.id, // Associer au coach connecté
-    });
-
-    // Supprimer les champs qui ne doivent pas être mis à jour (déjà créés par signUp)
-    delete updateData.id;
-    delete updateData.email;
-    delete updateData.first_name;
-    delete updateData.last_name;
-    delete updateData.phone;
-    delete updateData.role;
-    delete updateData.coach_id; // Supprimer pour éviter la duplication si déjà passé par signUp
-
-    // Mettre à jour le profil complet dans la table clients
-    const { error: updateError } = await supabase
-      .from('clients')
-      .update(updateData)
-      .eq('id', authUser.id);
-
-    if (updateError) {
-      console.error('Erreur lors de la mise à jour du profil:', updateError);
-      // Ne pas bloquer si la mise à jour échoue (peut-être que les colonnes n'existent pas encore)
-    }
-
-    // Envoyer un email de réinitialisation de mot de passe
-    // Cela permettra au client de définir son propre mot de passe
+    logger.info('Ajout d\'utilisateur', { userData });
     try {
-      await supabase.auth.resetPasswordForEmail(userData.email, {
-        redirectTo: `${window.location.origin}/set-password`,
-      });
-      console.log('Email d\'invitation envoyé à:', userData.email);
-    } catch (emailError) {
-      console.error('Erreur lors de l\'envoi de l\'email d\'invitation:', emailError);
-      // Ne pas bloquer l'inscription si l'email échoue
+      const { data, error } = await supabase.from('clients').insert([mapClientToSupabaseClient(userData as Client)]).select().single();
+      if (error) throw error;
+      const newClient = mapSupabaseClientToClient(data);
+      setClientsState(prev => [...prev, newClient]);
+      logger.info('Utilisateur ajouté avec succès', { newClient });
+      return newClient;
+    } catch (error) {
+      logger.error('Erreur lors de l\'ajout de l\'utilisateur', { error });
+      throw error;
     }
+  }, []);
 
-    // Récupérer le profil créé depuis la base de données
-    const { data: clientData, error: fetchError } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', authUser.id)
-      .single();
-
-    if (fetchError) throw fetchError;
-    
-    // Convertir les données retournées de snake_case vers camelCase
-    const newClient = mapSupabaseClientToClient(clientData);
-    
-    // Mettre à jour la liste locale des clients
-    setClientsState(prevClients => [...prevClients, newClient]);
-    
-    return newClient;
-  }, [user]);
-
-  const updateUser = useCallback(async (userId: string, userData: Partial<Client>) => {
-    // Convertir les données de camelCase vers snake_case pour Supabase
-    const updateData: any = {};
-    
-    if (userData.firstName !== undefined) updateData.first_name = userData.firstName;
-    if (userData.lastName !== undefined) updateData.last_name = userData.lastName;
-    if (userData.email !== undefined) updateData.email = userData.email;
-    if (userData.phone !== undefined) updateData.phone = userData.phone;
-    if (userData.role !== undefined) updateData.role = userData.role;
-    if (userData.coachId !== undefined) updateData.coach_id = userData.coachId;
-    if (userData.status !== undefined) updateData.status = userData.status;
-
-    // Mettre à jour dans Supabase
-    const { data, error } = await supabase
-      .from('clients')
-      .update(updateData)
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    
-    // Convertir les données retournées de snake_case vers camelCase
-    const updatedClient = mapSupabaseClientToClient(data);
-    
-    // Mettre à jour la liste locale des clients
-    setClientsState(prevClients => 
-      prevClients.map(client => 
-        client.id === userId ? updatedClient : client
-      )
-    );
-    
-    return updatedClient;
+  const updateUser = useCallback(async (userId: string, userData: Partial<Client>): Promise<Client> => {
+    logger.info('Mise à jour de l\'utilisateur', { userId, userData });
+    try {
+      const { data, error } = await supabase.from('clients').update(mapClientToSupabaseClient(userData as Client)).eq('id', userId).select().single();
+      if (error) throw error;
+      const updatedClient = mapSupabaseClientToClient(data);
+      setClientsState(prev => prev.map(client => (client.id === userId ? updatedClient : client)));
+      logger.info('Utilisateur mis à jour avec succès', { updatedClient });
+      return updatedClient;
+    } catch (error) {
+      logger.error('Erreur lors de la mise à jour de l\'utilisateur', { error });
+      throw error;
+    }
   }, []);
 
   const deleteUser = useCallback(async (userId: string) => {
-    const { error } = await supabase
-      .from('clients')
-      .delete()
-      .eq('id', userId);
+    logger.info('Tentative de suppression de l\'utilisateur', { userId });
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        logger.error("Erreur lors de la récupération de la session:", { sessionError });
+        throw sessionError;
+      }
+      if (!session) {
+        logger.error("Aucune session active trouvée. Impossible de supprimer l\'utilisateur.");
+        throw new Error("No active session found. Cannot delete user.");
+      }
+      logger.info("Session active trouvée, appel de deleteUserAndProfile", { userId, accessToken: session.access_token ? 'present' : 'absent' });
+      await deleteUserAndProfile(userId, session.access_token);
 
-    if (error) throw error;
-
-    setClientsState(prevClients => prevClients.filter(client => client.id !== userId));
+      logger.info('Utilisateur supprimé avec succès via fonction Edge, mise à jour de l\'état local', { userId });
+      setClientsState(prevClients => prevClients.filter(client => client.id !== userId));
+    } catch (error) {
+      logger.error('Erreur lors de la suppression de l\'utilisateur', { userId, error });
+      throw error;
+    }
   }, []);
 
   const addProgram = useCallback(async (programData: Omit<WorkoutProgram, 'id'>) => {
-    const { data, error } = await supabase
-      .from('programs')
-      .insert({
-        coach_id: user?.id, // Associer le programme au coach connecté
-        name: programData.name,
-        description: programData.description,
-        duration_weeks: programData.durationWeeks,
-        client_id: programData.clientId,
-        exercises: programData.exercises,
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    const newProgram = mapSupabaseProgramToProgram(data);
-    setProgramsState(prevPrograms => [...prevPrograms, newProgram]);
-    return newProgram;
-  }, [user]);
+    try {
+      const { data, error } = await supabase.from('programs').insert([programData]).select().single();
+      if (error) throw error;
+      const newProgram = mapSupabaseProgramToProgram(data);
+      setProgramsState(prev => [...prev, newProgram]);
+      return newProgram;
+    } catch (error) {
+      logger.error('Erreur lors de l\'ajout du programme', { error });
+      throw error;
+    }
+  }, []);
 
   const updateProgram = useCallback(async (programId: string, programData: Partial<WorkoutProgram>) => {
-    const updateData: any = {};
-    if (programData.name !== undefined) updateData.name = programData.name;
-    if (programData.description !== undefined) updateData.description = programData.description;
-    if (programData.durationWeeks !== undefined) updateData.duration_weeks = programData.durationWeeks;
-    if (programData.clientId !== undefined) updateData.client_id = programData.clientId;
-    if (programData.exercises !== undefined) updateData.exercises = programData.exercises;
-
-    const { data, error } = await supabase
-      .from('programs')
-      .update(updateData)
-      .eq('id', programId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    const updatedProgram = mapSupabaseProgramToProgram(data);
-    setProgramsState(prevPrograms =>
-      prevPrograms.map(program =>
-        program.id === programId ? updatedProgram : program
-      )
-    );
-    return updatedProgram;
+    try {
+      const { data, error } = await supabase.from('programs').update(programData).eq('id', programId).select().single();
+      if (error) throw error;
+      const updatedProgram = mapSupabaseProgramToProgram(data);
+      setProgramsState(prev => prev.map(program => (program.id === programId ? updatedProgram : program)));
+      return updatedProgram;
+    } catch (error) {
+      logger.error('Erreur lors de la mise à jour du programme', { error });
+      throw error;
+    }
   }, []);
 
   const deleteProgram = useCallback(async (programId: string) => {
-    const { error } = await supabase
-      .from('programs')
-      .delete()
-      .eq('id', programId);
-
-    if (error) throw error;
-
-    setProgramsState(prevPrograms => prevPrograms.filter(program => program.id !== programId));
+    try {
+      const { error } = await supabase.from('programs').delete().eq('id', programId);
+      if (error) throw error;
+      setProgramsState(prev => prev.filter(program => program.id !== programId));
+    } catch (error) {
+      logger.error('Erreur lors de la suppression du programme', { error });
+      throw error;
+    }
   }, []);
 
   const addNutritionPlan = useCallback(async (planData: Omit<NutritionPlan, 'id'>) => {
-    const { data, error } = await supabase
-      .from('nutrition_plans')
-      .insert({
-        coach_id: user?.id, // Associer le plan nutritionnel au coach connecté
-        name: planData.name,
-        description: planData.description,
-        client_id: planData.clientId,
-        meals: planData.meals,
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    const newPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
-    setNutritionPlansState(prevPlans => [...prevPlans, newPlan]);
-    return newPlan;
-  }, [user]);
+    try {
+      const { data, error } = await supabase.from('nutrition_plans').insert([planData]).select().single();
+      if (error) throw error;
+      const newPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
+      setNutritionPlansState(prev => [...prev, newPlan]);
+      return newPlan;
+    } catch (error) {
+      logger.error('Erreur lors de l\'ajout du plan nutritionnel', { error });
+      throw error;
+    }
+  }, []);
 
   const updateNutritionPlan = useCallback(async (planId: string, planData: Partial<NutritionPlan>) => {
-    const updateData: any = {};
-    if (planData.name !== undefined) updateData.name = planData.name;
-    if (planData.description !== undefined) updateData.description = planData.description;
-    if (planData.clientId !== undefined) updateData.client_id = planData.clientId;
-    if (planData.meals !== undefined) updateData.meals = planData.meals;
-
-    const { data, error } = await supabase
-      .from('nutrition_plans')
-      .update(updateData)
-      .eq('id', planId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    const updatedPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
-    setNutritionPlansState(prevPlans =>
-      prevPlans.map(plan =>
-        plan.id === planId ? updatedPlan : plan
-      )
-    );
-    return updatedPlan;
+    try {
+      const { data, error } = await supabase.from('nutrition_plans').update(planData).eq('id', planId).select().single();
+      if (error) throw error;
+      const updatedPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
+      setNutritionPlansState(prev => prev.map(plan => (plan.id === planId ? updatedPlan : plan)));
+      return updatedPlan;
+    } catch (error) {
+      logger.error('Erreur lors de la mise à jour du plan nutritionnel', { error });
+      throw error;
+    }
   }, []);
 
   const deleteNutritionPlan = useCallback(async (planId: string) => {
-    const { error } = await supabase
-      .from('nutrition_plans')
-      .delete()
-      .eq('id', planId);
-
-    if (error) throw error;
-
-    setNutritionPlansState(prevPlans => prevPlans.filter(plan => plan.id !== planId));
+    try {
+      const { error } = await supabase.from('nutrition_plans').delete().eq('id', planId);
+      if (error) throw error;
+      setNutritionPlansState(prev => prev.filter(plan => plan.id !== planId));
+    } catch (error) {
+      logger.error('Erreur lors de la suppression du plan nutritionnel', { error });
+      throw error;
+    }
   }, []);
 
   const addMessage = useCallback(async (messageData: Omit<Message, 'id' | 'timestamp'>) => {
-    const { data, error } = await supabase
-      .from('messages')
-      .insert({
-        sender_id: messageData.senderId,
-        receiver_id: messageData.receiverId,
-        content: messageData.content,
-        is_read: false,
-        timestamp: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    const newMessage = mapSupabaseMessageToMessage(data);
-    setMessagesState(prevMessages => [...prevMessages, newMessage]);
-    return newMessage;
+    try {
+      const { data, error } = await supabase.from('messages').insert([{ ...messageData, timestamp: new Date().toISOString() }]).select().single();
+      if (error) throw error;
+      const newMessage = mapSupabaseMessageToMessage(data);
+      setMessagesState(prev => [...prev, newMessage]);
+      return newMessage;
+    } catch (error) {
+      logger.error('Erreur lors de l\'ajout du message', { error });
+      throw error;
+    }
   }, []);
 
   const markMessageAsRead = useCallback(async (messageId: string) => {
-    const { data, error } = await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('id', messageId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    const updatedMessage = mapSupabaseMessageToMessage(data);
-    setMessagesState(prevMessages =>
-      prevMessages.map(message =>
-        message.id === messageId ? updatedMessage : message
-      )
-    );
-    return updatedMessage;
+    try {
+      const { data, error } = await supabase.from('messages').update({ is_read: true }).eq('id', messageId).select().single();
+      if (error) throw error;
+      const updatedMessage = mapSupabaseMessageToMessage(data);
+      setMessagesState(prev => prev.map(msg => (msg.id === messageId ? updatedMessage : msg)));
+      return updatedMessage;
+    } catch (error) {
+      logger.error('Erreur lors du marquage du message comme lu', { error });
+      throw error;
+    }
   }, []);
 
   const deleteMessage = useCallback(async (messageId: string) => {
-    const { error } = await supabase
-      .from('messages')
-      .delete()
-      .eq('id', messageId);
-
-    if (error) throw error;
-
-    setMessagesState(prevMessages => prevMessages.filter(message => message.id !== messageId));
+    try {
+      const { error } = await supabase.from('messages').delete().eq('id', messageId);
+      if (error) throw error;
+      setMessagesState(prev => prev.filter(msg => msg.id !== messageId));
+    } catch (error) {
+      logger.error('Erreur lors de la suppression du message', { error });
+      throw error;
+    }
   }, []);
 
   const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
-    const { error } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: notification.userId,
-        type: notification.type,
-        message: notification.message,
-        link: notification.link,
-        is_read: false,
-        timestamp: new Date().toISOString(),
-      });
-
-    if (error) {
-      logger.error('Erreur lors de l\'ajout de la notification', { error, notification });
+    try {
+      const { error } = await supabase.from('notifications').insert([{ ...notification, timestamp: new Date().toISOString(), is_read: false }]);
+      if (error) throw error;
+      // Reload notifications after adding one
+      const { data: notificationsData, error: fetchError } = await supabase.from('notifications').select('*');
+      if (fetchError) throw fetchError;
+      setNotificationsState(notificationsData.map(mapSupabaseNotificationToNotification));
+    } catch (error) {
+      logger.error('Erreur lors de l\'ajout de la notification', { error });
+      throw error;
     }
   }, []);
 
   const impersonate = useCallback(async (userId: string) => {
-    if (!user) return;
+    logger.info('Impersonation de l\'utilisateur', { userId });
+    try {
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      if (adminUser) {
+        setOriginalUser(mapSupabaseClientToClient(adminUser as any));
+        sessionStorage.setItem(ORIGINAL_USER_SESSION_KEY, JSON.stringify(mapSupabaseClientToClient(adminUser as any)));
+      }
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'supabase',
+        token: userId, // Assuming userId can be used as a token for impersonation (this is a simplified example)
+      });
 
-    setOriginalUser(user);
-    sessionStorage.setItem(ORIGINAL_USER_SESSION_KEY, JSON.stringify(user));
-
-    const clientProfile = await getClientProfile(userId);
-    if (clientProfile) {
-      setUser(clientProfile);
-      navigate('/');
-    } else {
-      logger.error('Profil client introuvable pour l\'impersonation', { userId });
+      if (error) throw error;
+      if (data.user) {
+        const clientProfile = await getClientProfile(data.user.id);
+        if (clientProfile) {
+          setUser(clientProfile);
+          navigate('/app/dashboard');
+        } else {
+          throw new Error('Profil client introuvable pour l\'utilisateur impersonné');
+        }
+      }
+    } catch (error) {
+      logger.error('Erreur lors de l\'impersonation de l\'utilisateur', { error });
+      throw error;
     }
-  }, [user, navigate]);
+  }, [navigate]);
 
-  const stopImpersonating = useCallback(() => {
-    if (originalUser) {
-      setUser(originalUser);
-      setOriginalUser(null);
-      sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
-      navigate('/');
+  const stopImpersonating = useCallback(async () => {
+    logger.info('Arrêt de l\'impersonation');
+    try {
+      if (originalUser) {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'supabase',
+          token: originalUser.id, // Assuming originalUser.id can be used as a token
+        });
+        if (error) throw error;
+        if (data.user) {
+          const adminProfile = await getClientProfile(data.user.id);
+          if (adminProfile) {
+            setUser(adminProfile);
+            setOriginalUser(null);
+            sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
+            navigate('/admin/dashboard');
+          } else {
+            throw new Error('Profil administrateur introuvable après arrêt de l\'impersonation');
+          }
+        }
+      }
+    } catch (error) {
+      logger.error('Erreur lors de l\'arrêt de l\'impersonation', { error });
+      throw error;
     }
   }, [originalUser, navigate]);
 
+  const setTheme = useCallback((newTheme: 'light' | 'dark') => {
+    setThemeState(newTheme);
+  }, []);
+
   const reloadData = useCallback(async () => {
+    logger.info('Rechargement des données...');
     await loadData();
+    logger.info('Données rechargées.');
   }, [loadData]);
 
   const reloadAllData = useCallback(async () => {
-    setIsAuthLoading(true);
-    const supabaseUser = (await supabase.auth.getUser()).data.user;
-    if (supabaseUser) {
-      const clientProfile = await getClientProfile(supabaseUser.id);
-      if (clientProfile) {
-        setUser(clientProfile);
-      } else {
-        logger.error('Profil client introuvable lors du rechargement complet', { userId: supabaseUser.id });
-        setUser(null);
-      }
-    } else {
-      setUser(null);
-    }
-    setIsAuthLoading(false);
+    logger.info('Rechargement de toutes les données...');
     await loadData();
+    logger.info('Toutes les données rechargées.');
   }, [loadData]);
 
   const resendInvitation = useCallback(async (email: string) => {
+    logger.info('Renvoi de l\'invitation', { email });
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/set-password`,
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/set-password`,
+        },
       });
       if (error) throw error;
-      logger.info('Email d\'invitation renvoyé avec succès', { email });
+      logger.info('Invitation renvoyée avec succès', { email });
     } catch (error) {
-      logger.error('Échec du renvoi de l\'email d\'invitation', { error, email });
+      logger.error('Erreur lors du renvoi de l\'invitation', { error });
       throw error;
     }
   }, []);
 
-  const value = useMemo(
+  const contextValue = useMemo(
     () => ({
       user,
       originalUser,
@@ -839,10 +709,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       reloadData,
       reloadAllData,
       resendInvitation,
-    ],
+    ]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
@@ -852,4 +722,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
