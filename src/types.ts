@@ -202,14 +202,14 @@ export interface WorkoutExercise {
     illustrationUrl: string;
     sets: string;
     isDetailed: boolean;
-    details: { 
+    details?: { 
         reps: string; 
         load: { value: string; unit: 'kg' | '%' | 'RPE' | 'km/h' | 'W' | 'lvl' }; 
         tempo: string; 
         rest: string; 
     }[];
     intensification: { id: number, value: string }[];
-    alternatives: { id: string, name: string, illustrationUrl: string }[];
+    alternatives?: { id: string, name: string, illustrationUrl: string }[];
 }
 
 export interface WorkoutSession {

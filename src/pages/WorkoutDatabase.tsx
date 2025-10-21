@@ -7,6 +7,7 @@ import Button from '../components/Button';
 import Input from '../components/Input';
 import Select from '../components/Select';
 import { useAuth } from '../context/AuthContext';
+import { archiveMultipleExercises } from '../services/exerciseArchiveService';
 
 const EQUIPMENT_TYPES = ['Non spécifié', 'Machine à charge libre', 'Machine à charge guidée', 'Barre olympique', 'Haltères', 'Poulie', 'Poids du corps', 'Autre'];
 const MUSCLE_GROUPS = ['Pectoraux', 'Dos', 'Épaules', 'Biceps', 'Triceps', 'Avant-bras', 'Quadriceps', 'Ischio-jambiers', 'Fessiers', 'Mollets', 'Abdominaux', 'Lombaires', 'Hanches', 'Cardio'];
@@ -14,6 +15,8 @@ const MUSCLE_GROUPS = ['Pectoraux', 'Dos', 'Épaules', 'Biceps', 'Triceps', 'Ava
 
 const XMarkIcon = (props: React.SVGProps<SVGSVGElement>) => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}> <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /> </svg> );
 const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.067-2.09 1.02-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg> );
+const ArchiveIcon = (props: React.SVGProps<SVGSVGElement>) => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0-3-3m3 3 3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg> );
+const CheckIcon = (props: React.SVGProps<SVGSVGElement>) => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg> );
 
 
 const initialNewExerciseState: Omit<Exercise, 'id'> = {
@@ -48,6 +51,10 @@ const WorkoutDatabase: React.FC = () => {
     
     const [secondaryMuscleGroupSearch, setSecondaryMuscleGroupSearch] = useState('');
     const [showSecondaryMuscleGroupSuggestions, setShowSecondaryMuscleGroupSuggestions] = useState(false);
+    
+    // State for bulk selection and actions
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedExerciseIds, setSelectedExerciseIds] = useState<string[]>([]);
 
 
     const handleCardClick = (exercise: Exercise) => {
@@ -149,6 +156,73 @@ const WorkoutDatabase: React.FC = () => {
             setExercises(exercises.filter(ex => ex.id !== exerciseId));
         }
     };
+    
+    const toggleSelectionMode = () => {
+        setSelectionMode(!selectionMode);
+        setSelectedExerciseIds([]);
+    };
+    
+    const toggleExerciseSelection = (exerciseId: string) => {
+        setSelectedExerciseIds(prev => 
+            prev.includes(exerciseId) 
+                ? prev.filter(id => id !== exerciseId)
+                : [...prev, exerciseId]
+        );
+    };
+    
+    const selectAllExercises = () => {
+        const selectableExercises = filteredExercises.filter(ex => ex.coachId === user?.id);
+        setSelectedExerciseIds(selectableExercises.map(ex => ex.id));
+    };
+    
+    const deselectAllExercises = () => {
+        setSelectedExerciseIds([]);
+    };
+    
+    const handleBulkArchive = async () => {
+        if (selectedExerciseIds.length === 0) return;
+        
+        const count = selectedExerciseIds.length;
+        if (!window.confirm(`Êtes-vous sûr de vouloir archiver ${count} exercice(s) ? Ils seront marqués comme archivés et pourront être supprimés définitivement après 3 mois.`)) {
+            return;
+        }
+        
+        if (!user?.id) {
+            alert('Erreur : utilisateur non connecté.');
+            return;
+        }
+        
+        try {
+            const result = await archiveMultipleExercises(selectedExerciseIds, user.id);
+            
+            if (result.success) {
+                // Mettre à jour la liste locale des exercices
+                setExercises(exercises.filter(ex => !selectedExerciseIds.includes(ex.id)));
+                alert(`${result.archivedCount} exercice(s) archivé(s) avec succès.`);
+            } else {
+                alert(`Archivage terminé avec des erreurs :\n${result.errors.join('\n')}\n\n${result.archivedCount} exercice(s) archivé(s) sur ${count}.`);
+                // Mettre à jour la liste locale pour les exercices archivés avec succès
+                setExercises(exercises.filter(ex => !selectedExerciseIds.includes(ex.id)));
+            }
+            
+            setSelectedExerciseIds([]);
+            setSelectionMode(false);
+        } catch (error: any) {
+            console.error('Error archiving exercises:', error);
+            alert(`Erreur lors de l'archivage : ${error.message}`);
+        }
+    };
+    
+    const handleBulkDelete = () => {
+        if (selectedExerciseIds.length === 0) return;
+        
+        const count = selectedExerciseIds.length;
+        if (window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement ${count} exercice(s) ? Cette action est irréversible.`)) {
+            setExercises(exercises.filter(ex => !selectedExerciseIds.includes(ex.id)));
+            setSelectedExerciseIds([]);
+            setSelectionMode(false);
+        }
+    };
 
     const availableExercises = useMemo(() => {
         return exercises.filter(ex => ex.coachId === 'system' || ex.coachId === user?.id || !ex.coachId);
@@ -187,8 +261,57 @@ const WorkoutDatabase: React.FC = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-800">Base de données d'exercices</h1>
-                <Button onClick={openAddModal}>Ajouter un exercice</Button>
+                <div className="flex gap-2">
+                    <Button variant="secondary" onClick={toggleSelectionMode}>
+                        {selectionMode ? 'Annuler la sélection' : 'Sélectionner'}
+                    </Button>
+                    <Button onClick={openAddModal}>Ajouter un exercice</Button>
+                </div>
             </div>
+            
+            {/* Bulk Actions Bar */}
+            {selectionMode && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm font-medium text-gray-700">
+                            {selectedExerciseIds.length} exercice(s) sélectionné(s)
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={selectAllExercises}
+                                className="text-sm text-primary hover:underline"
+                            >
+                                Tout sélectionner
+                            </button>
+                            <span className="text-gray-300">|</span>
+                            <button
+                                onClick={deselectAllExercises}
+                                className="text-sm text-primary hover:underline"
+                            >
+                                Tout désélectionner
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="secondary"
+                            onClick={handleBulkArchive}
+                            disabled={selectedExerciseIds.length === 0}
+                        >
+                            <ArchiveIcon className="w-5 h-5 mr-2" />
+                            Archiver
+                        </Button>
+                        <Button
+                            variant="danger"
+                            onClick={handleBulkDelete}
+                            disabled={selectedExerciseIds.length === 0}
+                        >
+                            <TrashIcon className="w-5 h-5 mr-2" />
+                            Supprimer
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <div className="mb-6 flex space-x-2">
                 {categories.map(cat => (
@@ -204,8 +327,39 @@ const WorkoutDatabase: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredExercises.map(exercise => (
-                    <Card key={exercise.id} onClick={() => handleCardClick(exercise)} className="flex flex-col relative group">
-                        {user?.id === exercise.coachId && (
+                    <Card 
+                        key={exercise.id} 
+                        onClick={() => selectionMode ? toggleExerciseSelection(exercise.id) : handleCardClick(exercise)} 
+                        className={`flex flex-col relative group ${
+                            selectionMode && selectedExerciseIds.includes(exercise.id) 
+                                ? 'ring-2 ring-primary bg-primary/5' 
+                                : ''
+                        } ${
+                            selectionMode && user?.id !== exercise.coachId
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'cursor-pointer'
+                        }`}
+                    >
+                        {selectionMode && user?.id === exercise.coachId && (
+                            <div 
+                                className="absolute top-2 left-2 z-10"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleExerciseSelection(exercise.id);
+                                }}
+                            >
+                                <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+                                    selectedExerciseIds.includes(exercise.id)
+                                        ? 'bg-primary border-primary'
+                                        : 'bg-white border-gray-300'
+                                }`}>
+                                    {selectedExerciseIds.includes(exercise.id) && (
+                                        <CheckIcon className="w-4 h-4 text-white" />
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        {!selectionMode && user?.id === exercise.coachId && (
                             <button
                                 onClick={(e) => handleDeleteExercise(e, exercise.id)}
                                 className="absolute top-2 right-2 z-10 p-1.5 bg-white/70 rounded-full text-gray-500 hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
