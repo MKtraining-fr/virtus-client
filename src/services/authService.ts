@@ -185,3 +185,37 @@ export const updatePassword = async (newPassword: string): Promise<void> => {
 };
 
 
+
+/**
+ * Supprimer un utilisateur de Supabase Auth (nécessite des privilèges admin/service_role)
+ */
+export const deleteUserAndProfile = async (userIdToDelete: string, accessToken: string): Promise<void> => {
+  logger.info("Appel de deleteUserAndProfile", { userIdToDelete });
+  try {
+    const edgeFunctionUrl = `${supabase.supabaseUrl}/functions/v1/delete-user`;
+    logger.info("URL de la fonction Edge:", { edgeFunctionUrl });
+    logger.info("Envoi de la requête à la fonction Edge", { userIdToDelete, accessToken: accessToken ? 'present' : 'absent' });
+
+    const response = await fetch(edgeFunctionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ userIdToDelete }),
+    });
+
+    logger.info("Réponse de la fonction Edge reçue", { status: response.status, statusText: response.statusText });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      logger.error("Erreur de la fonction Edge delete-user:", { status: response.status, errorData });
+      throw new Error(errorData.error || `Erreur lors de l'appel de la fonction Edge delete-user: ${response.statusText}`);
+    }
+
+    logger.info("Utilisateur et profil supprimés avec succès via Edge Function:", { userIdToDelete });
+  } catch (error) {
+    logger.error("Erreur lors de l'appel de la fonction Edge delete-user:", { error, userIdToDelete });
+    throw error;
+  }
+};
