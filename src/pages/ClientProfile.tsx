@@ -1349,7 +1349,8 @@ const ClientProfile: React.FC = () => {
         >
           <ProgramPerformanceDetail program={selectedHistoricalProgram.program} performanceLogs={selectedHistoricalProgram.logs} />
         </Modal>
-         {selectedNutritionPlan && (
+      )}
+      {selectedNutritionPlan && (
         <Modal isOpen={!!selectedNutritionPlan} onClose={() => setSelectedNutritionPlan(null)} title={`Plan alimentaire: ${selectedNutritionPlan.name}`} size="xl">
           <CoachNutritionPlanView plan={selectedNutritionPlan} />
         </Modal>
