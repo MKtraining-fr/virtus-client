@@ -1,66 +1,138 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // Utiliser l'origine spécifique pour la production
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS', // Ajout des méthodes autorisées
+const defaultAllowedOrigins = [
+  'https://virtusofficiel.netlify.app',
+  'https://www.virtusofficiel.netlify.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
+
+const allowedOriginCandidates =
+  Deno.env
+    .get('DELETE_USER_ALLOWED_ORIGINS')
+    ?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean) ?? defaultAllowedOrigins;
+
+const allowedOrigins = new Set(allowedOriginCandidates.map((origin) => origin.replace(/\/$/, '')));
+
+const defaultAllowedHeaders = ['authorization', 'x-client-info', 'apikey', 'content-type'];
+
+const defaultCorsHeaders = {
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  Vary: 'Origin, Access-Control-Request-Headers',
 };
 
-serve(async (req ) => {
+function buildCorsHeaders(req: Request) {
+  const rawOrigin = req.headers.get('origin') ?? req.headers.get('Origin') ?? '';
+  const normalizedOrigin = rawOrigin.replace(/\/$/, '');
+  const allowedOrigin =
+    allowedOrigins.size === 0
+      ? normalizedOrigin || '*'
+      : normalizedOrigin && allowedOrigins.has(normalizedOrigin)
+        ? normalizedOrigin
+        : null;
+
+  const requestHeaders = req.headers
+    .get('Access-Control-Request-Headers')
+    ?.split(',')
+    .map((header) => header.trim().toLowerCase())
+    .filter(Boolean);
+
+  const headerSet = new Set([...defaultAllowedHeaders, ...(requestHeaders ?? [])]);
+
+  const headers: Record<string, string> = {
+    ...defaultCorsHeaders,
+    'Access-Control-Allow-Headers': Array.from(headerSet).join(', '),
+  };
+
+  if (allowedOrigin) {
+    headers['Access-Control-Allow-Origin'] = allowedOrigin;
+    if (allowedOrigin !== '*') {
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+  }
+
+  return { headers, allowedOrigin, requestedOrigin: rawOrigin };
+}
+
+serve(async (req) => {
+  const { headers: corsHeaders, allowedOrigin, requestedOrigin } = buildCorsHeaders(req);
+  if (!allowedOrigin || allowedOrigin === '') {
+    console.warn('Requête refusée pour une origine non autorisée:', requestedOrigin || '(aucune)');
+    return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders,
+      },
+      status: 403,
+    });
+  }
   // Gérer les requêtes OPTIONS (preflight)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  console.log("Requête reçue par la fonction Edge delete-user.");
+  if (req.method !== 'POST') {
+    console.warn(`Méthode non autorisée: ${req.method}`);
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      status: 405,
+    });
+  }
+
+  console.log('Requête reçue par la fonction Edge delete-user.');
 
   try {
     const { userIdToDelete } = await req.json();
-    console.log("ID utilisateur à supprimer:", userIdToDelete);
+    console.log('ID utilisateur à supprimer:', userIdToDelete);
 
     if (!userIdToDelete) {
-      console.error("userIdToDelete manquant dans le corps de la requête.");
-      return new Response(JSON.stringify({ error: "userIdToDelete is required" }), {
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+      console.error('userIdToDelete manquant dans le corps de la requête.');
+      return new Response(JSON.stringify({ error: 'userIdToDelete is required' }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
         status: 400,
       });
     }
 
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error("En-tête d'autorisation manquant.");
-      return new Response(JSON.stringify({ error: "Authorization header missing" }), {
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+      return new Response(JSON.stringify({ error: 'Authorization header missing' }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
         status: 401,
       });
     }
 
-    const accessToken = authHeader.split(" ")[1];
+    const accessToken = authHeader.split(' ')[1];
     if (!accessToken) {
       console.error("Access Token manquant dans l'en-tête d'autorisation.");
-      return new Response(JSON.stringify({ error: "Access Token missing" }), {
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+      return new Response(JSON.stringify({ error: 'Access Token missing' }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
         status: 401,
       });
     }
 
     // Créer un client Supabase pour la vérification de l'utilisateur (sans service_role)
     const userClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "", // Utiliser la clé anon pour vérifier l'utilisateur
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '', // Utiliser la clé anon pour vérifier l'utilisateur
       { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
     );
 
     // Vérifier l'identité de l'appelant et son rôle (pour la sécurité)
-    const { data: { user: callingUser }, error: userError } = await userClient.auth.getUser();
-    
+    const {
+      data: { user: callingUser },
+      error: userError,
+    } = await userClient.auth.getUser();
+
     if (userError || !callingUser) {
-        console.error("Erreur lors de la vérification de l'utilisateur appelant:", userError);
-        return new Response(JSON.stringify({ error: "Invalid or expired access token" }), {
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-            status: 401,
-        });
+      console.error("Erreur lors de la vérification de l'utilisateur appelant:", userError);
+      return new Response(JSON.stringify({ error: 'Invalid or expired access token' }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        status: 401,
+      });
     }
 
     // Récupérer le rôle de l'utilisateur appelant (nécessite une table de profils ou une RLS)
@@ -71,10 +143,10 @@ serve(async (req ) => {
     // Créer le client Supabase avec la clé SERVICE_ROLE pour la suppression
     // Cela permet de contourner les RLS et d'effectuer la suppression admin.
     const serviceRoleClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-    console.log("Client Supabase Service Role créé.");
+    console.log('Client Supabase Service Role créé.');
 
     // Supprimer l'utilisateur de Supabase Auth
     console.log("Tentative de suppression de l'utilisateur de Supabase Auth:", userIdToDelete);
@@ -83,36 +155,39 @@ serve(async (req ) => {
     if (authError) {
       console.error("Erreur lors de la suppression de l'utilisateur de Supabase Auth:", authError);
       return new Response(JSON.stringify({ error: authError.message }), {
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
         status: 500,
       });
     }
-    console.log("Utilisateur supprimé de Supabase Auth:", userIdToDelete);
+    console.log('Utilisateur supprimé de Supabase Auth:', userIdToDelete);
 
     // Supprimer le profil client de la table 'clients'
     console.log("Tentative de suppression du profil client de la table 'clients':", userIdToDelete);
     const { error: profileError } = await serviceRoleClient
-      .from("clients")
+      .from('clients')
       .delete()
-      .eq("id", userIdToDelete);
+      .eq('id', userIdToDelete);
 
     if (profileError) {
-      console.error("Erreur lors de la suppression du profil client:", profileError);
+      console.error('Erreur lors de la suppression du profil client:', profileError);
       return new Response(JSON.stringify({ error: profileError.message }), {
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
         status: 500,
       });
     }
     console.log("Profil client supprimé de la table 'clients':", userIdToDelete);
 
-    return new Response(JSON.stringify({ message: "Utilisateur et profil supprimés avec succès" }), {
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-      status: 200,
-    });
+    return new Response(
+      JSON.stringify({ message: 'Utilisateur et profil supprimés avec succès' }),
+      {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error("Erreur inattendue dans la fonction Edge delete-user:", error);
+    console.error('Erreur inattendue dans la fonction Edge delete-user:', error);
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
       status: 500,
     });
   }
