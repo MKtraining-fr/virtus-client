@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Modal from '../components/Modal'; // Importation du composant Modal
+import { SignUpSchema } from '../validation/schemas'; // Importation du schéma de validation pour les exigences de mot de passe
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Select from '../components/Select';
@@ -22,6 +24,7 @@ const AuthPage: React.FC = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
+  const [showSignUpSuccess, setShowSignUpSuccess] = useState(false); // État pour la modale de succès d'inscription
   const { login, register, clients, isDataLoading, dataError } = useAuth();
   const location = useLocation();
 
@@ -60,6 +63,12 @@ const AuthPage: React.FC = () => {
           coachId: undefined, // Ajout explicite de coachId comme undefined pour les inscriptions directes
         };
         await register(signUpData);
+        setShowSignUpSuccess(true); // Afficher la modale de succès après l'inscription
+        setEmail('');
+        setPassword('');
+        setFirstName('');
+        setLastName('');
+        setAffiliationCode('');
       }
     } catch (err: any) {
       console.error("Erreur lors de la soumission du formulaire:", err);
@@ -208,10 +217,38 @@ const AuthPage: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete={isLoginView ? "current-password" : "new-password"}
-            disabled={isFormDisabled}
-          />
+	            disabled={isFormDisabled}
+	          />
+	          
+	          {!isLoginView && (
+	            <div className="text-sm text-gray-500 mt-[-10px] p-2 bg-gray-50 rounded-md border border-gray-200">
+	              <p className="font-semibold mb-1 text-gray-700">Exigences du mot de passe :</p>
+	              <ul className="list-disc list-inside ml-2 grid grid-cols-2 gap-x-4 text-xs">
+	                <li className={password.length >= 8 ? "text-green-600" : "text-red-500"}>Au moins 8 caractères</li>
+	                <li className={/[A-Z]/.test(password) ? "text-green-600" : "text-red-500"}>Au moins une majuscule</li>
+	                <li className={/[a-z]/.test(password) ? "text-green-600" : "text-red-500"}>Au moins une minuscule</li>
+	                <li className={/[0-9]/.test(password) ? "text-green-600" : "text-red-500"}>Au moins un chiffre</li>
+	                <li className={/[^A-Za-z0-9]/.test(password) ? "text-green-600" : "text-red-500"}>Au moins un caractère spécial</li>
+	              </ul>
+	            </div>
+	          )}
 
           {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+	
+	        {/* Modale de succès d'inscription */}
+	        <Modal isOpen={showSignUpSuccess} onClose={() => setShowSignUpSuccess(false)} title="Inscription réussie !">
+	            <div className="text-center p-4">
+	                <svg className="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+	                <p className="text-lg font-semibold text-gray-800 mb-2">Bienvenue chez Virtus !</p>
+	                <p className="text-sm text-gray-600 mb-4">
+	                    Un email de confirmation a été envoyé à <strong>{email}</strong>.
+	                    Veuillez cliquer sur le lien dans cet email pour valider votre compte.
+	                </p>
+	                <Button onClick={() => { setShowSignUpSuccess(false); setIsLoginView(true); setEmail(''); setPassword(''); setFirstName(''); setLastName(''); setAffiliationCode(''); }}>
+	                    Se connecter
+	                </Button>
+	            </div>
+	        </Modal>
 
           <div>
              {!isLoginView ? (
