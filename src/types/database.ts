@@ -18,6 +18,7 @@ export interface Database {
           phone: string | null
           role: string
           coach_id: string | null
+          affiliation_code: string | null
           dob: string | null
           age: number | null
           sex: string | null
@@ -47,6 +48,7 @@ export interface Database {
           phone?: string | null
           role: string
           coach_id?: string | null
+          affiliation_code?: string | null
           dob?: string | null
           age?: number | null
           sex?: string | null
@@ -76,6 +78,7 @@ export interface Database {
           phone?: string | null
           role?: string
           coach_id?: string | null
+          affiliation_code?: string | null
           dob?: string | null
           age?: number | null
           sex?: string | null

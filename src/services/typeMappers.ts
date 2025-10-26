@@ -20,6 +20,7 @@ export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Clien
     phone: supabaseClient.phone || '',
     role: supabaseClient.role as 'admin' | 'coach' | 'client',
     coachId: supabaseClient.coach_id || undefined,
+    affiliationCode: supabaseClient.affiliation_code || undefined,
     status: supabaseClient.status || 'active',
     createdAt: supabaseClient.created_at,
     // Informations générales
@@ -68,6 +69,7 @@ export function mapClientToSupabaseClient(client: Partial<Client>): Partial<Supa
     phone: client.phone || null,
     role: client.role,
     coach_id: client.coachId || null,
+    affiliation_code: client.affiliationCode || null,
     status: client.status || 'active',
     // Informations générales
     dob: client.dob || null,
