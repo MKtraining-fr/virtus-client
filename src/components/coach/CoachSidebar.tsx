@@ -29,7 +29,9 @@ const CoachSidebar: React.FC = () => {
 
   const isSubItemActive = (path: string) => location.pathname === path;
   
-  const isParentActive = (parentPath: string, subItems: any[]) => {
+  // Assuming SubItem is defined in constants/navigation.ts or similar
+  // For now, let's use a generic array of objects
+  const isParentActive = (parentPath: string, subItems: { path: string }[]) => {
       if (subItems.length === 0) {
           return location.pathname === parentPath;
       }

@@ -8,7 +8,7 @@ import Card from '../components/Card';
 import { useAuth } from '../context/AuthContext';
 import { Client, BilanField, BilanTemplate, BilanResult } from '../types';
 
-const DynamicField: React.FC<{ field: BilanField; value: any; onChange: (value: any) => void; }> = ({ field, value, onChange }) => {
+const DynamicField: React.FC<{ field: BilanField; value: unknown; onChange: (value: unknown) => void; }> = ({ field, value, onChange }) => {
     const commonProps = {
         id: field.id,
         label: field.label,
@@ -133,7 +133,7 @@ const NewBilan: React.FC = () => {
 
     const [selectedTemplateId, setSelectedTemplateId] = useState(coachTemplates[0]?.id || '');
     
-    const [answers, setAnswers] = useState<Record<string, any>>({
+    const [answers, setAnswers] = useState<Record<string, unknown>>({
         firstName: 'John', lastName: 'Prospect', dob: '1990-05-15', sex: 'Homme', address: '10 Test Street', email: `prospect-${Date.now()}@test.com`, phone: '0123456789',
         height: '180', weight: '75', energyExpenditureLevel: 'Actif',
         fld_objectif: 'Test Objective', fld_profession: 'Tester',
@@ -146,7 +146,7 @@ const NewBilan: React.FC = () => {
     
     const isInitialBilanSelected = selectedTemplate?.coachId === 'system';
 
-    const handleAnswerChange = (fieldId: string, value: any) => {
+    const handleAnswerChange = (fieldId: string, value: unknown) => {
         setAnswers(prev => ({ ...prev, [fieldId]: value }));
     };
 
@@ -247,8 +247,9 @@ const NewBilan: React.FC = () => {
             await addUser({ ...dataToSubmit, role: 'client', status, coachId: user?.id });
             alert(status === 'active' ? 'Client validé avec succès !' : 'Prospect archivé avec succès !');
             navigate(status === 'active' ? '/app/clients' : '/app/bilan/archive');
-        } catch (error: any) {
-            alert(`Erreur : ${error.message}`);
+        } catch (error: unknown) {
+            const err = error instanceof Error ? error : new Error('Une erreur inconnue est survenue.');
+            alert(`Erreur : ${err.message}`);
         }
     };
 

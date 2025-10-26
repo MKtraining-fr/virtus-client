@@ -401,7 +401,7 @@ const Nutrition: React.FC = () => {
     };
     
     // UI Components
-    const renderMacros = (totalsData: any) => (
+    const renderMacros = (totalsData: { calories: number; protein: number; carbs: number; fat: number }) => (
         <Card className="p-4 bg-gray-50 border mb-6"> 
             <div className="flex justify-between items-center mb-4">
                 <h2 className="font-bold text-lg">MACRO-NUTRIMENTS</h2>

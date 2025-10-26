@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { HashRouter } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { HashRouter } from 'react-router-dom';\nimport { AuthProviderLight } from './context/AuthContextLight';
+// import { AuthProvider } from './context/AuthContext'; // Remplacé par useAuthStore
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -13,9 +13,7 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <HashRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <AuthProviderLight>\n        <App />\n      </AuthProviderLight>
     </HashRouter>
   </React.StrictMode>
 );

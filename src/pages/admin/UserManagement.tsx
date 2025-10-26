@@ -75,7 +75,7 @@ const UserManagement: React.FC = () => {
     }, [sortedUsers, filter]);
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-        logger.info('handleSelectAll called', { checked: e.target.checked });
+
         if (e.target.checked) {
             const selectableUsers = filteredUsers
                 .filter(u => u.role !== 'admin')
@@ -87,33 +87,33 @@ const UserManagement: React.FC = () => {
     };
 
     const handleSelectOne = (id: string) => {
-        logger.info('handleSelectOne called', { id });
+
         setSelectedUsers(prev => {
             const newSelection = prev.includes(id) ? prev.filter(userId => userId !== id) : [...prev, id];
-            logger.info('Selected users updated', { newSelection });
+
             return newSelection;
         });
     };
 
     const handleDeleteSelected = async () => {
-        logger.info('handleDeleteSelected called', { selectedUsers });
+
         if (selectedUsers.length === 0) {
-            logger.warn('handleDeleteSelected called with no users selected');
+    
             return;
         }
         const count = selectedUsers.length;
         if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${count} utilisateur(s) ? Cette action est irréversible.`)) {
             try {
                 setIsLoading(true);
-                logger.info('Attempting to delete users', { selectedUsers });
+
                 await Promise.all(selectedUsers.map(userId => deleteUser(userId)));
                 setSelectedUsers([]);
                 alert(`${count} utilisateur(s) ont été supprimés.`);
-                logger.info('Users deleted successfully, reloading data');
+
                 reloadData(); // Reload data from Supabase to reflect changes
             } catch (error) {
                 console.error("Erreur lors de la suppression des utilisateurs:", error);
-                logger.error('Error deleting users', { error });
+
                 alert("Erreur lors de la suppression des utilisateurs.");
             } finally {
                 setIsLoading(false);
@@ -177,8 +177,9 @@ const UserManagement: React.FC = () => {
             setIsModalOpen(false);
             setCurrentUser(null);
             reloadData(); // Ensure data is reloaded after add/edit
-        } catch (err: any) {
-            setError(err.message || "Une erreur est survenue.");
+        } catch (err: unknown) {
+            const error = err instanceof Error ? err : new Error('Une erreur inconnue est survenue.');
+            setError(error.message || "Une erreur est survenue.");
         } finally {
             setIsLoading(false);
         }

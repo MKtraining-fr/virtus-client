@@ -11,7 +11,7 @@ import { ArrowLeftIcon } from '../constants/icons';
 import { resetPassword } from '../services/authService';
 
 const AuthPage: React.FC = () => {
-  console.log("AuthPage component rendered.");
+
   const [isLoginView, setIsLoginView] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,9 +29,9 @@ const AuthPage: React.FC = () => {
   const location = useLocation();
 
   const isFormDisabled = isLoading || isDataLoading;
-  console.log("AuthPage - isLoading:", isLoading);
-  console.log("AuthPage - isDataLoading:", isDataLoading);
-  console.log("AuthPage - isFormDisabled:", isFormDisabled);
+
+
+
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -70,9 +70,10 @@ const AuthPage: React.FC = () => {
         setLastName('');
         setAffiliationCode('');
       }
-    } catch (err: any) {
-      console.error("Erreur lors de la soumission du formulaire:", err);
-      setError(err?.message || "Une erreur est survenue. Veuillez réessayer.");
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error('Une erreur inconnue est survenue.');
+      console.error("Erreur lors de la soumission du formulaire:", error);
+      setError(error.message || "Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setIsLoading(false);
     }
@@ -96,24 +97,25 @@ const AuthPage: React.FC = () => {
       
       await resetPassword(forgotPasswordEmail);
       setForgotPasswordSuccess(true);
-    } catch (err: any) {
-      console.error('Erreur lors de la réinitialisation:', err);
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error('Une erreur inconnue est survenue.');
+      console.error('Erreur lors de la réinitialisation:', error);
       
       // Gérer les erreurs spécifiques
       let errorMessage = 'Une erreur est survenue.';
       
-      if (err?.message) {
-        if (err.message.includes('rate limit')) {
+      if (error.message) {
+        if (error.message.includes('rate limit')) {
           errorMessage = 'Trop de tentatives. Veuillez réessayer dans quelques minutes.';
-        } else if (err.message.includes('SMTP')) {
+        } else if (error.message.includes('SMTP')) {
           errorMessage = 'Le service d\'envoi d\'emails n\'est pas configuré. Veuillez contacter l\'administrateur.';
-        } else if (err.message.includes('not found')) {
+        } else if (error.message.includes('not found')) {
           // Pour des raisons de sécurité, on ne révèle pas si l'email existe ou non
           // On affiche quand même un message de succès
           setForgotPasswordSuccess(true);
           return;
         } else {
-          errorMessage = err.message;
+          errorMessage = error.message;
         }
       }
       

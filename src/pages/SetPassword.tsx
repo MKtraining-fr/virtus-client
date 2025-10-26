@@ -67,8 +67,9 @@ const SetPassword: React.FC = () => {
         navigate('/login');
       }, 3000);
 
-    } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue');
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error('Une erreur inconnue est survenue.');
+      setError(error.message || 'Une erreur est survenue');
     } finally {
       setLoading(false);
     }

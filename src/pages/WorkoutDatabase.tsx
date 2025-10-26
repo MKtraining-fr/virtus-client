@@ -207,9 +207,10 @@ const WorkoutDatabase: React.FC = () => {
             
             setSelectedExerciseIds([]);
             setSelectionMode(false);
-        } catch (error: any) {
-            console.error('Error archiving exercises:', error);
-            alert(`Erreur lors de l'archivage : ${error.message}`);
+        } catch (error: unknown) {
+            const err = error instanceof Error ? error : new Error('Une erreur inconnue est survenue.');
+            console.error('Error archiving exercises:', err);
+            alert(`Erreur lors de l'archivage : ${err.message}`);
         }
     };
     

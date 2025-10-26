@@ -220,7 +220,7 @@ const WorkoutLibrary: React.FC = () => {
 export default WorkoutLibrary;
 
 // Hook to fetch and process programs/sessions from Supabase
-const useSupabaseWorkoutData = (coachId: string | undefined, addNotification: any) => {
+const useSupabaseWorkoutData = (coachId: string | undefined, addNotification: (notification: { message: string, type: 'success' | 'error' | 'warning' }) => void) => {
     const [programs, setPrograms] = useState<WorkoutProgram[]>([]);
     const [sessions, setSessions] = useState<WorkoutSession[]>([]);
     const [isLoading, setIsLoading] = useState(true);

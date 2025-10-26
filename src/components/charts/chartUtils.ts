@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const renderAxes = (width: number, height: number, margin: any, yMin: number, yMax: number, data: any[], yUnit: string, xUnit: string) => {
+export const renderAxes = (width: number, height: number, margin: { top: number, right: number, bottom: number, left: number }, yMin: number, yMax: number, data: { date: string }[], yUnit: string, xUnit: string) => {
     const yTickCount = 5;
     const yTicks: number[] = [];
     if (yMax > yMin) {
