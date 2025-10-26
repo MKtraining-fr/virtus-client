@@ -1,15 +1,23 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
-console.log("Hello from Functions!" );
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*', // Remplacez '*' par 'https://virtusofficiel.netlify.app' pour plus de sécurité
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
-serve(async (req) => {
+serve(async (req ) => {
+  // Gérer les requêtes OPTIONS (preflight)
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   console.log("Requête reçue par la fonction Edge delete-user.");
 
   if (req.method !== "POST") {
     console.warn(`Méthode non autorisée: ${req.method}`);
     return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
       status: 405,
     });
   }
@@ -21,7 +29,7 @@ serve(async (req) => {
     if (!userIdToDelete) {
       console.error("userIdToDelete manquant dans le corps de la requête.");
       return new Response(JSON.stringify({ error: "userIdToDelete is required" }), {
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
         status: 400,
       });
     }
@@ -32,7 +40,7 @@ serve(async (req) => {
     if (!authHeader) {
       console.error("En-tête d'autorisation manquant.");
       return new Response(JSON.stringify({ error: "Authorization header missing" }), {
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
         status: 401,
       });
     }
@@ -43,7 +51,7 @@ serve(async (req) => {
     if (!accessToken) {
       console.error("Access Token manquant dans l'en-tête d'autorisation.");
       return new Response(JSON.stringify({ error: "Access Token missing" }), {
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
         status: 401,
       });
     }
@@ -62,7 +70,7 @@ serve(async (req) => {
     if (authError) {
       console.error("Erreur lors de la suppression de l'utilisateur de Supabase Auth:", authError);
       return new Response(JSON.stringify({ error: authError.message }), {
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
         status: 500,
       });
     }
@@ -78,22 +86,21 @@ serve(async (req) => {
     if (profileError) {
       console.error("Erreur lors de la suppression du profil client:", profileError);
       return new Response(JSON.stringify({ error: profileError.message }), {
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
         status: 500,
       });
     }
     console.log("Profil client supprimé de la table 'clients':", userIdToDelete);
 
     return new Response(JSON.stringify({ message: "Utilisateur et profil supprimés avec succès" }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
       status: 200,
     });
   } catch (error) {
     console.error("Erreur inattendue dans la fonction Edge delete-user:", error);
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
       status: 500,
     });
   }
 });
-
