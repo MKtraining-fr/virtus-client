@@ -1,25 +1,13 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
-const defaultCorsHeaders = {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*', // Utiliser l'origine spécifique pour la production
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS', // Ajout des méthodes autorisées
 };
 
-function buildCorsHeaders(req: Request) {
-  const origin = req.headers.get("origin") ?? req.headers.get("Origin") ?? "*";
-  const requestHeaders = req.headers.get("Access-Control-Request-Headers");
-
-  return {
-    ...defaultCorsHeaders,
-    ...(requestHeaders ? { 'Access-Control-Allow-Headers': requestHeaders } : {}),
-    'Access-Control-Allow-Origin': origin,
-    Vary: "Origin",
-  };
-}
-
-serve(async (req) => {
-  const corsHeaders = buildCorsHeaders(req);
+serve(async (req ) => {
   // Gérer les requêtes OPTIONS (preflight)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -75,13 +63,7 @@ serve(async (req) => {
         });
     }
 
-    // Récupérer le rôle de l'utilisateur appelant (nécessite une table de profils ou une RLS)
-    // Pour simplifier, nous allons supposer que l'utilisateur appelant est un admin ou un coach
-    // Une vérification de rôle plus robuste est recommandée ici.
-    // Pour le moment, nous allons juste nous assurer que l'utilisateur est authentifié.
-
     // Créer le client Supabase avec la clé SERVICE_ROLE pour la suppression
-    // Cela permet de contourner les RLS et d'effectuer la suppression admin.
     const serviceRoleClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
