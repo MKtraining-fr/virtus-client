@@ -16,7 +16,7 @@ const allowedOriginCandidates =
     .filter(Boolean) ?? defaultAllowedOrigins;
 
 function normalizeOrigin(origin: string) {
-  return origin.replace(/\/$/, '').toLowerCase();
+  return origin ? origin.replace(/\/$/, '').toLowerCase() : '';
 }
 
 const allowedOrigins = new Set(allowedOriginCandidates.map((origin) => normalizeOrigin(origin)));
@@ -30,12 +30,13 @@ const defaultCorsHeaders = {
 
 function buildCorsHeaders(req: Request) {
   const rawOrigin = req.headers.get('origin') ?? req.headers.get('Origin') ?? '';
+  const trimmedOrigin = rawOrigin.replace(/\/$/, '');
   const normalizedOrigin = normalizeOrigin(rawOrigin);
   const allowedOrigin =
     allowedOrigins.size === 0
-      ? normalizedOrigin || '*'
+      ? trimmedOrigin || '*'
       : normalizedOrigin && allowedOrigins.has(normalizedOrigin)
-        ? rawOrigin.replace(/\/$/, '')
+        ? trimmedOrigin
         : null;
 
   const requestHeaders = req.headers
