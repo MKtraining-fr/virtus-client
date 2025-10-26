@@ -185,37 +185,24 @@ export const updatePassword = async (newPassword: string): Promise<void> => {
 };
 
 
-
 /**
- * Supprimer un utilisateur de Supabase Auth (nécessite des privilèges admin/service_role)
+ * Supprimer un utilisateur et son profil via une fonction RPC Postgres
  */
 export const deleteUserAndProfile = async (userIdToDelete: string, accessToken: string): Promise<void> => {
-  logger.info("Appel de deleteUserAndProfile", { userIdToDelete });
+  logger.info("Appel de deleteUserAndProfile via RPC", { userIdToDelete });
   try {
-    const edgeFunctionUrl = `${supabase.supabaseUrl}/functions/v1/delete-user`;
-    logger.info("URL de la fonction Edge:", { edgeFunctionUrl });
-    logger.info("Envoi de la requête à la fonction Edge", { userIdToDelete, accessToken: accessToken ? 'present' : 'absent' });
+    // L'appel RPC utilise le jeton de l'utilisateur connecté (admin/coach)
+    // et exécute la fonction Postgres avec les privilèges SECURITY DEFINER (service_role)
+    const { error } = await supabase.rpc('delete_user_and_profile', { user_id: userIdToDelete });
 
-    const response = await fetch(edgeFunctionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ userIdToDelete }),
-    });
-
-    logger.info("Réponse de la fonction Edge reçue", { status: response.status, statusText: response.statusText });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      logger.error("Erreur de la fonction Edge delete-user:", { status: response.status, errorData });
-      throw new Error(errorData.error || `Erreur lors de l'appel de la fonction Edge delete-user: ${response.statusText}`);
+    if (error) {
+      logger.error("Erreur lors de l'appel RPC delete_user_and_profile:", { error, userIdToDelete });
+      throw new Error(error.message || "Erreur lors de l'appel RPC de suppression.");
     }
 
-    logger.info("Utilisateur et profil supprimés avec succès via Edge Function:", { userIdToDelete });
+    logger.info("Utilisateur et profil supprimés avec succès via RPC:", { userIdToDelete });
   } catch (error) {
-    logger.error("Erreur lors de l'appel de la fonction Edge delete-user:", { error, userIdToDelete });
+    logger.error("Erreur lors de l'appel de la fonction RPC delete_user_and_profile:", { error, userIdToDelete });
     throw error;
   }
 };
