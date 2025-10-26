@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Client } from '../../types';
 import Card from '../../components/Card';
 import Input from '../../components/Input';
@@ -6,7 +6,6 @@ import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Select from '../../components/Select';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { useSortableData } from '../../hooks/useSortableData';
 import { logger } from '../../utils/logger';
 
@@ -20,7 +19,6 @@ const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null 
 };
 
 const UserManagement: React.FC = () => {
-    const navigate = useNavigate();
     const { clients: allUsers, addUser, updateUser, deleteUser, reloadData } = useAuth();
     const [filter, setFilter] = useState('');
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -34,6 +32,15 @@ const UserManagement: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     const coaches = useMemo(() => allUsers.filter(u => u.role === 'coach'), [allUsers]);
+    const usersById = useMemo(() => {
+        const map = new Map<string, Client>();
+        allUsers.forEach(user => {
+            if (user.id) {
+                map.set(user.id, user);
+            }
+        });
+        return map;
+    }, [allUsers]);
     
     const usersForTable = useMemo(() => {
         if (activeTab === 'coaches') return allUsers.filter(u => u.role === 'coach');
@@ -42,6 +49,18 @@ const UserManagement: React.FC = () => {
     }, [allUsers, activeTab]);
 
     const { items: sortedUsers, requestSort, getSortDirection } = useSortableData(usersForTable, { key: 'lastName', direction: 'ascending' });
+
+    const getCoachDisplayName = (coachId?: string | null) => {
+        if (!coachId) return '';
+        const coach = usersById.get(coachId);
+        if (!coach) return coachId;
+
+        const firstName = coach.firstName?.trim() ?? '';
+        const lastName = coach.lastName?.trim() ?? '';
+        const fullName = `${firstName} ${lastName}`.trim();
+
+        return fullName || coach.email || coachId;
+    };
 
     const filteredUsers = useMemo(() => {
         if (!filter) return sortedUsers;
@@ -243,8 +262,8 @@ const UserManagement: React.FC = () => {
                                 {renderHeader('Prénom', 'firstName')}
                                 {renderHeader('Profil', 'role')}
                                 {renderHeader('Adresse mail', 'email')}
-                                {renderHeader('Coach Rattaché', 'coachId')}
-                                {renderHeader('Code Affiliation', 'affiliationCode')}
+                                {renderHeader('Entraîneur rattaché', 'coachId')}
+                                {renderHeader("Code d'affiliation", 'affiliationCode')}
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -271,15 +290,12 @@ const UserManagement: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                     {user.role === 'client' && user.coachId 
-                                         ? (allUsers.find(u => u.id === user.coachId)?.firstName + ' ' + allUsers.find(u => u.id === user.coachId)?.lastName)
-                                         : ''
-                                     }
-                                 </td>
-                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                     {user.role === 'coach' ? user.affiliationCode : ''}
-                                 </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {user.role === 'client' ? getCoachDisplayName(user.coachId) : ''}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {user.role === 'coach' ? user.affiliationCode ?? '' : ''}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button onClick={() => openEditModal(user)} className="text-indigo-600 hover:text-indigo-900 mr-4">Éditer</button>
                                     </td>
