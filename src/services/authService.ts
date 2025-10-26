@@ -193,7 +193,8 @@ export const deleteUserAndProfile = async (userIdToDelete: string, accessToken: 
   try {
     // L'appel RPC utilise le jeton de l'utilisateur connecté (admin/coach)
     // et exécute la fonction Postgres avec les privilèges SECURITY DEFINER (service_role)
-    const { error } = await supabase.rpc('delete_user_and_profile', { user_id: userIdToDelete });
+    const { error } = await supabase.rpc('delete_user_and_profile', { user_id: userIdToDelete as string });
+
 
     if (error) {
       logger.error("Erreur lors de l'appel RPC delete_user_and_profile:", { error, userIdToDelete });
