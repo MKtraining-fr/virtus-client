@@ -188,15 +188,16 @@ export const updatePassword = async (newPassword: string): Promise<void> => {
 /**
  * Supprimer un utilisateur et son profil via une fonction RPC Postgres
  */
+// ... dans src/services/authService.ts
 export const deleteUserAndProfile = async (userIdToDelete: string, accessToken: string): Promise<void> => {
   logger.info("Appel de deleteUserAndProfile via RPC", { userIdToDelete });
   try {
-    // L'appel RPC utilise le jeton de l'utilisateur connecté (admin/coach)
-    // et exécute la fonction Postgres avec les privilèges SECURITY DEFINER (service_role)
-    const { error } = await supabase.rpc('delete_user_and_profile', { user_id: userIdToDelete as string });
-
+    // L'appel RPC utilise le nom de paramètre 'user_id_text' qui correspond à la fonction Postgres
+    const { error } = await supabase.rpc('delete_user_and_profile', { user_id_text: userIdToDelete });
 
     if (error) {
+// ...
+
       logger.error("Erreur lors de l'appel RPC delete_user_and_profile:", { error, userIdToDelete });
       throw new Error(error.message || "Erreur lors de l'appel RPC de suppression.");
     }
