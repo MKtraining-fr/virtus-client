@@ -1365,49 +1365,49 @@ const ClientProfile: React.FC = () => {
       )}
     </div>
   );
-};ectedBilan && bilanTemplateForModal && (
-        <Modal isOpen={!!selectedBilan} onClose={() => setSelectedBilan(null)} title={selectedBilan.templateName} size="xl">
-          <div className="space-y-6">
-            {bilanTemplateForModal.sections.map((section) => {
-              if (section.isCivility && selectedBilan.templateId === 'system-default') return null;
-
-              const answeredFields = section.fields.filter((field) => {
-                const answer = selectedBilan?.answers?.[field.id];
-                return (
-                  answer !== undefined &&
-                  answer !== null &&
-                  answer !== '' &&
-                  (!Array.isArray(answer) || (Array.isArray(answer) && answer.length > 0))
-                );
-              });
-
-              if (answeredFields.length === 0) return null;
-
-              return (
-                <div key={section.id}>
-                  <h4 className="font-semibold text-lg text-gray-800 mb-2 pt-4 border-t border-gray-200 first:pt-0 first:border-t-0">
-                    {section.title}
-                  </h4>
-                  <div className="space-y-1">
-                    {answeredFields.map((field) => {
-                      const answer = selectedBilan!.answers![field.id];
-                      return (
-                        <InfoRowModal
-                          key={field.id}
-                          label={field.label}
-                          value={Array.isArray(answer) ? answer.join(', ') : String(answer)}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-};
-
-export default ClientProfile;
+	      {selectedBilan && bilanTemplateForModal && (
+	        <Modal isOpen={!!selectedBilan} onClose={() => setSelectedBilan(null)} title={selectedBilan.templateName} size="xl">
+	          <div className="space-y-6">
+	            {bilanTemplateForModal.sections.map((section) => {
+	              if (section.isCivility && selectedBilan.templateId === 'system-default') return null;
+	
+	              const answeredFields = section.fields.filter((field) => {
+	                const answer = selectedBilan?.answers?.[field.id];
+	                return (
+	                  answer !== undefined &&
+	                  answer !== null &&
+	                  answer !== '' &&
+	                  (!Array.isArray(answer) || (Array.isArray(answer) && answer.length > 0))
+	                );
+	              });
+	
+	              if (answeredFields.length === 0) return null;
+	
+	              return (
+	                <div key={section.id}>
+	                  <h4 className="font-semibold text-lg text-gray-800 mb-2 pt-4 border-t border-gray-200 first:pt-0 first:border-t-0">
+	                    {section.title}
+	                  </h4>
+	                  <div className="space-y-1">
+	                    {answeredFields.map((field) => {
+	                      const answer = selectedBilan!.answers![field.id];
+	                      return (
+	                        <InfoRowModal
+	                          key={field.id}
+	                          label={field.label}
+	                          value={Array.isArray(answer) ? answer.join(', ') : String(answer)}
+	                        />
+	                      );
+	                    })}
+	                  </div>
+	                </div>
+	              );
+	            })}
+	          </div>
+	        </Modal>
+	      )}
+	    </div>
+	  );
+	};
+	
+	export default ClientProfile;
