@@ -15,7 +15,11 @@ const allowedOriginCandidates =
     .map((origin) => origin.trim())
     .filter(Boolean) ?? defaultAllowedOrigins;
 
-const allowedOrigins = new Set(allowedOriginCandidates.map((origin) => origin.replace(/\/$/, '')));
+function normalizeOrigin(origin: string) {
+  return origin.replace(/\/$/, '').toLowerCase();
+}
+
+const allowedOrigins = new Set(allowedOriginCandidates.map((origin) => normalizeOrigin(origin)));
 
 const defaultAllowedHeaders = ['authorization', 'x-client-info', 'apikey', 'content-type'];
 
@@ -26,25 +30,40 @@ const defaultCorsHeaders = {
 
 function buildCorsHeaders(req: Request) {
   const rawOrigin = req.headers.get('origin') ?? req.headers.get('Origin') ?? '';
-  const normalizedOrigin = rawOrigin.replace(/\/$/, '');
+  const normalizedOrigin = normalizeOrigin(rawOrigin);
   const allowedOrigin =
     allowedOrigins.size === 0
       ? normalizedOrigin || '*'
       : normalizedOrigin && allowedOrigins.has(normalizedOrigin)
-        ? normalizedOrigin
+        ? rawOrigin.replace(/\/$/, '')
         : null;
 
   const requestHeaders = req.headers
     .get('Access-Control-Request-Headers')
     ?.split(',')
-    .map((header) => header.trim().toLowerCase())
+    .map((header) => header.trim())
     .filter(Boolean);
 
-  const headerSet = new Set([...defaultAllowedHeaders, ...(requestHeaders ?? [])]);
+  const headerSet = new Map<string, string>();
+  for (const header of defaultAllowedHeaders) {
+    const key = header.toLowerCase();
+    if (!headerSet.has(key)) {
+      headerSet.set(key, header);
+    }
+  }
+
+  if (requestHeaders) {
+    for (const header of requestHeaders) {
+      const key = header.toLowerCase();
+      if (!headerSet.has(key)) {
+        headerSet.set(key, header);
+      }
+    }
+  }
 
   const headers: Record<string, string> = {
     ...defaultCorsHeaders,
-    'Access-Control-Allow-Headers': Array.from(headerSet).join(', '),
+    'Access-Control-Allow-Headers': Array.from(headerSet.values()).join(', '),
   };
 
   if (allowedOrigin) {
