@@ -271,8 +271,15 @@ const UserManagement: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.coachId || 'N/A'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.affiliationCode || 'N/A'}</td>
+                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                     {user.role === 'client' && user.coachId 
+                                         ? (allUsers.find(u => u.id === user.coachId)?.firstName + ' ' + allUsers.find(u => u.id === user.coachId)?.lastName)
+                                         : ''
+                                     }
+                                 </td>
+                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                     {user.role === 'coach' ? user.affiliationCode : ''}
+                                 </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button onClick={() => openEditModal(user)} className="text-indigo-600 hover:text-indigo-900 mr-4">Éditer</button>
                                     </td>
