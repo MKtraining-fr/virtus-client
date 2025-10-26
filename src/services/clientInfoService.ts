@@ -20,11 +20,7 @@ export interface ClientCoachRelationship {
 // Récupérer le profil d'un client
 export const getClientProfile = async (clientId: string): Promise<ClientProfile | null> => {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', clientId)
-      .single();
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', clientId).single();
 
     if (error) throw error;
     return data;
@@ -85,7 +81,9 @@ export const updateMedicalInfo = async (
 // Récupérer tous les clients d'un coach
 export const getCoachClients = async (): Promise<ClientProfile[]> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     // Récupérer les IDs des clients via la table de relations
@@ -100,7 +98,7 @@ export const getCoachClients = async (): Promise<ClientProfile[]> => {
       return [];
     }
 
-    const clientIds = relationships.map(rel => rel.client_id);
+    const clientIds = relationships.map((rel) => rel.client_id);
 
     // Récupérer les profils des clients
     const { data: profiles, error: profileError } = await supabase
@@ -121,7 +119,9 @@ export const addClientCoachRelationship = async (
   clientId: string
 ): Promise<ClientCoachRelationship | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
@@ -144,7 +144,9 @@ export const addClientCoachRelationship = async (
 // Supprimer une relation coach-client
 export const removeClientCoachRelationship = async (clientId: string): Promise<boolean> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     const { error } = await supabase
@@ -181,4 +183,3 @@ export const getClientProgramHistory = async (
     return [];
   }
 };
-

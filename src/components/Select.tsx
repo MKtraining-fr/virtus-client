@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
@@ -8,12 +7,19 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
 }
 
-const Select: React.FC<SelectProps> = ({ label, id, className = '', children, error, ...props }) => {
+const Select: React.FC<SelectProps> = ({
+  label,
+  id,
+  className = '',
+  children,
+  error,
+  ...props
+}) => {
   return (
     <div className="w-full">
       {label && (
-        <label 
-          htmlFor={id} 
+        <label
+          htmlFor={id}
           className="block text-sm font-medium text-gray-600 dark:text-client-subtle mb-1"
         >
           {label}
@@ -28,9 +34,7 @@ const Select: React.FC<SelectProps> = ({ label, id, className = '', children, er
       >
         {children}
       </select>
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
     </div>
   );
 };

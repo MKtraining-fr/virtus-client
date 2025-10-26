@@ -9,7 +9,14 @@ interface CircularProgressProps {
   children: React.ReactNode;
 }
 
-const CircularProgress: React.FC<CircularProgressProps> = ({ size, strokeWidth, percentage, color, surplusColor, children }) => {
+const CircularProgress: React.FC<CircularProgressProps> = ({
+  size,
+  strokeWidth,
+  percentage,
+  color,
+  surplusColor,
+  children,
+}) => {
   const viewBox = `0 0 ${size} ${size}`;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -21,10 +28,13 @@ const CircularProgress: React.FC<CircularProgressProps> = ({ size, strokeWidth, 
   const surplusStrokeDashoffset = circumference - (surplusPercentage / 100) * circumference;
 
   // Use a slightly darker shade of the main color if surplusColor is not provided
-  const finalSurplusColor = surplusColor || color; 
+  const finalSurplusColor = surplusColor || color;
 
   return (
-    <div className="flex flex-col items-center justify-center relative" style={{ width: size, height: size }}>
+    <div
+      className="flex flex-col items-center justify-center relative"
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} viewBox={viewBox} className="transform -rotate-90 absolute">
         {/* Background track */}
         <circle

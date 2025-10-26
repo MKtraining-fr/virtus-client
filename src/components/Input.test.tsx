@@ -9,7 +9,7 @@ describe('Input', () => {
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
   });
 
-  it('devrait associer le label à l\'input', () => {
+  it("devrait associer le label à l'input", () => {
     render(<Input label="Email" id="email" />);
     const input = screen.getByLabelText('Email');
     expect(input).toHaveAttribute('id', 'email');
@@ -18,26 +18,26 @@ describe('Input', () => {
   it('devrait permettre la saisie de texte', async () => {
     const user = userEvent.setup();
     render(<Input label="Email" id="email" />);
-    
+
     const input = screen.getByLabelText('Email');
     await user.type(input, 'test@example.com');
-    
+
     expect(input).toHaveValue('test@example.com');
   });
 
   it('devrait appeler onChange quand le texte change', async () => {
     const handleChange = vi.fn();
     const user = userEvent.setup();
-    
+
     render(<Input label="Email" id="email" onChange={handleChange} />);
     const input = screen.getByLabelText('Email');
-    
+
     await user.type(input, 'a');
-    
+
     expect(handleChange).toHaveBeenCalled();
   });
 
-  it('devrait afficher le message d\'erreur', () => {
+  it("devrait afficher le message d'erreur", () => {
     render(<Input label="Email" id="email" error="Email invalide" />);
     expect(screen.getByText('Email invalide')).toBeInTheDocument();
   });

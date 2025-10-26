@@ -1,14 +1,7 @@
 import * as Papa from 'papaparse';
 import { supabase } from './supabase';
 import { logger } from '../utils/logger';
-import { 
-  Client, 
-  Exercise, 
-  FoodItem, 
-  Product, 
-  Partner, 
-  IntensificationTechnique 
-} from '../types';
+import { Client, Exercise, FoodItem, Product, Partner, IntensificationTechnique } from '../types';
 
 export interface ImportResult {
   success: number;
@@ -66,7 +59,10 @@ export const importUsersFromCSV = async (file: File): Promise<ImportResult> => {
               email: row.email.toLowerCase().trim(),
               phone: row.phone?.trim() || '',
               role: (row.role?.toLowerCase() || 'client') as 'admin' | 'coach' | 'client',
-              status: (row.status?.toLowerCase() || 'prospect') as 'active' | 'archived' | 'prospect',
+              status: (row.status?.toLowerCase() || 'prospect') as
+                | 'active'
+                | 'archived'
+                | 'prospect',
               sex: row.sex as 'Homme' | 'Femme',
               dob: row.dob || undefined,
               height: row.height ? Number(row.height) : undefined,
@@ -119,30 +115,26 @@ export const importUsersFromCSV = async (file: File): Promise<ImportResult> => {
               userData.id = authData.user!.id;
 
               // Insérer le profil dans la table clients
-              const { error: insertError } = await supabase
-                .from('clients')
-                .insert(userData as any);
+              const { error: insertError } = await supabase.from('clients').insert(userData as any);
 
               if (insertError) {
                 throw new Error(`Erreur insertion profil: ${insertError.message}`);
               }
 
-              logger.info('Utilisateur actif créé avec compte Auth', { 
-                email: userData.email, 
-                id: userData.id 
+              logger.info('Utilisateur actif créé avec compte Auth', {
+                email: userData.email,
+                id: userData.id,
               });
             } else {
               // Pour les prospects, pas de compte Auth, juste un profil
-              const { error: insertError } = await supabase
-                .from('clients')
-                .insert(userData as any);
+              const { error: insertError } = await supabase.from('clients').insert(userData as any);
 
               if (insertError) {
                 throw new Error(`Erreur insertion prospect: ${insertError.message}`);
               }
 
-              logger.info('Prospect créé sans compte Auth', { 
-                email: userData.email 
+              logger.info('Prospect créé sans compte Auth', {
+                email: userData.email,
               });
             }
 
@@ -153,18 +145,18 @@ export const importUsersFromCSV = async (file: File): Promise<ImportResult> => {
               error: error.message,
               data: row,
             });
-            logger.error('Erreur import utilisateur', { 
-              row: rowNumber, 
+            logger.error('Erreur import utilisateur', {
+              row: rowNumber,
               error: error.message,
-              data: row 
+              data: row,
             });
           }
         }
 
-        logger.info('Import utilisateurs terminé', { 
-          success: result.success, 
+        logger.info('Import utilisateurs terminé', {
+          success: result.success,
           errors: result.errors.length,
-          total: result.total 
+          total: result.total,
         });
         resolve(result);
       },
@@ -183,7 +175,10 @@ export const importUsersFromCSV = async (file: File): Promise<ImportResult> => {
 /**
  * Import des exercices depuis un fichier CSV
  */
-export const importExercisesFromCSV = async (file: File, coachId: string): Promise<ImportResult> => {
+export const importExercisesFromCSV = async (
+  file: File,
+  coachId: string
+): Promise<ImportResult> => {
   return new Promise((resolve) => {
     const result: ImportResult = { success: 0, errors: [], total: 0 };
 
@@ -224,15 +219,20 @@ export const importExercisesFromCSV = async (file: File, coachId: string): Promi
               video_url: row.videoUrl?.trim() || null,
               image_url: row.illustrationUrl?.trim() || null,
               equipment: row.equipment?.trim() || null,
-              muscle_group: row.muscleGroups ? row.muscleGroups.split('|').map((m: string) => m.trim()).join('|') : null,
-              secondary_muscle_groups: row.secondaryMuscleGroups ? row.secondaryMuscleGroups.split('|').map((m: string) => m.trim()) : null,
+              muscle_group: row.muscleGroups
+                ? row.muscleGroups
+                    .split('|')
+                    .map((m: string) => m.trim())
+                    .join('|')
+                : null,
+              secondary_muscle_groups: row.secondaryMuscleGroups
+                ? row.secondaryMuscleGroups.split('|').map((m: string) => m.trim())
+                : null,
               difficulty: row.difficulty?.trim() || null,
             };
 
             // Insérer dans Supabase
-            const { error } = await supabase
-              .from('exercises')
-              .insert(exerciseData as any);
+            const { error } = await supabase.from('exercises').insert(exerciseData as any);
 
             if (error) {
               throw new Error(`Erreur insertion: ${error.message}`);
@@ -245,16 +245,16 @@ export const importExercisesFromCSV = async (file: File, coachId: string): Promi
               error: error.message,
               data: row,
             });
-            logger.error('Erreur import exercice', { 
-              row: rowNumber, 
-              error: error.message 
+            logger.error('Erreur import exercice', {
+              row: rowNumber,
+              error: error.message,
             });
           }
         }
 
-        logger.info('Import exercices terminé', { 
-          success: result.success, 
-          errors: result.errors.length 
+        logger.info('Import exercices terminé', {
+          success: result.success,
+          errors: result.errors.length,
         });
         resolve(result);
       },
@@ -316,9 +316,7 @@ export const importFoodItemsFromCSV = async (file: File): Promise<ImportResult> 
             };
 
             // Insérer dans Supabase
-            const { error } = await supabase
-              .from('food_items')
-              .insert(foodData as any);
+            const { error } = await supabase.from('food_items').insert(foodData as any);
 
             if (error) {
               throw new Error(`Erreur insertion: ${error.message}`);
@@ -331,16 +329,16 @@ export const importFoodItemsFromCSV = async (file: File): Promise<ImportResult> 
               error: error.message,
               data: row,
             });
-            logger.error('Erreur import aliment', { 
-              row: rowNumber, 
-              error: error.message 
+            logger.error('Erreur import aliment', {
+              row: rowNumber,
+              error: error.message,
             });
           }
         }
 
-        logger.info('Import aliments terminé', { 
-          success: result.success, 
-          errors: result.errors.length 
+        logger.info('Import aliments terminé', {
+          success: result.success,
+          errors: result.errors.length,
         });
         resolve(result);
       },

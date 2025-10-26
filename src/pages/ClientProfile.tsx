@@ -25,28 +25,69 @@ import MeasurementsLineChart from '../components/charts/MeasurementsLineChart';
 
 /* ------------------------- ICONS ------------------------- */
 const EnvelopeIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    {...props}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
+    />
   </svg>
 );
 const PlusIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" {...props}>
-    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+      clipRule="evenodd"
+    />
   </svg>
 );
 const MinusIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" {...props}>
-    <path fillRule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"
+      clipRule="evenodd"
+    />
   </svg>
 );
 const DocumentIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    {...props}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+    />
   </svg>
 );
 const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.067-2.09 1.02-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    {...props}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.067-2.09 1.02-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+    />
   </svg>
 );
 
@@ -145,7 +186,12 @@ const CoachFoodJournalView: React.FC<{ client: Client }> = ({ client }) => {
   };
 
   const { calories, protein, carbs, fat } = dailyTotals;
-  const { calories: goalCalories, protein: goalProtein, carbs: goalCarbs, fat: goalFat } = macroGoals;
+  const {
+    calories: goalCalories,
+    protein: goalProtein,
+    carbs: goalCarbs,
+    fat: goalFat,
+  } = macroGoals;
 
   return (
     <div>
@@ -154,7 +200,11 @@ const CoachFoodJournalView: React.FC<{ client: Client }> = ({ client }) => {
           Précédent
         </Button>
         <span className="font-semibold text-lg text-center">
-          {selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          {selectedDate.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+          })}
         </span>
         <Button type="button" variant="secondary" size="sm" onClick={() => changeDay(1)}>
           Suivant
@@ -163,15 +213,22 @@ const CoachFoodJournalView: React.FC<{ client: Client }> = ({ client }) => {
 
       {isFromPlan && journalDayMeals.length > 0 && (
         <div className="p-2 bg-blue-50 border border-blue-200 rounded-md text-center text-sm text-blue-800 mb-4">
-          Ceci est le <strong>plan assigné</strong>. Le client n'a pas encore rempli son journal pour ce jour.
+          Ceci est le <strong>plan assigné</strong>. Le client n'a pas encore rempli son journal
+          pour ce jour.
         </div>
       )}
 
       <Card className="p-4 bg-gray-50 border mb-4">
         <h4 className="font-bold text-center mb-2">Total du Jour</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <InfoItem label="Calories" value={`${Math.round(calories)} / ${Math.round(goalCalories)} kcal`} />
-          <InfoItem label="Protéines" value={`${Math.round(protein)} / ${Math.round(goalProtein)} g`} />
+          <InfoItem
+            label="Calories"
+            value={`${Math.round(calories)} / ${Math.round(goalCalories)} kcal`}
+          />
+          <InfoItem
+            label="Protéines"
+            value={`${Math.round(protein)} / ${Math.round(goalProtein)} g`}
+          />
           <InfoItem label="Glucides" value={`${Math.round(carbs)} / ${Math.round(goalCarbs)} g`} />
           <InfoItem label="Lipides" value={`${Math.round(fat)} / ${Math.round(goalFat)} g`} />
         </div>
@@ -193,12 +250,17 @@ const CoachFoodJournalView: React.FC<{ client: Client }> = ({ client }) => {
               <div key={meal.id} className="p-4 border rounded-lg bg-white">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="font-semibold text-lg text-gray-800">{meal.name}</h4>
-                  <span className="text-sm font-medium text-gray-600">{Math.round(mealMacros.calories)} kcal</span>
+                  <span className="text-sm font-medium text-gray-600">
+                    {Math.round(mealMacros.calories)} kcal
+                  </span>
                 </div>
                 {meal.items.length > 0 ? (
                   <ul className="space-y-1">
                     {meal.items.map((item) => (
-                      <li key={item.id} className="flex justify-between items-center text-sm p-2 bg-gray-50 rounded">
+                      <li
+                        key={item.id}
+                        className="flex justify-between items-center text-sm p-2 bg-gray-50 rounded"
+                      >
                         <span>{item.food?.name ?? 'Aliment'}</span>
                         <span className="font-mono text-gray-700">
                           {item.quantity}
@@ -233,11 +295,11 @@ const ClientProfile: React.FC = () => {
   const [selectedNutritionPlan, setSelectedNutritionPlan] = useState<NutritionPlan | null>(null);
   const [selectedBilan, setSelectedBilan] = useState<BilanResult | null>(null);
 
-  const client = useMemo(() => clients.find(c => c.id === clientId), [clients, clientId]);
+  const client = useMemo(() => clients.find((c) => c.id === clientId), [clients, clientId]);
 
   const bilanTemplateForModal = useMemo(() => {
     if (!selectedBilan) return null;
-    return bilanTemplates.find(t => t.id === selectedBilan.templateId);
+    return bilanTemplates.find((t) => t.id === selectedBilan.templateId);
   }, [selectedBilan, bilanTemplates]);
 
   if (!user) {
@@ -252,13 +314,17 @@ const ClientProfile: React.FC = () => {
 
   const programHistory = client.programHistory || [];
   const measurementHistory = client.measurements || [];
-  const nutritionLogs = client.nutrition?.foodJournal ? Object.values(client.nutrition.foodJournal).flat() : [];
+  const nutritionLogs = client.nutrition?.foodJournal
+    ? Object.values(client.nutrition.foodJournal).flat()
+    : [];
   const bilans = client.bilans || [];
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-extrabold text-gray-900">{client.firstName} {client.lastName}</h1>
+        <h1 className="text-3xl font-extrabold text-gray-900">
+          {client.firstName} {client.lastName}
+        </h1>
         {isCoach && (
           <Button onClick={() => setShowBilanAssignmentModal(true)} variant="primary">
             Assigner un Bilan
@@ -280,10 +346,12 @@ const ClientProfile: React.FC = () => {
         <Card className="lg:col-span-2">
           <h3 className="text-xl font-semibold mb-4">Statistiques de Performance</h3>
           <div className="h-64">
-            <SimpleLineChart data={programHistory.map(p => ({
-              date: p.startDate,
-              value: p.performanceScore || 0
-            }))} />
+            <SimpleLineChart
+              data={programHistory.map((p) => ({
+                date: p.startDate,
+                value: p.performanceScore || 0,
+              }))}
+            />
           </div>
         </Card>
       </div>
@@ -307,7 +375,9 @@ const ClientProfile: React.FC = () => {
               <Card key={program.id} className="p-4 flex justify-between items-center">
                 <div>
                   <h4 className="font-semibold text-lg">{program.name}</h4>
-                  <p className="text-sm text-gray-500">Du {program.startDate} au {program.endDate}</p>
+                  <p className="text-sm text-gray-500">
+                    Du {program.startDate} au {program.endDate}
+                  </p>
                 </div>
                 <Button onClick={() => setSelectedProgram(program)} variant="secondary" size="sm">
                   Voir Détails
@@ -348,27 +418,42 @@ const ClientProfile: React.FC = () => {
 
       {/* Modals */}
       {selectedProgram && (
-        <Modal isOpen={!!selectedProgram} onClose={() => setSelectedProgram(null)} title={selectedProgram.name} size="xl">
+        <Modal
+          isOpen={!!selectedProgram}
+          onClose={() => setSelectedProgram(null)}
+          title={selectedProgram.name}
+          size="xl"
+        >
           <ProgramDetailView program={selectedProgram} />
         </Modal>
       )}
-      
+
       {selectedNutritionPlan && (
-        <Modal isOpen={!!selectedNutritionPlan} onClose={() => setSelectedNutritionPlan(null)} title={`Plan alimentaire: ${selectedNutritionPlan.name}`} size="xl">
+        <Modal
+          isOpen={!!selectedNutritionPlan}
+          onClose={() => setSelectedNutritionPlan(null)}
+          title={`Plan alimentaire: ${selectedNutritionPlan.name}`}
+          size="xl"
+        >
           <CoachNutritionPlanView plan={selectedNutritionPlan} />
         </Modal>
       )}
 
       {client && (
-        <BilanAssignmentModal 
-          isOpen={showBilanAssignmentModal} 
-          onClose={() => setShowBilanAssignmentModal(false)} 
-          client={client} 
+        <BilanAssignmentModal
+          isOpen={showBilanAssignmentModal}
+          onClose={() => setShowBilanAssignmentModal(false)}
+          client={client}
         />
       )}
 
       {selectedBilan && bilanTemplateForModal && (
-        <Modal isOpen={!!selectedBilan} onClose={() => setSelectedBilan(null)} title={selectedBilan.templateName} size="xl">
+        <Modal
+          isOpen={!!selectedBilan}
+          onClose={() => setSelectedBilan(null)}
+          title={selectedBilan.templateName}
+          size="xl"
+        >
           <div className="space-y-6">
             {bilanTemplateForModal.sections.map((section) => {
               // Exclure la section civilité pour le bilan système par défaut

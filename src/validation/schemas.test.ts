@@ -1,12 +1,7 @@
-/**
- * Tests pour les schémas de validation Zod
- * Ces tests vérifient que la validation fonctionne correctement
- */
-
+import { describe, test, expect } from 'vitest';
 import {
   SignUpSchema,
   SignInSchema,
-  UpdateClientProfileSchema,
   CreateExerciseSchema,
   AddFoodItemSchema,
   validateWithSchema,
@@ -14,132 +9,160 @@ import {
   validateAndSanitizeEmail,
 } from './schemas';
 
-// ---- TESTS SIGN UP ----
-
-console.log('=== Tests SignUpSchema ===\n');
-
-// Test 1: Données valides
-const validSignUp = {
-  email: 'test@example.com',
-  password: 'Password123!',
-  firstName: 'Jean',
-  lastName: 'Dupont',
-  role: 'client' as const,
-  phone: '0612345678',
-  age: 25,
+// Fonction utilitaire pour extraire les messages d'erreur de Zod
+const getErrorMessages = (result: any): string[] => {
+  if (result.success) return [];
+  // La fonction validateWithSchema retourne un tableau de chaînes de caractères pour les erreurs
+  return result.errors;
 };
 
-const result1 = validateWithSchema(SignUpSchema, validSignUp);
-console.log('✅ Test 1 - Données valides:', result1.success ? 'PASS' : 'FAIL');
-if (!result1.success) console.log('Erreurs:', result1.errors);
+describe('Validation Schemas', () => {
+  // ---- TESTS SIGN UP ----
+  describe('SignUpSchema', () => {
+    const validSignUp = {
+      email: 'test@example.com',
+      password: 'Password123!',
+      firstName: 'Jean',
+      lastName: 'Dupont',
+      role: 'client' as const,
+      phone: '0612345678',
+      age: 25,
+    };
 
-// Test 2: Email invalide
-const invalidEmail = { ...validSignUp, email: 'invalid-email' };
-const result2 = validateWithSchema(SignUpSchema, invalidEmail);
-console.log('✅ Test 2 - Email invalide:', !result2.success ? 'PASS' : 'FAIL');
-if (!result2.success) console.log('Erreurs attendues:', result2.errors);
+    test('should pass with valid data', () => {
+      const result = validateWithSchema(SignUpSchema, validSignUp);
+      expect(result.success).toBe(true);
+    });
 
-// Test 3: Mot de passe faible
-const weakPassword = { ...validSignUp, password: 'weak' };
-const result3 = validateWithSchema(SignUpSchema, weakPassword);
-console.log('✅ Test 3 - Mot de passe faible:', !result3.success ? 'PASS' : 'FAIL');
-if (!result3.success) console.log('Erreurs attendues:', result3.errors);
+    test('should fail with invalid email', () => {
+      const invalidEmail = { ...validSignUp, email: 'invalid-email' };
+      const result = validateWithSchema(SignUpSchema, invalidEmail);
+      expect(result.success).toBe(false);
+      expect(getErrorMessages(result)).toContain('email: Adresse email invalide');
+    });
 
-// Test 4: Prénom trop court
-const shortFirstName = { ...validSignUp, firstName: 'J' };
-const result4 = validateWithSchema(SignUpSchema, shortFirstName);
-console.log('✅ Test 4 - Prénom trop court:', !result4.success ? 'PASS' : 'FAIL');
-if (!result4.success) console.log('Erreurs attendues:', result4.errors);
+    test('should fail with weak password', () => {
+      const weakPassword = { ...validSignUp, password: 'weak' };
+      const result = validateWithSchema(SignUpSchema, weakPassword);
+      expect(result.success).toBe(false);
+      const errors = getErrorMessages(result);
+      // Zod retourne toutes les erreurs pour les champs qui échouent.
+      // Nous vérifions si au moins un message d'erreur contient le mot-clé du champ.
+      expect(errors).toContain('password: Le mot de passe doit contenir au moins 8 caractères');
+      expect(errors).toContain('password: Le mot de passe doit contenir au moins une majuscule');
+      expect(errors).toContain('password: Le mot de passe doit contenir au moins un chiffre');
+      expect(errors).toContain(
+        'password: Le mot de passe doit contenir au moins un caractère spécial'
+      );
+    });
 
-// Test 5: Âge invalide
-const invalidAge = { ...validSignUp, age: 10 };
-const result5 = validateWithSchema(SignUpSchema, invalidAge);
-console.log('✅ Test 5 - Âge invalide (< 13):', !result5.success ? 'PASS' : 'FAIL');
-if (!result5.success) console.log('Erreurs attendues:', result5.errors);
+    test('should fail with too short first name', () => {
+      const shortFirstName = { ...validSignUp, firstName: 'J' };
+      const result = validateWithSchema(SignUpSchema, shortFirstName);
+      expect(result.success).toBe(false);
+      expect(getErrorMessages(result)).toContain(
+        'firstName: Le prénom doit contenir au moins 2 caractères'
+      );
+    });
 
-// ---- TESTS SIGN IN ----
+    test('should fail with invalid age (< 13)', () => {
+      const invalidAge = { ...validSignUp, age: 10 };
+      const result = validateWithSchema(SignUpSchema, invalidAge);
+      expect(result.success).toBe(false);
+      expect(getErrorMessages(result)).toContain("age: L'âge minimum est de 13 ans");
+    });
+  });
 
-console.log('\n=== Tests SignInSchema ===\n');
+  // ---- TESTS SIGN IN ----
+  describe('SignInSchema', () => {
+    const validSignIn = {
+      email: 'test@example.com',
+      password: 'anypassword',
+    };
 
-// Test 6: Connexion valide
-const validSignIn = {
-  email: 'test@example.com',
-  password: 'anypassword',
-};
+    test('should pass with valid data', () => {
+      const result = validateWithSchema(SignInSchema, validSignIn);
+      expect(result.success).toBe(true);
+    });
 
-const result6 = validateWithSchema(SignInSchema, validSignIn);
-console.log('✅ Test 6 - Connexion valide:', result6.success ? 'PASS' : 'FAIL');
+    test('should fail with empty email', () => {
+      const emptyEmail = { ...validSignIn, email: '' };
+      const result = validateWithSchema(SignInSchema, emptyEmail);
+      expect(result.success).toBe(false);
+      expect(getErrorMessages(result)).toContain('email: Adresse email invalide');
+    });
+  });
 
-// Test 7: Email vide
-const emptyEmail = { ...validSignIn, email: '' };
-const result7 = validateWithSchema(SignInSchema, emptyEmail);
-console.log('✅ Test 7 - Email vide:', !result7.success ? 'PASS' : 'FAIL');
+  // ---- TESTS EXERCICES ----
+  describe('CreateExerciseSchema', () => {
+    const validExercise = {
+      name: 'Squat',
+      category: 'Musculation' as const,
+      description: 'Exercice de base pour les jambes',
+      videoUrl: 'https://example.com/video.mp4',
+      illustrationUrl: 'https://example.com/image.jpg',
+    };
 
-// ---- TESTS EXERCICES ----
+    test('should pass with valid exercise data', () => {
+      const result = validateWithSchema(CreateExerciseSchema, validExercise);
+      expect(result.success).toBe(true);
+    });
 
-console.log('\n=== Tests CreateExerciseSchema ===\n');
+    test('should fail with invalid category', () => {
+      const invalidCategory = { ...validExercise, category: 'InvalidCategory' };
+      const result = validateWithSchema(CreateExerciseSchema, invalidCategory);
+      expect(result.success).toBe(false);
+      expect(getErrorMessages(result)).toContain(
+        'category: La catégorie doit être Musculation, Mobilité ou Échauffement'
+      );
+    });
+  });
 
-// Test 8: Exercice valide
-const validExercise = {
-  name: 'Squat',
-  category: 'Musculation' as const,
-  description: 'Exercice de base pour les jambes',
-  videoUrl: 'https://example.com/video.mp4',
-  illustrationUrl: 'https://example.com/image.jpg',
-};
+  // ---- TESTS ALIMENTS ----
+  describe('AddFoodItemSchema', () => {
+    const validFood = {
+      name: 'Poulet',
+      category: 'Viandes',
+      calories: 165,
+      protein: 31,
+      carbs: 0,
+      fat: 3.6,
+    };
 
-const result8 = validateWithSchema(CreateExerciseSchema, validExercise);
-console.log('✅ Test 8 - Exercice valide:', result8.success ? 'PASS' : 'FAIL');
+    test('should pass with valid food data', () => {
+      const result = validateWithSchema(AddFoodItemSchema, validFood);
+      expect(result.success).toBe(true);
+    });
 
-// Test 9: Catégorie invalide
-const invalidCategory = { ...validExercise, category: 'InvalidCategory' };
-const result9 = validateWithSchema(CreateExerciseSchema, invalidCategory);
-console.log('✅ Test 9 - Catégorie invalide:', !result9.success ? 'PASS' : 'FAIL');
+    test('should fail with negative calories', () => {
+      const negativeCalories = { ...validFood, calories: -100 };
+      const result = validateWithSchema(AddFoodItemSchema, negativeCalories);
+      expect(result.success).toBe(false);
+      expect(getErrorMessages(result)).toContain(
+        'calories: Les calories ne peuvent pas être négatives'
+      );
+    });
+  });
 
-// ---- TESTS ALIMENTS ----
+  // ---- TESTS UTILITAIRES ----
+  describe('Utility Functions', () => {
+    test('sanitizeString should sanitize XSS input', () => {
+      const xssInput = '<script>alert("XSS")</script>';
+      const sanitized = sanitizeString(xssInput);
+      // L'assertion doit correspondre à la sortie réelle de la fonction de nettoyage, qui échappe les guillemets.
+      // La sortie réelle est &lt;script&gt;alert(&quot;XSS&quot;)&lt;&#x2F;script&gt;      expect(sanitized).toContain('&#x2F;script&gt;');
+      expect(sanitized).toContain('&lt;&#x2F;script&gt;');
+      expect(sanitized).toContain('&quot;');
+    });
 
-console.log('\n=== Tests AddFoodItemSchema ===\n');
+    test('validateAndSanitizeEmail should validate and sanitize a valid email', () => {
+      const validEmailTest = validateAndSanitizeEmail('  TEST@EXAMPLE.COM  ');
+      expect(validEmailTest).toBe('test@example.com');
+    });
 
-// Test 10: Aliment valide
-const validFood = {
-  name: 'Poulet',
-  category: 'Viandes',
-  calories: 165,
-  protein: 31,
-  carbs: 0,
-  fat: 3.6,
-};
-
-const result10 = validateWithSchema(AddFoodItemSchema, validFood);
-console.log('✅ Test 10 - Aliment valide:', result10.success ? 'PASS' : 'FAIL');
-
-// Test 11: Calories négatives
-const negativeCalories = { ...validFood, calories: -100 };
-const result11 = validateWithSchema(AddFoodItemSchema, negativeCalories);
-console.log('✅ Test 11 - Calories négatives:', !result11.success ? 'PASS' : 'FAIL');
-
-// ---- TESTS UTILITAIRES ----
-
-console.log('\n=== Tests Utilitaires ===\n');
-
-// Test 12: Sanitization XSS
-const xssInput = '<script>alert("XSS")</script>';
-const sanitized = sanitizeString(xssInput);
-console.log('✅ Test 12 - Sanitization XSS:', !sanitized.includes('<script>') ? 'PASS' : 'FAIL');
-console.log('Résultat:', sanitized);
-
-// Test 13: Validation email
-const validEmailTest = validateAndSanitizeEmail('  TEST@EXAMPLE.COM  ');
-console.log('✅ Test 13 - Validation email:', validEmailTest === 'test@example.com' ? 'PASS' : 'FAIL');
-console.log('Résultat:', validEmailTest);
-
-// Test 14: Email invalide
-const invalidEmailTest = validateAndSanitizeEmail('not-an-email');
-console.log('✅ Test 14 - Email invalide:', invalidEmailTest === null ? 'PASS' : 'FAIL');
-
-// ---- RÉSUMÉ ----
-
-console.log('\n=== Résumé des Tests ===\n');
-console.log('Tous les tests de validation ont été exécutés.');
-console.log('Vérifiez que tous les tests affichent "PASS".');
-console.log('\nSi des tests échouent, vérifiez les schémas de validation dans schemas.ts');
+    test('validateAndSanitizeEmail should return null for an invalid email', () => {
+      const invalidEmailTest = validateAndSanitizeEmail('not-an-email');
+      expect(invalidEmailTest).toBe(null);
+    });
+  });
+});

@@ -12,12 +12,12 @@ interface KeyboardShortcutOptions {
 
 /**
  * Hook pour gérer les raccourcis clavier
- * 
+ *
  * Utilisation :
  * useKeyboardShortcut('s', () => {
  *   console.log('Ctrl+S pressed');
  * }, { ctrl: true, preventDefault: true });
- * 
+ *
  * @param key - La touche à écouter (ex: 's', 'Enter', 'Escape')
  * @param handler - Fonction à exécuter quand le raccourci est déclenché
  * @param options - Options du raccourci (modificateurs, preventDefault)
@@ -39,7 +39,7 @@ export function useKeyboardShortcut(
     (event: KeyboardEvent) => {
       // Vérifier que la touche correspond
       const keyMatches = event.key.toLowerCase() === key.toLowerCase();
-      
+
       // Vérifier que les modificateurs correspondent
       const ctrlMatches = ctrl ? event.ctrlKey || event.metaKey : !event.ctrlKey && !event.metaKey;
       const shiftMatches = shift ? event.shiftKey : !event.shiftKey;
@@ -66,7 +66,7 @@ export function useKeyboardShortcut(
 
 /**
  * Hook pour gérer plusieurs raccourcis clavier
- * 
+ *
  * Utilisation :
  * useKeyboardShortcuts({
  *   's': { handler: handleSave, ctrl: true, preventDefault: true },
@@ -80,7 +80,7 @@ export function useKeyboardShortcuts(
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       const shortcut = shortcuts[event.key.toLowerCase()] || shortcuts[event.key];
-      
+
       if (!shortcut) return;
 
       const {

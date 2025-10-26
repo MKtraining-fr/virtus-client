@@ -8,11 +8,11 @@ interface FormGridProps {
 
 /**
  * Composant pour créer des grilles de formulaires responsive
- * 
+ *
  * Sur mobile : toujours 1 colonne
  * Sur tablette : 2 colonnes max
  * Sur desktop : nombre de colonnes spécifié
- * 
+ *
  * Utilisation :
  * <FormGrid columns={2}>
  *   <Input label="Prénom" />
@@ -20,11 +20,7 @@ interface FormGridProps {
  *   <Input label="Email" />
  * </FormGrid>
  */
-const FormGrid: React.FC<FormGridProps> = ({ 
-  children, 
-  columns = 2, 
-  className = '' 
-}) => {
+const FormGrid: React.FC<FormGridProps> = ({ children, columns = 2, className = '' }) => {
   const gridClasses = {
     1: 'grid-cols-1',
     2: 'grid-cols-1 md:grid-cols-2',
@@ -33,9 +29,7 @@ const FormGrid: React.FC<FormGridProps> = ({
   };
 
   return (
-    <div className={`grid ${gridClasses[columns]} gap-4 md:gap-6 ${className}`}>
-      {children}
-    </div>
+    <div className={`grid ${gridClasses[columns]} gap-4 md:gap-6 ${className}`}>{children}</div>
   );
 };
 

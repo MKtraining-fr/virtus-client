@@ -16,7 +16,9 @@ const SetPassword: React.FC = () => {
   useEffect(() => {
     // Vérifier si l'utilisateur a un token de récupération valide
     const checkRecoveryToken = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         setError('Lien invalide ou expiré. Veuillez demander un nouveau lien.');
       }
@@ -46,7 +48,9 @@ const SetPassword: React.FC = () => {
 
     const passwordErrors = validatePassword(password);
     if (passwordErrors.length > 0) {
-      setError('Le mot de passe doit contenir :\n' + passwordErrors.map(e => `• ${e}`).join('\n'));
+      setError(
+        'Le mot de passe doit contenir :\n' + passwordErrors.map((e) => `• ${e}`).join('\n')
+      );
       return;
     }
 
@@ -61,12 +65,11 @@ const SetPassword: React.FC = () => {
       if (updateError) throw updateError;
 
       setSuccess(true);
-      
+
       // Rediriger vers la page de connexion après 3 secondes
       setTimeout(() => {
         navigate('/login');
       }, 3000);
-
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error('Une erreur inconnue est survenue.');
       setError(error.message || 'Une erreur est survenue');
@@ -81,13 +84,24 @@ const SetPassword: React.FC = () => {
         <Card className="w-full max-w-md p-8 text-center">
           <div className="mb-6">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <svg
+                className="w-8 h-8 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Mot de passe défini !</h1>
             <p className="text-gray-600">
-              Votre mot de passe a été défini avec succès. Vous allez être redirigé vers la page de connexion...
+              Votre mot de passe a été défini avec succès. Vous allez être redirigé vers la page de
+              connexion...
             </p>
           </div>
         </Card>
@@ -145,17 +159,15 @@ const SetPassword: React.FC = () => {
               <li className={/[0-9]/.test(password) ? 'text-green-600' : ''}>
                 • Au moins un chiffre
               </li>
-              <li className={/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password) ? 'text-green-600' : ''}>
+              <li
+                className={/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password) ? 'text-green-600' : ''}
+              >
                 • Au moins un caractère spécial
               </li>
             </ul>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loading}
-          >
+          <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Enregistrement...' : 'Définir le mot de passe'}
           </Button>
         </form>

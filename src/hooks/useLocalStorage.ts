@@ -6,7 +6,10 @@ import { useState, useEffect } from 'react';
  * @param initialValue - Valeur initiale si aucune donnée n'est trouvée
  * @returns [value, setValue, clearValue] - La valeur, la fonction de mise à jour, et la fonction de suppression
  */
-export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void, () => void] {
+export function useLocalStorage<T>(
+  key: string,
+  initialValue: T
+): [T, (value: T) => void, () => void] {
   // State pour stocker la valeur
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
@@ -66,4 +69,3 @@ export function useWorkoutDraft() {
     lastSaved,
   };
 }
-

@@ -1,6 +1,6 @@
 /**
  * Système de logging centralisé pour l'application Virtus
- * 
+ *
  * Ce module fournit des fonctions de logging structuré avec différents niveaux de sévérité.
  * En production, les logs peuvent être envoyés vers un service externe (Sentry, LogRocket, etc.)
  */
@@ -27,9 +27,12 @@ class Logger {
   private maxLogs: number = 100;
 
   constructor() {
-    this.isDevelopment = typeof import.meta.env !== 'undefined' 
-      ? import.meta.env.MODE === 'development'
-      : process.env.NODE_ENV === 'development';
+    // @ts-ignore
+    this.isDevelopment =
+      typeof import.meta.env !== 'undefined'
+        ? // @ts-ignore
+          import.meta.env.MODE === 'development'
+        : process.env.NODE_ENV === 'development';
   }
 
   /**
@@ -122,7 +125,7 @@ class Logger {
     //     contexts: { custom: entry.context },
     //   });
     // }
-    
+
     // Pour l'instant, on stocke juste en mémoire
     this.storeLog(entry);
   }
@@ -191,14 +194,14 @@ class Logger {
 export const logger = new Logger();
 
 // Fonctions utilitaires pour un usage simplifié
-export const logDebug = (message: string, context?: Record<string, unknown>) => 
+export const logDebug = (message: string, context?: Record<string, unknown>) =>
   logger.debug(message, context);
 
-export const logInfo = (message: string, context?: Record<string, unknown>) => 
+export const logInfo = (message: string, context?: Record<string, unknown>) =>
   logger.info(message, context);
 
-export const logWarn = (message: string, context?: Record<string, unknown>) => 
+export const logWarn = (message: string, context?: Record<string, unknown>) =>
   logger.warn(message, context);
 
-export const logError = (message: string, error?: Error, context?: Record<string, unknown>) => 
+export const logError = (message: string, error?: Error, context?: Record<string, unknown>) =>
   logger.error(message, error, context);

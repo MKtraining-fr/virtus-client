@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../services/supabase';
+import { Database, Tables } from '../types/database';
 import { logger } from '../utils/logger';
 import {
   Client,
@@ -32,18 +33,26 @@ import {
 // import { deleteUserAndProfile } from '../services/authService'; // Migré ici
 // Fonctions qui étaient dans authService.ts
 const deleteUserAndProfile = async (userIdToDelete: string, accessToken: string): Promise<void> => {
-  logger.info("Appel de deleteUserAndProfile via RPC", { userIdToDelete });
+  logger.info('Appel de deleteUserAndProfile via RPC', { userIdToDelete });
   try {
-    const { error } = await supabase.rpc('delete_user_and_profile', { user_id_text: userIdToDelete });
+    const { error } = await supabase.rpc('delete_user_and_profile', {
+      user_id_text: userIdToDelete,
+    });
 
     if (error) {
-      logger.error("Erreur lors de l'appel RPC delete_user_and_profile:", { error, userIdToDelete });
+      logger.error("Erreur lors de l'appel RPC delete_user_and_profile:", {
+        error,
+        userIdToDelete,
+      });
       throw new Error(error.message || "Erreur lors de l'appel RPC de suppression.");
     }
 
-    logger.info("Utilisateur et profil supprimés avec succès via RPC:", { userIdToDelete });
+    logger.info('Utilisateur et profil supprimés avec succès via RPC:', { userIdToDelete });
   } catch (error) {
-    logger.error("Erreur lors de l'appel de la fonction RPC delete_user_and_profile:", { error, userIdToDelete });
+    logger.error("Erreur lors de l'appel de la fonction RPC delete_user_and_profile:", {
+      error,
+      userIdToDelete,
+    });
     throw error;
   }
 };
@@ -51,11 +60,15 @@ const deleteUserAndProfile = async (userIdToDelete: string, accessToken: string)
 // Types pour les programmes (matrices)
 export interface ProgramInput {
   name: string;
-  objective?: string;
-  week_count: number;
+  goal?: string; // Correspond à 'objective' dans le frontend
+  max_weeks: number; // Correspond à 'week_count' dans le frontend
+  description?: string;
+  sessions_per_week?: number;
+  is_template?: boolean;
+  is_public?: boolean;
+  created_by?: string;
 }
 import { useAuthStore } from './useAuthStore';
-
 
 // Définition de l'état et des actions
 interface DataState {
@@ -75,6 +88,7 @@ interface DataState {
   intensificationTechniques: IntensificationTechnique[];
   recipes: Meal[];
   meals: Meal[];
+  bilanAssignments: BilanAssignment[];
   isDataLoading: boolean;
   dataError: string | null;
 
@@ -101,739 +115,846 @@ interface DataState {
   setRecipes: (recipes: Meal[]) => void;
   setMeals: (meals: Meal[]) => void;
   setBilanAssignments: (assignments: BilanAssignment[]) => void;
-  
+
   // Fonctions de dataService migrées
   getUserMessages: (userId: string) => Promise<Message[]>;
   getUserNotifications: (userId: string) => Promise<Notification[]>;
   markNotificationAsRead: (notificationId: string) => Promise<void>;
   markMessageAsRead: (messageId: string) => Promise<void>;
-  
+
   addUser: (userData: Partial<Client>) => Promise<Client>;
   updateUser: (userId: string, userData: Partial<Client>) => Promise<Client>;
   deleteUser: (userId: string) => Promise<void>;
-  
+
   addProgram: (programData: ProgramInput) => Promise<WorkoutProgram>;
   updateProgram: (programId: string, programData: Partial<ProgramInput>) => Promise<WorkoutProgram>;
   deleteProgram: (programId: string) => Promise<void>;
-  
+
   addBilanTemplate: (templateData: Omit<BilanTemplate, 'id'>) => Promise<BilanTemplate>;
-  updateBilanTemplate: (templateId: string, templateData: Partial<BilanTemplate>) => Promise<BilanTemplate>;
+  updateBilanTemplate: (
+    templateId: string,
+    templateData: Partial<BilanTemplate>
+  ) => Promise<BilanTemplate>;
   deleteBilanTemplate: (templateId: string) => Promise<void>;
-  
-  assignBilanTemplate: (clientId: string, templateId: string, recurrence?: BilanAssignment['recurrence']) => Promise<BilanAssignment>;
-  
+
+  assignBilanTemplate: (
+    clientId: string,
+    templateId: string,
+    recurrence?: BilanAssignment['recurrence']
+  ) => Promise<BilanAssignment>;
+
   addNutritionPlan: (planData: Omit<NutritionPlan, 'id'>) => Promise<NutritionPlan>;
   updateNutritionPlan: (planId: string, planData: Partial<NutritionPlan>) => Promise<NutritionPlan>;
   deleteNutritionPlan: (planId: string) => Promise<void>;
-  
+
   // Fonctions CRUD génériques internes (pour usage interne dans le store)
-  _internalCreate: <T extends keyof Tables>(table: T, data: Tables[T]['Insert']) => Promise<Tables[T]['Row']>;
-  _internalUpdate: <T extends keyof Tables>(table: T, id: string, data: Tables[T]['Update']) => Promise<Tables[T]['Row']>;
+  _internalCreate: <T extends keyof Tables>(table: T, data: any) => Promise<Tables[T]['Row']>;
+  // _internalUpdate: <T extends keyof Tables>(table: T, id: string, data: Tables[T]['Update']) => Promise<Tables[T]['Row']>; // Supprimé
   _internalDelete: <T extends keyof Tables>(table: T, id: string) => Promise<void>;
-  _internalGetWhere: <T extends keyof Tables>(table: T, column: string, value: any) => Promise<Tables[T]['Row'][]>;
-  
+  _internalGetWhere: <T extends keyof Tables>(
+    table: T,
+    column: string,
+    value: any
+  ) => Promise<Tables[T]['Row'][]>;
+
   addMessage: (messageData: Omit<Message, 'id' | 'timestamp'>) => Promise<Message>;
   markMessageAsRead: (messageId: string) => Promise<Message>;
   deleteMessage: (messageId: string) => Promise<void>;
-  
-  addNotification: (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => Promise<void>;
+
+  addNotification: (
+    notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>
+  ) => Promise<void>;
 }
 
 // Création du store Zustand
 export const useDataStore = create<DataState>((set, get) => {
-    
-    // Fonction de chargement des données (migrée de AuthContext.tsx)
-    const loadData = async (userId: string | null) => {
-        if (!userId) {
-            set({ isDataLoading: false });
-            return;
+  // Fonction de chargement des données (migrée de AuthContext.tsx)
+  const loadData = async (userId: string | null) => {
+    if (!userId) {
+      set({ isDataLoading: false });
+      return;
+    }
+
+    try {
+      set({ isDataLoading: true, dataError: null });
+
+      // Charger toutes les données en parallèle
+      const [
+        clientsData,
+        exercisesData,
+        programsData,
+        sessionsData,
+        nutritionPlansData,
+        messagesData,
+        notificationsData,
+        foodItemsData,
+        bilanTemplatesData,
+        assignmentsData, // Ajout de assignmentsData
+        partnersData,
+        productsData,
+        intensificationTechniquesData,
+        recipesData,
+        mealsData,
+      ] = await Promise.all([
+        supabase.from('clients').select('*'),
+        supabase.from('exercises').select('*'),
+        supabase.from('programs').select('*'),
+        supabase.from('sessions').select('*'),
+        supabase.from('nutrition_plans').select('*'),
+        supabase.from('messages').select('*'),
+        supabase.from('notifications').select('*'),
+        supabase.from('food_items').select('*'),
+        supabase.from('bilan_templates').select('*'),
+        supabase.from('bilan_assignments').select('*').eq('coach_id', userId), // Nouvelle requête
+        supabase.from('partners').select('*'),
+        supabase.from('products').select('*'),
+        supabase.from('intensification_techniques').select('*'),
+        supabase.from('recipes').select('*'),
+        supabase.from('meals').select('*'),
+      ]);
+
+      if (clientsData.error) {
+        console.error('Erreur de chargement des clients:', clientsData.error);
+      }
+
+      if (clientsData.data) {
+        const mappedClients = clientsData.data.map(mapSupabaseClientToClient);
+        set({ clients: mappedClients });
+      }
+      if (exercisesData.data) {
+        set({ exercises: exercisesData.data.map(mapSupabaseExerciseToExercise) });
+      }
+      if (programsData.data) {
+        set({ programs: programsData.data.map(mapSupabaseProgramToProgram) });
+      }
+      if (sessionsData.data) {
+        set({ sessions: sessionsData.data as WorkoutSession[] });
+      }
+      if (nutritionPlansData.data) {
+        set({
+          nutritionPlans: nutritionPlansData.data.map(mapSupabaseNutritionPlanToNutritionPlan),
+        });
+      }
+      if (assignmentsData.data) {
+        // Nouvelle gestion des données
+        const mapSupabaseAssignmentsToAssignments = (data: any[]): BilanAssignment[] =>
+          data.map((d) => ({
+            id: d.id,
+            clientId: d.client_id,
+            coachId: d.coach_id,
+            templateId: d.template_id,
+            templateName: d.template_name,
+            status: d.status,
+            assignedAt: d.assigned_at,
+            completedAt: d.completed_at,
+            recurrence: d.recurrence,
+            nextAssignmentDate: d.next_assignment_date,
+          }));
+        set({ bilanAssignments: mapSupabaseAssignmentsToAssignments(assignmentsData.data) });
+      }
+      if (messagesData.data) {
+        set({ messages: messagesData.data.map(mapSupabaseMessageToMessage) });
+      }
+      if (notificationsData.data) {
+        set({ notifications: notificationsData.data.map(mapSupabaseNotificationToNotification) });
+      }
+      if (foodItemsData.data) {
+        set({ foodItems: foodItemsData.data as FoodItem[] });
+      }
+      if (bilanTemplatesData.data) {
+        let templates = bilanTemplatesData.data.map(mapSupabaseBilanTemplateToTemplate);
+
+        // Si aucun template n'est trouvé, insérer le template initial par défaut
+        if (templates.length === 0) {
+          logger.info('Aucun template de bilan trouvé. Insertion du template initial par défaut.');
+          const { INITIAL_BILAN_TEMPLATE } = await import('../data/initialBilanTemplate');
+
+          try {
+            // Insérer dans Supabase
+            const { data: insertedData, error: insertError } = await supabase
+              .from('bilan_templates')
+              .insert({
+                id: INITIAL_BILAN_TEMPLATE.id,
+                name: INITIAL_BILAN_TEMPLATE.name,
+                coach_id:
+                  INITIAL_BILAN_TEMPLATE.coachId === 'system'
+                    ? null
+                    : INITIAL_BILAN_TEMPLATE.coachId, // Supabase n'aime pas 'system' si la colonne est un UUID
+                sections: INITIAL_BILAN_TEMPLATE.sections,
+              } as any)
+              .select()
+              .single();
+
+            if (insertError) throw insertError;
+
+            // Ajouter le template inséré à la liste locale
+            templates = [mapSupabaseBilanTemplateToTemplate(insertedData)];
+            logger.info('Template initial inséré avec succès.');
+          } catch (error) {
+            logger.error(
+              "Erreur lors de l'insertion du template initial, utilisant la version locale.",
+              error as Error
+            );
+            // En cas d'erreur d'insertion, utiliser au moins la version locale
+            templates = [INITIAL_BILAN_TEMPLATE];
+          }
         }
 
-        try {
-            set({ isDataLoading: true, dataError: null });
+        set({ bilanTemplates: templates });
+      }
+      if (partnersData.data) {
+        set({ partners: partnersData.data as Partner[] });
+      }
+      if (productsData.data) {
+        set({ products: productsData.data as Product[] });
+      }
+      if (intensificationTechniquesData.data) {
+        set({
+          intensificationTechniques:
+            intensificationTechniquesData.data as IntensificationTechnique[],
+        });
+      }
+      if (recipesData.data) {
+        set({ recipes: recipesData.data as Meal[] });
+      }
+      if (mealsData.data) {
+        set({ meals: mealsData.data as Meal[] });
+      }
+    } catch (error) {
+      logger.error('Erreur lors du chargement des données', error as Error);
+      set({ dataError: error instanceof Error ? error.message : 'Une erreur est survenue' });
+    } finally {
+      set({ isDataLoading: false });
+    }
+  };
 
-            // Charger toutes les données en parallèle
-            const [
-                clientsData,
-                exercisesData,
-                programsData,
-                sessionsData,
-                nutritionPlansData,
-                messagesData,
-                notificationsData,
-                foodItemsData,
-                bilanTemplatesData,
-                assignmentsData, // Ajout de assignmentsData
-                partnersData,
-                productsData,
-                intensificationTechniquesData,
-                recipesData,
-                mealsData,
-            ] = await Promise.all([
-                supabase.from('clients').select('*'),
-                supabase.from('exercises').select('*'),
-                supabase.from('programs').select('*'),
-                supabase.from('sessions').select('*'),
-                supabase.from('nutrition_plans').select('*'),
-                supabase.from('messages').select('*'),
-                supabase.from('notifications').select('*'),
-                supabase.from('food_items').select('*'),
-                supabase.from('bilan_templates').select('*'),
-                supabase.from('bilan_assignments').select('*').eq('coach_id', coachId), // Nouvelle requête
-                supabase.from('partners').select('*'),
-                supabase.from('products').select('*'),
-                supabase.from('intensification_techniques').select('*'),
-                supabase.from('recipes').select('*'),
-                supabase.from('meals').select('*'),
-            ]);
+  return {
+    // État initial
+    clients: [],
+    exercises: [],
+    programs: [],
+    sessions: [],
+    nutritionPlans: [],
+    messages: [],
+    clientFormations: [],
+    professionalFormations: [],
+    notifications: [],
+    foodItems: [],
+    bilanTemplates: [],
+    partners: [],
+    products: [],
+    intensificationTechniques: [],
+    recipes: [],
+    meals: [],
+    isDataLoading: true,
+    dataError: null,
 
-            if (clientsData.error) {
-                console.error('Erreur de chargement des clients:', clientsData.error);
-            }
+    // Fonctions de chargement
+    loadData,
+    reloadData: async () => {
+      const userId = useAuthStore.getState().user?.id || null;
+      logger.info('Rechargement des données...');
+      await loadData(userId);
+      logger.info('Données rechargées.');
+    },
+    reloadAllData: async () => {
+      const userId = useAuthStore.getState().user?.id || null;
+      logger.info('Rechargement de toutes les données...');
+      await loadData(userId);
+      logger.info('Toutes les données rechargées.');
+    },
 
-            if (clientsData.data) {
-                const mappedClients = clientsData.data.map(mapSupabaseClientToClient);
-                set({ clients: mappedClients });
-            }
-            if (exercisesData.data) {
-                set({ exercises: exercisesData.data.map(mapSupabaseExerciseToExercise) });
-            }
-            if (programsData.data) {
-                set({ programs: programsData.data.map(mapSupabaseProgramToProgram) });
-            }
-            if (sessionsData.data) {
-                set({ sessions: sessionsData.data as WorkoutSession[] });
-            }
-            if (nutritionPlansData.data) {
-                set({ nutritionPlans: nutritionPlansData.data.map(mapSupabaseNutritionPlanToNutritionPlan) });
-            }
-            if (assignmentsData.data) { // Nouvelle gestion des données
-                const mapSupabaseAssignmentsToAssignments = (data: any[]): BilanAssignment[] => data.map(d => ({
-                    id: d.id,
-                    clientId: d.client_id,
-                    coachId: d.coach_id,
-                    templateId: d.template_id,
-                    templateName: d.template_name,
-                    status: d.status,
-                    assignedAt: d.assigned_at,
-                    completedAt: d.completed_at,
-                    recurrence: d.recurrence,
-                    nextAssignmentDate: d.next_assignment_date,
-                }));
-                set({ bilanAssignments: mapSupabaseAssignmentsToAssignments(assignmentsData.data) });
-            }
-            if (messagesData.data) {
-                set({ messages: messagesData.data.map(mapSupabaseMessageToMessage) });
-            }
-            if (notificationsData.data) {
-                set({ notifications: notificationsData.data.map(mapSupabaseNotificationToNotification) });
-            }
-            if (foodItemsData.data) {
-                set({ foodItems: foodItemsData.data as FoodItem[] });
-            }
-            if (bilanTemplatesData.data) {
-                let templates = bilanTemplatesData.data.map(mapSupabaseBilanTemplateToTemplate);
-                
-                // Si aucun template n'est trouvé, insérer le template initial par défaut
-                if (templates.length === 0) {
-                    logger.info("Aucun template de bilan trouvé. Insertion du template initial par défaut.");
-                    const { INITIAL_BILAN_TEMPLATE } = await import('../data/initialBilanTemplate');
-                    
-                    try {
-                        // Insérer dans Supabase
-                        const { data: insertedData, error: insertError } = await supabase
-                            .from('bilan_templates')
-                            .insert({
-                                id: INITIAL_BILAN_TEMPLATE.id,
-                                name: INITIAL_BILAN_TEMPLATE.name,
-                                coach_id: INITIAL_BILAN_TEMPLATE.coachId === 'system' ? null : INITIAL_BILAN_TEMPLATE.coachId, // Supabase n'aime pas 'system' si la colonne est un UUID
-                                sections: INITIAL_BILAN_TEMPLATE.sections,
-                            })
-                            .select()
-                            .single();
-                            
-                        if (insertError) throw insertError;
-                        
-                        // Ajouter le template inséré à la liste locale
-                        templates = [mapSupabaseBilanTemplateToTemplate(insertedData)];
-                        logger.info("Template initial inséré avec succès.");
-                    } catch (error) {
-                        logger.error("Erreur lors de l'insertion du template initial, utilisant la version locale.", { error });
-                        // En cas d'erreur d'insertion, utiliser au moins la version locale
-                        templates = [INITIAL_BILAN_TEMPLATE];
-                    }
-                }
-                
-                set({ bilanTemplates: templates });
-            }
-            if (partnersData.data) {
-                set({ partners: partnersData.data as Partner[] });
-            }
-            if (productsData.data) {
-                set({ products: productsData.data as Product[] });
-            }
-            if (intensificationTechniquesData.data) {
-                set({ intensificationTechniques: intensificationTechniquesData.data as IntensificationTechnique[] });
-            }
-            if (recipesData.data) {
-                set({ recipes: recipesData.data as Meal[] });
-            }
-            if (mealsData.data) {
-                set({ meals: mealsData.data as Meal[] });
-            }
+    // Setters (pour la compatibilité et les mises à jour directes)
+    setClients: (clients) => set({ clients }),
+    setExercises: (exercises) => set({ exercises }),
+    setPrograms: (programs) => set({ programs }),
+    setSessions: (sessions) => set({ sessions }),
+    setNutritionPlans: (plans) => set({ nutritionPlans: plans }),
+    setMessages: (messages) => set({ messages }),
+    setClientFormations: (formations) => set({ clientFormations: formations }),
+    setProfessionalFormations: (formations) => set({ professionalFormations: formations }),
+    setNotifications: (notifications) => set({ notifications }),
+    setFoodItems: (foodItems) => set({ foodItems }),
+    setBilanTemplates: (templates) => set({ bilanTemplates: templates }),
+    setPartners: (partners) => set({ partners }),
+    setProducts: (products) => set({ products }),
+    setIntensificationTechniques: (techniques) => set({ intensificationTechniques: techniques }),
+    setRecipes: (recipes) => set({ recipes }),
+    setMeals: (meals) => set({ meals }),
 
-        } catch (error) {
-            logger.error('Erreur lors du chargement des données', { error });
-            set({ dataError: error instanceof Error ? error.message : 'Une erreur est survenue' });
-        } finally {
-            set({ isDataLoading: false });
+    // Fonctions CRUD génériques internes (pour usage interne dans le store)
+    _internalCreate: async <T extends keyof Tables>(
+      table: T,
+      data: Tables[T]['Insert']
+    ): Promise<Tables[T]['Row']> => {
+      try {
+        const { data: result, error } = await supabase
+          .from(table as string)
+          .insert(data as any)
+          .select()
+          .single();
+
+        if (error) {
+          logger.error(`Erreur lors de la création dans ${String(table)}`, error as Error);
+          throw error;
         }
-    };
 
-    return {
-        // État initial
-        clients: [],
-        exercises: [],
-        programs: [],
-        sessions: [],
-        nutritionPlans: [],
-        messages: [],
-        clientFormations: [],
-        professionalFormations: [],
-        notifications: [],
-        foodItems: [],
-        bilanTemplates: [],
-        partners: [],
-        products: [],
-        intensificationTechniques: [],
-        recipes: [],
-        meals: [],
-        isDataLoading: true,
-        dataError: null,
+        return result as Tables[T]['Row'];
+      } catch (error) {
+        logger.error(`Exception lors de la création dans ${String(table)}`, error as Error);
+        throw error;
+      }
+    },
+    // Fonction interne _internalUpdate supprimée car elle causait des problèmes de typage complexes avec Supabase.
+    // Les fonctions `update` sont désormais implémentées directement dans les fonctions CRUD spécifiques.
+    // _internalUpdate: async <T extends keyof Tables>(table: T, id: string, data: Tables[T]['Update']): Promise<Tables[T]['Row']> => { ... }
+    _internalDelete: async <T extends keyof Tables>(table: T, id: string): Promise<void> => {
+      try {
+        const { error } = await supabase
+          .from(table as string)
+          .delete()
+          .eq('id', id);
 
-        // Fonctions de chargement
-        loadData,
-        reloadData: async () => {
-            const userId = useAuthStore.getState().user?.id || null;
-            logger.info('Rechargement des données...');
-            await loadData(userId);
-            logger.info('Données rechargées.');
-        },
-        reloadAllData: async () => {
-            const userId = useAuthStore.getState().user?.id || null;
-            logger.info('Rechargement de toutes les données...');
-            await loadData(userId);
-            logger.info('Toutes les données rechargées.');
-        },
+        if (error) {
+          logger.error(`Erreur lors de la suppression de ${String(table)} #${id}`, error as Error);
+          throw error;
+        }
+      } catch (error) {
+        logger.error(`Exception lors de la suppression de ${String(table)} #${id}`, error as Error);
+        throw error;
+      }
+    },
+    _internalGetWhere: async <T extends keyof Tables>(
+      table: T,
+      column: string,
+      value: any
+    ): Promise<Tables[T]['Row'][]> => {
+      try {
+        const { data, error } = await supabase
+          .from(table as string)
+          .select('*')
+          .eq(column, value);
 
-        // Setters (pour la compatibilité et les mises à jour directes)
-        setClients: (clients) => set({ clients }),
-        setExercises: (exercises) => set({ exercises }),
-        setPrograms: (programs) => set({ programs }),
-        setSessions: (sessions) => set({ sessions }),
-        setNutritionPlans: (plans) => set({ nutritionPlans: plans }),
-        setMessages: (messages) => set({ messages }),
-        setClientFormations: (formations) => set({ clientFormations: formations }),
-        setProfessionalFormations: (formations) => set({ professionalFormations: formations }),
-        setNotifications: (notifications) => set({ notifications }),
-        setFoodItems: (foodItems) => set({ foodItems }),
-        setBilanTemplates: (templates) => set({ bilanTemplates: templates }),
-        setPartners: (partners) => set({ partners }),
-        setProducts: (products) => set({ products }),
-        setIntensificationTechniques: (techniques) => set({ intensificationTechniques: techniques }),
-        setRecipes: (recipes) => set({ recipes }),
-        setMeals: (meals) => set({ meals }),
-        
-        // Fonctions CRUD génériques internes (pour usage interne dans le store)
-        _internalCreate: async <T extends keyof Tables>(table: T, data: Tables[T]['Insert']): Promise<Tables[T]['Row']> => {
-            try {
-                const { data: result, error } = await supabase
-                    .from(table)
-                    .insert([data])
-                    .select()
-                    .single();
+        if (error) {
+          logger.error(
+            `Erreur lors de la récupération de ${String(table)} avec filtre`,
+            error as Error
+          );
+          throw error;
+        }
 
-                if (error) {
-                    logger.error(`Erreur lors de la création dans ${table}`, { error, data });
-                    throw error;
-                }
+        return data || [];
+      } catch (error) {
+        logger.error(
+          `Exception lors de la récupération de ${String(table)} avec filtre`,
+          error as Error
+        );
+        throw error;
+      }
+    },
 
-                return result;
-            } catch (error) {
-                logger.error(`Exception lors de la création dans ${table}`, { error });
-                throw error;
-            }
-        },
-        _internalUpdate: async <T extends keyof Tables>(table: T, id: string, data: Tables[T]['Update']): Promise<Tables[T]['Row']> => {
-            try {
-                const { data: result, error } = await supabase
-                    .from(table)
-                    .update(data)
-                    .eq('id', id)
-                    .select()
-                    .single();
+    // Fonctions de dataService migrées
+    getUserMessages: async (userId: string): Promise<Message[]> => {
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+          .order('created_at', { ascending: false });
 
-                if (error) {
-                    logger.error(`Erreur lors de la mise à jour de ${table} #${id}`, { error, data });
-                    throw error;
-                }
+        if (error) {
+          logger.error('Erreur lors de la récupération des messages', error as Error);
+          throw error;
+        }
 
-                return result;
-            } catch (error) {
-                logger.error(`Exception lors de la mise à jour de ${table} #${id}`, { error });
-                throw error;
-            }
-        },
-        _internalDelete: async <T extends keyof Tables>(table: T, id: string): Promise<void> => {
-            try {
-                const { error } = await supabase
-                    .from(table)
-                    .delete()
-                    .eq('id', id);
+        return data ? data.map(mapSupabaseMessageToMessage) : [];
+      } catch (error) {
+        logger.error('Exception lors de la récupération des messages', error as Error);
+        throw error;
+      }
+    },
+    getUserNotifications: async (userId: string): Promise<Notification[]> => {
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
 
-                if (error) {
-                    logger.error(`Erreur lors de la suppression de ${table} #${id}`, { error });
-                    throw error;
-                }
-            } catch (error) {
-                logger.error(`Exception lors de la suppression de ${table} #${id}`, { error });
-                throw error;
-            }
-        },
-        _internalGetWhere: async <T extends keyof Tables>(table: T, column: string, value: any): Promise<Tables[T]['Row'][]> => {
-            try {
-                const { data, error } = await supabase
-                    .from(table)
-                    .select('*')
-                    .eq(column, value);
+        if (error) {
+          logger.error('Erreur lors de la récupération des notifications', error as Error);
+          throw error;
+        }
 
-                if (error) {
-                    logger.error(`Erreur lors de la récupération de ${table} avec filtre`, { error, column, value });
-                    throw error;
-                }
+        return data ? data.map(mapSupabaseNotificationToNotification) : [];
+      } catch (error) {
+        logger.error('Exception lors de la récupération des notifications', error as Error);
+        throw error;
+      }
+    },
+    markNotificationAsRead: async (notificationId: string): Promise<void> => {
+      // Remplacement de _internalUpdate par un appel direct
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true } as any) // is_read est le nom de la colonne dans la DB Supabase
+        .eq('id', notificationId);
 
-                return data || [];
-            } catch (error) {
-                logger.error(`Exception lors de la récupération de ${table} avec filtre`, { error });
-                throw error;
-            }
-        },
+      if (error) {
+        logger.error(
+          `Erreur lors de la mise à jour de la notification ${notificationId}`,
+          error as Error
+        );
+        throw error;
+      }
+      // Mise à jour de l'état local
+      set((state) => ({
+        notifications: state.notifications.map((n) =>
+          n.id === notificationId ? { ...n, read: true } : n
+        ),
+      }));
+    },
 
-        // Fonctions de dataService migrées
-        getUserMessages: async (userId: string): Promise<Message[]> => {
-            try {
-                const { data, error } = await supabase
-                    .from('messages')
-                    .select('*')
-                    .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
-                    .order('created_at', { ascending: false });
+    // Fonctions CRUD existantes qui utilisent maintenant les fonctions internes
+    addUser: async (userData: Partial<Client>): Promise<Client> => {
+      logger.info("Ajout d'utilisateur", { userData });
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .insert([mapClientToSupabaseClient(userData as Client)] as any)
+          .select()
+          .single();
+        if (error) throw error;
+        const newClient = mapSupabaseClientToClient(data);
+        set((state) => ({ clients: [...state.clients, newClient] }));
+        logger.info('Utilisateur ajouté avec succès', { newClient });
+        return newClient;
+      } catch (error) {
+        logger.error("Erreur lors de l'ajout de l'utilisateur", error as Error);
+        throw error;
+      }
+    },
 
-                if (error) {
-                    logger.error('Erreur lors de la récupération des messages', { error, userId });
-                    throw error;
-                }
+    updateUser: async (userId: string, userData: Partial<Client>): Promise<Client> => {
+      logger.info("Mise à jour de l'utilisateur", { userId, userData });
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .update(mapClientToSupabaseClient(userData as Client) as any)
+          .eq('id', userId)
+          .select()
+          .single();
+        if (error) throw error;
+        const updatedClient = mapSupabaseClientToClient(data);
+        set((state) => ({
+          clients: state.clients.map((client) => (client.id === userId ? updatedClient : client)),
+        }));
 
-                return data ? data.map(mapSupabaseMessageToMessage) : [];
-            } catch (error) {
-                logger.error('Exception lors de la récupération des messages', { error });
-                throw error;
-            }
-        },
-        getUserNotifications: async (userId: string): Promise<Notification[]> => {
-            try {
-                const { data, error } = await supabase
-                    .from('notifications')
-                    .select('*')
-                    .eq('user_id', userId)
-                    .order('created_at', { ascending: false });
+        // Mettre à jour l'utilisateur dans useAuthStore s'il s'agit de l'utilisateur courant
+        if (useAuthStore.getState().user?.id === userId) {
+          useAuthStore.setState({ user: updatedClient });
+        }
 
-                if (error) {
-                    logger.error('Erreur lors de la récupération des notifications', { error, userId });
-                    throw error;
-                }
+        logger.info('Utilisateur mis à jour avec succès', { updatedClient });
+        return updatedClient;
+      } catch (error) {
+        logger.error("Erreur lors de la mise à jour de l'utilisateur", error as Error);
+        throw error;
+      }
+    },
 
-                return data ? data.map(mapSupabaseNotificationToNotification) : [];
-            } catch (error) {
-                logger.error('Exception lors de la récupération des notifications', { error });
-                throw error;
-            }
-        },
-        markNotificationAsRead: async (notificationId: string): Promise<void> => {
-            const { _internalUpdate } = get();
-            await _internalUpdate('notifications', notificationId, { read: true });
-            // Mise à jour de l'état local
-            set(state => ({
-                notifications: state.notifications.map(n => n.id === notificationId ? { ...n, read: true } : n)
-            }));
-        },
+    deleteUser: async (userId: string) => {
+      logger.info("Tentative de suppression de l'utilisateur", { userId });
+      try {
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+        if (sessionError) {
+          logger.error('Erreur lors de la récupération de la session:', sessionError as Error);
+          throw sessionError;
+        }
+        if (!session) {
+          logger.error("Aucune session active trouvée. Impossible de supprimer l'utilisateur.");
+          throw new Error('No active session found. Cannot delete user.');
+        }
+        logger.info('Session active trouvée, appel de deleteUserAndProfile', {
+          userId,
+          accessToken: session.access_token ? 'present' : 'absent',
+        });
+        await deleteUserAndProfile(userId, session.access_token);
 
+        logger.info(
+          "Utilisateur supprimé avec succès via fonction Edge, mise à jour de l'état local",
+          { userId }
+        );
+        set((state) => ({
+          ...state,
+          clients: state.clients.filter((client) => client.id !== userId),
+        }));
+      } catch (error) {
+        logger.error("Erreur lors de la suppression de l'utilisateur", error as Error);
+        throw error;
+      }
+    },
 
-        // Fonctions CRUD existantes qui utilisent maintenant les fonctions internes
-        addUser: async (userData: Partial<Client>): Promise<Client> => {
-            logger.info('Ajout d\'utilisateur', { userData });
-            try {
-                const { data, error } = await supabase.from('clients').insert([mapClientToSupabaseClient(userData as Client)]).select().single();
-                if (error) throw error;
-                const newClient = mapSupabaseClientToClient(data);
-                set(state => ({ clients: [...state.clients, newClient] }));
-                logger.info('Utilisateur ajouté avec succès', { newClient });
-                return newClient;
-            } catch (error) {
-                logger.error("Erreur lors de l'ajout de l'utilisateur", { error });
-                throw error;
-            }
-        },
-        
-        updateUser: async (userId: string, userData: Partial<Client>): Promise<Client> => {
-            logger.info('Mise à jour de l\'utilisateur', { userId, userData });
-            try {
-                const { data, error } = await supabase.from('clients').update(mapClientToSupabaseClient(userData as Client)).eq('id', userId).select().single();
-                if (error) throw error;
-                const updatedClient = mapSupabaseClientToClient(data);
-                set(state => ({ clients: state.clients.map(client => (client.id === userId ? updatedClient : client)) }));
-                
-                // Mettre à jour l'utilisateur dans useAuthStore s'il s'agit de l'utilisateur courant
-                if (useAuthStore.getState().user?.id === userId) {
-                    useAuthStore.setState({ user: updatedClient });
-                }
-                
-                logger.info('Utilisateur mis à jour avec succès', { updatedClient });
-                return updatedClient;
-            } catch (error) {
-                logger.error("Erreur lors de la mise à jour de l'utilisateur", { error });
-                throw error;
-            }
-        },
-        
-        deleteUser: async (userId: string) => {
-            logger.info('Tentative de suppression de l\'utilisateur', { userId });
-            try {
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-                if (sessionError) {
-                    logger.error('Erreur lors de la récupération de la session:', { sessionError });
-                    throw sessionError;
-                }
-                if (!session) {
-                    logger.error('Aucune session active trouvée. Impossible de supprimer l\'utilisateur.');
-                    throw new Error('No active session found. Cannot delete user.');
-                }
-                logger.info('Session active trouvée, appel de deleteUserAndProfile', { userId, accessToken: session.access_token ? 'present' : 'absent' });
-                await deleteUserAndProfile(userId, session.access_token);
+    addProgram: async (programData: ProgramInput): Promise<WorkoutProgram> => {
+      logger.info('Ajout de programme', { programData });
+      try {
+        const { user } = useAuthStore.getState();
+        if (!user) throw new Error('User not authenticated');
 
-                logger.info('Utilisateur supprimé avec succès via fonction Edge, mise à jour de l\'état local', { userId });
-                set(state => ({ clients: state.clients.filter(client => client.id !== userId) }));
-            } catch (error) {
-                logger.error("Erreur lors de la suppression de l'utilisateur", { userId, error });
-                throw error;
-            }
-        },
+        const { data, error } = await supabase
+          .from('programs')
+          .insert({
+            ...programData,
+            coach_id: user.id,
+          } as any)
+          .select()
+          .single();
 
-        addProgram: async (programData: ProgramInput): Promise<WorkoutProgram> => {
-            logger.info('Ajout de programme', { programData });
-            try {
-                const { user } = useAuthStore.getState();
-                if (!user) throw new Error('User not authenticated');
+        if (error) throw error;
+        const newProgram = mapSupabaseProgramToProgram(data);
+        set((state) => ({ ...state, programs: [...state.programs, newProgram] }));
+        logger.info('Programme ajouté avec succès', { newProgram });
+        return newProgram;
+      } catch (error) {
+        logger.error("Erreur lors de l'ajout de programme", error as Error);
+        throw error;
+      }
+    },
 
-                const { data, error } = await supabase
-                    .from('programs')
-                    .insert({
-                        coach_id: user.id,
-                        ...programData,
-                    })
-                    .select()
-                    .single();
+    updateProgram: async (
+      programId: string,
+      programData: Partial<ProgramInput>
+    ): Promise<WorkoutProgram> => {
+      logger.info('Mise à jour de programme', { programId, programData });
+      try {
+        const { data, error } = await supabase
+          .from('programs')
+          .update({
+            ...programData,
+            updated_at: new Date().toISOString(),
+          } as any)
+          .eq('id', programId)
+          .select()
+          .single();
 
-                if (error) throw error;
-                const newProgram = mapSupabaseProgramToProgram(data);
-                set(state => ({ programs: [...state.programs, newProgram] }));
-                logger.info('Programme ajouté avec succès', { newProgram });
-                return newProgram;
-            } catch (error) {
-                logger.error("Erreur lors de l'ajout de programme", { error });
-                throw error;
-            }
-        },
+        if (error) throw error;
+        const updatedProgram = mapSupabaseProgramToProgram(data);
+        set((state) => ({
+          ...state,
+          programs: state.programs.map((p) => (p.id === programId ? updatedProgram : p)),
+        }));
+        logger.info('Programme mis à jour avec succès', { updatedProgram });
+        return updatedProgram;
+      } catch (error) {
+        logger.error('Erreur lors de la mise à jour de programme', error as Error);
+        throw error;
+      }
+    },
 
-        updateProgram: async (programId: string, programData: Partial<ProgramInput>): Promise<WorkoutProgram> => {
-            logger.info('Mise à jour de programme', { programId, programData });
-            try {
-                const { data, error } = await supabase
-                    .from('programs')
-                    .update({
-                        ...programData,
-                        updated_at: new Date().toISOString(),
-                    })
-                    .eq('id', programId)
-                    .select()
-                    .single();
+    deleteProgram: async (programId: string): Promise<void> => {
+      logger.info('Suppression de programme', { programId });
+      try {
+        const { error } = await supabase.from('programs').delete().eq('id', programId);
 
-                if (error) throw error;
-                const updatedProgram = mapSupabaseProgramToProgram(data);
-                set(state => ({ programs: state.programs.map(p => p.id === programId ? updatedProgram : p) }));
-                logger.info('Programme mis à jour avec succès', { updatedProgram });
-                return updatedProgram;
-            } catch (error) {
-                logger.error("Erreur lors de la mise à jour de programme", { error });
-                throw error;
-            }
-        },
+        if (error) throw error;
+        set((state) => ({ ...state, programs: state.programs.filter((p) => p.id !== programId) }));
+        logger.info('Programme supprimé avec succès', { programId });
+      } catch (error) {
+        logger.error('Erreur lors de la suppression de programme', error as Error);
+        throw error;
+      }
+    },
 
-        deleteProgram: async (programId: string): Promise<void> => {
-            logger.info('Suppression de programme', { programId });
-            try {
-                const { error } = await supabase
-                    .from('programs')
-                    .delete()
-                    .eq('id', programId);
+    addBilanTemplate: async (templateData: Omit<BilanTemplate, 'id'>): Promise<BilanTemplate> => {
+      logger.info('Ajout de template de bilan', { templateData });
+      try {
+        const userId = useAuthStore.getState().user?.id;
+        if (!userId) throw new Error('Utilisateur non connecté.');
 
-                if (error) throw error;
-                set(state => ({ programs: state.programs.filter(p => p.id !== programId) }));
-                logger.info('Programme supprimé avec succès', { programId });
-            } catch (error) {
-                logger.error("Erreur lors de la suppression de programme", { error });
-                throw error;
-            }
-        },
+        const { data, error } = await supabase
+          .from('bilan_templates')
+          .insert({
+            ...templateData,
+            coach_id: templateData.coachId === 'system' ? null : templateData.coachId || userId,
+            sections: templateData.sections,
+          } as any)
+          .select()
+          .single();
 
-        addBilanTemplate: async (templateData: Omit<BilanTemplate, 'id'>): Promise<BilanTemplate> => {
-            logger.info('Ajout de template de bilan', { templateData });
-            try {
-                const userId = useAuthStore.getState().user?.id;
-                if (!userId) throw new Error("Utilisateur non connecté.");
+        if (error) throw error;
+        const newTemplate = mapSupabaseBilanTemplateToTemplate(data);
+        set((state) => ({ ...state, bilanTemplates: [...state.bilanTemplates, newTemplate] }));
+        logger.info('Template de bilan ajouté avec succès', { newTemplate });
+        return newTemplate;
+      } catch (error) {
+        logger.error('Erreur lors de la mise à jour de template de bilan', error as Error);
+        throw error;
+      }
+    },
 
-                const { data, error } = await supabase
-                    .from('bilan_templates')
-                    .insert({
-                        ...templateData,
-                        coach_id: templateData.coachId === 'system' ? null : templateData.coachId || userId,
-                        sections: templateData.sections,
-                    })
-                    .select()
-                    .single();
+    updateBilanTemplate: async (
+      templateId: string,
+      templateData: Partial<BilanTemplate>
+    ): Promise<BilanTemplate> => {
+      logger.info('Mise à jour de template de bilan', { templateId, templateData });
+      try {
+        // Empêcher la modification du template système
+        const templateToUpdate = get().bilanTemplates.find((t) => t.id === templateId);
+        if (templateToUpdate?.coachId === 'system') {
+          throw new Error('Impossible de modifier le template système.');
+        }
 
-                if (error) throw error;
-                const newTemplate = mapSupabaseBilanTemplateToTemplate(data);
-                set(state => ({ bilanTemplates: [...state.bilanTemplates, newTemplate] }));
-                logger.info('Template de bilan ajouté avec succès', { newTemplate });
-                return newTemplate;
-            } catch (error) {
-                logger.error("Erreur lors de l'ajout de template de bilan", { error });
-                throw error;
-            }
-        },
+        const { data, error } = await supabase
+          .from('bilan_templates')
+          .update({
+            ...templateData,
+            updated_at: new Date().toISOString(),
+            sections: templateData.sections,
+          } as any)
+          .eq('id', templateId)
+          .select()
+          .single();
 
-        updateBilanTemplate: async (templateId: string, templateData: Partial<BilanTemplate>): Promise<BilanTemplate> => {
-            logger.info('Mise à jour de template de bilan', { templateId, templateData });
-            try {
-                // Empêcher la modification du template système
-                const templateToUpdate = get().bilanTemplates.find(t => t.id === templateId);
-                if (templateToUpdate?.coachId === 'system') {
-                    throw new Error("Impossible de modifier le template système.");
-                }
+        if (error) throw error;
+        const updatedTemplate = mapSupabaseBilanTemplateToTemplate(data);
+        set((state) => ({
+          ...state,
+          bilanTemplates: state.bilanTemplates.map((t) =>
+            t.id === templateId ? updatedTemplate : t
+          ),
+        }));
+        logger.info('Template de bilan mis à jour avec succès', { updatedTemplate });
+        return updatedTemplate;
+      } catch (error) {
+        logger.error('Erreur lors de la mise à jour de template de bilan', error as Error);
+        throw error;
+      }
+    },
 
-                const { data, error } = await supabase
-                    .from('bilan_templates')
-                    .update({
-                        ...templateData,
-                        coach_id: templateData.coachId === 'system' ? null : templateData.coachId,
-                        sections: templateData.sections,
-                    })
-                    .eq('id', templateId)
-                    .select()
-                    .single();
+    assignBilanTemplate: async (
+      clientId: string,
+      templateId: string,
+      recurrence?: BilanAssignment['recurrence']
+    ): Promise<BilanAssignment> => {
+      logger.info('Assignation de template de bilan', { clientId, templateId, recurrence });
+      try {
+        const coachId = useAuthStore.getState().user?.id;
+        if (!coachId) throw new Error('Coach non connecté.');
 
-                if (error) throw error;
-                const updatedTemplate = mapSupabaseBilanTemplateToTemplate(data);
-                set(state => ({ bilanTemplates: state.bilanTemplates.map(t => t.id === templateId ? updatedTemplate : t) }));
-                logger.info('Template de bilan mis à jour avec succès', { updatedTemplate });
-                return updatedTemplate;
-            } catch (error) {
-                logger.error("Erreur lors de la mise à jour de template de bilan", { error });
-                throw error;
-            }
-        },
+        const template = get().bilanTemplates.find((t) => t.id === templateId);
+        if (!template) throw new Error('Template de bilan non trouvé.');
 
+        const assignmentData = {
+          client_id: clientId,
+          coach_id: coachId,
+          template_id: templateId,
+          template_name: template.name,
+          status: 'pending',
+          assigned_at: new Date().toISOString(),
+          recurrence: recurrence || null,
+          next_assignment_date: recurrence ? new Date().toISOString() : null, // Pour la première assignation, on peut mettre la date d'aujourd'hui
+        };
 
+        const { data, error } = await supabase
+          .from('bilan_assignments')
+          .insert(assignmentData as any)
+          .select()
+          .single();
 
-        assignBilanTemplate: async (clientId: string, templateId: string, recurrence?: BilanAssignment['recurrence']): Promise<BilanAssignment> => {
-            logger.info('Assignation de template de bilan', { clientId, templateId, recurrence });
-            try {
-                const coachId = useAuthStore.getState().user?.id;
-                if (!coachId) throw new Error("Coach non connecté.");
+        if (error) throw error;
 
-                const template = get().bilanTemplates.find(t => t.id === templateId);
-                if (!template) throw new Error("Template de bilan non trouvé.");
+        if (data) {
+          const newAssignment: BilanAssignment = {
+            id: (data as any).id,
+            clientId: (data as any).client_id,
+            coachId: (data as any).coach_id, // Ajout de coachId
+            templateId: (data as any).template_id,
+            templateName: (data as any).template_name,
+            status: (data as any).status,
+            assignedAt: (data as any).assigned_at,
+            completedAt: (data as any).completed_at,
+            recurrence: (data as any).recurrence,
+            nextAssignmentDate: (data as any).next_assignment_date,
+          };
+          set((state) => ({
+            ...state,
+            bilanAssignments: [...state.bilanAssignments, newAssignment],
+          }));
+          return newAssignment;
+        }
 
-                const assignmentData = {
-                    client_id: clientId,
-                    coach_id: coachId,
-                    template_id: templateId,
-                    template_name: template.name,
-                    status: 'pending',
-                    assigned_at: new Date().toISOString(),
-                    recurrence: recurrence || null,
-                    next_assignment_date: recurrence ? new Date().toISOString() : null, // Pour la première assignation, on peut mettre la date d'aujourd'hui
-                };
+        return null;
+      } catch (error) {
+        logger.error('Erreur lors de la suppression de template de bilan', error as Error);
+        throw error;
+      }
+    },
 
-                const { data, error } = await supabase
-                    .from('bilan_assignments')
-                    .insert(assignmentData)
-                    .select()
-                    .single();
+    addNutritionPlan: async (planData: Omit<NutritionPlan, 'id'>) => {
+      try {
+        const { data, error } = await supabase
+          .from('nutrition_plans')
+          .insert([planData] as any)
+          .select()
+          .single();
+        if (error) throw error;
+        const newPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
+        set((state) => ({ ...state, nutritionPlans: [...state.nutritionPlans, newPlan] }));
+        return newPlan;
+      } catch (error) {
+        logger.error("Erreur lors de l'ajout du plan nutritionnel", error as Error);
+        throw error;
+      }
+    },
 
-                if (error) throw error;
-                
-                // Le mapper mapSupabaseBilanAssignmentToAssignment n'existe pas encore, je vais le simuler pour l'instant
-                const newAssignment: BilanAssignment = {
-                    id: data.id,
-                    clientId: data.client_id,
-                    coachId: data.coach_id,
-                    templateId: data.template_id,
-                    templateName: data.template_name,
-                    status: data.status,
-                    assignedAt: data.assigned_at,
-                    completedAt: data.completed_at,
-                    recurrence: data.recurrence,
-                    nextAssignmentDate: data.next_assignment_date,
-                };
+    updateNutritionPlan: async (planId: string, planData: Partial<NutritionPlan>) => {
+      try {
+        const { data, error } = await supabase
+          .from('nutrition_plans')
+          .update(planData as any)
+          .eq('id', planId)
+          .select()
+          .single();
+        if (error) throw error;
+        const updatedPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
+        set((state) => ({
+          ...state,
+          nutritionPlans: state.nutritionPlans.map((plan) =>
+            plan.id === planId ? updatedPlan : plan
+          ),
+        }));
+        return updatedPlan;
+      } catch (error) {
+        logger.error('Erreur lors de la mise à jour du plan nutritionnel', error as Error);
+        throw error;
+      }
+    },
 
-                // Normalement, on mettrait à jour l'état local des clients pour refléter la nouvelle assignation
-                // Pour l'instant, on se contente de retourner l'assignation et de laisser le composant gérer le rechargement si nécessaire.
+    deleteNutritionPlan: async (planId: string) => {
+      try {
+        const { error } = await supabase.from('nutrition_plans').delete().eq('id', planId);
+        if (error) throw error;
+        set((state) => ({
+          ...state,
+          nutritionPlans: state.nutritionPlans.filter((plan) => plan.id !== planId),
+        }));
+      } catch (error) {
+        logger.error('Erreur lors de la suppression du plan nutritionnel', error as Error);
+        throw error;
+      }
+    },
 
-                logger.info('Template de bilan assigné avec succès', { newAssignment });
-                return newAssignment;
-            } catch (error) {
-                logger.error("Erreur lors de l'assignation de template de bilan", { error });
-                throw error;
-            }
-        },
+    addMessage: async (messageData: Omit<Message, 'id' | 'timestamp'>) => {
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .insert([{ ...messageData, timestamp: new Date().toISOString() }] as any)
+          .select()
+          .single();
+        if (error) throw error;
+        const newMessage = mapSupabaseMessageToMessage(data);
+        set((state) => ({ ...state, messages: [...state.messages, newMessage] }));
+        return newMessage;
+      } catch (error) {
+        logger.error("Erreur lors de l'ajout du message", error as Error);
+        throw error;
+      }
+    },
 
-        addNutritionPlan: async (planData: Omit<NutritionPlan, 'id'>) => {
-            try {
-                const { data, error } = await supabase.from('nutrition_plans').insert([planData]).select().single();
-                if (error) throw error;
-                const newPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
-                set(state => ({ nutritionPlans: [...state.nutritionPlans, newPlan] }));
-                return newPlan;
-            } catch (error) {
-                logger.error("Erreur lors de l'ajout du plan nutritionnel", { error });
-                throw error;
-            }
-        },
+    markMessageAsRead: async (messageId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .update({ is_read: true } as any)
+          .eq('id', messageId)
+          .select()
+          .single();
+        if (error) throw error;
+        const updatedMessage = mapSupabaseMessageToMessage(data);
+        set((state) => ({
+          ...state,
+          messages: state.messages.map((msg) => (msg.id === messageId ? updatedMessage : msg)),
+        }));
+        return updatedMessage;
+      } catch (error) {
+        logger.error('Erreur lors du marquage du message comme lu', error as Error);
+        throw error;
+      }
+    },
 
-        updateNutritionPlan: async (planId: string, planData: Partial<NutritionPlan>) => {
-            try {
-                const { data, error } = await supabase.from('nutrition_plans').update(planData).eq('id', planId).select().single();
-                if (error) throw error;
-                const updatedPlan = mapSupabaseNutritionPlanToNutritionPlan(data);
-                set(state => ({ nutritionPlans: state.nutritionPlans.map(plan => (plan.id === planId ? updatedPlan : plan)) }));
-                return updatedPlan;
-            } catch (error) {
-                logger.error("Erreur lors de la mise à jour du plan nutritionnel", { error });
-                throw error;
-            }
-        },
+    deleteMessage: async (messageId: string) => {
+      try {
+        const { error } = await supabase.from('messages').delete().eq('id', messageId);
+        if (error) throw error;
+        set((state) => ({
+          ...state,
+          messages: state.messages.filter((msg) => msg.id !== messageId),
+        }));
+      } catch (error) {
+        logger.error('Erreur lors de la suppression du message', error as Error);
+        throw error;
+      }
+    },
 
-        deleteNutritionPlan: async (planId: string) => {
-            try {
-                const { error } = await supabase.from('nutrition_plans').delete().eq('id', planId);
-                if (error) throw error;
-                set(state => ({ nutritionPlans: state.nutritionPlans.filter(plan => plan.id !== planId) }));
-            } catch (error) {
-                logger.error("Erreur lors de la suppression du plan nutritionnel", { error });
-                throw error;
-            }
-        },
+    addNotification: async (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .insert([
+            { ...notification, timestamp: new Date().toISOString(), is_read: false },
+          ] as any);
+        if (error) throw error;
 
-        addMessage: async (messageData: Omit<Message, 'id' | 'timestamp'>) => {
-            try {
-                const { data, error } = await supabase.from('messages').insert([{ ...messageData, timestamp: new Date().toISOString() }]).select().single();
-                if (error) throw error;
-                const newMessage = mapSupabaseMessageToMessage(data);
-                set(state => ({ messages: [...state.messages, newMessage] }));
-                return newMessage;
-            } catch (error) {
-                logger.error("Erreur lors de l'ajout du message", { error });
-                throw error;
-            }
-        },
-
-        markMessageAsRead: async (messageId: string) => {
-            try {
-                const { data, error } = await supabase.from('messages').update({ is_read: true }).eq('id', messageId).select().single();
-                if (error) throw error;
-                const updatedMessage = mapSupabaseMessageToMessage(data);
-                set(state => ({ messages: state.messages.map(msg => (msg.id === messageId ? updatedMessage : msg)) }));
-                return updatedMessage;
-            } catch (error) {
-                logger.error("Erreur lors du marquage du message comme lu", { error });
-                throw error;
-            }
-        },
-
-        deleteMessage: async (messageId: string) => {
-            try {
-                const { error } = await supabase.from('messages').delete().eq('id', messageId);
-                if (error) throw error;
-                set(state => ({ messages: state.messages.filter(msg => msg.id !== messageId) }));
-            } catch (error) {
-                logger.error("Erreur lors de la suppression du message", { error });
-                throw error;
-            }
-        },
-
-        addNotification: async (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
-            try {
-                const { error } = await supabase.from('notifications').insert([{ ...notification, timestamp: new Date().toISOString(), is_read: false }]);
-                if (error) throw error;
-                
-                // Recharger les notifications après l'ajout
-                const { data: notificationsData, error: fetchError } = await supabase.from('notifications').select('*');
-                if (fetchError) throw fetchError;
-                set({ notifications: notificationsData.map(mapSupabaseNotificationToNotification) });
-            } catch (error) {
-                logger.error("Erreur lors de l'ajout de la notification", { error });
-                throw error;
-            }
-        },
-    };
+        // Recharger les notifications après l'ajout
+        const { data: notificationsData, error: fetchError } = await supabase
+          .from('notifications')
+          .select('*');
+        if (fetchError) throw fetchError;
+        set({ notifications: notificationsData.map(mapSupabaseNotificationToNotification) });
+      } catch (error) {
+        logger.error("Erreur lors de l'ajout de la notification", error as Error);
+        throw error;
+      }
+    },
+  };
 });
 
 // Écouter les changements d'authentification pour charger les données
-useAuthStore.subscribe(
-    (state) => state.user,
-    (user, prevUser) => {
-        if (user && user.id !== prevUser?.id) {
-            // L'utilisateur vient de se connecter ou a changé (impersonation)
-            useDataStore.getState().loadData(user.id);
-        } else if (!user && prevUser) {
-            // L'utilisateur vient de se déconnecter
-            useDataStore.setState({
-                clients: [],
-                exercises: [],
-                programs: [],
-                sessions: [],
-                nutritionPlans: [],
-                messages: [],
-                clientFormations: [],
-                professionalFormations: [],
-                notifications: [],
-                foodItems: [],
-                bilanTemplates: [],
-                partners: [],
-                products: [],
-                intensificationTechniques: [],
-                recipes: [],
-                meals: [],
-                isDataLoading: false,
-                dataError: null,
-            });
-        }
-    }
-);
+useAuthStore.subscribe((state, prevState) => {
+  const user = state.user;
+  const prevUser = prevState.user;
+
+  if (user && user.id !== prevUser?.id) {
+    // L'utilisateur vient de se connecter ou a changé (impersonation)
+    useDataStore.getState().loadData(user.id);
+  } else if (!user && prevUser) {
+    // L'utilisateur vient de se déconnecter
+    useDataStore.setState({
+      clients: [],
+      exercises: [],
+      programs: [],
+      sessions: [],
+      nutritionPlans: [],
+      messages: [],
+      clientFormations: [],
+      professionalFormations: [],
+      notifications: [],
+      foodItems: [],
+      bilanTemplates: [],
+      partners: [],
+      products: [],
+      intensificationTechniques: [],
+      recipes: [],
+      meals: [],
+      isDataLoading: false,
+      dataError: null,
+    });
+  }
+});
 
 // Initialiser le chargement des données si l'utilisateur est déjà dans le store (session persistante)
 if (useAuthStore.getState().user) {
-    useDataStore.getState().loadData(useAuthStore.getState().user!.id);
+  useDataStore.getState().loadData(useAuthStore.getState().user!.id);
 }
-

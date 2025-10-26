@@ -51,7 +51,9 @@ export interface SessionExerciseInput {
 // Créer une nouvelle séance (matrice)
 export const createSession = async (sessionData: SessionInput): Promise<Session | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
@@ -74,7 +76,9 @@ export const createSession = async (sessionData: SessionInput): Promise<Session 
 // Récupérer toutes les séances d'un coach
 export const getCoachSessions = async (): Promise<Session[]> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
@@ -153,10 +157,7 @@ export const updateSession = async (
 // Supprimer une séance
 export const deleteSession = async (sessionId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('sessions')
-      .delete()
-      .eq('id', sessionId);
+    const { error } = await supabase.from('sessions').delete().eq('id', sessionId);
 
     if (error) throw error;
     return true;
@@ -172,7 +173,9 @@ export const addExerciseToSession = async (
   exerciseData: SessionExerciseInput
 ): Promise<SessionExercise | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
@@ -237,10 +240,7 @@ export const updateSessionExercise = async (
 // Supprimer un exercice d'une séance
 export const deleteSessionExercise = async (exerciseId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('session_exercises')
-      .delete()
-      .eq('id', exerciseId);
+    const { error } = await supabase.from('session_exercises').delete().eq('id', exerciseId);
 
     if (error) throw error;
     return true;
@@ -249,4 +249,3 @@ export const deleteSessionExercise = async (exerciseId: string): Promise<boolean
     return false;
   }
 };
-

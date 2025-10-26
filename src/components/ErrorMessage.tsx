@@ -10,11 +10,11 @@ interface ErrorMessageProps {
 
 /**
  * Composant d'affichage d'erreur réutilisable
- * 
+ *
  * Utilisation :
- * <ErrorMessage 
- *   message="Une erreur est survenue" 
- *   onRetry={() => refetch()} 
+ * <ErrorMessage
+ *   message="Une erreur est survenue"
+ *   onRetry={() => refetch()}
  * />
  */
 const ErrorMessage: React.FC<ErrorMessageProps> = ({
@@ -96,16 +96,10 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({
         <div className={`${styles.iconBg} ${styles.iconColor} rounded-full p-2 flex-shrink-0`}>
           {getIcon()}
         </div>
-        
+
         <div className="flex-1 min-w-0">
-          {title && (
-            <h3 className={`font-semibold ${styles.textColor} mb-1`}>
-              {title}
-            </h3>
-          )}
-          <p className={`text-sm ${styles.textColor}`}>
-            {message}
-          </p>
+          {title && <h3 className={`font-semibold ${styles.textColor} mb-1`}>{title}</h3>}
+          <p className={`text-sm ${styles.textColor}`}>{message}</p>
         </div>
 
         {(onRetry || onDismiss) && (

@@ -59,7 +59,9 @@ export const assignProgramToClient = async (
   programData: ClientProgramInput
 ): Promise<ClientProgram | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
@@ -116,7 +118,9 @@ export const getClientProgramById = async (programId: string): Promise<ClientPro
 // Mettre à jour un programme client
 export const updateClientProgram = async (
   programId: string,
-  updates: Partial<ClientProgramInput & { status?: string; current_week?: number; current_session_index?: number }>
+  updates: Partial<
+    ClientProgramInput & { status?: string; current_week?: number; current_session_index?: number }
+  >
 ): Promise<ClientProgram | null> => {
   try {
     const { data, error } = await supabase
@@ -140,10 +144,7 @@ export const updateClientProgram = async (
 // Supprimer un programme client
 export const deleteClientProgram = async (programId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('client_programs')
-      .delete()
-      .eq('id', programId);
+    const { error } = await supabase.from('client_programs').delete().eq('id', programId);
 
     if (error) throw error;
     return true;
@@ -158,7 +159,9 @@ export const assignSessionToClient = async (
   sessionData: ClientSessionInput
 ): Promise<ClientSession | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
@@ -197,7 +200,9 @@ export const getClientSessions = async (clientId: string): Promise<ClientSession
 };
 
 // Récupérer les séances d'un programme client
-export const getClientProgramSessions = async (clientProgramId: string): Promise<ClientSession[]> => {
+export const getClientProgramSessions = async (
+  clientProgramId: string
+): Promise<ClientSession[]> => {
   try {
     const { data, error } = await supabase
       .from('client_sessions')
@@ -245,4 +250,3 @@ export const completeClientSession = async (sessionId: string): Promise<ClientSe
     completed_at: new Date().toISOString(),
   });
 };
-

@@ -12,10 +12,10 @@ describe('Button', () => {
   it('devrait appeler onClick quand cliqué', async () => {
     const handleClick = vi.fn();
     const user = userEvent.setup();
-    
+
     render(<Button onClick={handleClick}>Cliquez-moi</Button>);
     await user.click(screen.getByText('Cliquez-moi'));
-    
+
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
@@ -37,7 +37,7 @@ describe('Button', () => {
 
   it('devrait avoir aria-label quand fourni', () => {
     render(<Button ariaLabel="Supprimer l'élément">X</Button>);
-    expect(screen.getByLabelText('Supprimer l\'élément')).toBeInTheDocument();
+    expect(screen.getByLabelText("Supprimer l'élément")).toBeInTheDocument();
   });
 
   it('devrait avoir aria-busy=true quand isLoading est true', () => {
