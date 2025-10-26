@@ -5,7 +5,7 @@ import Modal from '../Modal';
 import Button from '../Button';
 import Select from '../Select';
 import Input from '../Input';
-import { CalendarIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon } from '../../constants/icons';
 
 interface BilanAssignmentModalProps {
     isOpen: boolean;

@@ -198,6 +198,12 @@ export const ListBulletIcon = (props: React.SVGProps<SVGSVGElement>): JSX.Elemen
 export const LockClosedIcon = (props: React.SVGProps<SVGSVGElement>): JSX.Element => (React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 20 20", fill: "currentColor", ...props },React.createElement('path', { fillRule: "evenodd", d: "M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z", clipRule: "evenodd" })) );
 
 export const TrophyIcon = (props: React.SVGProps<SVGSVGElement>): JSX.Element => ( React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props }, React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M16.5 18.75h-9a9 9 0 1 1 9 0Z" }), React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 0 1 3-3h.008c.492 0 .976.093 1.416.268a3.81 3.81 0 0 1 1.313 1.018c.37.42.663.916.878 1.464M12 15.75a3 3 0 0 0 3-3V4.5a3 3 0 0 0-3-3h-.008a3.81 3.81 0 0 0-1.416.268 3.81 3.81 0 0 0-1.313 1.018C6.063 6.68 5.77 7.176 5.555 7.722" }), React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 6.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z" })) );
+	
+	export const CalendarIcon = (props: React.SVGProps<SVGSVGElement>): JSX.Element => (
+	    React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props },
+	        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0V12a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 12v6.75m-18 0a2.25 2.25 0 0 1-2.25-2.25v-11.25a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 5.25v11.25a2.25 2.25 0 0 1-2.25 2.25H5.25Z" })
+	    )
+	);
 
 // FIX: Add missing icons
 export const ClockIcon = (props: React.SVGProps<SVGSVGElement>): JSX.Element => (

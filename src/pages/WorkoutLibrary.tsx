@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import { WorkoutProgram, WorkoutSession, Client, Program as SupabaseProgram, Session as SupabaseSession, SessionExercise as SupabaseSessionExercise } from '../types';
-import { getProgramsByCoachId, getSessionsByProgramId, getSessionExercisesBySessionId, getExercisesByIds } from '../services/programService';
+
 import { reconstructWorkoutProgram } from '../utils/workoutMapper';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';

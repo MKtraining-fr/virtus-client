@@ -18,18 +18,7 @@ import {
 } from '../types.ts';
 import { useLocalStorage } from '../hooks/useLocalStorage.ts';
 import { reconstructWorkoutProgram } from '../utils/workoutMapper.ts';
-import {
-    getProgramById,
-    getSessionsByProgramId,
-    getSessionExercisesBySessionId,
-    deleteSession,
-    createSession,
-    createSessionExercise,
-    getExercisesByIds,
-    updateSession,
-    updateSessionExercise,
-    deleteSessionExercise,
-} from '../services/programService.ts';
+
 
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
 import { useAuth } from '../context/AuthContext.tsx';

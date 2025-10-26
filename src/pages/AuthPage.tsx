@@ -8,7 +8,7 @@ import Button from '../components/Button';
 import Select from '../components/Select';
 import { Client } from '../types';
 import { ArrowLeftIcon } from '../constants/icons';
-import { resetPassword } from '../services/authService';
+
 
 const AuthPage: React.FC = () => {
 
