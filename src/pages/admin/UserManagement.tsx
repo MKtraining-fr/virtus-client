@@ -52,14 +52,15 @@ const UserManagement: React.FC = () => {
 
     const getCoachDisplayName = (coachId?: string | null) => {
         if (!coachId) return '';
+        if (coachId === 'system') return 'Virtus';
         const coach = usersById.get(coachId);
-        if (!coach) return coachId;
+        if (!coach) return 'Coach inconnu';
 
         const firstName = coach.firstName?.trim() ?? '';
         const lastName = coach.lastName?.trim() ?? '';
         const fullName = `${firstName} ${lastName}`.trim();
 
-        return fullName || coach.email || coachId;
+        return fullName || coach.email || 'Coach inconnu';
     };
 
     const filteredUsers = useMemo(() => {
