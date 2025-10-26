@@ -15,6 +15,7 @@ import Accordion from '../components/Accordion';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
+import BilanAssignmentModal from '../components/coach/BilanAssignmentModal';
 import ProgramDetailView from '../components/ProgramDetailView';
 import ProgramPerformanceDetail from '../components/ProgramPerformanceDetail';
 import Input from '../components/Input';
@@ -367,7 +368,7 @@ const CoachNutritionPlanView: React.FC<{ plan: NutritionPlan }> = ({ plan }) => 
 /* ------------------------- MAIN ------------------------- */
 const ClientProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { user, clients, programs, setClients, bilanTemplates, clientFormations } = useAuth();
+  const { user, clients, programs, updateUser, bilanTemplates, clientFormations, bilanAssignments } = useAuth();
   const navigate = useNavigate();
   const client = clients.find((p) => p.id === id);
 
@@ -375,6 +376,7 @@ const ClientProfile: React.FC = () => {
   const [selectedProgram, setSelectedProgram] = useState<WorkoutProgram | null>(null);
 
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [showBilanAssignmentModal, setShowBilanAssignmentModal] = useState(false);
   const [selectedHistoricalProgram, setSelectedHistoricalProgram] = useState<{ program: WorkoutProgram; logs: PerformanceLog[] } | null>(null);
 
   const [editableMacros, setEditableMacros] = useState(client?.nutrition?.macros ?? { protein: 0, carbs: 0, fat: 0 });
@@ -454,7 +456,7 @@ const ClientProfile: React.FC = () => {
     );
   }, [editableData, client, newNote]);
 
-  const handleSaveInfoChanges = () => {
+  const handleSaveInfoChanges = async () => {
     if (!client) return;
 
     let finalNotes = editableData.notes;
@@ -464,15 +466,22 @@ const ClientProfile: React.FC = () => {
       finalNotes = `${formattedNote}\n\n${editableData.notes}`.trim();
     }
 
-    const updatedClients = clients.map((c) =>
-      c.id === client.id ? { ...c, notes: finalNotes, medicalInfo: { ...c.medicalInfo, ...editableData.medicalInfo } } : c
-    );
-    setClients(updatedClients);
-    setNewNote('');
-    // Option simple : toast/alert (éviter en SSR)
-    if (typeof window !== 'undefined') {
-      // eslint-disable-next-line no-alert
-      alert('Modifications enregistrées !');
+    try {
+      await updateUser(client.id!, {
+        notes: finalNotes,
+        medicalInfo: { ...client.medicalInfo, ...editableData.medicalInfo },
+      });
+      setNewNote('');
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-alert
+        alert('Modifications enregistrées !');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des informations client:', error);
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-alert
+        alert('Erreur lors de la sauvegarde des informations.');
+      }
     }
   };
 
@@ -484,13 +493,20 @@ const ClientProfile: React.FC = () => {
     });
   };
 
-  const handleSaveAccess = () => {
+  const handleSaveAccess = async () => {
     if (!client) return;
-    const updatedClients = clients.map((c) => (c.id === client.id ? { ...c, ...editableAccess } : c));
-    setClients(updatedClients);
-    if (typeof window !== 'undefined') {
-      // eslint-disable-next-line no-alert
-      alert('Permissions mises à jour.');
+    try {
+      await updateUser(client.id!, { ...editableAccess });
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-alert
+        alert('Permissions mises à jour.');
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde des permissions d'accès:", error);
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-alert
+        alert("Erreur lors de la sauvegarde des permissions d'accès.");
+      }
     }
   };
 
@@ -585,7 +601,7 @@ const ClientProfile: React.FC = () => {
     setEditableMacros((prev) => ({ ...prev, [macro]: Math.max(0, (prev[macro] ?? 0) + amount) }));
   };
 
-  const handleSaveMacros = () => {
+  const handleSaveMacros = async () => {
     if (!client || !editableMacros || !editableCalculatedData) return;
     const newLogEntry: NutritionLogEntry = {
       date: new Date().toLocaleDateString('fr-FR'),
@@ -593,27 +609,31 @@ const ClientProfile: React.FC = () => {
       calories: editableCalculatedData.objectifCalorique,
       macros: { ...editableMacros },
     };
-    const updatedClients = clients.map((c) =>
-      c.id === client.id
-        ? {
-            ...c,
-            nutrition: {
-              ...c.nutrition,
-              macros: editableMacros,
-              historyLog: [newLogEntry, ...(c.nutrition?.historyLog ?? [])],
-            },
-          }
-        : c
-    );
-    setClients(updatedClients);
-    setInitialMacros(editableMacros);
-    if (typeof window !== 'undefined') {
-      // eslint-disable-next-line no-alert
-      alert('Macros mises à jour avec succès ! Un log a été créé.');
+    
+    // Mise à jour de l'objet client pour l'envoi à Supabase
+    const updatedNutrition = {
+      ...client.nutrition,
+      macros: editableMacros,
+      historyLog: [newLogEntry, ...(client.nutrition?.historyLog ?? [])],
+    };
+
+    try {
+      await updateUser(client.id!, { nutrition: updatedNutrition });
+      setInitialMacros(editableMacros);
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-alert
+        alert('Macros mises à jour avec succès ! Un log a été créé.');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des macros:', error);
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-alert
+        alert('Erreur lors de la sauvegarde des macros.');
+      }
     }
   };
 
-  const handleDeleteFile = (fileId: string) => {
+  const handleDeleteFile = async (fileId: string) => {
     if (!client) return;
 
     let proceed = true;
@@ -622,11 +642,22 @@ const ClientProfile: React.FC = () => {
       proceed = confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?');
     }
     if (!proceed) return;
+    
+    const updatedSharedFiles = (client.sharedFiles ?? []).filter((f) => f.id !== fileId);
 
-    const updatedClients = clients.map((c) =>
-      c.id === client.id ? { ...c, sharedFiles: (c.sharedFiles ?? []).filter((f) => f.id !== fileId) } : c
-    );
-    setClients(updatedClients);
+    try {
+      await updateUser(client.id!, { sharedFiles: updatedSharedFiles });
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-alert
+        alert('Fichier supprimé avec succès.');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression du fichier:', error);
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-alert
+        alert('Erreur lors de la suppression du fichier.');
+      }
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -705,7 +736,7 @@ const ClientProfile: React.FC = () => {
   }, [client]);
 
   const measurementHistoryTable = useMemo(() => {
-    if (!client?.nutrition?.historyLog) return { data: [] as any[], headers: [] as Array<keyof Measurement> };
+    if (!client?.nutrition?.historyLog) return { data: [] as NutritionLogEntry[], headers: [] as Array<keyof Measurement> };
 
     const headers = new Set<keyof Measurement>();
     const validLogs = client.nutrition.historyLog.filter(
@@ -1063,7 +1094,7 @@ const ClientProfile: React.FC = () => {
                           <td className="p-2">{row.weight != null ? Number(row.weight).toFixed(1) : '-'}</td>
                           {measurementHistoryTable.headers.map((key) => (
                             <td key={String(key)} className="p-2">
-                              {row[key as keyof typeof row] != null ? (row[key as keyof typeof row] as any) : '-'}
+                              {row[key as keyof typeof row] != null ? (row[key as keyof typeof row] as string | number) : '-'}
                             </td>
                           ))}
                         </tr>
@@ -1267,12 +1298,38 @@ const ClientProfile: React.FC = () => {
                   {macrosHaveChanged ? 'Valider' : 'Macros à jour'}
                 </Button>
               </div>
+              
+              <div className="mt-6 flex justify-end">
+                <Button type="button" onClick={() => setShowBilanAssignmentModal(true)} variant="secondary">
+                  Assigner un Bilan
+                </Button>
+              </div>
             </Card>
           )}
 
           <Card className="p-4">
             <h3 className="font-bold text-lg mb-2">Suivi du Poids</h3>
             <SimpleLineChart data={client.nutrition?.weightHistory ?? []} color="#7A68FA" unit="kg" />
+          </Card>
+          
+          <Card className="p-4">
+            <h3 className="font-bold text-lg mb-2">Bilans Assignés</h3>
+            <div className="space-y-2">
+                {bilanAssignments.filter(a => a.clientId === client.id).map(assignment => (
+                    <div key={assignment.id} className="p-2 border rounded-lg">
+                        <p className="font-semibold">{assignment.templateName}</p>
+                        <p className={`text-sm ${assignment.status === 'pending' ? 'text-yellow-600' : 'text-green-600'}`}>
+                            Statut: {assignment.status === 'pending' ? 'En attente' : 'Complété'}
+                        </p>
+                        {assignment.recurrence && <p className="text-xs text-gray-500">Récurrence: {assignment.recurrence}</p>}
+                        <p className="text-xs text-gray-500">Assigné le: {new Date(assignment.assignedAt).toLocaleDateString()}</p>
+                        {assignment.completedAt && <p className="text-xs text-gray-500">Complété le: {new Date(assignment.completedAt).toLocaleDateString()}</p>}
+                    </div>
+                ))}
+                {bilanAssignments.filter(a => a.clientId === client.id).length === 0 && (
+                    <p className="text-sm text-gray-500">Aucun bilan assigné pour le moment.</p>
+                )}
+            </div>
           </Card>
         </aside>
       </div>
@@ -1292,15 +1349,22 @@ const ClientProfile: React.FC = () => {
         >
           <ProgramPerformanceDetail program={selectedHistoricalProgram.program} performanceLogs={selectedHistoricalProgram.logs} />
         </Modal>
-      )}
-
-      {selectedNutritionPlan && (
+         {selectedNutritionPlan && (
         <Modal isOpen={!!selectedNutritionPlan} onClose={() => setSelectedNutritionPlan(null)} title={`Plan alimentaire: ${selectedNutritionPlan.name}`} size="xl">
           <CoachNutritionPlanView plan={selectedNutritionPlan} />
         </Modal>
       )}
 
-      {selectedBilan && bilanTemplateForModal && (
+      {client && (
+        <BilanAssignmentModal 
+          isOpen={showBilanAssignmentModal} 
+          onClose={() => setShowBilanAssignmentModal(false)} 
+          client={client} 
+        />
+      )}
+    </div>
+  );
+};ectedBilan && bilanTemplateForModal && (
         <Modal isOpen={!!selectedBilan} onClose={() => setSelectedBilan(null)} title={selectedBilan.templateName} size="xl">
           <div className="space-y-6">
             {bilanTemplateForModal.sections.map((section) => {

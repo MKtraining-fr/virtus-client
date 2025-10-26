@@ -87,10 +87,9 @@ const DataImport: React.FC = () => {
     };
 
     const handleImport = async (key: ImportableKey) => {
-        console.log('🚀 Début import', key);
+
         const file = files[key];
         if (!file) {
-            console.error('❌ Aucun fichier sélectionné');
             setMessages(prev => ({ 
                 ...prev, 
                 [key]: { type: 'error', text: 'Veuillez sélectionner un fichier.' } 
@@ -99,7 +98,6 @@ const DataImport: React.FC = () => {
         }
 
         if (!user) {
-            console.error('❌ Utilisateur non connecté');
             setMessages(prev => ({ 
                 ...prev, 
                 [key]: { type: 'error', text: 'Utilisateur non connecté.' } 
@@ -107,8 +105,7 @@ const DataImport: React.FC = () => {
             return;
         }
 
-        console.log('📁 Fichier:', file.name, file.size, 'bytes');
-        console.log('👤 Utilisateur:', user.id);
+
 
         setLoading(prev => ({ ...prev, [key]: true }));
         setMessages(prev => {
@@ -119,21 +116,18 @@ const DataImport: React.FC = () => {
 
         try {
             let result: ImportResult;
-            console.log('🔄 Début traitement...');
+
 
             switch (key) {
                 case 'users':
-                    console.log('📥 Import utilisateurs...');
                     result = await importUsersFromCSV(file);
                     break;
 
                 case 'exercises':
-                    console.log('📥 Import exercices...');
                     result = await importExercisesFromCSV(file, user.id);
                     break;
 
                 case 'ciqual':
-                    console.log('📥 Import aliments...');
                     result = await importFoodItemsFromCSV(file);
                     break;
 
@@ -154,32 +148,26 @@ const DataImport: React.FC = () => {
             }
 
             // Afficher le résultat
-            console.log('✅ Import terminé:', result);
-            console.log('- Succès:', result.success);
-            console.log('- Erreurs:', result.errors.length);
-            console.log('- Total:', result.total);
+
             
             setMessages(prev => ({ ...prev, [key]: formatImportResult(result) }));
 
             // Recharger les données depuis Supabase
             if (result.success > 0) {
-                console.log('🔄 Rechargement des données...');
                 await reloadAllData();
-                console.log('✅ Données rechargées');
             }
 
-        } catch (error: any) {
-            console.error('❌ Erreur import:', error);
-            console.error('Stack:', error.stack);
+        } catch (error: unknown) {
+            const err = error instanceof Error ? error : new Error('Une erreur inconnue est survenue.');
+            console.error('Erreur import:', err);
             setMessages(prev => ({ 
                 ...prev, 
                 [key]: { 
                     type: 'error', 
-                    text: `Erreur : ${error.message}` 
+                    text: `Erreur : ${err.message}` 
                 } 
             }));
         } finally {
-            console.log('🏁 Fin import');
             setLoading(prev => ({ ...prev, [key]: false }));
             // Réinitialiser le fichier
             setFiles(prev => ({ ...prev, [key]: null }));

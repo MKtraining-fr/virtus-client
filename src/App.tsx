@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-
+import { useDataStore } from './stores/useDataStore';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -16,7 +16,12 @@ const ClientLayout = lazy(() => import('./layouts/ClientLayout'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const App: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAuthLoading } = useAuth();
+  const { isDataLoading } = useDataStore();
+
+  if (isAuthLoading || isDataLoading) {
+    return <LoadingSpinner fullScreen message="Vérification de la session..." />;
+  }
 
   // This component decides which layout to show based on the user's role
   // It is always rendered within ProtectedRoute, so 'user' is guaranteed to exist.
@@ -59,3 +64,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

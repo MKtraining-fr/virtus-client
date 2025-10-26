@@ -19,8 +19,6 @@ import {
 import { useLocalStorage } from '../hooks/useLocalStorage.ts';
 import { reconstructWorkoutProgram } from '../utils/workoutMapper.ts';
 import {
-    createProgram,
-    updateProgram,
     getProgramById,
     getSessionsByProgramId,
     getSessionExercisesBySessionId,
@@ -32,6 +30,7 @@ import {
     updateSessionExercise,
     deleteSessionExercise,
 } from '../services/programService.ts';
+
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { FolderIcon, PlusIcon, TrashIcon, XMarkIcon, DocumentDuplicateIcon, EllipsisHorizontalIcon, ChevronDoubleRightIcon, ChevronUpIcon, ListBulletIcon, LockClosedIcon } from '../constants/icons.ts';
@@ -174,9 +173,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         clients,
         exercises: exerciseDBFromAuth,
         programs,
-        setPrograms,
+        addProgram,
+        updateProgram,
         sessions: storedSessions,
-        setSessions: setStoredSessions,
         addNotification,
     } = useAuth();
     const navigate = useNavigate();
@@ -415,7 +414,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         }
     }, [isSaving, lastSavedAt, hasUnsavedChanges]);
 
-    const onUpdateExercise = useCallback((exerciseId: number, field: string, value: any, setIndex?: number) => {
+    const onUpdateExercise = useCallback((exerciseId: number, field: string, value: unknown, setIndex?: number) => {
         const performUpdate = (sessionsToUpdate: EditableWorkoutSession[]): EditableWorkoutSession[] => {
             return sessionsToUpdate.map(s => {
                 if (s.id !== activeSessionId) return s;
@@ -659,8 +658,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 created_at: editProgramId ? undefined : new Date().toISOString(),
             };
 
-            const savedProgram = editProgramId ? await updateProgram(editProgramId, programData) : await createProgram(programData);
-
+            const savedProgram = editProgramId ? await updateProgram(editProgramId, programData) : await addProgram(programData);
             if (!savedProgram) {
                 throw new Error('La sauvegarde du programme a échoué.');
             }
@@ -717,16 +715,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             setHasUnsavedChanges(false);
             addNotification({ message: 'Programme sauvegardé avec succès !', type: 'success' });
 
-            // Refresh auth context data
-            // This might need a dedicated function in AuthContext to refetch programs and sessions
-            setPrograms(prev => {
-                const updatedPrograms = prev.filter(p => p.id !== savedProgram.id);
-                return [...updatedPrograms, savedProgram];
-            });
-            // This part is tricky as sessions need to be re-fetched for the entire program
-            // For simplicity, we might need to refetch all sessions for the user or specific program
-            // For now, let's assume setStoredSessions will handle this if it's connected to a refetch mechanism
-            // setStoredSessions(await fetchAllSessionsForUser(user.id)); // Placeholder
+            // Refresh auth context data is now handled by addProgram/updateProgram in useDataStore
 
         } catch (error) {
             console.error("Erreur lors de la sauvegarde du programme :", error);

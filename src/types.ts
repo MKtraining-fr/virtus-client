@@ -44,6 +44,20 @@ export interface BilanTemplate {
     sections: BilanSection[];
 }
 
+export interface BilanAssignment {
+    id: string;
+    clientId: string;
+    coachId: string;
+    templateId: string;
+    templateName: string;
+    status: 'pending' | 'completed';
+    assignedAt: string;
+    completedAt?: string;
+    recurrence?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    nextAssignmentDate?: string;
+    // Les réponses seront stockées dans une autre table ou directement dans la table client.bilans[]
+}
+
 export interface BilanResult {
   id: string;
   templateId: string;
@@ -51,7 +65,7 @@ export interface BilanResult {
   status: 'pending' | 'completed';
   assignedAt: string;
   completedAt?: string;
-  answers?: Record<string, any>;
+  answers?: Record<string, unknown>;
 }
 
 

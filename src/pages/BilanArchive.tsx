@@ -57,8 +57,9 @@ const BilanArchive: React.FC = () => {
             alert(`Bilan de ${selectedBilan?.firstName} validé. Le prospect est maintenant un client.`);
             closeModal();
             navigate(`/app/client/${bilanId}`);
-        } catch (error: any) {
-            alert(`Erreur lors de la validation: ${error.message}`);
+        } catch (error: unknown) {
+            const err = error instanceof Error ? error : new Error('Une erreur inconnue est survenue.');
+            alert(`Erreur lors de la validation: ${err.message}`);
         }
     };
 
@@ -93,8 +94,9 @@ const BilanArchive: React.FC = () => {
                 
                 setSelectedArchives([]);
                 alert(`${count} bilan(s) validé(s) avec succès.`);
-            } catch (error: any) {
-                alert(`Erreur lors de la validation: ${error.message}`);
+            } catch (error: unknown) {
+                const err = error instanceof Error ? error : new Error('Une erreur inconnue est survenue.');
+                alert(`Erreur lors de la validation: ${err.message}`);
             }
         }
     };

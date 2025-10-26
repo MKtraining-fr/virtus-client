@@ -104,7 +104,7 @@ const ProFormationManagement: React.FC = () => {
                         </div>
                         <Input label="URL de l'image de couverture" value={currentFormation.coverImageUrl} onChange={e => setCurrentFormation(p => p ? { ...p, coverImageUrl: e.target.value } : null)} />
                         <Input label="Prix (€)" type="number" value={currentFormation.price} onChange={e => setCurrentFormation(p => p ? { ...p, price: parseFloat(e.target.value) || 0 } : null)} />
-                        <Select label="Type d'accès" value={currentFormation.accessType} onChange={e => setCurrentFormation(p => p ? { ...p, accessType: e.target.value as any } : null)}>
+                        <Select label="Type d'accès" value={currentFormation.accessType} onChange={e => setCurrentFormation(p => p ? { ...p, accessType: e.target.value as 'purchase' | 'subscription' } : null)}>
                             <option value="purchase">Achat unique</option>
                             <option value="subscription">Abonnement</option>
                         </Select>

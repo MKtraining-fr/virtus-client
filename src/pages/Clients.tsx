@@ -173,21 +173,22 @@ const Clients: React.FC = () => {
                                                 try {
                                                     await resendInvitation(client.email);
                                                     alert(`✅ Email d'invitation envoyé avec succès à ${client.email}\n\nLe client recevra un email lui permettant de définir son mot de passe.`);
-                                                } catch (error: any) {
-                                                    console.error('Erreur lors du renvoi de l\'invitation:', error);
+                                                } catch (error: unknown) {
+                                                      const err = error instanceof Error ? error : new Error('Une erreur inconnue est survenue.');
+                                                    console.error('Erreur lors du renvoi de l\'invitation:', err);
                                                     
                                                     // Gérer les erreurs spécifiques
                                                     let errorMessage = 'Une erreur est survenue lors de l\'envoi de l\'email.';
                                                     
-                                                    if (error?.message) {
-                                                        if (error.message.includes('rate limit')) {
+                                                    if (err.message) {
+                                                        if (err.message.includes('rate limit')) {
                                                             errorMessage = '⚠️ Trop de tentatives d\'envoi.\n\nVeuillez réessayer dans quelques minutes.';
-                                                        } else if (error.message.includes('SMTP')) {
+                                                        } else if (err.message.includes('SMTP')) {
                                                             errorMessage = '⚠️ Erreur de configuration email.\n\nLe service SMTP n\'est pas configuré. Veuillez consulter le guide CONFIGURATION_BREVO_SMTP.md pour configurer Brevo SMTP dans Supabase.';
-                                                        } else if (error.message.includes('not found')) {
+                                                        } else if (err.message.includes('not found')) {
                                                             errorMessage = '⚠️ Utilisateur non trouvé.\n\nCette adresse email n\'est pas enregistrée dans le système d\'authentification.';
                                                         } else {
-                                                            errorMessage = `❌ Erreur: ${error.message}`;
+                                                            errorMessage = `❌ Erreur: ${err.message}`;
                                                         }
                                                     }
                                                     
