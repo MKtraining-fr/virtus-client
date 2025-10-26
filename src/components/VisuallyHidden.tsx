@@ -7,13 +7,13 @@ interface VisuallyHiddenProps {
 
 /**
  * Composant pour masquer visuellement du contenu tout en le gardant accessible aux lecteurs d'écran
- * 
+ *
  * Utilisation :
  * <button>
  *   <IconTrash />
  *   <VisuallyHidden>Supprimer</VisuallyHidden>
  * </button>
- * 
+ *
  * Le texte "Supprimer" sera lu par les lecteurs d'écran mais invisible visuellement.
  */
 const VisuallyHidden: React.FC<VisuallyHiddenProps> = ({ children, as: Component = 'span' }) => {

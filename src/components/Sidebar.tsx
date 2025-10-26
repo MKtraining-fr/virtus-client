@@ -7,7 +7,9 @@ const Sidebar: React.FC = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>(
-    NAV_ITEMS.filter(item => location.pathname.startsWith(item.path) && item.subItems.length > 0).map(item => item.name)
+    NAV_ITEMS.filter(
+      (item) => location.pathname.startsWith(item.path) && item.subItems.length > 0
+    ).map((item) => item.name)
   );
 
   // Fermer le menu mobile lors du changement de route
@@ -28,25 +30,25 @@ const Sidebar: React.FC = () => {
   }, [isMobileMenuOpen]);
 
   const toggleMenu = (name: string) => {
-    setOpenMenus(prev => prev.includes(name) ? prev.filter(m => m !== name) : [...prev, name]);
+    setOpenMenus((prev) =>
+      prev.includes(name) ? prev.filter((m) => m !== name) : [...prev, name]
+    );
   };
 
   const isSubItemActive = (path: string) => location.pathname === path;
-  
+
   // Assuming SubItem is defined in constants/navigation.ts or similar
   // For now, let's use a generic array of objects
   const isParentActive = (parentPath: string, subItems: { path: string }[]) => {
-      if (subItems.length === 0) {
-          return location.pathname === parentPath;
-      }
-      return location.pathname.startsWith(parentPath) && parentPath !== '/app';
-  }
+    if (subItems.length === 0) {
+      return location.pathname === parentPath;
+    }
+    return location.pathname.startsWith(parentPath) && parentPath !== '/app';
+  };
 
   const SidebarContent = () => (
     <>
-      <div className="p-6 text-2xl font-bold text-center border-b border-gray-700">
-        VIRTUS
-      </div>
+      <div className="p-6 text-2xl font-bold text-center border-b border-gray-700">VIRTUS</div>
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         {NAV_ITEMS.map((item) => (
           <div key={item.name}>
@@ -105,9 +107,7 @@ const Sidebar: React.FC = () => {
           </div>
         ))}
       </nav>
-      <div className="p-4 border-t border-gray-700">
-        {/* Footer or user info can go here */}
-      </div>
+      <div className="p-4 border-t border-gray-700">{/* Footer or user info can go here */}</div>
     </>
   );
 
@@ -121,11 +121,21 @@ const Sidebar: React.FC = () => {
       >
         {isMobileMenuOpen ? (
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         ) : (
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
           </svg>
         )}
       </button>

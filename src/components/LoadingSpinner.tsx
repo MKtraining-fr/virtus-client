@@ -8,7 +8,7 @@ interface LoadingSpinnerProps {
 
 /**
  * Composant de chargement réutilisable
- * 
+ *
  * Utilisation :
  * <LoadingSpinner size="md" message="Chargement en cours..." />
  * <LoadingSpinner fullScreen /> // Pour un chargement plein écran
@@ -32,9 +32,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         role="status"
         aria-label="Chargement"
       />
-      {message && (
-        <p className="text-gray-600 text-sm font-medium">{message}</p>
-      )}
+      {message && <p className="text-gray-600 text-sm font-medium">{message}</p>}
     </div>
   );
 

@@ -2,12 +2,12 @@ import { useMemo } from 'react';
 
 /**
  * Hook pour optimiser le rendu de listes en mémorisant les résultats de filtrage et de tri
- * 
+ *
  * @param items - Liste d'éléments à traiter
  * @param filterFn - Fonction de filtrage optionnelle
  * @param sortFn - Fonction de tri optionnelle
  * @returns Liste filtrée et triée
- * 
+ *
  * Utilisation :
  * const filteredClients = useOptimizedList(
  *   clients,
@@ -37,20 +37,16 @@ export function useOptimizedList<T>(
 
 /**
  * Hook pour paginer une liste de manière optimisée
- * 
+ *
  * @param items - Liste d'éléments
  * @param page - Numéro de page (commence à 1)
  * @param pageSize - Nombre d'éléments par page
  * @returns Objet contenant les éléments de la page et les métadonnées de pagination
- * 
+ *
  * Utilisation :
  * const { items: pageItems, totalPages, hasNext, hasPrev } = usePagination(clients, currentPage, 10);
  */
-export function usePagination<T>(
-  items: T[],
-  page: number,
-  pageSize: number
-) {
+export function usePagination<T>(items: T[], page: number, pageSize: number) {
   return useMemo(() => {
     const totalPages = Math.ceil(items.length / pageSize);
     const startIndex = (page - 1) * pageSize;
@@ -73,11 +69,11 @@ export function usePagination<T>(
 
 /**
  * Hook pour grouper une liste par une clé
- * 
+ *
  * @param items - Liste d'éléments
  * @param keyFn - Fonction qui extrait la clé de groupement
  * @returns Map avec les éléments groupés par clé
- * 
+ *
  * Utilisation :
  * const clientsByCoach = useGroupBy(clients, (client) => client.coachId);
  */

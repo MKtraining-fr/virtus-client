@@ -20,9 +20,7 @@ const ClientAccordion: React.FC<AccordionProps> = ({ title, children, isOpenDefa
         <ChevronDownIcon className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       {isOpen && (
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-            {children}
-        </div>
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">{children}</div>
       )}
     </div>
   );

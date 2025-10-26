@@ -326,5 +326,5 @@ export interface Product {
 export interface ClientNav {
     path: string;
     name: string;
-    icon: (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
+    icon: (props: React.SVGProps<SVGSVGElement>) => React.JSX.Element;
 }

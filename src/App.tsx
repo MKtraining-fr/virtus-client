@@ -55,7 +55,7 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-           {/* Fallback for any other route */}
+          {/* Fallback for any other route */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Suspense>
@@ -64,4 +64,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

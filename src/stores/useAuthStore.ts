@@ -7,11 +7,7 @@ import { mapSupabaseClientToClient } from '../services/typeMappers';
 
 // Fonctions qui étaient dans authService.ts
 const getClientProfile = async (userId: string): Promise<Client | null> => {
-  const { data, error } = await supabase
-    .from('clients')
-    .select('*')
-    .eq('id', userId)
-    .single();
+  const { data, error } = await supabase.from('clients').select('*').eq('id', userId).single();
 
   if (error) {
     logger.error('Erreur lors de la récupération du profil:', error);
@@ -22,7 +18,9 @@ const getClientProfile = async (userId: string): Promise<Client | null> => {
 };
 
 const onAuthStateChange = (callback: (user: any) => void) => {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
     callback(session?.user || null);
   });
 
@@ -37,7 +35,7 @@ interface AuthState {
   isDataLoading: boolean; // Maintenu ici temporairement pour la compatibilité
   dataError: string | null; // Maintenu ici temporairement pour la compatibilité
   theme: 'light' | 'dark';
-  
+
   // Actions d'authentification
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -45,12 +43,12 @@ interface AuthState {
   resendInvitation: (email: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
-  
+
   // Actions de profil utilisateur
   setUser: (user: User | null) => void;
   setOriginalUser: (user: User | null) => void;
   setTheme: (theme: 'light' | 'dark') => void;
-  
+
   // Actions d'impersonation
   impersonate: (userId: string) => void;
   stopImpersonating: () => void;
@@ -116,7 +114,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const firstError = validation.error.errors[0];
         throw new Error(firstError.message);
       }
-      
+
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (error) {
@@ -149,16 +147,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!validation.success) {
         const errors = validation.error.errors;
         if (errors && errors.length > 0) {
-          const passwordErrors = errors.filter(e => e.path[0] === 'password');
+          const passwordErrors = errors.filter((e) => e.path[0] === 'password');
           if (passwordErrors.length > 0) {
             const requirements = [
               '• Au moins 8 caractères',
               '• Au moins une majuscule',
               '• Au moins une minuscule',
               '• Au moins un chiffre',
-              '• Au moins un caractère spécial'
+              '• Au moins un caractère spécial',
             ];
-            throw new Error('Le mot de passe ne respecte pas les exigences:\n' + requirements.join('\n'));
+            throw new Error(
+              'Le mot de passe ne respecte pas les exigences:\n' + requirements.join('\n')
+            );
           }
           throw new Error(errors[0].message);
         }
@@ -183,11 +183,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (authError) throw authError;
 
       if (!authData.user) {
-        logger.error("Échec de la création du compte, pas d'utilisateur retourné", { email: userData.email });
-        throw new Error("Échec de la création du compte");
+        logger.error("Échec de la création du compte, pas d'utilisateur retourné", {
+          email: userData.email,
+        });
+        throw new Error('Échec de la création du compte');
       }
 
-      logger.info("Utilisateur Supabase créé avec succès, en attente de confirmation par e-mail", { userId: authData.user.id, email: userData.email });
+      logger.info('Utilisateur Supabase créé avec succès, en attente de confirmation par e-mail', {
+        userId: authData.user.id,
+        email: userData.email,
+      });
 
       const clientProfile = {
         id: authData.user.id,
@@ -200,27 +205,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         coach_id: userData.coachId || null,
       };
 
-      const { error: profileError } = await supabase
-        .from('clients')
-        .insert([clientProfile]);
+      const { error: profileError } = await supabase.from('clients').insert([clientProfile]);
 
       if (profileError) {
-        logger.error("Erreur lors de la création du profil client:", { error: profileError, clientProfile });
+        logger.error('Erreur lors de la création du profil client:', {
+          error: profileError,
+          clientProfile,
+        });
         throw profileError;
       } else {
-        logger.info("Profil client créé avec succès dans la base de données", { userId: clientProfile.id, email: clientProfile.email });
+        logger.info('Profil client créé avec succès dans la base de données', {
+          userId: clientProfile.id,
+          email: clientProfile.email,
+        });
       }
-
     } catch (error) {
-      logger.error('Erreur d\'inscription', { error });
+      logger.error("Erreur d'inscription", { error });
       throw error;
     } finally {
       set({ isAuthLoading: false });
     }
   },
-  
+
   resendInvitation: async (email: string) => {
-    logger.info('Renvoi de l\'invitation', { email });
+    logger.info("Renvoi de l'invitation", { email });
     try {
       const { error } = await supabase.auth.resend({
         type: 'signup',
@@ -232,7 +240,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
       logger.info('Invitation renvoyée avec succès', { email });
     } catch (error) {
-      logger.error('Erreur lors du renvoi de l\'invitation', { error });
+      logger.error("Erreur lors du renvoi de l'invitation", { error });
       throw error;
     }
   },
@@ -242,12 +250,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/set-password`,
       });
-    
+
       if (error) {
-        logger.error("Échec de l'envoi de l'e-mail de réinitialisation de mot de passe", { error, email });
+        logger.error("Échec de l'envoi de l'e-mail de réinitialisation de mot de passe", {
+          error,
+          email,
+        });
         throw error;
       }
-      logger.info("E-mail de réinitialisation de mot de passe envoyé avec succès", { email });
+      logger.info('E-mail de réinitialisation de mot de passe envoyé avec succès', { email });
     } catch (error) {
       logger.error('Erreur lors de la réinitialisation du mot de passe', { error });
       throw error;
@@ -259,12 +270,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
-    
+
       if (error) {
-        logger.error("Échec de la mise à jour du mot de passe", { error });
+        logger.error('Échec de la mise à jour du mot de passe', { error });
         throw error;
       }
-      logger.info("Mot de passe mis à jour avec succès");
+      logger.info('Mot de passe mis à jour avec succès');
     } catch (error) {
       logger.error('Erreur lors de la mise à jour du mot de passe', { error });
       throw error;
@@ -272,19 +283,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   impersonate: async (userId: string) => {
-    logger.info('Impersonation de l\'utilisateur', { userId });
+    logger.info("Impersonation de l'utilisateur", { userId });
     try {
-      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: adminUser },
+      } = await supabase.auth.getUser();
       if (adminUser) {
         get().setOriginalUser(mapSupabaseClientToClient(adminUser as any)); // Utilisation du setter du store
       }
-      
+
       // **NOTE IMPORTANTE :** La logique d'impersonation dans l'ancien AuthContext.tsx
       // utilisait `supabase.auth.signInWithIdToken` avec `userId` comme `token`,
       // ce qui est une simplification potentiellement dangereuse et non standard.
       // Je vais la laisser telle quelle pour le moment, mais elle devra être revue
       // pour utiliser une fonction Edge sécurisée pour l'échange de jetons.
-      
+
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'supabase',
         token: userId, // À revoir
@@ -297,17 +310,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({ user: clientProfile });
           // La navigation sera gérée par le composant
         } else {
-          throw new Error('Profil client introuvable pour l\'utilisateur impersonné');
+          throw new Error("Profil client introuvable pour l'utilisateur impersonné");
         }
       }
     } catch (error) {
-      logger.error('Erreur lors de l\'impersonation de l\'utilisateur', { error });
+      logger.error("Erreur lors de l'impersonation de l'utilisateur", { error });
       throw error;
     }
   },
 
   stopImpersonating: async () => {
-    logger.info('Arrêt de l\'impersonation');
+    logger.info("Arrêt de l'impersonation");
     try {
       const originalUser = get().originalUser;
       if (originalUser) {
@@ -323,12 +336,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
             // La navigation sera gérée par le composant
           } else {
-            throw new Error('Profil administrateur introuvable après arrêt de l\'impersonation');
+            throw new Error("Profil administrateur introuvable après arrêt de l'impersonation");
           }
         }
       }
     } catch (error) {
-      logger.error('Erreur lors de l\'arrêt de l\'impersonation', { error });
+      logger.error("Erreur lors de l'arrêt de l'impersonation", { error });
       throw error;
     }
   },
@@ -339,11 +352,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 const initializeAuthListener = () => {
   onAuthStateChange(async (supabaseUser) => {
     const { isAuthLoading, setUser } = useAuthStore.getState();
-    
+
     if (!isAuthLoading) {
-        useAuthStore.setState({ isAuthLoading: true });
+      useAuthStore.setState({ isAuthLoading: true });
     }
-    
+
     if (supabaseUser) {
       const clientProfile = await getClientProfile(supabaseUser.id);
       if (clientProfile) {
@@ -355,13 +368,12 @@ const initializeAuthListener = () => {
     } else {
       setUser(null);
     }
-    
+
     useAuthStore.setState({ isAuthLoading: false });
   });
 };
 
 // Exécuter l'écouteur une seule fois
 if (typeof window !== 'undefined') {
-    initializeAuthListener();
+  initializeAuthListener();
 }
-

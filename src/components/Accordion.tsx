@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 interface AccordionProps {
@@ -13,15 +12,21 @@ interface AccordionProps {
 }
 
 const ChevronDownIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-    </svg>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    {...props}
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+  </svg>
 );
 
-
-const Accordion: React.FC<AccordionProps> = ({ 
-  title, 
-  children, 
+const Accordion: React.FC<AccordionProps> = ({
+  title,
+  children,
   isOpenDefault = false,
   isOpen: controlledIsOpen,
   onToggle: controlledOnToggle,
@@ -31,9 +36,11 @@ const Accordion: React.FC<AccordionProps> = ({
   const [uncontrolledIsOpen, setUncontrolledIsOpen] = useState(isOpenDefault);
 
   const isControlled = controlledIsOpen !== undefined && controlledOnToggle !== undefined;
-  
+
   const isOpen = isControlled ? controlledIsOpen : uncontrolledIsOpen;
-  const toggle = isControlled ? controlledOnToggle : () => setUncontrolledIsOpen(!uncontrolledIsOpen);
+  const toggle = isControlled
+    ? controlledOnToggle
+    : () => setUncontrolledIsOpen(!uncontrolledIsOpen);
 
   return (
     <div className="border border-gray-300 rounded-lg mb-4 bg-white shadow-sm">
@@ -46,11 +53,7 @@ const Accordion: React.FC<AccordionProps> = ({
         <span>{title}</span>
         <ChevronDownIcon className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
-      {isOpen && (
-        <div className="p-4 border-t border-gray-300">
-          {children}
-        </div>
-      )}
+      {isOpen && <div className="p-4 border-t border-gray-300">{children}</div>}
     </div>
   );
 };

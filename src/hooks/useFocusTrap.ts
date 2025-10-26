@@ -2,17 +2,17 @@ import { useEffect, useRef } from 'react';
 
 /**
  * Hook pour piéger le focus dans un élément (utile pour les modales)
- * 
+ *
  * Lorsqu'une modale s'ouvre, le focus doit être piégé à l'intérieur pour que
  * l'utilisateur ne puisse pas naviguer en dehors avec Tab/Shift+Tab.
- * 
+ *
  * Utilisation :
  * const modalRef = useFocusTrap(isOpen);
- * 
+ *
  * <div ref={modalRef}>
  *   {/* Contenu de la modale *\/}
  * </div>
- * 
+ *
  * @param isActive - Si true, le piège de focus est actif
  * @returns Ref à attacher à l'élément conteneur
  */
@@ -23,7 +23,7 @@ export function useFocusTrap<T extends HTMLElement>(isActive: boolean) {
     if (!isActive || !elementRef.current) return;
 
     const element = elementRef.current;
-    
+
     // Sauvegarder l'élément qui avait le focus avant l'ouverture
     const previouslyFocusedElement = document.activeElement as HTMLElement;
 
@@ -38,9 +38,7 @@ export function useFocusTrap<T extends HTMLElement>(isActive: boolean) {
         '[tabindex]:not([tabindex="-1"])',
       ].join(', ');
 
-      return Array.from(
-        element.querySelectorAll<HTMLElement>(focusableSelectors)
-      ).filter((el) => {
+      return Array.from(element.querySelectorAll<HTMLElement>(focusableSelectors)).filter((el) => {
         // Vérifier que l'élément est visible
         return el.offsetParent !== null;
       });
@@ -93,12 +91,12 @@ export function useFocusTrap<T extends HTMLElement>(isActive: boolean) {
 
 /**
  * Hook pour gérer le focus sur un élément spécifique
- * 
+ *
  * Utilisation :
  * const inputRef = useAutoFocus(shouldFocus);
- * 
+ *
  * <input ref={inputRef} />
- * 
+ *
  * @param shouldFocus - Si true, l'élément reçoit le focus
  */
 export function useAutoFocus<T extends HTMLElement>(shouldFocus: boolean = true) {

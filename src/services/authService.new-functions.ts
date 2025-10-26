@@ -13,7 +13,6 @@ export const createUserWithInvitation = async (userData: {
   coachId?: string;
   status?: 'active' | 'prospect';
 }): Promise<{ user: any; error: any }> => {
-  
   // Générer un mot de passe temporaire aléatoire
   // Ce mot de passe ne sera jamais communiqué à l'utilisateur
   const tempPassword = generateSecurePassword();
@@ -54,9 +53,7 @@ export const createUserWithInvitation = async (userData: {
     status: userData.status || 'active',
   };
 
-  const { error: profileError } = await supabase
-    .from('clients')
-    .insert([clientProfile]);
+  const { error: profileError } = await supabase.from('clients').insert([clientProfile]);
 
   if (profileError) {
     console.error('Erreur lors de la création du profil:', profileError);
@@ -65,15 +62,12 @@ export const createUserWithInvitation = async (userData: {
 
   // Envoyer un email de réinitialisation de mot de passe
   // Cela permettra au client de définir son propre mot de passe
-  const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-    userData.email,
-    {
-      redirectTo: `${window.location.origin}/set-password`,
-    }
-  );
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(userData.email, {
+    redirectTo: `${window.location.origin}/set-password`,
+  });
 
   if (resetError) {
-    console.error('Erreur lors de l\'envoi de l\'email d\'invitation:', resetError);
+    console.error("Erreur lors de l'envoi de l'email d'invitation:", resetError);
     // Ne pas bloquer l'inscription si l'email échoue
   }
 
@@ -85,20 +79,24 @@ export const createUserWithInvitation = async (userData: {
  */
 function generateSecurePassword(): string {
   const length = 32;
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+  const charset =
+    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
   let password = '';
-  
+
   // Ajouter au moins un caractère de chaque type requis
   password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)]; // Majuscule
   password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)]; // Minuscule
   password += '0123456789'[Math.floor(Math.random() * 10)]; // Chiffre
   password += '!@#$%^&*'[Math.floor(Math.random() * 8)]; // Caractère spécial
-  
+
   // Compléter avec des caractères aléatoires
   for (let i = password.length; i < length; i++) {
     password += charset[Math.floor(Math.random() * charset.length)];
   }
-  
+
   // Mélanger les caractères
-  return password.split('').sort(() => Math.random() - 0.5).join('');
+  return password
+    .split('')
+    .sort(() => Math.random() - 0.5)
+    .join('');
 }

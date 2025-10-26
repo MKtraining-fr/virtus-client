@@ -1,5 +1,12 @@
 import type { Database } from '../types/database';
-import type { Client, Exercise, WorkoutProgram, NutritionPlan, Message, Notification } from '../types';
+import type {
+  Client,
+  Exercise,
+  WorkoutProgram,
+  NutritionPlan,
+  Message,
+  Notification,
+} from '../types';
 
 type SupabaseClient = Database['public']['Tables']['clients']['Row'];
 type SupabaseExercise = Database['public']['Tables']['exercises']['Row'];
@@ -26,11 +33,13 @@ export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Clien
     // Informations générales
     dob: supabaseClient.dob || undefined,
     age: supabaseClient.age || 0,
-    sex: supabaseClient.sex as Client['sex'] || undefined,
+    sex: (supabaseClient.sex as Client['sex']) || undefined,
     height: supabaseClient.height || 0,
     weight: supabaseClient.weight || 0,
     address: supabaseClient.address || undefined,
-    energyExpenditureLevel: supabaseClient.energy_expenditure_level as Client['energyExpenditureLevel'] || 'moderately_active',
+    energyExpenditureLevel:
+      (supabaseClient.energy_expenditure_level as Client['energyExpenditureLevel']) ||
+      'moderately_active',
     // Objectifs et notes
     objective: supabaseClient.objective || '',
     notes: supabaseClient.notes || '',
@@ -83,21 +92,21 @@ export function mapClientToSupabaseClient(client: Partial<Client>): Partial<Supa
     objective: client.objective || null,
     notes: client.notes || null,
     // Données JSON
-    lifestyle: client.lifestyle as any || null,
-    medical_info: client.medicalInfo as any || null,
-    nutrition: client.nutrition as any || null,
-    bilans: client.bilans as any || null,
-    assigned_bilans: client.assignedBilans as any || null,
-    nutrition_logs: client.nutritionLogs as any || null,
-    performance_logs: client.performanceLogs as any || null,
-    assigned_nutrition_plans: client.assignedNutritionPlans as any || null,
+    lifestyle: (client.lifestyle as any) || null,
+    medical_info: (client.medicalInfo as any) || null,
+    nutrition: (client.nutrition as any) || null,
+    bilans: (client.bilans as any) || null,
+    assigned_bilans: (client.assignedBilans as any) || null,
+    nutrition_logs: (client.nutritionLogs as any) || null,
+    performance_logs: (client.performanceLogs as any) || null,
+    assigned_nutrition_plans: (client.assignedNutritionPlans as any) || null,
   };
-  
+
   // N'inclure l'ID que s'il est défini (pour les mises à jour)
   if (client.id) {
     result.id = client.id;
   }
-  
+
   return result;
 }
 
@@ -109,8 +118,10 @@ export function mapSupabaseExerciseToExercise(supabaseExercise: SupabaseExercise
     id: supabaseExercise.id,
     name: supabaseExercise.name,
     description: supabaseExercise.description || '',
-    category: supabaseExercise.category as any || '',
-    muscleGroups: supabaseExercise.muscle_group ? supabaseExercise.muscle_group.split('|').map(m => m.trim()) : [],
+    category: (supabaseExercise.category as any) || '',
+    muscleGroups: supabaseExercise.muscle_group
+      ? supabaseExercise.muscle_group.split('|').map((m) => m.trim())
+      : [],
     secondaryMuscleGroups: supabaseExercise.secondary_muscle_groups || [],
     equipment: supabaseExercise.equipment || '',
     difficulty: supabaseExercise.difficulty || '',
@@ -122,7 +133,9 @@ export function mapSupabaseExerciseToExercise(supabaseExercise: SupabaseExercise
 /**
  * Convertir un exercice de l'application vers le format Supabase
  */
-export function mapExerciseToSupabaseExercise(exercise: Partial<Exercise>): Partial<SupabaseExercise> {
+export function mapExerciseToSupabaseExercise(
+  exercise: Partial<Exercise>
+): Partial<SupabaseExercise> {
   return {
     id: exercise.id,
     name: exercise.name,
@@ -156,7 +169,9 @@ export function mapSupabaseProgramToProgram(supabaseProgram: SupabaseProgram): W
 /**
  * Convertir un programme de l'application vers le format Supabase
  */
-export function mapProgramToSupabaseProgram(program: Partial<WorkoutProgram>): Partial<SupabaseProgram> {
+export function mapProgramToSupabaseProgram(
+  program: Partial<WorkoutProgram>
+): Partial<SupabaseProgram> {
   return {
     id: program.id,
     name: program.name,
@@ -171,7 +186,9 @@ export function mapProgramToSupabaseProgram(program: Partial<WorkoutProgram>): P
 /**
  * Convertir un plan nutritionnel Supabase vers le format de l'application
  */
-export function mapSupabaseNutritionPlanToNutritionPlan(supabasePlan: SupabaseNutritionPlan): NutritionPlan {
+export function mapSupabaseNutritionPlanToNutritionPlan(
+  supabasePlan: SupabaseNutritionPlan
+): NutritionPlan {
   return {
     id: supabasePlan.id,
     clientId: supabasePlan.client_id || '',
@@ -188,7 +205,9 @@ export function mapSupabaseNutritionPlanToNutritionPlan(supabasePlan: SupabaseNu
 /**
  * Convertir un plan nutritionnel de l'application vers le format Supabase
  */
-export function mapNutritionPlanToSupabaseNutritionPlan(plan: Partial<NutritionPlan>): Partial<SupabaseNutritionPlan> {
+export function mapNutritionPlanToSupabaseNutritionPlan(
+  plan: Partial<NutritionPlan>
+): Partial<SupabaseNutritionPlan> {
   return {
     id: plan.id,
     client_id: plan.clientId || null,
@@ -234,7 +253,9 @@ export function mapMessageToSupabaseMessage(message: Partial<Message>): Partial<
 /**
  * Convertir une notification Supabase vers le format de l'application
  */
-export function mapSupabaseNotificationToNotification(supabaseNotification: SupabaseNotification): Notification {
+export function mapSupabaseNotificationToNotification(
+  supabaseNotification: SupabaseNotification
+): Notification {
   return {
     id: supabaseNotification.id,
     userId: supabaseNotification.user_id || '',
@@ -251,7 +272,9 @@ export function mapSupabaseNotificationToNotification(supabaseNotification: Supa
 /**
  * Convertir une notification de l'application vers le format Supabase
  */
-export function mapNotificationToSupabaseNotification(notification: Partial<Notification>): Partial<SupabaseNotification> {
+export function mapNotificationToSupabaseNotification(
+  notification: Partial<Notification>
+): Partial<SupabaseNotification> {
   return {
     id: notification.id,
     user_id: notification.userId || null,
@@ -261,7 +284,6 @@ export function mapNotificationToSupabaseNotification(notification: Partial<Noti
     read: notification.isRead || false,
   };
 }
-
 
 // ============================================================
 // BILAN TEMPLATES MAPPERS
@@ -284,13 +306,13 @@ export function mapSupabaseBilanTemplateToTemplate(supabaseTemplate: any): Bilan
  */
 export function mapBilanTemplateToSupabaseTemplate(template: Partial<BilanTemplate>): any {
   const supabaseTemplate: any = {};
-  
+
   if (template.id !== undefined) supabaseTemplate.id = template.id;
   if (template.name !== undefined) supabaseTemplate.name = template.name;
   if (template.coachId !== undefined) {
     supabaseTemplate.coach_id = template.coachId === 'system' ? null : template.coachId;
   }
   if (template.sections !== undefined) supabaseTemplate.sections = template.sections;
-  
+
   return supabaseTemplate;
 }

@@ -21,7 +21,7 @@ interface ResponsiveTableProps<T> {
  * Composant de tableau responsive qui affiche :
  * - Un tableau classique sur desktop (md et plus)
  * - Des cartes empilées sur mobile
- * 
+ *
  * Utilisation :
  * <ResponsiveTable
  *   data={clients}
@@ -81,7 +81,10 @@ function ResponsiveTable<T extends Record<string, unknown>>({
                 className={onRowClick ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}
               >
                 {columns.map((column) => (
-                  <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td
+                    key={column.key}
+                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                  >
                     {column.render ? column.render(item) : String(item[column.key] || '-')}
                   </td>
                 ))}
@@ -104,7 +107,10 @@ function ResponsiveTable<T extends Record<string, unknown>>({
             {columns
               .filter((column) => !column.hideOnMobile)
               .map((column) => (
-                <div key={column.key} className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
+                <div
+                  key={column.key}
+                  className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0"
+                >
                   <span className="text-sm font-medium text-gray-500 mr-4">
                     {column.mobileLabel || column.label}
                   </span>

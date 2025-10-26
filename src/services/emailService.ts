@@ -18,20 +18,20 @@ export interface EmailResult {
  */
 export const sendClientInvitation = async (email: string): Promise<EmailResult> => {
   try {
-    logger.info('Envoi d\'invitation client', { email });
+    logger.info("Envoi d'invitation client", { email });
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/set-password`,
     });
 
     if (error) {
-      logger.error('Erreur lors de l\'envoi de l\'invitation', { error, email });
-      
+      logger.error("Erreur lors de l'envoi de l'invitation", { error, email });
+
       // Gérer les erreurs spécifiques
       if (error.message.includes('rate limit')) {
         return {
           success: false,
-          message: 'Trop de tentatives d\'envoi. Veuillez réessayer dans quelques minutes.',
+          message: "Trop de tentatives d'envoi. Veuillez réessayer dans quelques minutes.",
           error,
         };
       }
@@ -39,7 +39,7 @@ export const sendClientInvitation = async (email: string): Promise<EmailResult> 
       if (error.message.includes('not found')) {
         return {
           success: false,
-          message: 'Cette adresse email n\'est pas enregistrée dans le système.',
+          message: "Cette adresse email n'est pas enregistrée dans le système.",
           error,
         };
       }
@@ -47,14 +47,14 @@ export const sendClientInvitation = async (email: string): Promise<EmailResult> 
       if (error.message.includes('SMTP')) {
         return {
           success: false,
-          message: 'Erreur de configuration email. Veuillez contacter l\'administrateur.',
+          message: "Erreur de configuration email. Veuillez contacter l'administrateur.",
           error,
         };
       }
 
       return {
         success: false,
-        message: error.message || 'Erreur lors de l\'envoi de l\'email',
+        message: error.message || "Erreur lors de l'envoi de l'email",
         error,
       };
     }
@@ -62,13 +62,13 @@ export const sendClientInvitation = async (email: string): Promise<EmailResult> 
     logger.info('Invitation envoyée avec succès', { email });
     return {
       success: true,
-      message: 'Email d\'invitation envoyé avec succès',
+      message: "Email d'invitation envoyé avec succès",
     };
   } catch (error) {
-    logger.error('Exception lors de l\'envoi de l\'invitation', { error, email });
+    logger.error("Exception lors de l'envoi de l'invitation", { error, email });
     return {
       success: false,
-      message: 'Une erreur inattendue s\'est produite',
+      message: "Une erreur inattendue s'est produite",
       error,
     };
   }
@@ -86,8 +86,8 @@ export const sendPasswordReset = async (email: string): Promise<EmailResult> => 
     });
 
     if (error) {
-      logger.error('Erreur lors de l\'envoi de la réinitialisation', { error, email });
-      
+      logger.error("Erreur lors de l'envoi de la réinitialisation", { error, email });
+
       if (error.message.includes('rate limit')) {
         return {
           success: false,
@@ -98,7 +98,7 @@ export const sendPasswordReset = async (email: string): Promise<EmailResult> => 
 
       return {
         success: false,
-        message: error.message || 'Erreur lors de l\'envoi de l\'email',
+        message: error.message || "Erreur lors de l'envoi de l'email",
         error,
       };
     }
@@ -109,10 +109,10 @@ export const sendPasswordReset = async (email: string): Promise<EmailResult> => 
       message: 'Email de réinitialisation envoyé avec succès',
     };
   } catch (error) {
-    logger.error('Exception lors de l\'envoi de la réinitialisation', { error, email });
+    logger.error("Exception lors de l'envoi de la réinitialisation", { error, email });
     return {
       success: false,
-      message: 'Une erreur inattendue s\'est produite',
+      message: "Une erreur inattendue s'est produite",
       error,
     };
   }
@@ -123,20 +123,16 @@ export const sendPasswordReset = async (email: string): Promise<EmailResult> => 
  */
 export const checkEmailExists = async (email: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('email', email)
-      .single();
+    const { data, error } = await supabase.from('clients').select('id').eq('email', email).single();
 
     if (error) {
-      logger.error('Erreur lors de la vérification de l\'email', { error, email });
+      logger.error("Erreur lors de la vérification de l'email", { error, email });
       return false;
     }
 
     return !!data;
   } catch (error) {
-    logger.error('Exception lors de la vérification de l\'email', { error, email });
+    logger.error("Exception lors de la vérification de l'email", { error, email });
     return false;
   }
 };
@@ -160,7 +156,7 @@ export const logEmailSent = async (
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error('Erreur lors de l\'enregistrement du log email', { error });
+    logger.error("Erreur lors de l'enregistrement du log email", { error });
   }
 };
 
@@ -182,7 +178,7 @@ export const getSmtpStatus = async (): Promise<{
       if (error.message.includes('SMTP')) {
         return {
           configured: false,
-          message: 'SMTP n\'est pas configuré. Veuillez configurer Brevo SMTP dans Supabase.',
+          message: "SMTP n'est pas configuré. Veuillez configurer Brevo SMTP dans Supabase.",
         };
       }
       // Si l'erreur est "user not found", cela signifie que SMTP est configuré

@@ -1,10 +1,8 @@
+import { test, expect, describe, vi } from 'vitest';
 import { retryAsync, isRetryableError, retryOnNetworkError } from './retry';
 
-/**
- * Tests pour le système de retry
- * 
- * Exécution : npx tsx src/utils/retry.test.ts
- */
+// Mock du temps pour les tests de délai
+vi.useFakeTimers();
 
 // Fonction utilitaire pour créer une fonction qui échoue N fois puis réussit
 function createFlakeyFunction<T>(failCount: number, result: T, errorMessage: string) {
@@ -18,170 +16,84 @@ function createFlakeyFunction<T>(failCount: number, result: T, errorMessage: str
   };
 }
 
-async function testRetrySuccess() {
-  console.log('\n🧪 Test 1: Retry réussit après 2 échecs');
-  
-  const flakeyFn = createFlakeyFunction(2, 'success', 'Erreur temporaire');
-  
-  try {
-    const result = await retryAsync(flakeyFn, {
-      maxAttempts: 3,
-      delayMs: 100,
-    });
-    
-    if (result === 'success') {
-      console.log('✅ Test réussi : La fonction a réussi après 2 échecs');
-    } else {
-      console.log('❌ Test échoué : Résultat inattendu');
-    }
-  } catch (error) {
-    console.log('❌ Test échoué : Une erreur a été levée alors que la fonction aurait dû réussir');
-  }
-}
-
-async function testRetryFailure() {
-  console.log('\n🧪 Test 2: Retry échoue après épuisement des tentatives');
-  
-  const alwaysFailFn = async () => {
-    throw new Error('Erreur permanente');
-  };
-  
-  try {
-    await retryAsync(alwaysFailFn, {
-      maxAttempts: 3,
-      delayMs: 100,
-    });
-    console.log('❌ Test échoué : Aucune erreur n\'a été levée');
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Erreur permanente') {
-      console.log('✅ Test réussi : L\'erreur a été correctement propagée après 3 tentatives');
-    } else {
-      console.log('❌ Test échoué : Erreur inattendue');
-    }
-  }
-}
-
-async function testRetryBackoff() {
-  console.log('\n🧪 Test 3: Backoff exponentiel fonctionne');
-  
-  const delays: number[] = [];
-  let lastTime = Date.now();
-  
-  const flakeyFn = createFlakeyFunction(2, 'success', 'Erreur temporaire');
-  
-  await retryAsync(flakeyFn, {
-    maxAttempts: 3,
-    delayMs: 100,
-    backoffMultiplier: 2,
-    onRetry: () => {
-      const now = Date.now();
-      delays.push(now - lastTime);
-      lastTime = now;
-    },
+describe('retry.ts', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
   });
-  
-  // Le premier délai devrait être ~100ms, le second ~200ms
-  if (delays.length === 2 && delays[0] >= 90 && delays[1] >= 180) {
-    console.log('✅ Test réussi : Le backoff exponentiel fonctionne correctement');
-    console.log(`   Délais mesurés : ${delays.map(d => `${d}ms`).join(', ')}`);
-  } else {
-    console.log('❌ Test échoué : Les délais ne correspondent pas au backoff attendu');
-    console.log(`   Délais mesurés : ${delays.map(d => `${d}ms`).join(', ')}`);
-  }
-}
 
-function testIsRetryableError() {
-  console.log('\n🧪 Test 4: Détection des erreurs temporaires');
-  
-  const tests = [
-    { error: new Error('Network error'), expected: true },
-    { error: new Error('Connection timeout'), expected: true },
-    { error: new Error('Service unavailable'), expected: true },
-    { error: new Error('Invalid input'), expected: false },
-    { error: new Error('Permission denied'), expected: false },
-    { error: 'Not an Error object', expected: false },
-  ];
-  
-  let passed = 0;
-  let failed = 0;
-  
-  tests.forEach(({ error, expected }) => {
-    const result = isRetryableError(error);
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    
-    if (result === expected) {
-      console.log(`✅ "${errorMsg}" → ${result} (attendu: ${expected})`);
-      passed++;
-    } else {
-      console.log(`❌ "${errorMsg}" → ${result} (attendu: ${expected})`);
-      failed++;
-    }
+  test('Retry réussit après 2 échecs', async () => {
+    const flakeyFn = vi.fn(createFlakeyFunction(2, 'success', 'Erreur temporaire'));
+
+    const promise = retryAsync(flakeyFn, { maxAttempts: 3, delayMs: 100 });
+    await vi.runAllTimersAsync();
+    await expect(promise).resolves.toBe('success');
+    expect(flakeyFn).toHaveBeenCalledTimes(3);
   });
-  
-  console.log(`\nRésultat : ${passed}/${tests.length} tests réussis`);
-}
 
-async function testRetryOnNetworkError() {
-  console.log('\n🧪 Test 5: retryOnNetworkError ne retry que les erreurs réseau');
-  
-  // Test 1: Erreur réseau → devrait retry
-  const networkErrorFn = createFlakeyFunction(2, 'success', 'Network error');
-  
-  try {
-    const result = await retryOnNetworkError(networkErrorFn, {
+  test('Retry échoue après épuisement des tentatives', async () => {
+    const alwaysFailFn = vi.fn(async () => {
+      throw new Error('Erreur permanente');
+    });
+
+    const promise = retryAsync(alwaysFailFn, { maxAttempts: 3, delayMs: 100 });
+    await vi.runAllTimersAsync();
+    await expect(promise).rejects.toThrow('Erreur permanente');
+    expect(alwaysFailFn).toHaveBeenCalledTimes(3);
+  });
+
+  test('Backoff exponentiel fonctionne', async () => {
+    const flakeyFn = vi.fn(createFlakeyFunction(2, 'success', 'Erreur temporaire'));
+    const onRetry = vi.fn();
+
+    const promise = retryAsync(flakeyFn, {
       maxAttempts: 3,
       delayMs: 100,
+      backoffMultiplier: 2,
+      onRetry,
     });
-    
-    if (result === 'success') {
-      console.log('✅ Erreur réseau : Retry effectué avec succès');
-    } else {
-      console.log('❌ Erreur réseau : Résultat inattendu');
-    }
-  } catch (error) {
-    console.log('❌ Erreur réseau : Une erreur a été levée alors que la fonction aurait dû réussir');
-  }
-  
-  // Test 2: Erreur non-réseau → devrait échouer immédiatement
-  const logicErrorFn = async () => {
-    throw new Error('Invalid input');
-  };
-  
-  try {
-    await retryOnNetworkError(logicErrorFn, {
-      maxAttempts: 3,
-      delayMs: 100,
+
+    // 1ère tentative (échec)
+    expect(flakeyFn).toHaveBeenCalledTimes(1);
+
+    // 2ème tentative après 100ms
+    await vi.advanceTimersByTimeAsync(100);
+    expect(flakeyFn).toHaveBeenCalledTimes(2);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+
+    // 3ème tentative après 200ms (100 * 2)
+    await vi.advanceTimersByTimeAsync(200);
+    expect(flakeyFn).toHaveBeenCalledTimes(3);
+    expect(onRetry).toHaveBeenCalledTimes(2);
+
+    await expect(networkPromise).resolves.toBe('success');
+  });
+
+  test('isRetryableError détecte les erreurs temporaires', () => {
+    expect(isRetryableError(new Error('Network error'))).toBe(true);
+    expect(isRetryableError(new Error('Connection timeout'))).toBe(true);
+    expect(isRetryableError(new Error('Service unavailable'))).toBe(true);
+    expect(isRetryableError(new Error('Invalid input'))).toBe(false);
+    expect(isRetryableError(new Error('Permission denied'))).toBe(false);
+    expect(isRetryableError('Not an Error object')).toBe(false);
+  });
+
+  test('retryOnNetworkError ne retry que les erreurs réseau', async () => {
+    // Test 1: Erreur réseau → devrait retry
+    const networkErrorFn = vi.fn(createFlakeyFunction(2, 'success', 'Network error'));
+    const networkPromise = retryOnNetworkError(networkErrorFn, { maxAttempts: 3, delayMs: 100 });
+    await vi.runAllTimersAsync();
+    await expect(networkPromise).resolves.toBe('success');
+    expect(networkErrorFn).toHaveBeenCalledTimes(3);
+
+    // Test 2: Erreur non-réseau → devrait échouer immédiatement
+    const logicErrorFn = vi.fn(async () => {
+      throw new Error('Invalid input');
     });
-    console.log('❌ Erreur logique : Aucune erreur n\'a été levée');
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Invalid input') {
-      console.log('✅ Erreur logique : Erreur propagée sans retry');
-    } else {
-      console.log('❌ Erreur logique : Erreur inattendue');
-    }
-  }
-}
 
-// Exécuter tous les tests
-async function runAllTests() {
-  console.log('='.repeat(60));
-  console.log('🧪 Tests du système de retry');
-  console.log('='.repeat(60));
-  
-  await testRetrySuccess();
-  await testRetryFailure();
-  await testRetryBackoff();
-  testIsRetryableError();
-  await testRetryOnNetworkError();
-  
-  console.log('\n' + '='.repeat(60));
-  console.log('✅ Tous les tests sont terminés');
-  console.log('='.repeat(60) + '\n');
-}
+    const logicPromise = retryOnNetworkError(logicErrorFn, { maxAttempts: 3, delayMs: 100 });
+    await expect(logicPromise).rejects.toThrow('Invalid input');
+    expect(logicErrorFn).toHaveBeenCalledTimes(1); // Seulement 1 appel
+  });
+});
 
-// Exécuter les tests si ce fichier est exécuté directement
-if (import.meta.url === `file://${process.argv[1]}`) {
-  runAllTests().catch(console.error);
-}
-
-export { runAllTests };
+vi.useRealTimers();

@@ -41,7 +41,7 @@ const CoachLayout: React.FC = () => {
             <Route path="musculation/database" element={<WorkoutDatabase />} />
             <Route path="nutrition/createur" element={<Nutrition />} />
             <Route path="nutrition/bibliotheque" element={<NutritionLibrary />} />
-             <Route path="nutrition/ciqual" element={<NutritionDatabase />} />
+            <Route path="nutrition/ciqual" element={<NutritionDatabase />} />
             <Route path="formations" element={<CoachFormations />} />
             <Route path="formations/pro/:id" element={<ProFormationDetail />} />
             <Route path="shop" element={<CoachShop />} />

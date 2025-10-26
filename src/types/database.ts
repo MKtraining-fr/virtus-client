@@ -1,710 +1,704 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
   public: {
     Tables: {
       clients: {
         Row: {
-          id: string
-          email: string
-          first_name: string
-          last_name: string
-          phone: string | null
-          role: string
-          coach_id: string | null
-          affiliation_code: string | null
-          dob: string | null
-          age: number | null
-          sex: string | null
-          height: number | null
-          weight: number | null
-          address: string | null
-          energy_expenditure_level: string | null
-          objective: string | null
-          notes: string | null
-          status: string | null
-          lifestyle: Json | null
-          medical_info: Json | null
-          nutrition: Json | null
-          bilans: Json | null
-          assigned_bilans: Json | null
-          nutrition_logs: Json | null
-          performance_logs: Json | null
-          assigned_nutrition_plans: Json | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          email: string;
+          first_name: string;
+          last_name: string;
+          phone: string | null;
+          role: string;
+          coach_id: string | null;
+          affiliation_code: string | null;
+          dob: string | null;
+          age: number | null;
+          sex: string | null;
+          height: number | null;
+          weight: number | null;
+          address: string | null;
+          energy_expenditure_level: string | null;
+          objective: string | null;
+          notes: string | null;
+          status: string | null;
+          lifestyle: Json | null;
+          medical_info: Json | null;
+          nutrition: Json | null;
+          bilans: Json | null;
+          assigned_bilans: Json | null;
+          nutrition_logs: Json | null;
+          performance_logs: Json | null;
+          assigned_nutrition_plans: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          email: string
-          first_name: string
-          last_name: string
-          phone?: string | null
-          role: string
-          coach_id?: string | null
-          affiliation_code?: string | null
-          dob?: string | null
-          age?: number | null
-          sex?: string | null
-          height?: number | null
-          weight?: number | null
-          address?: string | null
-          energy_expenditure_level?: string | null
-          objective?: string | null
-          notes?: string | null
-          status?: string | null
-          lifestyle?: Json | null
-          medical_info?: Json | null
-          nutrition?: Json | null
-          bilans?: Json | null
-          assigned_bilans?: Json | null
-          nutrition_logs?: Json | null
-          performance_logs?: Json | null
-          assigned_nutrition_plans?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          email: string;
+          first_name: string;
+          last_name: string;
+          phone?: string | null;
+          role: string;
+          coach_id?: string | null;
+          affiliation_code?: string | null;
+          dob?: string | null;
+          age?: number | null;
+          sex?: string | null;
+          height?: number | null;
+          weight?: number | null;
+          address?: string | null;
+          energy_expenditure_level?: string | null;
+          objective?: string | null;
+          notes?: string | null;
+          status?: string | null;
+          lifestyle?: Json | null;
+          medical_info?: Json | null;
+          nutrition?: Json | null;
+          bilans?: Json | null;
+          assigned_bilans?: Json | null;
+          nutrition_logs?: Json | null;
+          performance_logs?: Json | null;
+          assigned_nutrition_plans?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          email?: string
-          first_name?: string
-          last_name?: string
-          phone?: string | null
-          role?: string
-          coach_id?: string | null
-          affiliation_code?: string | null
-          dob?: string | null
-          age?: number | null
-          sex?: string | null
-          height?: number | null
-          weight?: number | null
-          address?: string | null
-          energy_expenditure_level?: string | null
-          objective?: string | null
-          notes?: string | null
-          status?: string | null
-          lifestyle?: Json | null
-          medical_info?: Json | null
-          nutrition?: Json | null
-          bilans?: Json | null
-          assigned_bilans?: Json | null
-          nutrition_logs?: Json | null
-          performance_logs?: Json | null
-          assigned_nutrition_plans?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          email?: string;
+          first_name?: string;
+          last_name?: string;
+          phone?: string | null;
+          role?: string;
+          coach_id?: string | null;
+          affiliation_code?: string | null;
+          dob?: string | null;
+          age?: number | null;
+          sex?: string | null;
+          height?: number | null;
+          weight?: number | null;
+          address?: string | null;
+          energy_expenditure_level?: string | null;
+          objective?: string | null;
+          notes?: string | null;
+          status?: string | null;
+          lifestyle?: Json | null;
+          medical_info?: Json | null;
+          nutrition?: Json | null;
+          bilans?: Json | null;
+          assigned_bilans?: Json | null;
+          nutrition_logs?: Json | null;
+          performance_logs?: Json | null;
+          assigned_nutrition_plans?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       exercises: {
         Row: {
-          id: string
-          name: string
-          description: string | null
-          category: string | null
-          muscle_group: string | null
-          equipment: string | null
-          difficulty: string | null
-          video_url: string | null
-          image_url: string | null
-          type: string | null
-          secondary_muscle_groups: string[] | null
-          alternative_1_id: string | null
-          alternative_2_id: string | null
-          created_by: string | null
-          is_public: boolean | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          name: string;
+          description: string | null;
+          category: string | null;
+          muscle_group: string | null;
+          equipment: string | null;
+          difficulty: string | null;
+          video_url: string | null;
+          image_url: string | null;
+          type: string | null;
+          secondary_muscle_groups: string[] | null;
+          alternative_1_id: string | null;
+          alternative_2_id: string | null;
+          created_by: string | null;
+          is_public: boolean | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          category?: string | null
-          muscle_group?: string | null
-          equipment?: string | null
-          difficulty?: string | null
-          video_url?: string | null
-          image_url?: string | null
-          type?: string | null
-          secondary_muscle_groups?: string[] | null
-          alternative_1_id?: string | null
-          alternative_2_id?: string | null
-          created_by?: string | null
-          is_public?: boolean | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          name: string;
+          description?: string | null;
+          category?: string | null;
+          muscle_group?: string | null;
+          equipment?: string | null;
+          difficulty?: string | null;
+          video_url?: string | null;
+          image_url?: string | null;
+          type?: string | null;
+          secondary_muscle_groups?: string[] | null;
+          alternative_1_id?: string | null;
+          alternative_2_id?: string | null;
+          created_by?: string | null;
+          is_public?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          category?: string | null
-          muscle_group?: string | null
-          equipment?: string | null
-          difficulty?: string | null
-          video_url?: string | null
-          image_url?: string | null
-          type?: string | null
-          secondary_muscle_groups?: string[] | null
-          alternative_1_id?: string | null
-          alternative_2_id?: string | null
-          created_by?: string | null
-          is_public?: boolean | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          name?: string;
+          description?: string | null;
+          category?: string | null;
+          muscle_group?: string | null;
+          equipment?: string | null;
+          difficulty?: string | null;
+          video_url?: string | null;
+          image_url?: string | null;
+          type?: string | null;
+          secondary_muscle_groups?: string[] | null;
+          alternative_1_id?: string | null;
+          alternative_2_id?: string | null;
+          created_by?: string | null;
+          is_public?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       programs: {
         Row: {
-          id: string
-          name: string
-          description: string | null
-          coach_id: string | null
-          max_weeks: number | null
-          goal: string | null
-          sessions_per_week: number | null
-          is_template: boolean | null
-          is_public: boolean | null
-          created_by: string | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          name: string;
+          description: string | null;
+          coach_id: string | null;
+          max_weeks: number | null;
+          goal: string | null;
+          sessions_per_week: number | null;
+          is_template: boolean | null;
+          is_public: boolean | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          coach_id?: string | null
-          max_weeks?: number | null
-          goal?: string | null
-          sessions_per_week?: number | null
-          is_template?: boolean | null
-          is_public?: boolean | null
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          name: string;
+          description?: string | null;
+          coach_id?: string | null;
+          max_weeks?: number | null;
+          goal?: string | null;
+          sessions_per_week?: number | null;
+          is_template?: boolean | null;
+          is_public?: boolean | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          coach_id?: string | null
-          max_weeks?: number | null
-          goal?: string | null
-          sessions_per_week?: number | null
-          is_template?: boolean | null
-          is_public?: boolean | null
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          name?: string;
+          description?: string | null;
+          coach_id?: string | null;
+          max_weeks?: number | null;
+          goal?: string | null;
+          sessions_per_week?: number | null;
+          is_template?: boolean | null;
+          is_public?: boolean | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       sessions: {
         Row: {
-          id: string
-          program_id: string | null
-          name: string
-          day_of_week: number | null
-          exercises: Json
-          notes: string | null
-          description: string | null
-          week_number: number | null
-          session_order: number | null
-          is_template: boolean | null
-          created_by: string | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          program_id: string | null;
+          name: string;
+          day_of_week: number | null;
+          exercises: Json;
+          notes: string | null;
+          description: string | null;
+          week_number: number | null;
+          session_order: number | null;
+          is_template: boolean | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          program_id?: string | null
-          name: string
-          day_of_week?: number | null
-          exercises: Json
-          notes?: string | null
-          description?: string | null
-          week_number?: number | null
-          session_order?: number | null
-          is_template?: boolean | null
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          program_id?: string | null;
+          name: string;
+          day_of_week?: number | null;
+          exercises: Json;
+          notes?: string | null;
+          description?: string | null;
+          week_number?: number | null;
+          session_order?: number | null;
+          is_template?: boolean | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          program_id?: string | null
-          name?: string
-          day_of_week?: number | null
-          exercises?: Json
-          notes?: string | null
-          description?: string | null
-          week_number?: number | null
-          session_order?: number | null
-          is_template?: boolean | null
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          program_id?: string | null;
+          name?: string;
+          day_of_week?: number | null;
+          exercises?: Json;
+          notes?: string | null;
+          description?: string | null;
+          week_number?: number | null;
+          session_order?: number | null;
+          is_template?: boolean | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       nutrition_plans: {
         Row: {
-          id: string
-          name: string
-          description: string | null
-          coach_id: string | null
-          client_id: string | null
-          plan_type: string | null
-          content: Json
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          name: string;
+          description: string | null;
+          coach_id: string | null;
+          client_id: string | null;
+          plan_type: string | null;
+          content: Json;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          coach_id?: string | null
-          client_id?: string | null
-          plan_type?: string | null
-          content: Json
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          name: string;
+          description?: string | null;
+          coach_id?: string | null;
+          client_id?: string | null;
+          plan_type?: string | null;
+          content: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          coach_id?: string | null
-          client_id?: string | null
-          plan_type?: string | null
-          content?: Json
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          name?: string;
+          description?: string | null;
+          coach_id?: string | null;
+          client_id?: string | null;
+          plan_type?: string | null;
+          content?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       messages: {
         Row: {
-          id: string
-          sender_id: string | null
-          recipient_id: string | null
-          subject: string | null
-          content: string
-          read: boolean
-          is_voice: boolean | null
-          voice_url: string | null
-          created_at: string
-        }
+          id: string;
+          sender_id: string | null;
+          recipient_id: string | null;
+          subject: string | null;
+          content: string;
+          read: boolean;
+          is_voice: boolean | null;
+          voice_url: string | null;
+          created_at: string;
+        };
         Insert: {
-          id?: string
-          sender_id?: string | null
-          recipient_id?: string | null
-          subject?: string | null
-          content: string
-          read?: boolean
-          is_voice?: boolean | null
-          voice_url?: string | null
-          created_at?: string
-        }
+          id?: string;
+          sender_id?: string | null;
+          recipient_id?: string | null;
+          subject?: string | null;
+          content: string;
+          read?: boolean;
+          is_voice?: boolean | null;
+          voice_url?: string | null;
+          created_at?: string;
+        };
         Update: {
-          id?: string
-          sender_id?: string | null
-          recipient_id?: string | null
-          subject?: string | null
-          content?: string
-          read?: boolean
-          is_voice?: boolean | null
-          voice_url?: string | null
-          created_at?: string
-        }
-      }
+          id?: string;
+          sender_id?: string | null;
+          recipient_id?: string | null;
+          subject?: string | null;
+          content?: string;
+          read?: boolean;
+          is_voice?: boolean | null;
+          voice_url?: string | null;
+          created_at?: string;
+        };
+      };
       notifications: {
         Row: {
-          id: string
-          user_id: string | null
-          title: string
-          message: string
-          type: string | null
-          read: boolean
-          created_at: string
-        }
+          id: string;
+          user_id: string | null;
+          title: string;
+          message: string;
+          type: string | null;
+          read: boolean;
+          created_at: string;
+        };
         Insert: {
-          id?: string
-          user_id?: string | null
-          title: string
-          message: string
-          type?: string | null
-          read?: boolean
-          created_at?: string
-        }
+          id?: string;
+          user_id?: string | null;
+          title: string;
+          message: string;
+          type?: string | null;
+          read?: boolean;
+          created_at?: string;
+        };
         Update: {
-          id?: string
-          user_id?: string | null
-          title?: string
-          message?: string
-          type?: string | null
-          read?: boolean
-          created_at?: string
-        }
-      }
+          id?: string;
+          user_id?: string | null;
+          title?: string;
+          message?: string;
+          type?: string | null;
+          read?: boolean;
+          created_at?: string;
+        };
+      };
       food_items: {
         Row: {
-          id: string
-          name: string
-          category: string | null
-          calories: number | null
-          protein: number | null
-          carbs: number | null
-          fat: number | null
-          serving_size: string | null
-          food_family: string | null
-          micronutrients: Json | null
-          created_by: string | null
-          is_public: boolean | null
-          created_at: string
-        }
+          id: string;
+          name: string;
+          category: string | null;
+          calories: number | null;
+          protein: number | null;
+          carbs: number | null;
+          fat: number | null;
+          serving_size: string | null;
+          food_family: string | null;
+          micronutrients: Json | null;
+          created_by: string | null;
+          is_public: boolean | null;
+          created_at: string;
+        };
         Insert: {
-          id?: string
-          name: string
-          category?: string | null
-          calories?: number | null
-          protein?: number | null
-          carbs?: number | null
-          fat?: number | null
-          serving_size?: string | null
-          food_family?: string | null
-          micronutrients?: Json | null
-          created_by?: string | null
-          is_public?: boolean | null
-          created_at?: string
-        }
+          id?: string;
+          name: string;
+          category?: string | null;
+          calories?: number | null;
+          protein?: number | null;
+          carbs?: number | null;
+          fat?: number | null;
+          serving_size?: string | null;
+          food_family?: string | null;
+          micronutrients?: Json | null;
+          created_by?: string | null;
+          is_public?: boolean | null;
+          created_at?: string;
+        };
         Update: {
-          id?: string
-          name?: string
-          category?: string | null
-          calories?: number | null
-          protein?: number | null
-          carbs?: number | null
-          fat?: number | null
-          serving_size?: string | null
-          food_family?: string | null
-          micronutrients?: Json | null
-          created_by?: string | null
-          is_public?: boolean | null
-          created_at?: string
-        }
-      }
+          id?: string;
+          name?: string;
+          category?: string | null;
+          calories?: number | null;
+          protein?: number | null;
+          carbs?: number | null;
+          fat?: number | null;
+          serving_size?: string | null;
+          food_family?: string | null;
+          micronutrients?: Json | null;
+          created_by?: string | null;
+          is_public?: boolean | null;
+          created_at?: string;
+        };
+      };
       bilan_templates: {
         Row: {
-          id: string
-          name: string
-          description: string | null
-          sections: Json
-          coach_id: string | null
-          is_public: boolean
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          name: string;
+          description: string | null;
+          sections: Json;
+          coach_id: string | null;
+          is_public: boolean;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          sections: Json
-          coach_id?: string | null
-          is_public?: boolean
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          name: string;
+          description?: string | null;
+          sections: Json;
+          coach_id?: string | null;
+          is_public?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          sections?: Json
-          coach_id?: string | null
-          is_public?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          name?: string;
+          description?: string | null;
+          sections?: Json;
+          coach_id?: string | null;
+          is_public?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       intensification_techniques: {
         Row: {
-          id: string
-          name: string
-          description: string | null
-          adds_sub_series: boolean | null
-          sub_series_config: Json | null
-          created_by: string | null
-          is_public: boolean | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          name: string;
+          description: string | null;
+          adds_sub_series: boolean | null;
+          sub_series_config: Json | null;
+          created_by: string | null;
+          is_public: boolean | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          adds_sub_series?: boolean | null
-          sub_series_config?: Json | null
-          created_by?: string | null
-          is_public?: boolean | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          name: string;
+          description?: string | null;
+          adds_sub_series?: boolean | null;
+          sub_series_config?: Json | null;
+          created_by?: string | null;
+          is_public?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          adds_sub_series?: boolean | null
-          sub_series_config?: Json | null
-          created_by?: string | null
-          is_public?: boolean | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          name?: string;
+          description?: string | null;
+          adds_sub_series?: boolean | null;
+          sub_series_config?: Json | null;
+          created_by?: string | null;
+          is_public?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       program_assignments: {
         Row: {
-          id: string
-          program_id: string
-          client_id: string
-          coach_id: string
-          start_date: string
-          end_date: string | null
-          current_week: number | null
-          current_session: number | null
-          status: string | null
-          customizations: Json | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          program_id: string;
+          client_id: string;
+          coach_id: string;
+          start_date: string;
+          end_date: string | null;
+          current_week: number | null;
+          current_session: number | null;
+          status: string | null;
+          customizations: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          program_id: string
-          client_id: string
-          coach_id: string
-          start_date: string
-          end_date?: string | null
-          current_week?: number | null
-          current_session?: number | null
-          status?: string | null
-          customizations?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          program_id: string;
+          client_id: string;
+          coach_id: string;
+          start_date: string;
+          end_date?: string | null;
+          current_week?: number | null;
+          current_session?: number | null;
+          status?: string | null;
+          customizations?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          program_id?: string
-          client_id?: string
-          coach_id?: string
-          start_date?: string
-          end_date?: string | null
-          current_week?: number | null
-          current_session?: number | null
-          status?: string | null
-          customizations?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          program_id?: string;
+          client_id?: string;
+          coach_id?: string;
+          start_date?: string;
+          end_date?: string | null;
+          current_week?: number | null;
+          current_session?: number | null;
+          status?: string | null;
+          customizations?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       performance_logs: {
         Row: {
-          id: string
-          client_id: string
-          program_assignment_id: string | null
-          session_id: string | null
-          session_date: string
-          week_number: number | null
-          session_number: number | null
-          exercises_performed: Json
-          session_order_modified: Json | null
-          questionnaire_responses: Json | null
-          total_duration_minutes: number | null
-          total_tonnage: number | null
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          client_id: string;
+          program_assignment_id: string | null;
+          session_id: string | null;
+          session_date: string;
+          week_number: number | null;
+          session_number: number | null;
+          exercises_performed: Json;
+          session_order_modified: Json | null;
+          questionnaire_responses: Json | null;
+          total_duration_minutes: number | null;
+          total_tonnage: number | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          client_id: string
-          program_assignment_id?: string | null
-          session_id?: string | null
-          session_date: string
-          week_number?: number | null
-          session_number?: number | null
-          exercises_performed: Json
-          session_order_modified?: Json | null
-          questionnaire_responses?: Json | null
-          total_duration_minutes?: number | null
-          total_tonnage?: number | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          client_id: string;
+          program_assignment_id?: string | null;
+          session_id?: string | null;
+          session_date: string;
+          week_number?: number | null;
+          session_number?: number | null;
+          exercises_performed: Json;
+          session_order_modified?: Json | null;
+          questionnaire_responses?: Json | null;
+          total_duration_minutes?: number | null;
+          total_tonnage?: number | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          client_id?: string
-          program_assignment_id?: string | null
-          session_id?: string | null
-          session_date?: string
-          week_number?: number | null
-          session_number?: number | null
-          exercises_performed?: Json
-          session_order_modified?: Json | null
-          questionnaire_responses?: Json | null
-          total_duration_minutes?: number | null
-          total_tonnage?: number | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          client_id?: string;
+          program_assignment_id?: string | null;
+          session_id?: string | null;
+          session_date?: string;
+          week_number?: number | null;
+          session_number?: number | null;
+          exercises_performed?: Json;
+          session_order_modified?: Json | null;
+          questionnaire_responses?: Json | null;
+          total_duration_minutes?: number | null;
+          total_tonnage?: number | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       recipes: {
         Row: {
-          id: string
-          name: string
-          description: string | null
-          ingredients: Json
-          preparation_steps: string[] | null
-          total_calories: number | null
-          total_protein: number | null
-          total_carbs: number | null
-          total_fat: number | null
-          servings: number | null
-          prep_time_minutes: number | null
-          cook_time_minutes: number | null
-          image_url: string | null
-          created_by: string | null
-          is_public: boolean | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          name: string;
+          description: string | null;
+          ingredients: Json;
+          preparation_steps: string[] | null;
+          total_calories: number | null;
+          total_protein: number | null;
+          total_carbs: number | null;
+          total_fat: number | null;
+          servings: number | null;
+          prep_time_minutes: number | null;
+          cook_time_minutes: number | null;
+          image_url: string | null;
+          created_by: string | null;
+          is_public: boolean | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          ingredients: Json
-          preparation_steps?: string[] | null
-          total_calories?: number | null
-          total_protein?: number | null
-          total_carbs?: number | null
-          total_fat?: number | null
-          servings?: number | null
-          prep_time_minutes?: number | null
-          cook_time_minutes?: number | null
-          image_url?: string | null
-          created_by?: string | null
-          is_public?: boolean | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          name: string;
+          description?: string | null;
+          ingredients: Json;
+          preparation_steps?: string[] | null;
+          total_calories?: number | null;
+          total_protein?: number | null;
+          total_carbs?: number | null;
+          total_fat?: number | null;
+          servings?: number | null;
+          prep_time_minutes?: number | null;
+          cook_time_minutes?: number | null;
+          image_url?: string | null;
+          created_by?: string | null;
+          is_public?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          ingredients?: Json
-          preparation_steps?: string[] | null
-          total_calories?: number | null
-          total_protein?: number | null
-          total_carbs?: number | null
-          total_fat?: number | null
-          servings?: number | null
-          prep_time_minutes?: number | null
-          cook_time_minutes?: number | null
-          image_url?: string | null
-          created_by?: string | null
-          is_public?: boolean | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          name?: string;
+          description?: string | null;
+          ingredients?: Json;
+          preparation_steps?: string[] | null;
+          total_calories?: number | null;
+          total_protein?: number | null;
+          total_carbs?: number | null;
+          total_fat?: number | null;
+          servings?: number | null;
+          prep_time_minutes?: number | null;
+          cook_time_minutes?: number | null;
+          image_url?: string | null;
+          created_by?: string | null;
+          is_public?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       nutrition_plan_assignments: {
         Row: {
-          id: string
-          nutrition_plan_id: string
-          client_id: string
-          coach_id: string
-          start_date: string
-          end_date: string | null
-          status: string | null
-          customizations: Json | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          nutrition_plan_id: string;
+          client_id: string;
+          coach_id: string;
+          start_date: string;
+          end_date: string | null;
+          status: string | null;
+          customizations: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          nutrition_plan_id: string
-          client_id: string
-          coach_id: string
-          start_date: string
-          end_date?: string | null
-          status?: string | null
-          customizations?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          nutrition_plan_id: string;
+          client_id: string;
+          coach_id: string;
+          start_date: string;
+          end_date?: string | null;
+          status?: string | null;
+          customizations?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          nutrition_plan_id?: string
-          client_id?: string
-          coach_id?: string
-          start_date?: string
-          end_date?: string | null
-          status?: string | null
-          customizations?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          nutrition_plan_id?: string;
+          client_id?: string;
+          coach_id?: string;
+          start_date?: string;
+          end_date?: string | null;
+          status?: string | null;
+          customizations?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       nutrition_logs: {
         Row: {
-          id: string
-          client_id: string
-          nutrition_plan_assignment_id: string | null
-          log_date: string
-          meals: Json
-          total_calories: number | null
-          total_protein: number | null
-          total_carbs: number | null
-          total_fat: number | null
-          adherence_score: number | null
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          client_id: string;
+          nutrition_plan_assignment_id: string | null;
+          log_date: string;
+          meals: Json;
+          total_calories: number | null;
+          total_protein: number | null;
+          total_carbs: number | null;
+          total_fat: number | null;
+          adherence_score: number | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          client_id: string
-          nutrition_plan_assignment_id?: string | null
-          log_date: string
-          meals: Json
-          total_calories?: number | null
-          total_protein?: number | null
-          total_carbs?: number | null
-          total_fat?: number | null
-          adherence_score?: number | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          client_id: string;
+          nutrition_plan_assignment_id?: string | null;
+          log_date: string;
+          meals: Json;
+          total_calories?: number | null;
+          total_protein?: number | null;
+          total_carbs?: number | null;
+          total_fat?: number | null;
+          adherence_score?: number | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          client_id?: string
-          nutrition_plan_assignment_id?: string | null
-          log_date?: string
-          meals?: Json
-          total_calories?: number | null
-          total_protein?: number | null
-          total_carbs?: number | null
-          total_fat?: number | null
-          adherence_score?: number | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-    }
-  }
+          id?: string;
+          client_id?: string;
+          nutrition_plan_assignment_id?: string | null;
+          log_date?: string;
+          meals?: Json;
+          total_calories?: number | null;
+          total_protein?: number | null;
+          total_carbs?: number | null;
+          total_fat?: number | null;
+          adherence_score?: number | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+    };
+  };
 }

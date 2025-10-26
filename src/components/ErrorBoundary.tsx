@@ -14,7 +14,7 @@ interface State {
 
 /**
  * Error Boundary pour capturer les erreurs React et afficher un fallback
- * 
+ *
  * Utilisation :
  * <ErrorBoundary>
  *   <MonComposant />
@@ -41,7 +41,7 @@ class ErrorBoundary extends Component<Props, State> {
     console.error('Erreur capturée par Error Boundary:', error);
     console.error('Stack trace du composant:', errorInfo.componentStack);
     if (error.stack) {
-      console.error('Stack trace de l\'erreur:', error.stack);
+      console.error("Stack trace de l'erreur:", error.stack);
     }
 
     // Appeler le callback personnalisé si fourni
@@ -82,11 +82,11 @@ class ErrorBoundary extends Component<Props, State> {
                 />
               </svg>
             </div>
-            
+
             <h2 className="text-xl font-bold text-gray-900 text-center mb-2">
               Une erreur est survenue
             </h2>
-            
+
             <p className="text-gray-600 text-center mb-4">
               Nous sommes désolés, une erreur inattendue s'est produite. Veuillez réessayer.
             </p>
@@ -110,7 +110,7 @@ class ErrorBoundary extends Component<Props, State> {
                 Réessayer
               </button>
               <button
-                onClick={() => window.location.href = '/'}
+                onClick={() => (window.location.href = '/')}
                 className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
               >
                 Retour à l'accueil

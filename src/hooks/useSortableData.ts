@@ -23,15 +23,15 @@ export const useSortableData = <T extends object>(
 
         if (aValue === null || aValue === undefined) return 1;
         if (bValue === null || bValue === undefined) return -1;
-        
+
         const valA = typeof aValue === 'number' ? aValue : String(aValue).toLowerCase();
         const valB = typeof bValue === 'number' ? bValue : String(bValue).toLowerCase();
 
         if (valA < valB) {
-            return sortConfig.direction === 'ascending' ? -1 : 1;
+          return sortConfig.direction === 'ascending' ? -1 : 1;
         }
         if (valA > valB) {
-            return sortConfig.direction === 'ascending' ? 1 : -1;
+          return sortConfig.direction === 'ascending' ? 1 : -1;
         }
         return 0;
       });

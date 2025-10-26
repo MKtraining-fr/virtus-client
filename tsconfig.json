@@ -26,5 +26,7 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": ["src", "types.ts", "layouts", "pages", "components"],
+  "exclude": ["node_modules", "dist", "supabase/functions", "src/validation/schemas.test.ts"]
 }

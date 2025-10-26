@@ -16,11 +16,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const currentPath = window.location.hash.substring(1); // Utilise le hash pour HashRouter
 
     if (user) {
-      const targetPath = user.role === 'admin' ? '/app/admin/dashboard' 
-                       : user.role === 'coach' ? '/app/coach/dashboard'
-                       : '/app/client/dashboard';
+      const targetPath =
+        user.role === 'admin'
+          ? '/app/admin/dashboard'
+          : user.role === 'coach'
+            ? '/app/coach/dashboard'
+            : '/app/client/dashboard';
 
-      if (currentPath === '/login' || currentPath === '/set-password' || currentPath === '/app' || currentPath === '/app/') {
+      if (
+        currentPath === '/login' ||
+        currentPath === '/set-password' ||
+        currentPath === '/app' ||
+        currentPath === '/app/'
+      ) {
         navigate(targetPath, { replace: true });
       }
     } else {
@@ -70,4 +78,3 @@ export const useAuth = () => {
     stopImpersonating, // Utiliser la version surchargée avec navigation
   };
 };
-
