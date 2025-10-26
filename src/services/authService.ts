@@ -45,7 +45,7 @@ export const signUp = async (userData: SignUpData): Promise<{ user: any; error: 
     email: userData.email,
     password: userData.password,
     options: {
-     
+      // LIGNE emailRedirectTo SUPPRIMÉE pour utiliser le flux de confirmation par défaut
       data: {
         first_name: userData.firstName,
         last_name: userData.lastName,
@@ -188,7 +188,6 @@ export const updatePassword = async (newPassword: string): Promise<void> => {
 /**
  * Supprimer un utilisateur et son profil via une fonction RPC Postgres
  */
-// ... dans src/services/authService.ts
 export const deleteUserAndProfile = async (userIdToDelete: string, accessToken: string): Promise<void> => {
   logger.info("Appel de deleteUserAndProfile via RPC", { userIdToDelete });
   try {
@@ -196,8 +195,6 @@ export const deleteUserAndProfile = async (userIdToDelete: string, accessToken: 
     const { error } = await supabase.rpc('delete_user_and_profile', { user_id_text: userIdToDelete });
 
     if (error) {
-// ...
-
       logger.error("Erreur lors de l'appel RPC delete_user_and_profile:", { error, userIdToDelete });
       throw new Error(error.message || "Erreur lors de l'appel RPC de suppression.");
     }
