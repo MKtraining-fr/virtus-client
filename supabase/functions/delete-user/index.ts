@@ -1,13 +1,25 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // Utiliser l'origine spécifique pour la production
+const defaultCorsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS', // Ajout des méthodes autorisées
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-serve(async (req ) => {
+function buildCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") ?? req.headers.get("Origin") ?? "*";
+  const requestHeaders = req.headers.get("Access-Control-Request-Headers");
+
+  return {
+    ...defaultCorsHeaders,
+    ...(requestHeaders ? { 'Access-Control-Allow-Headers': requestHeaders } : {}),
+    'Access-Control-Allow-Origin': origin,
+    Vary: "Origin",
+  };
+}
+
+serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   // Gérer les requêtes OPTIONS (preflight)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
