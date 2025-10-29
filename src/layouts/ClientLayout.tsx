@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import ImpersonationBanner from '../components/ImpersonationBanner';
+import ViewBanner from '../components/ViewBanner';
 import ClientHeader from '../components/client/ClientHeader';
 import ClientBottomNav from '../components/client/ClientBottomNav';
 import { useAuth } from '../context/AuthContext';
@@ -44,7 +44,17 @@ const pathTitleMap: Record<string, string> = {
 
 const ClientLayout: React.FC = () => {
   const location = useLocation();
-  const { user, theme } = useAuth();
+  const { user, theme, currentViewRole } = useAuth();
+
+  // Redirection de l'administrateur si la vue n'est pas Client
+  if (user?.role === 'admin' && currentViewRole === 'admin') {
+    return <Navigate to="/app/admin/dashboard" replace />;
+  }
+  
+  // Si l'utilisateur n'est pas un admin, on vérifie que c'est bien un client
+  if (user?.role !== 'client' && currentViewRole !== 'client') {
+    return <Navigate to="/app/login" replace />;
+  }
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -93,7 +103,7 @@ const ClientLayout: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-client-dark font-sans dark:text-client-light">
-      <ImpersonationBanner />
+      <ViewBanner />
       <ClientHeader title={currentPageTitle} />
 
       <main className="flex-1 overflow-y-auto pb-20 px-4 pt-4">
