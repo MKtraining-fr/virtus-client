@@ -13,7 +13,8 @@ import Nutrition from '../pages/Nutrition.tsx';
 import Messaging from '../pages/Messaging.tsx';
 import ComingSoon from '../pages/ComingSoon.tsx';
 import ClientProfile from '../pages/ClientProfile.tsx';
-import ImpersonationBanner from '../components/ImpersonationBanner.tsx';
+import ViewBanner from '../components/ViewBanner.tsx';
+import { useAuth } from '../context/AuthContext';
 import CoachFormations from '../pages/coach/CoachFormations.tsx';
 import ProFormationDetail from '../pages/coach/ProFormationDetail.tsx';
 import NutritionLibrary from '../pages/coach/NutritionLibrary.tsx';
@@ -22,11 +23,23 @@ import BilanTemplates from '../pages/coach/BilanTemplates.tsx';
 import CoachShop from '../pages/coach/CoachShop.tsx';
 
 const CoachLayout: React.FC = () => {
+  const { user, currentViewRole } = useAuth();
+
+  // Redirection de l'administrateur si la vue n'est pas Coach
+  if (user?.role === 'admin' && currentViewRole === 'admin') {
+    return <Navigate to="/app/admin/dashboard" replace />;
+  }
+
+  // Si l'utilisateur n'est pas un admin, on vérifie que c'est bien un coach
+  if (user?.role !== 'coach' && currentViewRole !== 'coach') {
+    return <Navigate to="/app/login" replace />;
+  }
+
   return (
     <div className="flex h-screen bg-light-bg font-sans text-dark-text">
       <CoachSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <ImpersonationBanner />
+        <ViewBanner />
         <Header />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-light-bg p-6 md:p-8">
           <Routes>

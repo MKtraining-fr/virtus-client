@@ -8,7 +8,7 @@ import { logger } from '../utils/logger';
 // comme la navigation, mais ne fournit pas de contexte directement.
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
-  const { user, isAuthLoading, initializeAuth } = useAuthStore(); // Ajout de initializeAuth
+  const { user, isAuthLoading, initializeAuth, currentViewRole } = useAuthStore(); // Ajout de initializeAuth et currentViewRole
 
   // Initialisation de l'écouteur d'authentification au montage du composant
   useEffect(() => {
@@ -20,7 +20,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Récupération de loadData du store de données
     const { loadData } = useDataStore.getState();
-    loadData(user?.id || null);
+    const targetUserId = currentViewRole === 'admin' ? user?.id : (authStore.originalUser?.id || user?.id);
+    loadData(targetUserId || null);
 
     const currentPath = window.location.hash.substring(1) || '/'; // Utilise le hash pour HashRouter. Si vide, on considère la racine '/'
 
@@ -30,9 +31,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 
       const targetPath =
-        user.role === 'admin'
+        currentViewRole === 'admin'
           ? '/app/admin/dashboard'
-          : user.role === 'coach'
+          : currentViewRole === 'coach'
             ? '/app/coach/dashboard'
             : '/app/client/dashboard';
 
@@ -73,10 +74,10 @@ export const useAuth = () => {
     }
   };
 
-  const stopImpersonating = async () => {
+  const resetViewRole = async () => {
     try {
-      await authStore.stopImpersonating();
-      navigate('/admin/dashboard', { replace: true });
+      await authStore.resetViewRole();
+      navigate('/app/admin/dashboard', { replace: true });
     } catch (error) {
       logger.error("Erreur lors de l'arrêt de l'impersonation avec navigation", { error });
       throw error;
@@ -87,6 +88,7 @@ export const useAuth = () => {
     ...authStore,
     ...dataStore,
     logout, // Utiliser la version surchargée avec navigation
-    stopImpersonating, // Utiliser la version surchargée avec navigation
+    resetViewRole, // Utiliser la version surchargée avec navigation
+    setViewRole: authStore.setViewRole,
   };
 };

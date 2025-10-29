@@ -32,6 +32,7 @@ let unsubscribeFromAuthListener: (() => void) | null = null;
 interface AuthState {
   user: User | null;
   originalUser: User | null;
+  currentViewRole: 'admin' | 'coach' | 'client';
   isAuthLoading: boolean;
   isDataLoading: boolean;
   dataError: string | null;
@@ -48,8 +49,8 @@ interface AuthState {
   setUser: (user: User | null) => void;
   setOriginalUser: (user: User | null) => void;
   setTheme: (theme: 'light' | 'dark') => void;
-  impersonate: (userId: string) => void;
-  stopImpersonating: () => void;
+  setViewRole: (role: 'coach' | 'client') => void;
+  resetViewRole: () => void;
 }
 
 const THEME_KEY = 'virtus_theme';
@@ -71,6 +72,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return stored ? (JSON.parse(stored) as User) : null;
     } catch {
       return null;
+    }
+  })(),
+  currentViewRole: (() => {
+    try {
+      const stored = sessionStorage.getItem('virtus_current_view_role');
+      return stored === 'coach' || stored === 'client' ? stored : 'admin';
+    } catch {
+      return 'admin';
     }
   })(),
   isAuthLoading: true,
@@ -171,8 +180,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      set({ user: null, originalUser: null });
+      set({ user: null, originalUser: null, currentViewRole: 'admin' });
       sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
+      sessionStorage.removeItem('virtus_current_view_role');
     } catch (error) {
       logger.error('Erreur de déconnexion', { error });
       throw error;
@@ -323,68 +333,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  impersonate: async (userId: string) => {
-    logger.info("Impersonation de l'utilisateur", { userId });
-    try {
-      const {
-        data: { user: adminUser },
-      } = await supabase.auth.getUser();
-      if (adminUser) {
-        get().setOriginalUser(mapSupabaseClientToClient(adminUser as any));
-      }
-
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'supabase',
-        token: userId,
-      });
-
-      if (error) throw error;
-      if (data.user) {
-        const clientProfile = await getClientProfile(data.user.id);
-        if (clientProfile) {
-          set({ user: clientProfile });
-        } else {
-          throw new Error("Profil client introuvable pour l'utilisateur impersonné");
-        }
-      }
-    } catch (error) {
-      logger.error("Erreur lors de l'impersonation de l'utilisateur", { error });
-      throw error;
+  setViewRole: (role: 'coach' | 'client') => {
+    const user = get().user;
+    if (user?.role !== 'admin') {
+      logger.error("Seul un administrateur peut changer de vue.");
+      return;
     }
+    set({ currentViewRole: role, originalUser: user });
+    sessionStorage.setItem('virtus_current_view_role', role);
+    sessionStorage.setItem(ORIGINAL_USER_SESSION_KEY, JSON.stringify(user));
   },
 
-  stopImpersonating: async () => {
-    logger.info("Arrêt de l'impersonation");
-    try {
-      const originalUser = get().originalUser;
-      if (!originalUser) {
-        throw new Error("Aucun utilisateur original trouvé pour arrêter l'impersonation.");
-      }
-
-      await supabase.auth.signOut();
-
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'supabase',
-        token: originalUser.id,
-      });
-
-      if (error) throw error;
-
-      if (data.user) {
-        const adminProfile = await getClientProfile(data.user.id);
-        if (adminProfile) {
-          set({ user: adminProfile, originalUser: null });
-          sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
-        } else {
-          await supabase.auth.signOut();
-          sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
-          set({ user: null, originalUser: null });
-          throw new Error("Échec de la reconnexion à l'administrateur. Déconnexion forcée.");
-        }
-      }
-    } catch (error) {
-      logger.error("Erreur lors de l'arrêt de l'impersonation", { error });
-      throw error;
+  resetViewRole: () => {
+    const user = get().user;
+    if (user?.role !== 'admin') {
+      logger.error("Impossible de réinitialiser la vue : l'utilisateur n'est pas un administrateur.");
+      return;
     }
+    set({ currentViewRole: 'admin', originalUser: null });
+    sessionStorage.removeItem('virtus_current_view_role');
+    sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
   },
 }));

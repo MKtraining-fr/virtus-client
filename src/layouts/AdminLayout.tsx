@@ -5,7 +5,10 @@ import Header from '../components/Header.tsx';
 import AdminDashboard from '../pages/admin/AdminDashboard.tsx';
 import UserManagement from '../pages/admin/UserManagement.tsx';
 import DataImport from '../pages/admin/DataImport.tsx';
-import ImpersonationBanner from '../components/ImpersonationBanner.tsx';
+import ViewBanner from '../components/ViewBanner.tsx';
+import ViewSwitcherModal from '../components/ViewSwitcherModal.tsx';
+import { useAuth } from '../context/AuthContext';
+import { useLocation } from 'react-router-dom';
 import ProFormationManagement from '../pages/admin/ProFormationManagement.tsx';
 import AdminStatistics from '../pages/admin/AdminStatistics.tsx';
 import ShopManagement from '../pages/admin/ShopManagement.tsx';
@@ -13,11 +16,19 @@ import ClientFormationManagement from '../pages/admin/ClientFormationManagement.
 import WorkoutDatabase from '../pages/WorkoutDatabase.tsx';
 
 const AdminLayout: React.FC = () => {
+  const { currentViewRole } = useAuth();
+  const location = useLocation();
+  const isAdminView = currentViewRole === 'admin';
+
+  // Si l'utilisateur est en mode Coach ou Client, on le redirige vers le layout approprié
+  if (currentViewRole !== 'admin') {
+    return <Navigate to={`/app/${currentViewRole}/dashboard`} state={{ from: location }} replace />;
+  }
   return (
     <div className="flex h-screen bg-light-bg font-sans text-dark-text">
       <AdminSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <ImpersonationBanner />
+        <ViewBanner />
         <Header />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-light-bg p-6 md:p-8">
           <Routes>

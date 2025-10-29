@@ -2,10 +2,10 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import Button from './Button';
 
-const ImpersonationBanner: React.FC = () => {
-  const { user, originalUser, stopImpersonating } = useAuth();
+const ViewBanner: React.FC = () => {
+  const { user, originalUser, resetViewRole, currentViewRole } = useAuth();
 
-  if (!originalUser) {
+  if (currentViewRole === 'admin' || !originalUser) {
     return null;
   }
 
@@ -14,15 +14,15 @@ const ImpersonationBanner: React.FC = () => {
       <span>
         Vous naviguez en tant que{' '}
         <strong>
-          {user?.firstName} {user?.lastName}
+          {originalUser.firstName} {originalUser.lastName}
         </strong>{' '}
-        ({user?.role}).
+        (Vue {currentViewRole}).
       </span>
-      <Button variant="secondary" size="sm" onClick={stopImpersonating}>
+      <Button variant="secondary" size="sm" onClick={resetViewRole}>
         Retourner à la vue Admin
       </Button>
     </div>
   );
 };
 
-export default ImpersonationBanner;
+export default ViewBanner;
