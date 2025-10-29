@@ -27,12 +27,12 @@ const CoachLayout: React.FC = () => {
 
   // Redirection de l'administrateur si la vue n'est pas Coach
   if (user?.role === 'admin' && currentViewRole === 'admin') {
-    return <Navigate to="/app/admin/dashboard" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   // Si l'utilisateur n'est pas un admin, on vérifie que c'est bien un coach
   if (user?.role !== 'coach' && currentViewRole !== 'coach') {
-    return <Navigate to="/app/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return (
