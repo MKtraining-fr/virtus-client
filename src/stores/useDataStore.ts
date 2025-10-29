@@ -333,7 +333,6 @@ export const useDataStore = create<DataState>((set, get) => {
       // }
       // if (mealsData.data) {
       //   set({ meals: mealsData.data.map(mapSupabaseMealToMeal) });
-      // }
     } catch (error) {
       logger.error('Erreur lors du chargement des données', error as Error);
       set({ dataError: error instanceof Error ? error.message : 'Une erreur est survenue' });
