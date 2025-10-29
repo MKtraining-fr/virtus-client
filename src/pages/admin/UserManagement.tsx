@@ -33,15 +33,10 @@ const UserManagement: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const handleImpersonate = async (userId: string, role: 'coach' | 'client') => {
+  const handleImpersonate = async (userId: string) => {
     try {
+      // La fonction impersonate dans useAuth gère maintenant la redirection
       await impersonate(userId);
-      // Redirection après impersonation
-      if (role === 'coach') {
-        navigate('/app/coach');
-      } else if (role === 'client') {
-        navigate('/app/client');
-      }
     } catch (error) {
       logger.error("Échec de la prise de rôle", { error });
       alert("Échec de la prise de rôle. Voir la console pour les détails.");
@@ -355,7 +350,7 @@ const UserManagement: React.FC = () => {
                     </button>
                     {user.role !== 'admin' && (
                       <button
-                        onClick={() => handleImpersonate(user.id, user.role)}
+                        onClick={() => handleImpersonate(user.id)}
                         className="text-green-600 hover:text-green-900"
                       >
                         Prendre le rôle
