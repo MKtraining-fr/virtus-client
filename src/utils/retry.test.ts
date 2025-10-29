@@ -1,4 +1,4 @@
-import { test, expect, describe, vi } from 'vitest';
+import { test, expect, describe, vi, beforeEach } from 'vitest';
 import { retryAsync, isRetryableError, retryOnNetworkError } from './retry';
 
 // Mock du temps pour les tests de délai
@@ -65,7 +65,7 @@ describe('retry.ts', () => {
     expect(flakeyFn).toHaveBeenCalledTimes(3);
     expect(onRetry).toHaveBeenCalledTimes(2);
 
-    await expect(networkPromise).resolves.toBe('success');
+    await expect(promise).resolves.toBe("success");
   });
 
   test('isRetryableError détecte les erreurs temporaires', () => {

@@ -496,7 +496,7 @@ export const useDataStore = create<DataState>((set, get) => {
       // Remplacement de _internalUpdate par un appel direct
       const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true } as any) // is_read est le nom de la colonne dans la DB Supabase
+        .update({ is_read: true } as Tables<'notifications'>['Update']) // is_read est le nom de la colonne dans la DB Supabase
         .eq('id', notificationId);
 
       if (error) {
@@ -539,7 +539,7 @@ export const useDataStore = create<DataState>((set, get) => {
       try {
         const { data, error } = await supabase
           .from('clients')
-          .update(mapClientToSupabaseClient(userData as Client) as any)
+          .update(mapClientToSupabaseClient(userData as Client) as Tables<'clients'>['Update'])
           .eq('id', userId)
           .select()
           .single();
@@ -634,7 +634,7 @@ export const useDataStore = create<DataState>((set, get) => {
           .update({
             ...programData,
             updated_at: new Date().toISOString(),
-          } as any)
+          } as Tables<'programs'>['Update'])
           .eq('id', programId)
           .select()
           .single();
@@ -712,7 +712,7 @@ export const useDataStore = create<DataState>((set, get) => {
             ...templateData,
             updated_at: new Date().toISOString(),
             sections: templateData.sections,
-          } as any)
+          } as Tables<'bilan_templates'>['Update'])
           .eq('id', templateId)
           .select()
           .single();
@@ -813,7 +813,7 @@ export const useDataStore = create<DataState>((set, get) => {
       try {
         const { data, error } = await supabase
           .from('nutrition_plans')
-          .update(planData as any)
+          .update(planData as Tables<'nutrition_plans'>['Update'])
           .eq('id', planId)
           .select()
           .single();
@@ -867,7 +867,7 @@ export const useDataStore = create<DataState>((set, get) => {
       try {
         const { data, error } = await supabase
           .from('messages')
-          .update({ is_read: true } as any)
+          .update({ is_read: true } as Tables<'messages'>['Update'])
           .eq('id', messageId)
           .select()
           .single();

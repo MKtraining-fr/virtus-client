@@ -29,7 +29,7 @@ class Logger {
   constructor() {
     // @ts-ignore
     this.isDevelopment =
-      typeof import.meta.env !== 'undefined'
+      typeof import.meta !== 'undefined' && typeof import.meta.env !== 'undefined'
         ? // @ts-ignore
           import.meta.env.MODE === 'development'
         : process.env.NODE_ENV === 'development';
