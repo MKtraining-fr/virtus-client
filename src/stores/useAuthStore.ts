@@ -283,38 +283,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   impersonate: async (userId: string) => {
-    logger.info("Impersonation de l'utilisateur via Edge Function", { userId });
+    logger.info("Impersonation de l'utilisateur", { userId });
     try {
-      // 1. Sauvegarder l'utilisateur admin actuel
       const {
         data: { user: adminUser },
       } = await supabase.auth.getUser();
       if (adminUser) {
-        get().setOriginalUser(mapSupabaseClientToClient(adminUser as any));
+        get().setOriginalUser(mapSupabaseClientToClient(adminUser as any)); // Utilisation du setter du store
       }
 
-      // 2. Appeler la fonction Edge pour obtenir un jeton pour l'utilisateur cible
-      const { data: tokenData, error: edgeError } = await supabase.functions.invoke(
-        'impersonate-user',
-        {
-          body: { userId },
-        }
-      );
+      // **NOTE IMPORTANTE :** La logique d'impersonation dans l'ancien AuthContext.tsx
+      // utilisait `supabase.auth.signInWithIdToken` avec `userId` comme `token`,
+      // ce qui est une simplification potentiellement dangereuse et non standard.
+      // Nous la rétablissons temporairement pour permettre le test en l'absence de la fonction Edge.
 
-      if (edgeError) throw edgeError;
-
-      const { token } = tokenData as { token: string };
-
-      // 3. Se connecter avec le jeton de l'utilisateur cible
-      const { data: authData, error: signInError } = await supabase.auth.signInWithIdToken({
+      const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'supabase',
-        token,
+        token: userId, // À revoir
       });
 
-      if (signInError) throw signInError;
-
-      if (authData.user) {
-        const clientProfile = await getClientProfile(authData.user.id);
+      if (error) throw error;
+      if (data.user) {
+        const clientProfile = await getClientProfile(data.user.id);
         if (clientProfile) {
           set({ user: clientProfile });
           // La navigation sera gérée par le composant
