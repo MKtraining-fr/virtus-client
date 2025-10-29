@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { User, SignUpData, Client } from '../types';
 import { SignUpSchema, SignInSchema } from '../validation/schemas';
@@ -11,8 +12,6 @@ const getClientProfile = async (userId: string): Promise<Client | null> => {
     const { data, error } = await supabase.from('clients').select('*').eq('id', userId).single();
   
     if (error) {
-      // Si l'erreur est due à l'absence de ligne (client non trouvé), on retourne null.
-      // Sinon, on log l'erreur.
       if (error.code !== 'PGRST116') { // Code pour 'The result contains 0 rows'
         logger.error('Erreur lors de la récupération du profil:', error);
       }
@@ -41,24 +40,21 @@ interface AuthState {
   user: User | null;
   originalUser: User | null;
   isAuthLoading: boolean;
-  isDataLoading: boolean; // Maintenu ici temporairement pour la compatibilité
-  dataError: string | null; // Maintenu ici temporairement pour la compatibilité
+  isDataLoading: boolean;
+  dataError: string | null;
   theme: 'light' | 'dark';
 
-  // Actions d'authentification
+  // Actions
+  initializeAuth: () => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   register: (userData: SignUpData) => Promise<void>;
   resendInvitation: (email: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
-
-  // Actions de profil utilisateur
   setUser: (user: User | null) => void;
   setOriginalUser: (user: User | null) => void;
   setTheme: (theme: 'light' | 'dark') => void;
-
-  // Actions d'impersonation
   impersonate: (userId: string) => void;
   stopImpersonating: () => void;
 }
@@ -66,7 +62,6 @@ interface AuthState {
 const THEME_KEY = 'virtus_theme';
 const ORIGINAL_USER_SESSION_KEY = 'virtus_original_user';
 
-// Fonction utilitaire pour la persistance du thème
 const getInitialTheme = (): 'light' | 'dark' => {
   if (typeof window === 'undefined') {
     return 'light';
@@ -75,7 +70,6 @@ const getInitialTheme = (): 'light' | 'dark' => {
   return stored === 'dark' ? 'dark' : 'light';
 };
 
-// Création du store Zustand
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   originalUser: (() => {
@@ -87,9 +81,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   })(),
   isAuthLoading: true,
-  isDataLoading: true, // Sera géré par le store de données
-  dataError: null, // Sera géré par le store de données
+  isDataLoading: true,
+  dataError: null,
   theme: getInitialTheme(),
+
+  initializeAuth: () => {
+    onAuthStateChange(async (supabaseUser) => {
+      try {
+        if (supabaseUser) {
+          const clientProfile = await getClientProfile(supabaseUser.id);
+          if (clientProfile) {
+            set({ user: clientProfile, isAuthLoading: false });
+          } else {
+            set({ user: null, isAuthLoading: false });
+          }
+        } else {
+          set({ user: null, isAuthLoading: false });
+        }
+      } catch (error) {
+        logger.error("Erreur lors de l'initialisation de l'auth", { error });
+        set({ user: null, isAuthLoading: false });
+      }
+    });
+  },
 
   setUser: (user) => set({ user }),
   setOriginalUser: (originalUser) => {
@@ -298,17 +312,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         data: { user: adminUser },
       } = await supabase.auth.getUser();
       if (adminUser) {
-        get().setOriginalUser(mapSupabaseClientToClient(adminUser as any)); // Utilisation du setter du store
+        get().setOriginalUser(mapSupabaseClientToClient(adminUser as any));
       }
-
-      // **NOTE IMPORTANTE :** La logique d'impersonation dans l'ancien AuthContext.tsx
-      // utilisait `supabase.auth.signInWithIdToken` avec `userId` comme `token`,
-      // ce qui est une simplification potentiellement dangereuse et non standard.
-      // Nous la rétablissons temporairement pour permettre le test en l'absence de la fonction Edge.
 
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'supabase',
-        token: userId, // À revoir
+        token: userId,
       });
 
       if (error) throw error;
@@ -316,7 +325,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const clientProfile = await getClientProfile(data.user.id);
         if (clientProfile) {
           set({ user: clientProfile });
-          // La navigation sera gérée par le composant
         } else {
           throw new Error("Profil client introuvable pour l'utilisateur impersonné");
         }
@@ -331,31 +339,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     logger.info("Arrêt de l'impersonation");
     try {
       const originalUser = get().originalUser;
-      if (originalUser) {
-        // NOTE: La logique stopImpersonating utilise toujours l'ancienne méthode non standard.
-        // Pour la rendre cohérente, elle devrait aussi utiliser un token de session admin
-        // pour se reconnecter à l'admin. Pour l'instant, nous laissons la logique existante
-        // pour ne pas introduire de régression sur la déconnexion.
-        const { data, error } = await supabase.auth.signInWithIdToken({
-          provider: 'supabase',
-          token: originalUser.id, // À revoir (Utilise l'ancienne méthode)
-        });
-        if (error) throw error;
-        if (data.user) {
-          const adminProfile = await getClientProfile(data.user.id);
-          if (adminProfile) {
-            set({ user: adminProfile, originalUser: null });
-            sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
-            // La navigation sera gérée par le composant
-          } else {
-            // Si le profil admin n'est pas trouvé, on force la déconnexion
-            await supabase.auth.signOut();
-            sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
-            set({ user: null, originalUser: null });
-            throw new Error("Profil administrateur introuvable après arrêt de l'impersonation. Déconnexion forcée.");
-          }
+      if (!originalUser) {
+        throw new Error("Aucun utilisateur original trouvé pour arrêter l'impersonation.");
+      }
+
+      await supabase.auth.signOut();
+
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'supabase',
+        token: originalUser.id,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        const adminProfile = await getClientProfile(data.user.id);
+        if (adminProfile) {
+          set({ user: adminProfile, originalUser: null });
+          sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
         } else {
-          // Si signInWithIdToken échoue à retourner un utilisateur, on force la déconnexion
           await supabase.auth.signOut();
           sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
           set({ user: null, originalUser: null });
@@ -368,33 +370,3 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 }));
-
-// Mise en place de l'écouteur d'état d'authentification
-// Cette logique doit être exécutée une seule fois au démarrage de l'application.
-const initializeAuthListener = () => {
-  onAuthStateChange(async (supabaseUser) => {
-    const { isAuthLoading, setUser } = useAuthStore.getState();
-
-    if (!isAuthLoading) {
-      useAuthStore.setState({ isAuthLoading: true });
-    }
-
-    if (supabaseUser) {
-      const clientProfile = await getClientProfile(supabaseUser.id);
-      if (clientProfile) {
-        setUser(clientProfile);
-      } else {
-        logger.error('Profil client introuvable', { userId: supabaseUser.id });
-        setUser(null);
-      }
-    } else {
-      setUser(null);
-    }
-
-    useAuthStore.setState({ isAuthLoading: false });
-  });
-};
-
-
-
-

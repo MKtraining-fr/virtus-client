@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './src/context/AuthContext';
 
@@ -10,7 +10,11 @@ import ClientLayout from './layouts/ClientLayout.tsx';
 import LandingPage from './pages/LandingPage.tsx';
 
 const App: React.FC = () => {
-  const { user } = useAuth();
+  const { user, initializeAuth } = useAuth();
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   // This component decides which layout to show based on the user's role
   // It is always rendered within ProtectedRoute, so 'user' is guaranteed to exist.
