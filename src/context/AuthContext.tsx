@@ -22,9 +22,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { loadData } = useDataStore.getState();
     loadData(user?.id || null);
 
-    const currentPath = window.location.hash.substring(1); // Utilise le hash pour HashRouter
+    const currentPath = window.location.hash.substring(1) || '/'; // Utilise le hash pour HashRouter. Si vide, on considère la racine '/'
 
     if (user) {
+      // Si l'utilisateur est déjà connecté, on le redirige vers son tableau de bord
+      // uniquement s'il est sur une page publique (login, set-password, ou la page d'accueil '/')
+
+
       const targetPath =
         user.role === 'admin'
           ? '/app/admin/dashboard'
@@ -33,10 +37,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             : '/app/client/dashboard';
 
       if (
+        currentPath === '/' ||
         currentPath === '/login' ||
-        currentPath === '/set-password' ||
-        currentPath === '/app' ||
-        currentPath === '/app/'
+        currentPath === '/set-password'
       ) {
         navigate(targetPath, { replace: true });
       }

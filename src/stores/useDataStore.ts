@@ -199,6 +199,7 @@ export const useDataStore = create<DataState>((set, get) => {
       set({ isDataLoading: true, dataError: null });
 
       // Charger toutes les données en parallèle
+      // Les requêtes suivantes ont été commentées car elles semblent causer des problèmes de performance/404/ERR_INSUFFICIENT_RESOURCES
       const [
         clientsData,
         exercisesData,
@@ -210,11 +211,6 @@ export const useDataStore = create<DataState>((set, get) => {
         foodItemsData,
         bilanTemplatesData,
         assignmentsData, // Ajout de assignmentsData
-        partnersData,
-        productsData,
-        intensificationTechniquesData,
-        recipesData,
-        mealsData,
       ] = await Promise.all([
         supabase.from('clients').select('*'),
         supabase.from('exercises').select('*'),
@@ -226,11 +222,11 @@ export const useDataStore = create<DataState>((set, get) => {
         supabase.from('food_items').select('*'),
         supabase.from('bilan_templates').select('*'),
         supabase.from('bilan_assignments').select('*').eq('coach_id', userId), // Nouvelle requête
-        supabase.from('partners').select('*'),
-        supabase.from('products').select('*'),
-        supabase.from('intensification_techniques').select('*'),
-        supabase.from('recipes').select('*'),
-        supabase.from('meals').select('*'),
+        // supabase.from('partners').select('*'), // Commenté car problématique
+        // supabase.from('products').select('*'), // Commenté car problématique
+        // supabase.from('intensification_techniques').select('*'), // Commenté car problématique
+        // supabase.from('recipes').select('*'), // Commenté car problématique
+        // supabase.from('meals').select('*'), // Commenté car problématique
       ]);
 
       if (clientsData.error) {
@@ -321,25 +317,23 @@ export const useDataStore = create<DataState>((set, get) => {
         }
 
         set({ bilanTemplates: templates });
-      }
-      if (partnersData.data) {
-        set({ partners: partnersData.data as Partner[] });
-      }
-      if (productsData.data) {
-        set({ products: productsData.data as Product[] });
-      }
-      if (intensificationTechniquesData.data) {
-        set({
-          intensificationTechniques:
-            intensificationTechniquesData.data as IntensificationTechnique[],
-        });
-      }
-      if (recipesData.data) {
-        set({ recipes: recipesData.data as Meal[] });
-      }
-      if (mealsData.data) {
-        set({ meals: mealsData.data as Meal[] });
-      }
+
+      // Les lignes de set suivantes ont été commentées en raison des problèmes de chargement
+      // if (partnersData.data) {
+      //   set({ partners: partnersData.data as Partner[] });
+      // }
+      // if (productsData.data) {
+      //   set({ products: productsData.data as Product[] });
+      // }
+      // if (intensificationTechniquesData.data) {
+      //   set({ intensificationTechniques: intensificationTechniquesData.data as IntensificationTechnique[] });
+      // }
+      // if (recipesData.data) {
+      //   set({ recipes: recipesData.data.map(mapSupabaseMealToMeal) });
+      // }
+      // if (mealsData.data) {
+      //   set({ meals: mealsData.data.map(mapSupabaseMealToMeal) });
+      // }
     } catch (error) {
       logger.error('Erreur lors du chargement des données', error as Error);
       set({ dataError: error instanceof Error ? error.message : 'Une erreur est survenue' });
