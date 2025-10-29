@@ -2,8 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { HashRouter } from 'react-router-dom';
-import { AuthProviderLight } from './context/AuthContextLight';
-// import { AuthProvider } from './context/AuthContext'; // Remplacé par useAuthStore
+import { AuthProvider } from './context/AuthContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -14,10 +13,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <HashRouter>
-      <AuthProviderLight>
-        \n <App />
-        \n{' '}
-      </AuthProviderLight>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </HashRouter>
   </React.StrictMode>
 );
