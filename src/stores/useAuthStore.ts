@@ -283,29 +283,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   impersonate: async (userId: string) => {
-    logger.info("Impersonation de l'utilisateur", { userId });
+    logger.info("Impersonation de l'utilisateur via Edge Function", { userId });
     try {
+      // 1. Sauvegarder l'utilisateur admin actuel
       const {
         data: { user: adminUser },
       } = await supabase.auth.getUser();
       if (adminUser) {
-        get().setOriginalUser(mapSupabaseClientToClient(adminUser as any)); // Utilisation du setter du store
+        get().setOriginalUser(mapSupabaseClientToClient(adminUser as any));
       }
 
-      // **NOTE IMPORTANTE :** La logique d'impersonation dans l'ancien AuthContext.tsx
-      // utilisait `supabase.auth.signInWithIdToken` avec `userId` comme `token`,
-      // ce qui est une simplification potentiellement dangereuse et non standard.
-      // Je vais la laisser telle quelle pour le moment, mais elle devra être revue
-      // pour utiliser une fonction Edge sécurisée pour l'échange de jetons.
+      // 2. Appeler la fonction Edge pour obtenir un jeton pour l'utilisateur cible
+      const { data: tokenData, error: edgeError } = await supabase.functions.invoke(
+        'impersonate-user',
+        {
+          body: { userId },
+        }
+      );
 
-      const { data, error } = await supabase.auth.signInWithIdToken({
+      if (edgeError) throw edgeError;
+
+      const { token } = tokenData as { token: string };
+
+      // 3. Se connecter avec le jeton de l'utilisateur cible
+      const { data: authData, error: signInError } = await supabase.auth.signInWithIdToken({
         provider: 'supabase',
-        token: userId, // À revoir
+        token,
       });
 
-      if (error) throw error;
-      if (data.user) {
-        const clientProfile = await getClientProfile(data.user.id);
+      if (signInError) throw signInError;
+
+      if (authData.user) {
+        const clientProfile = await getClientProfile(authData.user.id);
         if (clientProfile) {
           set({ user: clientProfile });
           // La navigation sera gérée par le composant
@@ -324,9 +333,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const originalUser = get().originalUser;
       if (originalUser) {
+        // NOTE: La logique stopImpersonating utilise toujours l'ancienne méthode non standard.
+        // Pour la rendre cohérente, elle devrait aussi utiliser un token de session admin
+        // pour se reconnecter à l'admin. Pour l'instant, nous laissons la logique existante
+        // pour ne pas introduire de régression sur la déconnexion.
         const { data, error } = await supabase.auth.signInWithIdToken({
           provider: 'supabase',
-          token: originalUser.id, // À revoir
+          token: originalUser.id, // À revoir (Utilise l'ancienne méthode)
         });
         if (error) throw error;
         if (data.user) {
