@@ -171,7 +171,27 @@ export const useDataStore = create<DataState>((set, get) => {
   // Fonction de chargement des données (migrée de AuthContext.tsx)
   const loadData = async (userId: string | null) => {
     if (!userId) {
-      set({ isDataLoading: false });
+      set({
+        clients: [],
+        exercises: [],
+        programs: [],
+        sessions: [],
+        nutritionPlans: [],
+        messages: [],
+        clientFormations: [],
+        professionalFormations: [],
+        notifications: [],
+        foodItems: [],
+        bilanTemplates: [],
+        partners: [],
+        products: [],
+        intensificationTechniques: [],
+        recipes: [],
+        meals: [],
+        bilanAssignments: [],
+        isDataLoading: false,
+        dataError: null,
+      });
       return;
     }
 
@@ -920,41 +940,3 @@ export const useDataStore = create<DataState>((set, get) => {
     },
   };
 });
-
-// Écouter les changements d'authentification pour charger les données
-useAuthStore.subscribe((state, prevState) => {
-  const user = state.user;
-  const prevUser = prevState.user;
-
-  if (user && user.id !== prevUser?.id) {
-    // L'utilisateur vient de se connecter ou a changé (impersonation)
-    useDataStore.getState().loadData(user.id);
-  } else if (!user && prevUser) {
-    // L'utilisateur vient de se déconnecter
-    useDataStore.setState({
-      clients: [],
-      exercises: [],
-      programs: [],
-      sessions: [],
-      nutritionPlans: [],
-      messages: [],
-      clientFormations: [],
-      professionalFormations: [],
-      notifications: [],
-      foodItems: [],
-      bilanTemplates: [],
-      partners: [],
-      products: [],
-      intensificationTechniques: [],
-      recipes: [],
-      meals: [],
-      isDataLoading: false,
-      dataError: null,
-    });
-  }
-});
-
-// Initialiser le chargement des données si l'utilisateur est déjà dans le store (session persistante)
-if (useAuthStore.getState().user) {
-  useDataStore.getState().loadData(useAuthStore.getState().user!.id);
-}
