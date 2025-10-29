@@ -30,6 +30,7 @@ const AdminLayout: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <ViewBanner />
         <Header />
+        <ViewSwitcherModal isOpen={!isAdminView} onClose={() => {}} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-light-bg p-6 md:p-8">
           <Routes>
             <Route path="/" element={<AdminDashboard />} />
