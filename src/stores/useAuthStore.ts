@@ -339,8 +339,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
             // La navigation sera gérée par le composant
           } else {
-            throw new Error("Profil administrateur introuvable après arrêt de l'impersonation");
+            // Si le profil admin n'est pas trouvé, on force la déconnexion
+            await supabase.auth.signOut();
+            sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
+            set({ user: null, originalUser: null });
+            throw new Error("Profil administrateur introuvable après arrêt de l'impersonation. Déconnexion forcée.");
           }
+        } else {
+          // Si signInWithIdToken échoue à retourner un utilisateur, on force la déconnexion
+          await supabase.auth.signOut();
+          sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
+          set({ user: null, originalUser: null });
+          throw new Error("Échec de la reconnexion à l'administrateur. Déconnexion forcée.");
         }
       }
     } catch (error) {
