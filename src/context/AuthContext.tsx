@@ -18,6 +18,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     if (isAuthLoading) return;
 
+    // Récupération de loadData du store de données
+    const { loadData } = useDataStore.getState();
+    loadData(user?.id || null);
+
     const currentPath = window.location.hash.substring(1); // Utilise le hash pour HashRouter
 
     if (user) {
