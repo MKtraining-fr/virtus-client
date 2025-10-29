@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Button from './Button';
-import ImpersonationModal from './ImpersonationModal';
+import ViewSwitcherModal from './ViewSwitcherModal';
 import { useNavigate } from 'react-router-dom';
 import { BellIcon, ArrowLeftOnRectangleIcon } from '../constants/icons';
 
@@ -155,7 +155,7 @@ const Header: React.FC = () => {
           </div>
         </div>
       </header>
-      <ImpersonationModal
+      <ViewSwitcherModal
         isOpen={isImpersonationModalOpen}
         onClose={() => setIsImpersonationModalOpen(false)}
         roleToImpersonate={roleToImpersonate}
