@@ -20,7 +20,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Récupération de loadData du store de données
     const { loadData } = useDataStore.getState();
-    const targetUserId = currentViewRole === 'admin' ? user?.id : (authStore.originalUser?.id || user?.id);
+    const { originalUser } = useAuthStore.getState();
+    const targetUserId = currentViewRole === 'admin' ? user?.id : (originalUser?.id || user?.id);
     loadData(targetUserId || null);
 
     const currentPath = window.location.hash.substring(1) || '/'; // Utilise le hash pour HashRouter. Si vide, on considère la racine '/'
