@@ -15,14 +15,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initializeAuth();
   }, [initializeAuth]);
 
+  // Déclenche le chargement des données une fois l'authentification résolue
   useEffect(() => {
     if (isAuthLoading) return;
 
-    // Récupération de loadData du store de données
     const { loadData } = useDataStore.getState();
     loadData(user?.id || null);
+  }, [isAuthLoading, user?.id]); // Dépend de isAuthLoading et de l'ID utilisateur
 
-    const currentPath = window.location.hash.substring(1); // Utilise le hash pour HashRouter
+  // Gère la navigation une fois que l'authentification est résolue
+  useEffect(() => {
+    if (isAuthLoading) return;
+
+    const currentPath = window.location.hash.substring(1);
 
     if (user) {
       const targetPath =
