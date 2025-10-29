@@ -10,7 +10,7 @@ import ClientLayout from './layouts/ClientLayout.tsx';
 import LandingPage from './pages/LandingPage.tsx';
 
 const App: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAuthLoading, isDataLoading } = useAuth();
 
 
 
@@ -29,6 +29,15 @@ const App: React.FC = () => {
         return <Navigate to="/login" />;
     }
   };
+
+  if (isAuthLoading || isDataLoading) {
+    // Afficher un écran de chargement pendant l'initialisation
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-xl font-semibold">Chargement de l'application...</p>
+      </div>
+    );
+  }
 
   return (
     <Routes>
