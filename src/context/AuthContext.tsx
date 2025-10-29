@@ -90,5 +90,22 @@ export const useAuth = () => {
     logout, // Utiliser la version surchargée avec navigation
     resetViewRole, // Utiliser la version surchargée avec navigation
     setViewRole: authStore.setViewRole,
+    impersonate: async (userId: string) => {
+      try {
+        await authStore.impersonate(userId);
+        const impersonatedRole = authStore.getState().user?.role;
+        if (impersonatedRole === 'coach') {
+          navigate('/app/coach/dashboard', { replace: true });
+        } else if (impersonatedRole === 'client') {
+          navigate('/app/client/dashboard', { replace: true });
+        } else {
+          // Si l'usurpation a réussi mais le rôle n'est ni coach ni client (improbable), on va à l'admin dashboard
+          navigate('/app/admin/dashboard', { replace: true });
+        }
+      } catch (error) {
+        logger.error("Erreur lors de l'usurpation d'identité avec navigation", { error });
+        throw error;
+      }
+    },
   };
 };

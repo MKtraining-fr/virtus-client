@@ -11,7 +11,7 @@ const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isImpersonationModalOpen, setIsImpersonationModalOpen] = useState(false);
-  const [roleToImpersonate, setRoleToImpersonate] = useState<'coach' | 'client'>('client');
+  // Suppression de l'état roleToImpersonate qui n'est plus nécessaire
   const notificationRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = useMemo(() => {
@@ -55,10 +55,7 @@ const Header: React.FC = () => {
 
   if (!user) return null;
 
-  const handleOpenImpersonateModal = (role: 'coach' | 'client') => {
-    setRoleToImpersonate(role);
-    setIsImpersonationModalOpen(true);
-  };
+  // La fonction handleOpenImpersonateModal est supprimée car la modale ViewSwitcherModal permet de choisir le rôle.
 
   return (
     <>
@@ -69,16 +66,9 @@ const Header: React.FC = () => {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => handleOpenImpersonateModal('coach')}
+                onClick={() => setIsImpersonationModalOpen(true)}
               >
-                Vue Coach
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleOpenImpersonateModal('client')}
-              >
-                Vue Client
+                Basculer de vue
               </Button>
             </div>
           )}
@@ -158,7 +148,7 @@ const Header: React.FC = () => {
       <ViewSwitcherModal
         isOpen={isImpersonationModalOpen}
         onClose={() => setIsImpersonationModalOpen(false)}
-        roleToImpersonate={roleToImpersonate}
+
       />
     </>
   );

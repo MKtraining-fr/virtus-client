@@ -51,6 +51,7 @@ interface AuthState {
   setTheme: (theme: 'light' | 'dark') => void;
   setViewRole: (role: 'coach' | 'client') => void;
   resetViewRole: () => void;
+  impersonate: (userId: string) => Promise<void>;
 }
 
 const THEME_KEY = 'virtus_theme';
@@ -352,6 +353,40 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     set({ currentViewRole: 'admin', originalUser: null });
     sessionStorage.removeItem('virtus_current_view_role');
-    sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
-  },
-}));
+	    sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
+	  },
+	
+	  impersonate: async (userId: string) => {
+	    const adminUser = get().user;
+	    if (adminUser?.role !== 'admin') {
+	      logger.error("Seul un administrateur peut usurper l'identité.");
+	      throw new Error("Seul un administrateur peut usurper l'identité.");
+	    }
+	    set({ isAuthLoading: true });
+	    try {
+	      const impersonatedProfile = await getClientProfile(userId);
+	      if (!impersonatedProfile) {
+	        throw new Error("Profil utilisateur à usurper introuvable.");
+	      }
+	
+	      // L'usurpation se fait en changeant le user actuel pour le user cible
+	      // et en stockant l'admin original dans originalUser.
+	      set({
+	        user: impersonatedProfile,
+	        originalUser: adminUser,
+	        currentViewRole: impersonatedProfile.role as 'coach' | 'client',
+	      });
+	
+	      // Persistance de l'état d'usurpation dans sessionStorage
+	      sessionStorage.setItem(ORIGINAL_USER_SESSION_KEY, JSON.stringify(adminUser));
+	      sessionStorage.setItem('virtus_current_view_role', impersonatedProfile.role);
+	
+	      logger.info(`Usurpation réussie de l'utilisateur ${userId} en tant que ${impersonatedProfile.role}`);
+	    } catch (error) {
+	      logger.error("Échec de l'usurpation d'identité", { error });
+	      throw error;
+	    } finally {
+	      set({ isAuthLoading: false });
+	    }
+	  },
+	}));
