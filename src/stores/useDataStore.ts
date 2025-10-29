@@ -317,6 +317,7 @@ export const useDataStore = create<DataState>((set, get) => {
         }
 
         set({ bilanTemplates: templates });
+      }
 
       // Les lignes de set suivantes ont été commentées en raison des problèmes de chargement
       // if (partnersData.data) {
@@ -330,7 +331,8 @@ export const useDataStore = create<DataState>((set, get) => {
       // }
       // if (recipesData.data) {
       //   set({ recipes: recipesData.data.map(mapSupabaseMealToMeal) });
-       // if (mealsData.data) {
+      // }
+      // if (mealsData.data) {
       //   set({ meals: mealsData.data.map(mapSupabaseMealToMeal) });
       // }
     } catch (error) {
