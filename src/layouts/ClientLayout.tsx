@@ -48,12 +48,12 @@ const ClientLayout: React.FC = () => {
 
   // Redirection de l'administrateur si la vue n'est pas Client
   if (user?.role === 'admin' && currentViewRole === 'admin') {
-    return <Navigate to="/app/admin/dashboard" replace />;
+    return <Navigate to="/app" replace />;
   }
-  
+
   // Si l'utilisateur n'est pas un admin, on vérifie que c'est bien un client
   if (user?.role !== 'client' && currentViewRole !== 'client') {
-    return <Navigate to="/app/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   useEffect(() => {
