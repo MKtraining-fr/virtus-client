@@ -8,7 +8,7 @@ import { logger } from '../utils/logger';
 // comme la navigation, mais ne fournit pas de contexte directement.
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
-  const { user, isAuthLoading, initializeAuth, currentViewRole } = useAuthStore(); // Ajout de initializeAuth et currentViewRole
+  const { user, isAuthLoading, initializeAuth, currentViewRole, originalUser } = useAuthStore(); // Déstructuration de tout l'état du store ici pour un accès direct
 
   // Initialisation de l'écouteur d'authentification au montage du composant
   useEffect(() => {
@@ -20,7 +20,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Récupération de loadData du store de données
     const { loadData } = useDataStore.getState();
-    const { originalUser } = useAuthStore.getState();
     const targetUserId = currentViewRole === 'admin' ? user?.id : (originalUser?.id || user?.id);
     loadData(targetUserId || null);
 
