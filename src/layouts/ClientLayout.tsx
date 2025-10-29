@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import ViewBanner from '../components/ViewBanner';
+import ViewBanner from '../components/ViewBanner.tsx';sx';
 import ClientHeader from '../components/client/ClientHeader';
 import ClientBottomNav from '../components/client/ClientBottomNav';
 import { useAuth } from '../context/AuthContext';
