@@ -19,7 +19,9 @@ const App: React.FC = () => {
   const { user, isAuthLoading } = useAuth();
   const { isDataLoading } = useDataStore();
 
-  if (isAuthLoading || isDataLoading) {
+  const shouldDisplayLoading = isAuthLoading || (user && isDataLoading);
+
+  if (shouldDisplayLoading) {
     return <LoadingSpinner fullScreen message="Vérification de la session..." />;
   }
 
