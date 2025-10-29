@@ -1,5 +1,6 @@
 
 import { create } from 'zustand';
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { User, SignUpData, Client } from '../types';
 import { SignUpSchema, SignInSchema } from '../validation/schemas';
 import { logger } from '../utils/logger';
@@ -25,15 +26,7 @@ const getClientProfile = async (userId: string): Promise<Client | null> => {
   }
 };
 
-const onAuthStateChange = (callback: (user: any) => void) => {
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session?.user || null);
-  });
-
-  return () => subscription.unsubscribe();
-};
+let unsubscribeFromAuthListener: (() => void) | null = null;
 
 // Définition de l'état et des actions
 interface AuthState {
@@ -86,7 +79,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   theme: getInitialTheme(),
 
   initializeAuth: () => {
-    onAuthStateChange(async (supabaseUser) => {
+    if (unsubscribeFromAuthListener) {
+      return;
+    }
+
+    const handleSupabaseUser = async (supabaseUser: SupabaseAuthUser | null) => {
       try {
         if (supabaseUser) {
           const clientProfile = await getClientProfile(supabaseUser.id);
@@ -102,7 +99,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         logger.error("Erreur lors de l'initialisation de l'auth", { error });
         set({ user: null, isAuthLoading: false });
       }
+    };
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          throw error;
+        }
+        await handleSupabaseUser(data.session?.user ?? null);
+      } catch (error) {
+        logger.error('Erreur lors de la récupération de la session active', { error });
+        set({ user: null, isAuthLoading: false });
+      }
+    })();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      void handleSupabaseUser(session?.user ?? null);
     });
+
+    unsubscribeFromAuthListener = () => subscription.unsubscribe();
   },
 
   setUser: (user) => set({ user }),
