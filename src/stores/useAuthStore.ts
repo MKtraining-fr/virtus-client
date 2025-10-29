@@ -7,14 +7,23 @@ import { mapSupabaseClientToClient } from '../services/typeMappers';
 
 // Fonctions qui étaient dans authService.ts
 const getClientProfile = async (userId: string): Promise<Client | null> => {
-  const { data, error } = await supabase.from('clients').select('*').eq('id', userId).single();
-
-  if (error) {
-    logger.error('Erreur lors de la récupération du profil:', error);
+  try {
+    const { data, error } = await supabase.from('clients').select('*').eq('id', userId).single();
+  
+    if (error) {
+      // Si l'erreur est due à l'absence de ligne (client non trouvé), on retourne null.
+      // Sinon, on log l'erreur.
+      if (error.code !== 'PGRST116') { // Code pour 'The result contains 0 rows'
+        logger.error('Erreur lors de la récupération du profil:', error);
+      }
+      return null;
+    }
+  
+    return mapSupabaseClientToClient(data);
+  } catch (error) {
+    logger.error('Erreur inattendue lors de la récupération du profil:', error);
     return null;
   }
-
-  return mapSupabaseClientToClient(data);
 };
 
 const onAuthStateChange = (callback: (user: any) => void) => {
@@ -386,7 +395,6 @@ const initializeAuthListener = () => {
   });
 };
 
-// Exécuter l'écouteur une seule fois
-if (typeof window !== 'undefined') {
-  initializeAuthListener();
-}
+
+
+
