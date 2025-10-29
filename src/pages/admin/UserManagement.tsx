@@ -7,6 +7,7 @@ import Modal from '../../components/Modal';
 import Select from '../../components/Select';
 import { useAuth } from '../../context/AuthContext';
 import { useSortableData } from '../../hooks/useSortableData';
+import { useNavigate } from 'react-router-dom';
 import { logger } from '../../utils/logger';
 
 const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null }) => {
@@ -19,7 +20,8 @@ const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null 
 };
 
 const UserManagement: React.FC = () => {
-  const { clients: allUsers, addUser, updateUser, deleteUser, reloadData } = useAuth();
+  const { clients: allUsers, addUser, updateUser, deleteUser, reloadData, impersonate } = useAuth();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'coaches' | 'clients'>('all');
@@ -30,6 +32,21 @@ const UserManagement: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<Partial<Client> | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const handleImpersonate = async (userId: string, role: 'coach' | 'client') => {
+    try {
+      await impersonate(userId);
+      // Redirection après impersonation
+      if (role === 'coach') {
+        navigate('/app/coach');
+      } else if (role === 'client') {
+        navigate('/app/client');
+      }
+    } catch (error) {
+      logger.error("Échec de la prise de rôle", { error });
+      alert("Échec de la prise de rôle. Voir la console pour les détails.");
+    }
+  };
 
   const coaches = useMemo(() => allUsers.filter((u) => u.role === 'coach'), [allUsers]);
   const usersById = useMemo(() => {
@@ -336,6 +353,15 @@ const UserManagement: React.FC = () => {
                     >
                       Éditer
                     </button>
+                    {user.role !== 'admin' && (
+                      <button
+                        onClick={() => handleImpersonate(user.id, user.role)}
+                        className="text-green-600 hover:text-green-900"
+                      >
+                        Prendre le rôle
+                      </button>
+                    )
+                    }
                   </td>
                 </tr>
               ))}
