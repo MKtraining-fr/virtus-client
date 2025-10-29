@@ -8,7 +8,12 @@ import { logger } from '../utils/logger';
 // comme la navigation, mais ne fournit pas de contexte directement.
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
-  const { user, isAuthLoading } = useAuthStore();
+  const { user, isAuthLoading, initializeAuth } = useAuthStore(); // Ajout de initializeAuth
+
+  // Initialisation de l'écouteur d'authentification au montage du composant
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   useEffect(() => {
     if (isAuthLoading) return;
