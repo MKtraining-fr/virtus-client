@@ -10,14 +10,20 @@ import ClientLayout from './layouts/ClientLayout.tsx';
 import LandingPage from './pages/LandingPage.tsx';
 
 const App: React.FC = () => {
-  const { user, isAuthLoading, isDataLoading } = useAuth();
+  const { user, isAuthLoading, isDataLoading, currentViewRole } = useAuth();
 
 
 
   // This component decides which layout to show based on the user's role
   // It is always rendered within ProtectedRoute, so 'user' is guaranteed to exist.
   const RoleBasedLayout = () => {
-    switch (user!.role) {
+    if (!user) {
+      return <Navigate to="/login" replace />;
+    }
+
+    const effectiveRole = user.role === 'admin' ? currentViewRole : user.role;
+
+    switch (effectiveRole) {
       case 'admin':
         return <AdminLayout />;
       case 'coach':
@@ -26,7 +32,7 @@ const App: React.FC = () => {
         return <ClientLayout />;
       default:
         // This case should not be reached if ProtectedRoute and login logic are correct.
-        return <Navigate to="/login" />;
+        return <Navigate to="/login" replace />;
     }
   };
 
