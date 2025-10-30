@@ -40,6 +40,8 @@ const pathTitleMap: Record<string, string> = {
 const ClientLayout: React.FC = () => {
     const location = useLocation();
 
+    // Temporarily disabled camera permission request for testing
+    /*
     useEffect(() => {
         const requestCameraPermission = async () => {
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -55,6 +57,7 @@ const ClientLayout: React.FC = () => {
 
         requestCameraPermission();
     }, []);
+    */
 
     const currentPageTitle = useMemo(() => {
         const pathSuffix = location.pathname.split('/app')[1] || '/';
