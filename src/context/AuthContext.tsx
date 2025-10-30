@@ -20,20 +20,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Récupération de loadData du store de données
     const { loadData } = useDataStore.getState();
-    const targetUserId =
-      currentViewRole === 'admin'
-        ? originalUser?.id ?? user?.id ?? null
-        : user?.id ?? originalUser?.id ?? null;
-    void loadData(targetUserId);
+    const targetUserId = currentViewRole === 'admin' ? user?.id : (originalUser?.id || user?.id);
+    loadData(targetUserId || null);
 
     const currentPath = window.location.hash.substring(1) || '/'; // Utilise le hash pour HashRouter. Si vide, on considère la racine '/'
 
     if (user) {
       // Si l'utilisateur est déjà connecté, on le redirige vers son tableau de bord
       // uniquement s'il est sur une page publique (login, set-password, ou la page d'accueil '/')
-      const isOnPublicPage = ['/', '/login', '/set-password'].includes(currentPath);
-      if (isOnPublicPage) {
-        navigate('/app', { replace: true });
+
+
+      const targetPath =
+        currentViewRole === 'admin'
+          ? '/app/admin/dashboard'
+          : currentViewRole === 'coach'
+            ? '/app/coach/dashboard'
+            : '/app/client/dashboard';
+
+      if (
+        currentPath === '/' ||
+        currentPath === '/login' ||
+        currentPath === '/set-password'
+      ) {
+        navigate(targetPath, { replace: true });
       }
     } else {
       const publicPaths = ['/', '/login', '/set-password'];
@@ -41,7 +50,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         navigate('/login', { replace: true });
       }
     }
-  }, [user, originalUser, currentViewRole, isAuthLoading, navigate]);
+  }, [user, isAuthLoading, navigate]);
 
   return <>{children}</>;
 };
@@ -68,7 +77,7 @@ export const useAuth = () => {
   const resetViewRole = async () => {
     try {
       await authStore.resetViewRole();
-      navigate('/app', { replace: true });
+      navigate('/app/admin/dashboard', { replace: true });
     } catch (error) {
       logger.error("Erreur lors de l'arrêt de l'impersonation avec navigation", { error });
       throw error;
@@ -84,7 +93,15 @@ export const useAuth = () => {
     impersonate: async (userId: string) => {
       try {
         await authStore.impersonate(userId);
-        navigate('/app', { replace: true });
+        const impersonatedRole = authStore.getState().user?.role;
+        if (impersonatedRole === 'coach') {
+          navigate('/app/coach/dashboard', { replace: true });
+        } else if (impersonatedRole === 'client') {
+          navigate('/app/client/dashboard', { replace: true });
+        } else {
+          // Si l'usurpation a réussi mais le rôle n'est ni coach ni client (improbable), on va à l'admin dashboard
+          navigate('/app/admin/dashboard', { replace: true });
+        }
       } catch (error) {
         logger.error("Erreur lors de l'usurpation d'identité avec navigation", { error });
         throw error;

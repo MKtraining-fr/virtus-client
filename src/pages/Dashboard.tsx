@@ -101,7 +101,7 @@ const getLatestNote = (notes?: string): { display: string; full: string | null }
 };
 
 const Dashboard: React.FC = () => {
-  const { user, clients: allClients, messages, setClients } = useAuth();
+  const { user, clients: allClients, messages, setClients, currentViewRole } = useAuth();
   const navigate = useNavigate();
   const [filter, setFilter] = useState('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -109,9 +109,11 @@ const Dashboard: React.FC = () => {
 
   const clients = useMemo(() => {
     const activeClients = allClients.filter((p) => p.status === 'active' && p.role === 'client');
+    // Si l'utilisateur est un coach (ou un admin usurpant un coach, car user est l'utilisateur usurpé)
     if (user?.role === 'coach') {
       return activeClients.filter((c) => c.coachId === user.id);
     }
+    // Si l'utilisateur est un admin, il ne devrait pas être ici, mais on retourne tous les clients actifs par défaut
     return activeClients;
   }, [allClients, user]);
 
