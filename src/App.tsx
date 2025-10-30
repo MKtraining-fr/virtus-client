@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect, useRef } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { useDataStore } from './stores/useDataStore';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -16,10 +16,32 @@ const ClientLayout = lazy(() => import('./layouts/ClientLayout'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const App: React.FC = () => {
-  const { user, isAuthLoading } = useAuth();
+  const { user, isAuthLoading, currentViewRole } = useAuth();
   const { isDataLoading } = useDataStore();
+  const navigate = useNavigate();
+  const lastViewRoleRef = useRef(currentViewRole);
 
   const shouldDisplayLoading = isAuthLoading || (user && isDataLoading);
+
+  useEffect(() => {
+    if (!user) {
+      lastViewRoleRef.current = currentViewRole;
+      return;
+    }
+
+    if (user.role !== 'admin') {
+      lastViewRoleRef.current = user.role;
+      return;
+    }
+
+    if (lastViewRoleRef.current === currentViewRole) {
+      return;
+    }
+
+    const targetPath = currentViewRole === 'client' ? '/app/workout' : '/app';
+    navigate(targetPath, { replace: true });
+    lastViewRoleRef.current = currentViewRole;
+  }, [currentViewRole, navigate, user]);
 
   if (shouldDisplayLoading) {
     return <LoadingSpinner fullScreen message="Vérification de la session..." />;
@@ -28,7 +50,9 @@ const App: React.FC = () => {
   // This component decides which layout to show based on the user's role
   // It is always rendered within ProtectedRoute, so 'user' is guaranteed to exist.
   const RoleBasedLayout = () => {
-    switch (user!.role) {
+    const effectiveRole = user!.role === 'admin' ? currentViewRole : user!.role;
+
+    switch (effectiveRole) {
       case 'admin':
         return <AdminLayout />;
       case 'coach':
