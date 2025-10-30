@@ -62,6 +62,8 @@ const ClientLayout: React.FC = () => {
     root.classList.add(theme);
   }, [theme]);
 
+  // Temporarily disabled camera permission request for testing
+  /*
   useEffect(() => {
     const requestCameraPermission = async () => {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -77,6 +79,7 @@ const ClientLayout: React.FC = () => {
 
     requestCameraPermission();
   }, []);
+  */
 
   const currentPageTitle = useMemo(() => {
     const pathSuffix = location.pathname.split('/app')[1] || '/';
