@@ -65,7 +65,10 @@ export const saveClientCreatedProgram = async (
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Error (400):', error);
+      throw error;
+    }
     return data as ClientCreatedProgram;
   } catch (error) {
     console.error('Error saving client created program:', error);
