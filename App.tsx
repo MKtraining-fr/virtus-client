@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './src/context/AuthContext';
 
 import ProtectedRoute from './components/ProtectedRoute.tsx';
@@ -11,6 +11,23 @@ import LandingPage from './pages/LandingPage.tsx';
 
 const App: React.FC = () => {
   const { user, isAuthLoading, isDataLoading, currentViewRole } = useAuth();
+  const navigate = useNavigate();
+  const lastViewRoleRef = useRef(currentViewRole);
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') {
+      lastViewRoleRef.current = currentViewRole;
+      return;
+    }
+
+    if (lastViewRoleRef.current === currentViewRole) {
+      return;
+    }
+
+    const targetPath = currentViewRole === 'client' ? '/app/workout' : '/app';
+    navigate(targetPath, { replace: true });
+    lastViewRoleRef.current = currentViewRole;
+  }, [currentViewRole, navigate, user]);
 
 
 
