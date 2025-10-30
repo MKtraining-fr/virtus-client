@@ -22,7 +22,8 @@ const AdminLayout: React.FC = () => {
 
   // Si l'utilisateur est en mode Coach ou Client, on le redirige vers le layout approprié
   if (currentViewRole !== 'admin') {
-    return <Navigate to={`/app/${currentViewRole}/dashboard`} state={{ from: location }} replace />;
+    const targetPath = currentViewRole === 'client' ? '/app/workout' : '/app';
+    return <Navigate to={targetPath} state={{ from: location }} replace />;
   }
   return (
     <div className="flex h-screen bg-light-bg font-sans text-dark-text">
