@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './src/context/AuthContext';
 
 import ProtectedRoute from './components/ProtectedRoute.tsx';
@@ -10,14 +10,37 @@ import ClientLayout from './layouts/ClientLayout.tsx';
 import LandingPage from './pages/LandingPage.tsx';
 
 const App: React.FC = () => {
-  const { user, isAuthLoading, isDataLoading } = useAuth();
+  const { user, isAuthLoading, isDataLoading, currentViewRole } = useAuth();
+  const navigate = useNavigate();
+  const lastViewRoleRef = useRef(currentViewRole);
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') {
+      lastViewRoleRef.current = currentViewRole;
+      return;
+    }
+
+    if (lastViewRoleRef.current === currentViewRole) {
+      return;
+    }
+
+    const targetPath = currentViewRole === 'client' ? '/app/workout' : '/app';
+    navigate(targetPath, { replace: true });
+    lastViewRoleRef.current = currentViewRole;
+  }, [currentViewRole, navigate, user]);
 
 
 
   // This component decides which layout to show based on the user's role
   // It is always rendered within ProtectedRoute, so 'user' is guaranteed to exist.
   const RoleBasedLayout = () => {
-    switch (user!.role) {
+    if (!user) {
+      return <Navigate to="/login" replace />;
+    }
+
+    const effectiveRole = user.role === 'admin' ? currentViewRole : user.role;
+
+    switch (effectiveRole) {
       case 'admin':
         return <AdminLayout />;
       case 'coach':
@@ -26,7 +49,7 @@ const App: React.FC = () => {
         return <ClientLayout />;
       default:
         // This case should not be reached if ProtectedRoute and login logic are correct.
-        return <Navigate to="/login" />;
+        return <Navigate to="/login" replace />;
     }
   };
 
