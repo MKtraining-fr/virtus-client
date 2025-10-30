@@ -54,7 +54,7 @@ export const saveClientCreatedProgram = async (
       .from('client_programs')
       .insert({
         client_id: clientId,
-        coach_id: coachId || null,
+        coach_id: coachId,
         name: program.name,
         objective: program.objective,
         week_count: program.weekCount,

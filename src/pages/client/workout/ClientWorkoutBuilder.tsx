@@ -267,7 +267,7 @@ const ClientWorkoutBuilder: React.FC = () => {
     const savedProgram = await saveClientCreatedProgram(
       newProgram,
       user.id,
-      user.coachId
+      user.coachId || undefined
     );
 
     if (savedProgram) {
