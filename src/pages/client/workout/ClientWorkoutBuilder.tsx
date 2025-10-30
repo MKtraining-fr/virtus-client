@@ -8,6 +8,7 @@ import Modal from '../../../components/Modal';
 import InteractiveBodyDiagram from '../../../components/client/InteractiveBodyDiagram';
 import ClientAccordion from '../../../components/client/ClientAccordion';
 import ToggleSwitch from '../../../components/ToggleSwitch';
+import { saveClientCreatedProgram } from '../../../services/clientCreatedProgramService';
 import {
   ArrowLeftIcon,
   PlusIcon,
@@ -218,7 +219,7 @@ const ClientWorkoutBuilder: React.FC = () => {
     updateExerciseField(exerciseToUpdate.id, 'illustrationUrl', selectedEx.illustrationUrl);
   };
 
-  const handleSaveClient = () => {
+  const handleSaveClient = async () => {
     if (!user) return;
 
     const hasExercises = sessions.some(
@@ -262,15 +263,19 @@ const ClientWorkoutBuilder: React.FC = () => {
       };
     }
 
-    const updatedClients = clients.map((c) => {
-      if (c.id === user.id) {
-        return { ...c, savedPrograms: [...(c.savedPrograms || []), newProgram] };
-      }
-      return c;
-    });
-    setClients(updatedClients as Client[]);
-    alert(`"${newProgram.name}" a été enregistré dans "Mes Programmes" !`);
-    navigate('/app/workout/my-programs');
+    // Sauvegarder dans Supabase au lieu du contexte local
+    const savedProgram = await saveClientCreatedProgram(
+      newProgram,
+      user.id,
+      user.coachId
+    );
+
+    if (savedProgram) {
+      alert(`"${newProgram.name}" a été enregistré dans "Mes Programmes" !`);
+      navigate('/app/workout/my-programs');
+    } else {
+      alert('Erreur lors de l\'enregistrement du programme. Veuillez réessayer.');
+    }
   };
 
   return (
