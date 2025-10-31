@@ -250,7 +250,7 @@ const ClientWorkoutBuilder: React.FC = () => {
       }
       newProgram = {
         ...programBase,
-        objective: objective,
+        objective: objective || 'Programme sans objectif', // Assurer que l'objectif n'est pas vide
         weekCount: numWeeks,
         sessionsByWeek: sessionsByWeek,
       };
