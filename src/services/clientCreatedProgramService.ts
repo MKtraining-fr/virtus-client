@@ -50,18 +50,22 @@ export const saveClientCreatedProgram = async (
     const sessionCount = calculateSessionCount(program.sessionsByWeek);
     const totalExercises = calculateTotalExercises(program.sessionsByWeek);
 
+    const dataToInsert = {
+      client_id: clientId,
+      coach_id: coachId,
+      name: program.name,
+      objective: program.objective,
+      week_count: program.weekCount,
+      session_count: sessionCount,
+      total_exercises: totalExercises,
+      sessions_by_week: program.sessionsByWeek,
+    };
+
+    console.log('Data to insert into client_programs:', dataToInsert); // Log pour débogage
+
     const { data, error } = await supabase
       .from('client_programs')
-      .insert({
-        client_id: clientId,
-        coach_id: coachId,
-        name: program.name,
-        objective: program.objective,
-        week_count: program.weekCount,
-        session_count: sessionCount,
-        total_exercises: totalExercises,
-        sessions_by_week: program.sessionsByWeek,
-      })
+      .insert(dataToInsert)
       .select()
       .single();
 
