@@ -30,7 +30,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // uniquement s'il est sur une page publique (login, set-password, ou la page d'accueil '/')
 
 
-      const targetPath = currentViewRole === 'client' ? '/app/workout' : '/app';
+      const targetPath =
+        currentViewRole === 'admin'
+          ? '/app/admin/dashboard'
+          : currentViewRole === 'coach'
+            ? '/app/coach/dashboard'
+            : '/app/client/dashboard';
 
       if (
         currentPath === '/' ||
@@ -45,7 +50,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         navigate('/login', { replace: true });
       }
     }
-  }, [user, isAuthLoading, navigate, currentViewRole, originalUser]);
+  }, [user, isAuthLoading, navigate]);
 
   return <>{children}</>;
 };
@@ -72,7 +77,7 @@ export const useAuth = () => {
   const resetViewRole = async () => {
     try {
       await authStore.resetViewRole();
-      navigate('/app', { replace: true });
+      navigate('/app/admin/dashboard', { replace: true });
     } catch (error) {
       logger.error("Erreur lors de l'arrêt de l'impersonation avec navigation", { error });
       throw error;
@@ -89,11 +94,13 @@ export const useAuth = () => {
       try {
         await authStore.impersonate(userId);
         const impersonatedRole = authStore.getState().user?.role;
-        if (impersonatedRole === 'client') {
-          navigate('/app/workout', { replace: true });
+        if (impersonatedRole === 'coach') {
+          navigate('/app/coach/dashboard', { replace: true });
+        } else if (impersonatedRole === 'client') {
+          navigate('/app/client/dashboard', { replace: true });
         } else {
-          // Si l'usurpation a réussi mais le rôle n'est pas client (improbable), on revient sur la vue principale protégée
-          navigate('/app', { replace: true });
+          // Si l'usurpation a réussi mais le rôle n'est ni coach ni client (improbable), on va à l'admin dashboard
+          navigate('/app/admin/dashboard', { replace: true });
         }
       } catch (error) {
         logger.error("Erreur lors de l'usurpation d'identité avec navigation", { error });
