@@ -11,7 +11,7 @@ import {
   convertToWorkoutProgram,
   deleteClientCreatedProgram,
   ClientCreatedProgram,
-} from '../../../services/clientCreatedProgramService';
+} from '../../../services/clientCreatedProgramServiceV3';
 
 const ProgramCard: React.FC<{
   program: WorkoutProgram | ClientCreatedProgram;
