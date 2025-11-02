@@ -11,7 +11,7 @@ import { WorkoutProgram, WorkoutSession, WorkoutExercise } from '../types';
 export const createProgramTemplate = async (
   program: WorkoutProgram,
   creatorId: string
-): Promise<string> {
+): Promise<string> => {
   try {
     // Étape 1: Créer le template de programme dans la table `programs`
     const { data: programTemplateData, error: programTemplateError } = await supabase
