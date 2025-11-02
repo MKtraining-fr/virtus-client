@@ -60,7 +60,7 @@ export const getClientCreatedPrograms = async (
               exercises:exercise_id (
                 id,
                 name,
-                illustrationUrl:illustration_url
+                illustration_url
               )
             `)
             .eq('session_id', session.id)
@@ -81,7 +81,7 @@ export const getClientCreatedPrograms = async (
               id: ex.id,
               exerciseId: ex.exercise_id,
               name: ex.exercises?.name || 'Exercice inconnu',
-              illustrationUrl: ex.exercises?.illustrationUrl || '',
+              illustrationUrl: ex.exercises?.illustration_url || '',
               sets: ex.sets.toString(),
               isDetailed: false,
               details: Array(ex.sets).fill(null).map(() => ({
@@ -193,7 +193,7 @@ export const getClientCreatedProgramById = async (
             id: ex.id,
             exerciseId: ex.exercise_id,
             name: ex.exercises?.name || 'Exercice inconnu',
-            illustrationUrl: ex.exercises?.illustrationUrl || '',
+            illustrationUrl: ex.exercises?.illustration_url || '',
             sets: ex.sets.toString(),
             isDetailed: false,
             details: Array(ex.sets).fill(null).map(() => ({
@@ -316,7 +316,7 @@ export const getCoachVisiblePrograms = async (
               exercises:exercise_id (
                 id,
                 name,
-                illustrationUrl:illustration_url
+                illustration_url
               )
             `)
             .eq('session_id', session.id)
@@ -334,7 +334,7 @@ export const getCoachVisiblePrograms = async (
               id: ex.id,
               exerciseId: ex.exercise_id,
               name: ex.exercises?.name || 'Exercice inconnu',
-              illustrationUrl: ex.exercises?.illustrationUrl || '',
+              illustrationUrl: ex.exercises?.illustration_url || '',
               sets: ex.sets.toString(),
               isDetailed: false,
               details: Array(ex.sets).fill(null).map(() => ({
