@@ -8,7 +8,7 @@ import Modal from '../../../components/Modal';
 import InteractiveBodyDiagram from '../../../components/client/InteractiveBodyDiagram';
 import ClientAccordion from '../../../components/client/ClientAccordion';
 import ToggleSwitch from '../../../components/ToggleSwitch';
-import { saveClientWorkout } from '../../../services/newClientCreatedProgramService';
+import { saveClientCreatedWorkout } from '../../../services/clientCreatedProgramServiceV2';
 import {
   ArrowLeftIcon,
   PlusIcon,
@@ -264,7 +264,7 @@ const ClientWorkoutBuilder: React.FC = () => {
     }
 
     // Sauvegarder dans Supabase au lieu du contexte local
-    const isSuccess = await saveClientWorkout(
+    const isSuccess = await saveClientCreatedWorkout(
       newProgram,
       user.id,
       user.coachId || undefined
