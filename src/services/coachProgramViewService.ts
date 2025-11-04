@@ -13,7 +13,7 @@ export interface ClientCreatedProgramView {
   week_count: number;
   status: string;
   created_at: string;
-  created_by_client: boolean; // Toujours true pour ce service
+  created_by_client: boolean;
 }
 
 /**
@@ -26,7 +26,7 @@ export const getClientCreatedProgramsForCoach = async (
 ): Promise<ClientCreatedProgramView[]> => {
   try {
     const { data, error } = await supabase
-      .from('client_programs')
+      .from('client_created_programs')
       .select(`
         id,
         program_template_id,
@@ -34,15 +34,14 @@ export const getClientCreatedProgramsForCoach = async (
         name,
         objective,
         week_count,
-        status,
+        source_type,
         created_at,
-        clients!client_programs_client_id_fkey (
+        clients!client_created_programs_client_id_fkey (
           first_name,
           last_name
         )
       `)
       .eq('coach_id', coachId)
-      .not('program_template_id', 'is', null) // Filtre : seulement ceux avec un template
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -53,15 +52,15 @@ export const getClientCreatedProgramsForCoach = async (
     // Transformer les données pour inclure le nom complet du client
     const programs: ClientCreatedProgramView[] = (data || []).map((prog: any) => ({
       id: prog.id,
-      program_template_id: prog.program_template_id,
+      program_template_id: prog.program_template_id || '',
       client_id: prog.client_id,
       client_name: `${prog.clients.first_name} ${prog.clients.last_name}`,
       name: prog.name,
       objective: prog.objective,
       week_count: prog.week_count,
-      status: prog.status,
+      status: prog.source_type === 'client_created' ? 'created_by_client' : 'assigned_by_coach',
       created_at: prog.created_at,
-      created_by_client: true,
+      created_by_client: prog.source_type === 'client_created',
     }));
 
     return programs;
@@ -81,7 +80,7 @@ export const getClientCreatedProgramsByClientId = async (
 ): Promise<ClientCreatedProgramView[]> => {
   try {
     const { data, error } = await supabase
-      .from('client_programs')
+      .from('client_created_programs')
       .select(`
         id,
         program_template_id,
@@ -89,15 +88,14 @@ export const getClientCreatedProgramsByClientId = async (
         name,
         objective,
         week_count,
-        status,
+        source_type,
         created_at,
-        clients!client_programs_client_id_fkey (
+        clients!client_created_programs_client_id_fkey (
           first_name,
           last_name
         )
       `)
       .eq('client_id', clientId)
-      .not('program_template_id', 'is', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -107,15 +105,15 @@ export const getClientCreatedProgramsByClientId = async (
 
     const programs: ClientCreatedProgramView[] = (data || []).map((prog: any) => ({
       id: prog.id,
-      program_template_id: prog.program_template_id,
+      program_template_id: prog.program_template_id || '',
       client_id: prog.client_id,
       client_name: `${prog.clients.first_name} ${prog.clients.last_name}`,
       name: prog.name,
       objective: prog.objective,
       week_count: prog.week_count,
-      status: prog.status,
+      status: prog.source_type === 'client_created' ? 'created_by_client' : 'assigned_by_coach',
       created_at: prog.created_at,
-      created_by_client: true,
+      created_by_client: prog.source_type === 'client_created',
     }));
 
     return programs;

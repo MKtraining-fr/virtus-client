@@ -70,7 +70,7 @@ export const getClientCreatedPrograms = async (
           // Récupérer les infos des exercices séparément
           const { data: exercisesInfo, error: exercisesInfoError } = await supabase
             .from('exercises')
-            .select('id, name, illustration_url')
+            .select('id, name, image_url')
             .in('id', exerciseIds);
 
           if (exercisesInfoError) {
@@ -98,7 +98,7 @@ export const getClientCreatedPrograms = async (
               id: ex.id,
               exerciseId: ex.exercise_id,
               name: exerciseInfo?.name || 'Exercice inconnu',
-              illustrationUrl: exerciseInfo?.illustration_url || '',
+              illustrationUrl: exerciseInfo?.image_url || '',
               sets: ex.sets.toString(),
               isDetailed: false,
               details: Array(ex.sets).fill(null).map(() => ({
@@ -197,7 +197,7 @@ export const getClientCreatedProgramById = async (
         
         const { data: exercisesInfo, error: exercisesInfoError } = await supabase
           .from('exercises')
-          .select('id, name, illustration_url')
+          .select('id, name, image_url')
           .in('id', exerciseIds);
 
         if (exercisesInfoError) throw exercisesInfoError;
@@ -217,7 +217,7 @@ export const getClientCreatedProgramById = async (
             id: ex.id,
             exerciseId: ex.exercise_id,
             name: exerciseInfo?.name || 'Exercice inconnu',
-            illustrationUrl: exerciseInfo?.illustration_url || '',
+            illustrationUrl: exerciseInfo?.image_url || '',
             sets: ex.sets.toString(),
             isDetailed: false,
             details: Array(ex.sets).fill(null).map(() => ({
@@ -344,7 +344,7 @@ export const getCoachVisiblePrograms = async (
           
           const { data: exercisesInfo, error: exercisesInfoError } = await supabase
             .from('exercises')
-            .select('id, name, illustration_url')
+            .select('id, name, image_url')
             .in('id', exerciseIds);
 
           if (exercisesInfoError) throw exercisesInfoError;
@@ -364,7 +364,7 @@ export const getCoachVisiblePrograms = async (
               id: ex.id,
               exerciseId: ex.exercise_id,
               name: exerciseInfo?.name || 'Exercice inconnu',
-              illustrationUrl: exerciseInfo?.illustration_url || '',
+              illustrationUrl: exerciseInfo?.image_url || '',
               sets: ex.sets.toString(),
               isDetailed: false,
               details: Array(ex.sets).fill(null).map(() => ({

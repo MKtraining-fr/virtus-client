@@ -18,6 +18,14 @@ import {
 } from '../types.ts';
 import { useLocalStorage } from '../hooks/useLocalStorage.ts';
 import { reconstructWorkoutProgram } from '../utils/workoutMapper.ts';
+import {
+  createSession,
+  updateSession,
+  deleteSession,
+  addExerciseToSession,
+  updateSessionExercise,
+  deleteSessionExercise,
+} from '../services/sessionService.ts';
 
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -766,23 +774,30 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
         await Promise.all(exercisesToDelete.map((id) => deleteSessionExercise(id)));
 
-        const exercisePromises = currentSessionExercises.map(async (exercise) => {
-          const exerciseData: SupabaseSessionExercise = {
-            id: exercise.dbId || undefined,
-            session_id: savedSession.id,
+        const exercisePromises = currentSessionExercises.map(async (exercise, index) => {
+          // Extraire les valeurs du premier détail pour les exercices simples
+          const firstDetail = exercise.details?.[0];
+          const loadValue = firstDetail?.load?.value || '';
+          const loadUnit = firstDetail?.load?.unit || 'kg';
+          const load = loadValue ? `${loadValue} ${loadUnit}` : '';
+          
+          const exerciseData = {
             exercise_id: exercise.exerciseId,
-            name: exercise.name,
-            illustration_url: exercise.illustrationUrl,
-            sets: exercise.sets,
-            is_detailed: exercise.isDetailed,
-            details: JSON.stringify(ensureDetailsArray(exercise.details, exercise.sets)),
-            intensification: JSON.stringify(exercise.intensification ?? []),
-            alternatives: JSON.stringify(exercise.alternatives ?? []),
-            order: exercise.id, // Using frontend ID as order for now
+            exercise_order: index + 1,
+            sets: parseInt(exercise.sets, 10) || 1,
+            reps: firstDetail?.reps || exercise.sets,
+            load: load || undefined,
+            tempo: firstDetail?.tempo || undefined,
+            rest_time: firstDetail?.rest || undefined,
+            intensification: exercise.intensification ? JSON.stringify(exercise.intensification) : undefined,
+            notes: exercise.notes || undefined,
           };
-          return exercise.dbId
-            ? await updateSessionExercise(exercise.dbId, exerciseData)
-            : await createSessionExercise(exerciseData);
+          
+          if (exercise.dbId) {
+            return await updateSessionExercise(exercise.dbId, exerciseData);
+          } else {
+            return await addExerciseToSession(savedSession.id, exerciseData);
+          }
         });
         return Promise.all(exercisePromises);
       });

@@ -169,11 +169,11 @@ export const getClientProgramHistory = async (
   limit: number = 3
 ): Promise<any[]> => {
   try {
-    const { data, error } = await supabase
-      .from('client_programs')
+    const { data, error} = await supabase
+      .from('client_created_programs')
       .select('*')
       .eq('client_id', clientId)
-      .order('assigned_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
