@@ -20,11 +20,8 @@ const AdminLayout: React.FC = () => {
   const location = useLocation();
   const isAdminView = currentViewRole === 'admin';
 
-  // Si l'utilisateur est en mode Coach ou Client, on le redirige vers le layout approprié
-  if (currentViewRole !== 'admin') {
-    const targetPath = currentViewRole === 'client' ? '/app/workout' : '/app';
-    return <Navigate to={targetPath} state={{ from: location }} replace />;
-  }
+  // La redirection basée sur currentViewRole est déjà gérée dans App.tsx
+  // Pas besoin de redirection ici pour éviter une boucle infinie
   return (
     <div className="flex h-screen bg-light-bg font-sans text-dark-text">
       <AdminSidebar />

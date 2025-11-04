@@ -111,7 +111,7 @@ const ClientLayout: React.FC = () => {
 
       <main className="flex-1 overflow-y-auto pb-20 px-4 pt-4">
         <Routes>
-          <Route path="/" element={<Navigate to="workout" replace />} />
+          <Route path="/" element={<Navigate to="/app/workout" replace />} />
           <Route path="library" element={<ClientLibrary />} />
           <Route path="library/musculation" element={<MusculationLibrary />} />
           <Route path="library/mobilite" element={<MobiliteLibrary />} />
@@ -129,7 +129,7 @@ const ClientLayout: React.FC = () => {
             path="shop"
             element={canAccessShop ? <ClientShop /> : <Navigate to="/app/workout" replace />}
           />
-          <Route path="*" element={<Navigate to="workout" replace />} />
+          <Route path="*" element={<Navigate to="/app/workout" replace />} />
         </Routes>
       </main>
 
