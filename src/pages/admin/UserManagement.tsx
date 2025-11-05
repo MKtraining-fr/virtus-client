@@ -1,5 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Client } from '../../types';
+
+// Type étendu pour le formulaire incluant le champ password
+type ClientFormData = Partial<Client> & {
+  password?: string;
+};
 import Card from '../../components/Card';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
@@ -30,7 +35,7 @@ const UserManagement: React.FC = () => {
   // State for the modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [currentUser, setCurrentUser] = useState<Partial<Client> | null>(null);
+  const [currentUser, setCurrentUser] = useState<ClientFormData | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
@@ -38,8 +43,8 @@ const UserManagement: React.FC = () => {
     try {
       // La fonction impersonate dans useAuth gère maintenant la redirection
       await impersonate(userId);
-    } catch (error) {
-      logger.error("Échec de la prise de rôle", { error });
+    } catch (error: unknown) {
+      logger.error("Échec de la prise de rôle", { error: error instanceof Error ? error : new Error(String(error)) });
       alert("Échec de la prise de rôle. Voir la console pour les détails.");
     }
   };
@@ -161,14 +166,14 @@ const UserManagement: React.FC = () => {
       password: '',
       role: defaultRole,
       coachId: '',
-    });
+    } as ClientFormData);
     setError('');
     setIsModalOpen(true);
   };
 
   const openEditModal = (user: Client) => {
     setModalMode('edit');
-    setCurrentUser({ ...user, password: '' }); // Don't pre-fill password
+    setCurrentUser({ ...user, password: '' } as ClientFormData); // Don't pre-fill password
     setError('');
     setIsModalOpen(true);
   };
