@@ -18,12 +18,23 @@
   NEXT_TELEMETRY_DISABLED = "1"
 
 # Redirections pour SPA (Single Page Application)
-# Toutes les routes doivent pointer vers index.html pour React Router
+# Important : Les assets (JS, CSS, images) ne doivent PAS être redirigés
+# Seules les routes HTML doivent pointer vers index.html
+
+# Exclure explicitement les assets des redirections
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
+  force = false
+
+# Redirection pour toutes les autres routes vers index.html (SPA)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
   force = false
+  conditions = {Role = ["*"]}
   
 # Headers de sécurité
 [[headers]]
@@ -34,9 +45,6 @@
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    
-    # Cache pour les assets statiques
-    Cache-Control = "public, max-age=31536000, immutable"
 
 # Headers spécifiques pour index.html (pas de cache)
 [[headers]]
@@ -44,16 +52,25 @@
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
     
-# Headers pour les fichiers JavaScript et CSS
+# Headers pour les assets (cache long terme)
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/javascript; charset=utf-8"
+    
+# Headers pour les fichiers JavaScript
 [[headers]]
   for = "/*.js"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/javascript; charset=utf-8"
     
 [[headers]]
   for = "/*.css"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "text/css; charset=utf-8"
 
 # Headers pour les images
 [[headers]]
