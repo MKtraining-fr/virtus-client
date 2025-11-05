@@ -531,17 +531,41 @@ export const useDataStore = create<DataState>((set, get) => {
 
     // Fonctions CRUD existantes qui utilisent maintenant les fonctions internes
     addUser: async (userData: Partial<Client>): Promise<Client> => {
-      logger.info("Ajout d'utilisateur", { userData });
+      logger.info("Ajout d'utilisateur via Edge Function", { userData });
       try {
-        const { data, error } = await supabase
-          .from('clients')
-          .insert([mapClientToSupabaseClient(userData as Client)] as any)
-          .select()
-          .single();
-        if (error) throw error;
-        const newClient = mapSupabaseClientToClient(data);
+        // Récupérer le token d'authentification de l'utilisateur actuel
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error('No active session');
+        }
+
+        // Appeler l'Edge Function pour créer l'utilisateur
+        const { data, error } = await supabase.functions.invoke('create-user-admin', {
+          body: {
+            email: userData.email,
+            password: (userData as any).password, // Le mot de passe est passé depuis le formulaire
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            phone: userData.phone,
+            role: userData.role,
+            coachId: userData.coachId,
+            affiliationCode: userData.affiliationCode,
+            status: userData.status,
+          },
+        });
+
+        if (error) {
+          logger.error('Erreur lors de l\'appel à l\'Edge Function', { error });
+          throw error;
+        }
+
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to create user');
+        }
+
+        const newClient = mapSupabaseClientToClient(data.user.profile);
         set((state) => ({ clients: [...state.clients, newClient] }));
-        logger.info('Utilisateur ajouté avec succès', { newClient });
+        logger.info('Utilisateur ajouté avec succès via Edge Function', { newClient });
         return newClient;
       } catch (error) {
         logger.error("Erreur lors de l'ajout de l'utilisateur", error as Error);
