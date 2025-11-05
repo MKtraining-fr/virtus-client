@@ -5,6 +5,7 @@ import Input from '../../components/Input';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Select from '../../components/Select';
+import SearchableSelect from '../../components/SearchableSelect';
 import { useAuth } from '../../context/AuthContext';
 import { useSortableData } from '../../hooks/useSortableData';
 import { useNavigate } from 'react-router-dom';
@@ -140,6 +141,10 @@ const UserManagement: React.FC = () => {
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    setCurrentUser((prev) => (prev ? { ...prev, [name]: value } : null));
+  };
+
+  const handleSelectChange = (name: string) => (value: string | string[]) => {
     setCurrentUser((prev) => (prev ? { ...prev, [name]: value } : null));
   };
 
@@ -417,7 +422,7 @@ const UserManagement: React.FC = () => {
               label="Rôle"
               name="role"
               value={currentUser?.role || 'client'}
-              onChange={handleFormChange}
+              onChange={handleSelectChange('role')}
               options={[
                 { value: 'client', label: 'Client' },
                 { value: 'coach', label: 'Coach' },
@@ -428,11 +433,12 @@ const UserManagement: React.FC = () => {
           </div>
           {currentUser?.role === 'client' && (
             <div className="mb-4">
-              <Select
+              <SearchableSelect
                 label="Coach Rattaché"
                 name="coachId"
                 value={currentUser?.coachId || ''}
                 onChange={handleFormChange}
+                placeholder="Rechercher un coach..."
                 options={[
                   { value: '', label: 'Aucun' },
                   ...coaches.map((coach) => ({
