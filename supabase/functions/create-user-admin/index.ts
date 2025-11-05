@@ -48,26 +48,14 @@ serve(async (req) => {
       }
     );
 
-    // Créer un client Supabase normal pour vérifier l'utilisateur actuel
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
+    // Extraire le token JWT du header Authorization
+    const token = authHeader.replace('Bearer ', '');
 
     // Vérifier que l'utilisateur actuel est un admin
     const {
       data: { user },
       error: userError,
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
       throw new Error('Unauthorized: Invalid user');
