@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { XMarkIcon } from '../constants/icons';
 
@@ -20,6 +20,7 @@ const Modal: React.FC<ModalProps> = ({
   theme = 'light',
 }) => {
   const [container, setContainer] = useState<HTMLElement | null>(null);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
   useEffect(() => {
     // This effect runs on the client after the component mounts,
@@ -46,10 +47,26 @@ const Modal: React.FC<ModalProps> = ({
       ? 'text-client-subtle hover:text-client-light'
       : 'text-gray-500 hover:text-gray-800';
 
+  // Gérer le mousedown pour enregistrer où le clic a commencé
+  const handleMouseDown = (e: React.MouseEvent) => {
+    mouseDownTargetRef.current = e.target;
+  };
+
+  // Gérer le click pour fermer uniquement si le mousedown et le mouseup sont sur le backdrop
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // Vérifier que le clic a commencé ET s'est terminé sur le backdrop
+    if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+      onClose();
+    }
+    // Réinitialiser la référence
+    mouseDownTargetRef.current = null;
+  };
+
   return createPortal(
     <div
       className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center md:p-4"
-      onClick={onClose}
+      onMouseDown={handleMouseDown}
+      onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
