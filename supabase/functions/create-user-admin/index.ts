@@ -5,6 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json; charset=utf-8',
 };
 
 interface CreateUserRequest {
@@ -108,7 +109,17 @@ serve(async (req) => {
 
     if (authError) {
       console.error('Error creating auth user:', authError);
-      throw new Error(`Failed to create auth user: ${authError.message}`);
+      
+      // Fournir des messages d'erreur plus clairs pour les erreurs courantes
+      let errorMessage = authError.message;
+      
+      if (authError.message.includes('Password')) {
+        errorMessage = 'Le mot de passe ne respecte pas les exigences de sécurité. Il doit contenir au moins 8 caractères, dont une majuscule, une minuscule, un chiffre et un caractère spécial.';
+      } else if (authError.message.includes('email')) {
+        errorMessage = 'Cette adresse email est déjà utilisée ou invalide.';
+      }
+      
+      throw new Error(errorMessage);
     }
 
     if (!authData.user) {
@@ -151,7 +162,7 @@ serve(async (req) => {
         },
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         status: 200,
       }
     );
@@ -163,7 +174,7 @@ serve(async (req) => {
         error: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         status: 400,
       }
     );

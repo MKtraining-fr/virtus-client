@@ -444,6 +444,9 @@ const UserManagement: React.FC = () => {
                   )}
                 </button>
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Le mot de passe doit contenir au moins 8 caractères, dont une majuscule, une minuscule, un chiffre et un caractère spécial (@, #, $, etc.)
+              </p>
             </div>
           )}
           <div className="mb-4">
