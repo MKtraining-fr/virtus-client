@@ -552,9 +552,6 @@ export const useDataStore = create<DataState>((set, get) => {
             affiliationCode: userData.affiliationCode,
             status: userData.status,
           },
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-          },
         });
 
         if (error) {
