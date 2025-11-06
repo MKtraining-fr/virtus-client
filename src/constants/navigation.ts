@@ -14,6 +14,7 @@ import {
   BookOpenIcon,
   UserCircleIcon,
   ChatBubbleLeftEllipsisIcon,
+  DevicePhoneMobileIcon,
 } from './icons';
 import { ClientNav } from '../types';
 
@@ -34,6 +35,7 @@ export const ADMIN_NAV_ITEMS: Omit<NavItem, 'subItems'>[] = [
   { name: 'Exercices', path: '/app/exercises', icon: FireIcon },
   { name: 'Statistiques', path: '/app/stats', icon: ChartBarIcon },
   { name: 'Import', path: '/app/import', icon: ArrowDownTrayIcon },
+  { name: 'PWA', path: '/app/pwa-settings', icon: DevicePhoneMobileIcon },
 ];
 
 // --- COACH NAVIGATION ---
