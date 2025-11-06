@@ -265,7 +265,7 @@ const Messaging: React.FC = () => {
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nouvelle conversation">
                 <div className="space-y-4">
-                    <div className="w-full">
+                    <div className="w-full" onClick={(e) => e.stopPropagation()}>
                         <label htmlFor="client-select" className="block text-sm font-medium text-gray-700 mb-1">
                             Choisir un client
                         </label>
@@ -274,9 +274,11 @@ const Messaging: React.FC = () => {
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white text-gray-900"
                             value={clientForNewConversation}
                             onChange={(e) => {
+                                e.stopPropagation();
                                 console.log('Client sélectionné:', e.target.value);
                                 setClientForNewConversation(e.target.value);
                             }}
+                            onClick={(e) => e.stopPropagation()}
                         >
                             <option value="">-- Sélectionnez --</option>
                             {clientsForNewConversation.map(c => (
