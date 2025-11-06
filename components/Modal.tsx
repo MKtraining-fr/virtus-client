@@ -45,17 +45,23 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
   const closeButtonClass = theme === 'dark' ? 'text-client-subtle hover:text-client-light' : 'text-gray-500 hover:text-gray-800';
 
 
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Ne fermer que si on clique directement sur le backdrop, pas sur ses enfants
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return createPortal(
     <div 
       className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4" 
-      onClick={onClose}
+      onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
       <div 
         className={`rounded-lg shadow-xl w-full ${sizeClass} mx-4 flex flex-col max-h-[90vh] ${themeClasses}`}
-        onClick={(e) => e.stopPropagation()}
         role="document"
       >
         <div className={`flex justify-between items-center p-4 ${headerBorderClass} flex-shrink-0`}>
