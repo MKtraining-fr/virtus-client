@@ -129,9 +129,14 @@ const Messaging: React.FC = () => {
     }, [myClients, conversationClientIds]);
 
     const startNewConversation = () => {
+        console.log('startNewConversation appelé, clientForNewConversation:', clientForNewConversation);
         if (clientForNewConversation) {
+            console.log('Navigation vers:', `/app/messagerie?clientId=${clientForNewConversation}`);
             navigate(`/app/messagerie?clientId=${clientForNewConversation}`);
             setIsModalOpen(false);
+            setClientForNewConversation(''); // Réinitialiser la sélection
+        } else {
+            console.log('Aucun client sélectionné');
         }
     };
 
@@ -260,13 +265,35 @@ const Messaging: React.FC = () => {
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nouvelle conversation">
                 <div className="space-y-4">
-                    <Select label="Choisir un client" value={clientForNewConversation} onChange={(e) => setClientForNewConversation(e.target.value)}>
-                        <option value="">-- Sélectionnez --</option>
-                        {clientsForNewConversation.map(c => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>)}
-                    </Select>
+                    <div className="w-full">
+                        <label htmlFor="client-select" className="block text-sm font-medium text-gray-700 mb-1">
+                            Choisir un client
+                        </label>
+                        <select
+                            id="client-select"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white text-gray-900"
+                            value={clientForNewConversation}
+                            onChange={(e) => {
+                                console.log('Client sélectionné:', e.target.value);
+                                setClientForNewConversation(e.target.value);
+                            }}
+                        >
+                            <option value="">-- Sélectionnez --</option>
+                            {clientsForNewConversation.map(c => (
+                                <option key={c.id} value={c.id}>
+                                    {c.firstName} {c.lastName}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="flex justify-end space-x-2">
                         <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Annuler</Button>
-                        <Button onClick={startNewConversation} disabled={!clientForNewConversation}>Démarrer</Button>
+                        <Button 
+                            onClick={startNewConversation} 
+                            disabled={!clientForNewConversation}
+                        >
+                            Démarrer
+                        </Button>
                     </div>
                 </div>
             </Modal>
