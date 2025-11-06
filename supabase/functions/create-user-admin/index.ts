@@ -91,7 +91,7 @@ serve(async (req) => {
         phone: userData.phone || '',
         role: userData.role || 'client',
         affiliation_code: userData.affiliationCode || null,
-        coach_id: userData.coachId || null,
+        coach_id: userData.coachId && userData.coachId !== '' ? userData.coachId : null,
       },
     });
 
@@ -123,7 +123,7 @@ serve(async (req) => {
       phone: userData.phone || '',
       role: userData.role || 'client',
       affiliation_code: userData.affiliationCode || null,
-      coach_id: userData.coachId || null,
+      coach_id: userData.coachId && userData.coachId !== '' ? userData.coachId : null,
       status: userData.status || 'active',
     };
 

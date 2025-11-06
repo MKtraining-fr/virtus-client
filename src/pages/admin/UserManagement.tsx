@@ -166,7 +166,7 @@ const UserManagement: React.FC = () => {
       email: '',
       password: '',
       role: defaultRole,
-      coachId: '',
+      coachId: undefined,
     } as ClientFormData);
     setError('');
     setShowPassword(false);
