@@ -229,10 +229,12 @@ export function mapSupabaseMessageToMessage(supabaseMessage: SupabaseMessage): M
     id: supabaseMessage.id,
     senderId: supabaseMessage.sender_id || '',
     recipientId: supabaseMessage.recipient_id || '',
-    subject: supabaseMessage.subject || '',
     content: supabaseMessage.content,
-    isRead: supabaseMessage.read,
-    timestamp: supabaseMessage.created_at,
+    timestamp: supabaseMessage.created_at || new Date().toISOString(),
+    isVoice: supabaseMessage.is_voice || false,
+    voiceUrl: supabaseMessage.voice_url || undefined,
+    seenBySender: (supabaseMessage as any).seen_by_sender ?? true,
+    seenByRecipient: (supabaseMessage as any).seen_by_recipient ?? false,
   } as Message;
 }
 
@@ -244,10 +246,12 @@ export function mapMessageToSupabaseMessage(message: Partial<Message>): Partial<
     id: message.id,
     sender_id: message.senderId || null,
     recipient_id: message.recipientId || null,
-    subject: message.subject || null,
     content: message.content || '',
-    read: message.isRead || false,
-  };
+    is_voice: message.isVoice || false,
+    voice_url: message.voiceUrl || null,
+    seen_by_sender: message.seenBySender ?? true,
+    seen_by_recipient: message.seenByRecipient ?? false,
+  } as any;
 }
 
 /**

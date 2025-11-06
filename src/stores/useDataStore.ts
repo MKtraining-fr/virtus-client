@@ -887,9 +887,20 @@ export const useDataStore = create<DataState>((set, get) => {
 
     addMessage: async (messageData: Omit<Message, 'id' | 'timestamp'>) => {
       try {
+        // Mapper les données vers le format Supabase
+        const supabaseData = {
+          sender_id: messageData.senderId,
+          recipient_id: messageData.recipientId,
+          content: messageData.content,
+          is_voice: messageData.isVoice || false,
+          voice_url: messageData.voiceUrl || null,
+          seen_by_sender: messageData.seenBySender ?? true,
+          seen_by_recipient: messageData.seenByRecipient ?? false,
+        };
+        
         const { data, error } = await supabase
           .from('messages')
-          .insert([{ ...messageData, timestamp: new Date().toISOString() }] as any)
+          .insert([supabaseData])
           .select()
           .single();
         if (error) throw error;
@@ -906,7 +917,7 @@ export const useDataStore = create<DataState>((set, get) => {
       try {
         const { data, error } = await supabase
           .from('messages')
-          .update({ is_read: true } as Tables<'messages'>['Update'])
+          .update({ seen_by_recipient: true } as any)
           .eq('id', messageId)
           .select()
           .single();
@@ -959,3 +970,49 @@ export const useDataStore = create<DataState>((set, get) => {
     },
   };
 });
+
+// Fonction pour initialiser l'écoute en temps réel des messages
+export const initializeMessagesRealtime = (userId: string) => {
+  const channel = supabase
+    .channel('messages-realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `recipient_id=eq.${userId}`,
+      },
+      (payload) => {
+        logger.info('Nouveau message reçu via Realtime', payload);
+        const newMessage = mapSupabaseMessageToMessage(payload.new as any);
+        
+        // Ajouter le message au store sans appeler l'API
+        useDataStore.setState((state) => ({
+          messages: [...state.messages, newMessage],
+        }));
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+      },
+      (payload) => {
+        logger.info('Message mis à jour via Realtime', payload);
+        const updatedMessage = mapSupabaseMessageToMessage(payload.new as any);
+        
+        // Mettre à jour le message dans le store
+        useDataStore.setState((state) => ({
+          messages: state.messages.map((msg) =>
+            msg.id === updatedMessage.id ? updatedMessage : msg
+          ),
+        }));
+      }
+    )
+    .subscribe();
+
+  return channel;
+};

@@ -22,10 +22,11 @@ const PlusIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 const Messaging: React.FC = () => {
-    const { user, clients, messages, setMessages } = useAuth();
+    const { user, clients, messages, addMessage, markMessageAsRead } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const [newMessage, setNewMessage] = useState('');
+    const [isSending, setIsSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,14 +40,21 @@ const Messaging: React.FC = () => {
         return baseClients; // for admin
     }, [clients, user]);
 
+    // Extraire les conversations uniques (paires d'interlocuteurs)
     const conversationClientIds = useMemo(() => {
+        if (!user) return [];
         const ids = new Set<string>();
         messages.forEach(msg => {
-            const client = myClients.find(c => c.id === msg.clientId);
-            if (client) ids.add(msg.clientId);
+            // Identifier l'autre personne dans la conversation
+            const otherUserId = msg.senderId === user.id ? msg.recipientId : msg.senderId;
+            // Vérifier que c'est un de nos clients
+            const isMyClient = myClients.some(c => c.id === otherUserId);
+            if (isMyClient) {
+                ids.add(otherUserId);
+            }
         });
         return Array.from(ids);
-    }, [messages, myClients]);
+    }, [messages, myClients, user]);
 
     const selectedClientId = searchParams.get('clientId');
 
@@ -57,48 +65,63 @@ const Messaging: React.FC = () => {
     }, [selectedClientId, conversationClientIds, navigate]);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView();
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, selectedClientId]);
 
+    // Marquer les messages comme lus lorsqu'on ouvre une conversation
     useEffect(() => {
         if (user && selectedClientId) {
-            const hasUnread = messages.some(m => m.clientId === selectedClientId && m.senderId === selectedClientId && !m.seenByCoach);
-            if (hasUnread) {
-                const updatedMessages = messages.map(m => {
-                    if (m.clientId === selectedClientId && m.senderId === selectedClientId && !m.seenByCoach) {
-                        return { ...m, seenByCoach: true };
-                    }
-                    return m;
+            const unreadMessages = messages.filter(
+                m => m.recipientId === user.id && 
+                     m.senderId === selectedClientId && 
+                     !m.seenByRecipient
+            );
+            
+            unreadMessages.forEach(msg => {
+                markMessageAsRead(msg.id).catch(err => {
+                    console.error('Erreur lors du marquage du message comme lu:', err);
                 });
-                setMessages(updatedMessages);
-            }
+            });
         }
-    }, [user, selectedClientId, messages, setMessages]);
+    }, [user, selectedClientId, messages, markMessageAsRead]);
 
     const selectedClient = useMemo(() => {
         return clients.find(c => c.id === selectedClientId);
     }, [selectedClientId, clients]);
 
+    // Filtrer les messages de la conversation sélectionnée
     const conversation = useMemo(() => {
-        if (!selectedClientId) return [];
-        return messages.filter(m => m.clientId === selectedClientId);
-    }, [selectedClientId, messages]);
+        if (!selectedClientId || !user) return [];
+        return messages
+            .filter(m => 
+                (m.senderId === user.id && m.recipientId === selectedClientId) ||
+                (m.senderId === selectedClientId && m.recipientId === user.id)
+            )
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    }, [selectedClientId, messages, user]);
 
-    const handleSendMessage = () => {
-        if (!newMessage.trim() || !user || !selectedClientId) return;
+    const handleSendMessage = async () => {
+        if (!newMessage.trim() || !user || !selectedClientId || isSending) return;
 
-        const newMessageObj: Message = {
-            id: `msg-${Date.now()}`,
+        setIsSending(true);
+        const messageData = {
             senderId: user.id,
-            clientId: selectedClientId,
-            text: newMessage.trim(),
-            timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+            recipientId: selectedClientId,
+            content: newMessage.trim(),
             isVoice: false,
-            seenByCoach: true,
-            seenByClient: false
+            seenBySender: true,
+            seenByRecipient: false,
         };
-        setMessages([...messages, newMessageObj]);
-        setNewMessage('');
+
+        try {
+            await addMessage(messageData as any);
+            setNewMessage('');
+        } catch (error) {
+            console.error("Erreur lors de l'envoi du message:", error);
+            alert("Erreur lors de l'envoi du message. Veuillez réessayer.");
+        } finally {
+            setIsSending(false);
+        }
     };
 
     const clientsForNewConversation = useMemo(() => {
@@ -112,6 +135,16 @@ const Messaging: React.FC = () => {
         }
     };
 
+    // Compter les messages non lus par conversation
+    const getUnreadCount = (clientId: string) => {
+        if (!user) return 0;
+        return messages.filter(
+            m => m.senderId === clientId && 
+                 m.recipientId === user.id && 
+                 !m.seenByRecipient
+        ).length;
+    };
+
     return (
         <div className="flex h-[calc(100vh-150px)]">
             {/* Sidebar */}
@@ -123,8 +156,17 @@ const Messaging: React.FC = () => {
                     {conversationClientIds.map(clientId => {
                         const client = clients.find(c => c.id === clientId);
                         if (!client) return null;
-                        const lastMessage = messages.filter(m => m.clientId === clientId).slice(-1)[0];
-                        const isUnread = lastMessage && lastMessage.senderId !== user?.id && !lastMessage.seenByCoach;
+                        
+                        // Trouver le dernier message de la conversation
+                        const conversationMessages = messages.filter(
+                            m => (m.senderId === user?.id && m.recipientId === clientId) ||
+                                 (m.senderId === clientId && m.recipientId === user?.id)
+                        );
+                        const lastMessage = conversationMessages.sort(
+                            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+                        )[0];
+                        
+                        const unreadCount = getUnreadCount(clientId);
 
                         return (
                             <div key={clientId} onClick={() => navigate(`/app/messagerie?clientId=${clientId}`)}
@@ -132,10 +174,21 @@ const Messaging: React.FC = () => {
                                 <img src={client.avatar || `https://i.pravatar.cc/40?u=${client.id}`} alt={client.firstName} className="w-10 h-10 rounded-full" />
                                 <div className="flex-1 overflow-hidden">
                                     <div className="flex justify-between items-center">
-                                        <p className={`font-semibold ${isUnread ? 'text-gray-900' : 'text-gray-700'}`}>{client.firstName} {client.lastName}</p>
-                                        {isUnread && <span className="w-2.5 h-2.5 bg-primary rounded-full"></span>}
+                                        <p className={`font-semibold ${unreadCount > 0 ? 'text-gray-900' : 'text-gray-700'}`}>
+                                            {client.firstName} {client.lastName}
+                                        </p>
+                                        {unreadCount > 0 && (
+                                            <span className="bg-primary text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                                                {unreadCount}
+                                            </span>
+                                        )}
                                     </div>
-                                    {lastMessage && <p className="text-sm text-gray-500 truncate">{lastMessage.text}</p>}
+                                    {lastMessage && (
+                                        <p className="text-sm text-gray-500 truncate">
+                                            {lastMessage.senderId === user?.id ? 'Vous: ' : ''}
+                                            {lastMessage.content}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -161,11 +214,17 @@ const Messaging: React.FC = () => {
                             <div className="space-y-4">
                                 {conversation.map(msg => {
                                     const isMe = msg.senderId === user?.id;
+                                    const messageTime = new Date(msg.timestamp).toLocaleTimeString('fr-FR', { 
+                                        hour: '2-digit', 
+                                        minute: '2-digit' 
+                                    });
                                     return (
                                         <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`max-w-md px-4 py-2 rounded-xl ${isMe ? 'bg-primary text-white' : 'bg-white border'}`}>
-                                                <p>{msg.text}</p>
-                                                <p className={`text-xs mt-1 text-right ${isMe ? 'text-violet-200' : 'text-gray-400'}`}>{msg.timestamp}</p>
+                                                <p>{msg.content}</p>
+                                                <p className={`text-xs mt-1 text-right ${isMe ? 'text-violet-200' : 'text-gray-400'}`}>
+                                                    {messageTime}
+                                                </p>
                                             </div>
                                         </div>
                                     );
@@ -179,9 +238,17 @@ const Messaging: React.FC = () => {
                                 className="flex-1"
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSendMessage(); }}}
+                                onKeyDown={(e) => { 
+                                    if (e.key === 'Enter' && !e.shiftKey) { 
+                                        e.preventDefault(); 
+                                        handleSendMessage(); 
+                                    }
+                                }}
+                                disabled={isSending}
                             />
-                            <Button onClick={handleSendMessage}> <PaperAirplaneIcon className="w-5 h-5"/> </Button>
+                            <Button onClick={handleSendMessage} disabled={isSending || !newMessage.trim()}>
+                                <PaperAirplaneIcon className="w-5 h-5"/> 
+                            </Button>
                         </div>
                     </>
                 ) : (

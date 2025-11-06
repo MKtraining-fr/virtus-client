@@ -227,12 +227,13 @@ export interface WorkoutProgram {
 export interface Message {
   id: string;
   senderId: string;
-  clientId: string;
-  text: string;
+  recipientId: string;
+  content: string;
   timestamp: string;
   isVoice: boolean;
-  seenByCoach?: boolean;
-  seenByClient?: boolean;
+  voiceUrl?: string;
+  seenBySender: boolean;
+  seenByRecipient: boolean;
 }
 
 // ---- NUTRITION ----

@@ -253,16 +253,12 @@ export interface Message {
   id: string;
   senderId: string;
   recipientId: string;
-  subject?: string;
   content: string;
-  isRead: boolean;
   timestamp: string;
-  // Propriétés héritées pour compatibilité (à supprimer progressivement)
-  clientId?: string;
-  text?: string;
-  isVoice?: boolean;
-  seenByCoach?: boolean;
-  seenByClient?: boolean;
+  isVoice: boolean;
+  voiceUrl?: string;
+  seenBySender: boolean;
+  seenByRecipient: boolean;
 }
 
 // ---- NUTRITION ----

@@ -1,7 +1,7 @@
 import React, { ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
-import { useDataStore } from '../stores/useDataStore';
+import { useDataStore, initializeMessagesRealtime } from '../stores/useDataStore';
 import { logger } from '../utils/logger';
 
 // Le nouveau AuthProvider est un composant "léger" qui gère les effets de bord
@@ -22,6 +22,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { loadData } = useDataStore.getState();
     const targetUserId = currentViewRole === 'admin' ? user?.id : (originalUser?.id || user?.id);
     loadData(targetUserId || null);
+
+    // Initialiser l'écoute en temps réel des messages si l'utilisateur est connecté
+    let realtimeChannel: any = null;
+    if (user?.id) {
+      realtimeChannel = initializeMessagesRealtime(user.id);
+    }
+
+    // Nettoyage lors du démontage ou changement d'utilisateur
+    return () => {
+      if (realtimeChannel) {
+        realtimeChannel.unsubscribe();
+      }
+    };
 
     const currentPath = window.location.hash.substring(1) || '/'; // Utilise le hash pour HashRouter. Si vide, on considère la racine '/'
 
