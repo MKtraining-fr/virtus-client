@@ -287,7 +287,7 @@ const CoachFoodJournalView: React.FC<{ client: Client }> = ({ client }) => {
 
 /* ------------------------- MAIN COMPONENT ------------------------- */
 const ClientProfile: React.FC = () => {
-  const { clientId } = useParams<{ clientId: string }>();
+  const { id: clientId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, clients, programs, bilanTemplates } = useAuth();
   const [showBilanAssignmentModal, setShowBilanAssignmentModal] = useState(false);
