@@ -359,7 +359,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         setProgramName(reconstructedProgram.name);
         setObjective(reconstructedProgram.objective);
         setWeekCount(reconstructedProgram.weekCount);
-        setSessionsByWeek(reconstructedProgram.sessionsByWeek as SessionsByWeekState);
+        // Vérifier que sessionsByWeek est valide avant de l'assigner
+        const reconstructedSessions = reconstructedProgram.sessionsByWeek;
+        if (reconstructedSessions && typeof reconstructedSessions === 'object' && Object.keys(reconstructedSessions).length > 0) {
+          setSessionsByWeek(reconstructedSessions as SessionsByWeekState);
+        } else {
+          setSessionsByWeek({ 1: [{ ...DEFAULT_SESSION, exercises: [] }] });
+        }
         setSelectedClient(reconstructedProgram.clientId || '0');
         setEditProgramId(programId);
         setIsEditMode(true);
@@ -412,7 +418,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         setProgramName(programDraft.name);
         setObjective(programDraft.objective);
         setWeekCount(programDraft.weekCount);
-        setSessionsByWeek(programDraft.sessionsByWeek as SessionsByWeekState);
+        // Vérifier que sessionsByWeek est valide avant de l'assigner
+        const draftSessions = programDraft.sessionsByWeek;
+        if (draftSessions && typeof draftSessions === 'object' && Object.keys(draftSessions).length > 0) {
+          setSessionsByWeek(draftSessions as SessionsByWeekState);
+        } else {
+          setSessionsByWeek({ 1: [{ ...DEFAULT_SESSION, exercises: [] }] });
+        }
         if (clientIdFromUrl && clients.some((c) => c.id === clientIdFromUrl)) {
           setSelectedClient(clientIdFromUrl);
         }
