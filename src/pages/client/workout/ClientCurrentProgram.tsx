@@ -13,6 +13,7 @@ import {
 import Modal from '../../../components/Modal';
 import Button from '../../../components/Button';
 import SessionRecapModal from '../../../components/client/SessionRecapModal';
+import { savePerformanceLog } from '../../../services/performanceLogService';
 import {
   ArrowLeftIcon,
   ClockIcon,
@@ -330,7 +331,7 @@ const ClientCurrentProgram: React.FC = () => {
     setCurrentComment('');
   };
 
-  const handleFinishSession = () => {
+  const handleFinishSession = async () => {
     if (!localProgram || !activeSession || !user) {
       navigate('/app/workout');
       return;
@@ -392,6 +393,22 @@ const ClientCurrentProgram: React.FC = () => {
       sessionName: activeSession.name,
       exerciseLogs: exerciseLogsForSession,
     };
+
+    // Sauvegarder dans Supabase
+    const programAssignmentId = (localProgram as any).assignmentId || null;
+    const sessionId = activeSession.id;
+    
+    const savedLogId = await savePerformanceLog(
+      user.id,
+      programAssignmentId,
+      sessionId,
+      newLogEntry
+    );
+
+    if (!savedLogId) {
+      console.error('Échec de la sauvegarde du log de performance');
+      // On continue quand même pour ne pas bloquer l'utilisateur
+    }
 
     const updatedClients = clients.map((c) => {
       if (c.id === user.id) {

@@ -26,6 +26,7 @@ import {
   updateSessionExercise,
   deleteSessionExercise,
 } from '../services/sessionService.ts';
+import { assignProgramToClient } from '../services/programAssignmentService.ts';
 
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -811,6 +812,30 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       addNotification({ message: 'Programme sauvegardé avec succès !', type: 'success' });
 
       // Refresh auth context data is now handled by addProgram/updateProgram in useDataStore
+
+      // Étape 8 : Assignement automatique si un client est sélectionné
+      if (selectedClient !== '0' && savedProgram.id) {
+        const templateId = savedProgram.id;
+        const clientId = selectedClient;
+        const coachId = user.id;
+        const startDate = new Date().toISOString().split('T')[0];
+
+        // L'assignement est fait à partir du template (le programme que l'on vient de créer)
+        const assignmentId = await assignProgramToClient(templateId, clientId, coachId, startDate);
+
+        if (assignmentId) {
+          addNotification({
+            message: `Programme sauvegardé et assigné automatiquement au client ${clientData?.firstName} !`,
+            type: 'success',
+          });
+        } else {
+          addNotification({
+            message: `Programme sauvegardé, mais l'assignement automatique au client ${clientData?.firstName} a échoué.`,
+            type: 'warning',
+          });
+        }
+      }
+
     } catch (error) {
       console.error('Erreur lors de la sauvegarde du programme :', error);
       addNotification({ message: 'Erreur lors de la sauvegarde du programme.', type: 'error' });

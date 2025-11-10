@@ -15,10 +15,21 @@ import { reconstructWorkoutProgram } from '../utils/workoutMapper';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
+import { assignProgramToClient, getAssignmentCountByProgram } from '../services/programAssignmentService';
 
 const WorkoutLibrary: React.FC = () => {
   const { user, clients, setClients, addNotification } = useAuth();
   const { programs, sessions, isLoading } = useSupabaseWorkoutData(user?.id, addNotification);
+
+  // Charger les comptes d'assignement
+  useEffect(() => {
+    const fetchCounts = async () => {
+      if (!user?.id || programs.length === 0) return;
+      const counts = await getAssignmentCountByProgram(user.id);
+      setAssignmentCounts(counts);
+    };
+    fetchCounts();
+  }, [user?.id, programs]);
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('programs');
@@ -28,6 +39,7 @@ const WorkoutLibrary: React.FC = () => {
   const [itemToAssign, setItemToAssign] = useState<WorkoutProgram | WorkoutSession | null>(null);
   const [selectedClientsForAssign, setSelectedClientsForAssign] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [assignmentCounts, setAssignmentCounts] = useState<Record<string, number>>({});
 
   const myClients = useMemo(() => {
     return clients.filter(
@@ -58,65 +70,68 @@ const WorkoutLibrary: React.FC = () => {
     );
   };
 
-  const handleAssign = () => {
-    if (!itemToAssign || selectedClientsForAssign.length === 0) return;
+  const handleAssign = async () => {
+    if (!itemToAssign || selectedClientsForAssign.length === 0 || !user) return;
 
-    let programToAssign: WorkoutProgram;
-
+    // Vérifier si c'est une séance isolée ou un programme
     if ('exercises' in itemToAssign && !('sessionsByWeek' in itemToAssign)) {
-      const session = itemToAssign as WorkoutSession;
-      programToAssign = {
-        id: `prog-from-sess-${session.id}-${Date.now()}`,
-        name: session.name,
-        objective: 'Séance unique',
-        weekCount: 1,
-        sessionsByWeek: { 1: [session] },
-      };
-    } else {
-      programToAssign = itemToAssign as WorkoutProgram;
+      addNotification({
+        message: "L'assignement de séances isolées n'est pas encore supporté. Veuillez créer un programme contenant cette séance.",
+        type: 'warning',
+      });
+      return;
     }
 
-    const updatedClients = clients.map((client) => {
-      if (selectedClientsForAssign.includes(client.id)) {
-        const isAlreadyAssigned = client.assignedPrograms?.some((p) => p.id === programToAssign.id);
-        if (isAlreadyAssigned) {
+    const programToAssign = itemToAssign as WorkoutProgram;
+    const templateId = programToAssign.id;
+    const coachId = user.id;
+    const startDate = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    // Assigner le programme à chaque client sélectionné
+    for (const clientId of selectedClientsForAssign) {
+      try {
+        const result = await assignProgramToClient(templateId, clientId, coachId, startDate);
+        
+        if (result) {
+          successCount++;
+          
+          // Notifier le client
           addNotification({
-            message: `Le programme '${programToAssign.name}' est déjà assigné à ${client.firstName}.`,
-            type: 'info',
+            userId: clientId,
+            fromName: `${user.firstName} ${user.lastName}`,
+            type: 'program_assigned',
+            message: `vous a assigné le programme : ${programToAssign.name}.`,
+            link: `/app/workout`,
           });
-          return client;
-        }
-
-        const hasCurrentProgram = client.assignedPrograms && client.assignedPrograms.length > 0;
-        if (hasCurrentProgram) {
-          const updatedPrograms = [...client.assignedPrograms];
-          updatedPrograms.splice(1, 0, programToAssign);
-          return {
-            ...client,
-            assignedPrograms: updatedPrograms,
-            viewed: false,
-          };
         } else {
-          return {
-            ...client,
-            assignedPrograms: [programToAssign],
-            programWeek: 1,
-            sessionProgress: 1,
-            totalWeeks: programToAssign.weekCount,
-            totalSessions: programToAssign.sessionsByWeek[1]?.length || 0,
-            viewed: false,
-          };
+          errorCount++;
         }
+      } catch (error) {
+        console.error(`Erreur lors de l'assignement pour le client ${clientId}:`, error);
+        errorCount++;
       }
-      return client;
-    });
+    }
 
-    setClients(updatedClients);
-    addNotification({
-      message: `Élément assigné à ${selectedClientsForAssign.length} client(s).`,
-      type: 'success',
-    });
+    // Afficher le résultat
+    if (successCount > 0) {
+      addNotification({
+        message: `Programme assigné avec succès à ${successCount} client(s).`,
+        type: 'success',
+      });
+    }
+    
+    if (errorCount > 0) {
+      addNotification({
+        message: `Échec de l'assignement pour ${errorCount} client(s).`,
+        type: 'error',
+      });
+    }
+
     setIsAssignModalOpen(false);
+    setSelectedClientsForAssign([]);
   };
 
   return (
@@ -155,7 +170,14 @@ const WorkoutLibrary: React.FC = () => {
               {programs.map((program) => (
                 <Card key={program.id} className="flex flex-col">
                   <div className="p-6 flex-grow">
-                    <h3 className="text-lg font-semibold text-gray-900">{program.name}</h3>
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-lg font-semibold text-gray-900">{program.name}</h3>
+                      {assignmentCounts[program.id] > 0 && (
+                        <span className="text-xs font-medium bg-green-100 text-green-800 px-2.5 py-0.5 rounded-full">
+                          Assigné à {assignmentCounts[program.id]} client(s)
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-500 mt-1">
                       {program.sessionsByWeek[1]?.length || 0} séances · {program.weekCount}{' '}
                       semaines

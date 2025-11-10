@@ -37,130 +37,26 @@ export const assignProgramToClient = async (
   startDate: string
 ): Promise<string | null> => {
   try {
-    // Étape 1 : Récupérer le template
-    const { data: template, error: templateError } = await supabase
-      .from('programs')
-      .select('*')
-      .eq('id', templateId)
-      .single();
+    // Utiliser la fonction RPC atomique pour garantir la cohérence
+    const { data, error } = await supabase.rpc('assign_program_to_client_atomic', {
+      p_template_id: templateId,
+      p_client_id: clientId,
+      p_coach_id: coachId,
+      p_start_date: startDate,
+    });
 
-    if (templateError || !template) {
-      console.error('Erreur lors de la récupération du template:', templateError);
+    if (error) {
+      console.error('Erreur lors de l\'appel RPC:', error);
       return null;
     }
 
-    // Étape 2 : Dupliquer le programme dans client_created_programs
-    const { data: clientProgram, error: programError } = await supabase
-      .from('client_created_programs')
-      .insert({
-        client_id: clientId,
-        coach_id: coachId,
-        name: template.name,
-        objective: template.objective,
-        week_count: template.week_count,
-        source_type: 'coach_assigned',
-        program_template_id: templateId,
-      })
-      .select('id')
-      .single();
-
-    if (programError || !clientProgram) {
-      console.error('Erreur lors de la création du programme client:', programError);
+    if (!data || !data.success) {
+      console.error('Erreur retournée par la fonction:', data?.error || 'Erreur inconnue');
       return null;
     }
 
-    const clientProgramId = clientProgram.id;
-
-    // Étape 3 : Récupérer les séances du template
-    const { data: sessions, error: sessionsError } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('program_id', templateId)
-      .order('week_number', { ascending: true })
-      .order('session_order', { ascending: true });
-
-    if (sessionsError) {
-      console.error('Erreur lors de la récupération des séances:', sessionsError);
-      return null;
-    }
-
-    // Étape 4 : Dupliquer les séances
-    for (const session of sessions || []) {
-      const { data: clientSession, error: sessionError } = await supabase
-        .from('client_created_sessions')
-        .insert({
-          program_id: clientProgramId,
-          client_id: clientId,
-          coach_id: coachId,
-          name: session.name,
-          week_number: session.week_number,
-          session_order: session.session_order,
-        })
-        .select('id')
-        .single();
-
-      if (sessionError || !clientSession) {
-        console.error('Erreur lors de la création de la séance client:', sessionError);
-        continue;
-      }
-
-      // Étape 5 : Récupérer les exercices de la séance
-      const { data: exercises, error: exercisesError } = await supabase
-        .from('session_exercises')
-        .select('*')
-        .eq('session_id', session.id)
-        .order('exercise_order', { ascending: true });
-
-      if (exercisesError) {
-        console.error('Erreur lors de la récupération des exercices:', exercisesError);
-        continue;
-      }
-
-      // Étape 6 : Dupliquer les exercices
-      for (const exercise of exercises || []) {
-        const { error: exerciseError } = await supabase
-          .from('client_created_session_exercises')
-          .insert({
-            session_id: clientSession.id,
-            exercise_id: exercise.exercise_id,
-            client_id: clientId,
-            coach_id: coachId,
-            exercise_order: exercise.exercise_order,
-            sets: exercise.sets,
-            reps: exercise.reps,
-            load: exercise.load,
-            tempo: exercise.tempo,
-            rest_time: exercise.rest_time,
-            intensification: exercise.intensification,
-            notes: exercise.notes,
-          });
-
-        if (exerciseError) {
-          console.error("Erreur lors de la création de l'exercice client:", exerciseError);
-        }
-      }
-    }
-
-    // Étape 7 : Créer le program_assignment pour la traçabilité
-    const { error: assignmentError } = await supabase
-      .from('program_assignments')
-      .insert({
-        program_id: templateId,
-        client_program_id: clientProgramId,
-        client_id: clientId,
-        coach_id: coachId,
-        start_date: startDate,
-        current_week: 1,
-        current_session: 1,
-        status: 'active',
-      });
-
-    if (assignmentError) {
-      console.error("Erreur lors de la création de l'assignment:", assignmentError);
-      // On continue quand même car le programme a été créé
-    }
-
-    return clientProgramId;
+    console.log('Programme assigné avec succès:', data.message);
+    return data.assignment_id;
   } catch (error) {
     console.error("Erreur globale lors de l'attribution du programme:", error);
     return null;

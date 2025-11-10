@@ -5,6 +5,7 @@ import {
 } from '../../services/coachProgramViewService';
 import Card from '../Card';
 import Button from '../Button';
+import { markProgramAsViewedByCoach } from '../../services/programModificationService';
 
 interface ClientCreatedProgramsListProps {
   coachId: string;
@@ -78,17 +79,52 @@ const ClientCreatedProgramsList: React.FC<ClientCreatedProgramsListProps> = ({
                   </span>
                 </p>
               </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                Créé par le client
-              </span>
+              <div className="flex flex-col gap-1">
+                {program.source_type === 'coach_assigned' && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    🎯 Assigné par coach
+                  </span>
+                )}
+                {program.source_type === 'client_created' && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    ✍️ Créé par client
+                  </span>
+                )}
+                {program.modified_by_client && !program.viewed_by_coach && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 animate-pulse">
+                    🔔 Modifié (non vu)
+                  </span>
+                )}
+                {program.modified_by_client && program.viewed_by_coach && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✅ Modifié (vu)
+                  </span>
+                )}
+              </div>
             </div>
-            {onProgramClick && (
-              <div className="mt-4">
-                <Button onClick={() => onProgramClick(program)} variant="secondary" className="w-full">
+            <div className="mt-4 flex gap-2">
+              {onProgramClick && (
+                <Button onClick={() => onProgramClick(program)} variant="secondary" className="flex-1">
                   Voir les détails
                 </Button>
-              </div>
-            )}
+              )}
+              {program.modified_by_client && !program.viewed_by_coach && (
+                <Button
+                  onClick={async () => {
+                    const success = await markProgramAsViewedByCoach(program.id);
+                    if (success) {
+                      // Rafraîchir la liste
+                      const data = await getClientCreatedProgramsForCoach(coachId);
+                      setPrograms(data);
+                    }
+                  }}
+                  variant="primary"
+                  className="flex-1"
+                >
+                  👁️ Marquer comme vu
+                </Button>
+              )}
+            </div>
           </Card>
         ))}
       </div>

@@ -12,6 +12,7 @@ import {
   deleteClientCreatedProgram,
   ClientCreatedProgram,
 } from '../../../services/clientCreatedProgramServiceV4';
+import { getClientAssignedPrograms } from '../../../services/clientProgramService';
 
 const ProgramCard: React.FC<{
   program: WorkoutProgram | ClientCreatedProgram;
@@ -76,21 +77,29 @@ const ClientMyPrograms: React.FC = () => {
   const navigate = useNavigate();
   const [selectedProgram, setSelectedProgram] = useState<WorkoutProgram | null>(null);
   const [clientPrograms, setClientPrograms] = useState<ClientCreatedProgram[]>([]);
+  const [assignedPrograms, setAssignedPrograms] = useState<WorkoutProgram[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Récupérer les programmes créés par le client depuis Supabase
+  // Récupérer les programmes créés par le client ET les programmes assignés depuis Supabase
   useEffect(() => {
     const fetchPrograms = async () => {
       if (!user?.id) return;
       setLoading(true);
-      const programs = await getClientCreatedPrograms(user.id);
-      setClientPrograms(programs);
+      
+      // Charger les programmes créés par le client
+      const createdPrograms = await getClientCreatedPrograms(user.id);
+      setClientPrograms(createdPrograms);
+      
+      // Charger les programmes assignés par le coach depuis Supabase
+      const assigned = await getClientAssignedPrograms(user.id);
+      setAssignedPrograms(assigned);
+      
       setLoading(false);
     };
     fetchPrograms();
   }, [user?.id]);
 
-  const assignedByCoach = user?.assignedPrograms || [];
+  const assignedByCoach = assignedPrograms; // Maintenant chargé depuis Supabase
   const savedByClient = clientPrograms;
 
   // The current program is assignedPrograms[0], which is shown on the main workout page.
