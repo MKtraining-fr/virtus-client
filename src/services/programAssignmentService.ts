@@ -178,3 +178,37 @@ export const updateAssignmentProgress = async (
     return false;
   }
 };
+
+/**
+ * Récupère le nombre d'assignements par programme pour un coach
+ * @param coachId - ID du coach
+ * @returns Objet avec programId comme clé et count comme valeur
+ */
+export const getAssignmentCountByProgram = async (
+  coachId: string
+): Promise<Record<string, number>> => {
+  try {
+    const { data, error } = await supabase
+      .from('program_assignments')
+      .select('program_id')
+      .eq('coach_id', coachId)
+      .eq('status', 'active');
+
+    if (error) {
+      console.error('Erreur lors de la récupération des comptes d\'assignement:', error);
+      return {};
+    }
+
+    // Compter les occurrences de chaque program_id
+    const counts: Record<string, number> = {};
+    data?.forEach((assignment) => {
+      const programId = assignment.program_id;
+      counts[programId] = (counts[programId] || 0) + 1;
+    });
+
+    return counts;
+  } catch (error) {
+    console.error('Erreur globale:', error);
+    return {};
+  }
+};
