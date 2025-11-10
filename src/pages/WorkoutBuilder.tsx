@@ -227,6 +227,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   };
 
   const clientOptions = useMemo(() => {
+    // Vérifier que clients est défini avant de filtrer
+    if (!clients || !Array.isArray(clients)) {
+      return [{ id: '0', name: 'Aucun client' }];
+    }
+    
     const myClients = clients.filter(
       (c) =>
         c.role === 'client' &&
@@ -310,7 +315,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     if (clientId === '0') {
       setObjective('');
     } else {
-      const client = clients.find((c) => c.id === clientId);
+      const client = clients?.find((c) => c.id === clientId);
       if (client) {
         setObjective(client.objective || '');
       }
@@ -363,7 +368,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
         if (clientIdFromUrl) {
           setSelectedClient(clientIdFromUrl);
-          const client = clients.find((c) => c.id === clientIdFromUrl);
+          const client = clients?.find((c) => c.id === clientIdFromUrl);
           if (client) {
             const lockWeek = client.programWeek || 1;
             const lockSessionIndex = (client.sessionProgress || 1) - 1;
