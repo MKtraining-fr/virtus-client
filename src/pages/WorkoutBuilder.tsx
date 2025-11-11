@@ -302,7 +302,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   );
 
   const clientData = useMemo(() => {
-    if (selectedClient === '0') return null;
+    if (selectedClient === '0' || !clients || !Array.isArray(clients)) return null;
     return clients.find((c) => c.id === selectedClient);
   }, [selectedClient, clients]);
 
@@ -804,7 +804,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       }
 
       const currentProgramSessions = Object.values(sessionsByWeek).flat();
-      const existingSessionIds = storedSessions
+      const existingSessionIds = (storedSessions || [])
         .filter((s) => s.program_id === savedProgram.id)
         .map((s) => s.id);
       const sessionsToDelete = existingSessionIds.filter(
@@ -830,7 +830,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
         const currentSessionExercises = session.exercises;
         const existingExerciseIds =
-          storedSessions.find((s) => s.id === savedSession.id)?.exercises.map((ex) => ex.id) || []; // Assuming storedSessions has exercises
+          (storedSessions || []).find((s) => s.id === savedSession.id)?.exercises?.map((ex) => ex.id) || []; // Assuming storedSessions has exercises
         const exercisesToDelete = existingExerciseIds.filter(
           (id) => !currentSessionExercises.some((ex) => ex.dbId === id)
         );
