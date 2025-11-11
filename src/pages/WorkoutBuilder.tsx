@@ -298,6 +298,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   }, [sessions, activeSessionId]);
 
   const availableExercises = useMemo(() => {
+    // Vérifier que exerciseDBFromAuth est défini
+    if (!exerciseDBFromAuth || !Array.isArray(exerciseDBFromAuth)) {
+      return [];
+    }
+    
     if (mode === 'client') {
       return exerciseDBFromAuth.filter(
         (ex) => ex.coachId === 'system' || ex.coachId === user?.coachId
@@ -1008,7 +1013,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   Glissez-déposez des exercices ici ou utilisez le bouton "Ajouter un exercice".
                 </div>
               )}
-              {activeSession?.exercises.map((ex) => (
+              {activeSession?.exercises?.map((ex) => (
                 <div
                   key={ex.id}
                   draggable
