@@ -127,6 +127,7 @@ export function mapSupabaseExerciseToExercise(supabaseExercise: SupabaseExercise
     difficulty: supabaseExercise.difficulty || '',
     videoUrl: supabaseExercise.video_url || '',
     illustrationUrl: supabaseExercise.image_url || '',
+    coachId: supabaseExercise.created_by || undefined,
   } as Exercise;
 }
 
