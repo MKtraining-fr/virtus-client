@@ -116,7 +116,7 @@ export const getSessionExercisesBySessionId = async (sessionId: string) => {
  */
 export const getExercisesByIds = async (
   exerciseIds: string[]
-): Promise<Map<string, { name: string; illustrationUrl: string; illustration_url?: string }>> => {
+): Promise<Map<string, { name: string; illustrationUrl: string }>> => {
   try {
     if (exerciseIds.length === 0) {
       return new Map();
@@ -137,7 +137,6 @@ export const getExercisesByIds = async (
       exerciseMap.set(ex.id, {
         name: ex.name,
         illustrationUrl: ex.image_url || '',
-        illustration_url: ex.image_url || '',
       });
     });
 
