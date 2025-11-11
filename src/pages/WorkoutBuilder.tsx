@@ -99,6 +99,56 @@ const ensureDetailsArray = (
   }));
 };
 
+// Fonction de normalisation pour garantir que les exercices ont toujours des structures valides
+const normalizeWorkoutExercise = (exercise: WorkoutExercise): WorkoutExercise => {
+  const detailsSource = Array.isArray(exercise.details) ? exercise.details : [];
+  const normalizedDetails = detailsSource.length > 0
+    ? detailsSource.map(detail => ({
+        reps: detail?.reps ?? DEFAULT_DETAIL_TEMPLATE.reps,
+        tempo: detail?.tempo ?? DEFAULT_DETAIL_TEMPLATE.tempo,
+        rest: detail?.rest ?? DEFAULT_DETAIL_TEMPLATE.rest,
+        load: {
+          value: detail?.load?.value ?? DEFAULT_DETAIL_TEMPLATE.load.value,
+          unit: detail?.load?.unit ?? DEFAULT_DETAIL_TEMPLATE.load.unit,
+        },
+      }))
+    : [createDefaultDetail()];
+
+  return {
+    ...exercise,
+    sets: exercise.sets ?? String(normalizedDetails.length),
+    details: normalizedDetails,
+    intensification: Array.isArray(exercise.intensification) ? exercise.intensification : [],
+    alternatives: Array.isArray(exercise.alternatives) ? exercise.alternatives : [],
+  };
+};
+
+// Fonction de normalisation pour garantir que les séances ont toujours des exercices valides
+const normalizeWorkoutSession = (session: WorkoutSession): EditableWorkoutSession => ({
+  ...session,
+  exercises: (session.exercises ?? []).map(normalizeWorkoutExercise),
+} as EditableWorkoutSession);
+
+// Fonction de normalisation pour garantir que sessionsByWeek est toujours valide
+const normalizeSessionsByWeek = (
+  sessionsByWeek: Record<number, WorkoutSession[]> | undefined | null,
+): SessionsByWeekState => {
+  if (!sessionsByWeek || typeof sessionsByWeek !== 'object') {
+    return { 1: [{ ...DEFAULT_SESSION, exercises: [] }] };
+  }
+
+  const entries = Object.entries(sessionsByWeek);
+  if (entries.length === 0) {
+    return { 1: [{ ...DEFAULT_SESSION, exercises: [] }] };
+  }
+
+  const normalized: SessionsByWeekState = {};
+  entries.forEach(([week, sessions]) => {
+    normalized[Number(week)] = (sessions ?? []).map(normalizeWorkoutSession);
+  });
+  return normalized;
+};
+
 const cloneExercise = (
   exercise: EditableWorkoutExercise,
   nextId: number
@@ -364,13 +414,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         setProgramName(reconstructedProgram.name);
         setObjective(reconstructedProgram.objective);
         setWeekCount(reconstructedProgram.weekCount);
-        // Vérifier que sessionsByWeek est valide avant de l'assigner
-        const reconstructedSessions = reconstructedProgram.sessionsByWeek;
-        if (reconstructedSessions && typeof reconstructedSessions === 'object' && Object.keys(reconstructedSessions).length > 0) {
-          setSessionsByWeek(reconstructedSessions as SessionsByWeekState);
-        } else {
-          setSessionsByWeek({ 1: [{ ...DEFAULT_SESSION, exercises: [] }] });
-        }
+        // Normaliser sessionsByWeek pour garantir des structures valides
+        setSessionsByWeek(normalizeSessionsByWeek(reconstructedProgram.sessionsByWeek));
         setSelectedClient(reconstructedProgram.clientId || '0');
         setEditProgramId(programId);
         setIsEditMode(true);
@@ -423,13 +468,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         setProgramName(programDraft.name);
         setObjective(programDraft.objective);
         setWeekCount(programDraft.weekCount);
-        // Vérifier que sessionsByWeek est valide avant de l'assigner
-        const draftSessions = programDraft.sessionsByWeek;
-        if (draftSessions && typeof draftSessions === 'object' && Object.keys(draftSessions).length > 0) {
-          setSessionsByWeek(draftSessions as SessionsByWeekState);
-        } else {
-          setSessionsByWeek({ 1: [{ ...DEFAULT_SESSION, exercises: [] }] });
-        }
+        // Normaliser sessionsByWeek pour garantir des structures valides
+        setSessionsByWeek(normalizeSessionsByWeek(programDraft.sessionsByWeek));
         if (clientIdFromUrl && clients.some((c) => c.id === clientIdFromUrl)) {
           setSelectedClient(clientIdFromUrl);
         }
