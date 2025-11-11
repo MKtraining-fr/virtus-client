@@ -963,7 +963,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       <div
         className={`transition-all duration-300 ${isFilterSidebarVisible ? 'w-1/4' : 'w-0'} overflow-hidden`}
       >
-        <ExerciseFilterSidebar onDropExercise={handleDropExercise} />
+        <ExerciseFilterSidebar db={availableExercises} onDropExercise={handleDropExercise} />
       </div>
       <div className="flex-1 flex flex-col p-6">
         <div className="flex justify-between items-center mb-4">
