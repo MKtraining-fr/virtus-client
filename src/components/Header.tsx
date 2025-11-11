@@ -15,12 +15,12 @@ const Header: React.FC = () => {
   const notificationRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = useMemo(() => {
-    if (!user) return 0;
+    if (!user || !notifications) return 0;
     return notifications.filter((n) => n.userId === user.id && !n.isRead).length;
   }, [notifications, user]);
 
   const userNotifications = useMemo(() => {
-    if (!user) return [];
+    if (!user || !notifications) return [];
     return notifications
       .filter((n) => n.userId === user.id)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -31,7 +31,7 @@ const Header: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isNotificationOpen && unreadCount > 0) {
+    if (isNotificationOpen && unreadCount > 0 && notifications) {
       const updatedNotifications = notifications.map((n) =>
         n.userId === user?.id && !n.isRead ? { ...n, isRead: true } : n
       );

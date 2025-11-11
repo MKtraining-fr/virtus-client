@@ -511,7 +511,7 @@ export const useDataStore = create<DataState>((set, get) => {
       // Remplacement de _internalUpdate par un appel direct
       const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true } as Tables<'notifications'>['Update']) // is_read est le nom de la colonne dans la DB Supabase
+        .update({ read: true } as Tables<'notifications'>['Update']) // read est le nom de la colonne dans la DB Supabase
         .eq('id', notificationId);
 
       if (error) {
@@ -953,7 +953,7 @@ export const useDataStore = create<DataState>((set, get) => {
         const { error } = await supabase
           .from('notifications')
           .insert([
-            { ...notification, timestamp: new Date().toISOString(), is_read: false },
+            { ...notification, created_at: new Date().toISOString(), read: false },
           ] as any);
         if (error) throw error;
 
