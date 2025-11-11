@@ -158,6 +158,7 @@ export const createProgram = async (programData: {
   name: string;
   objective?: string;
   week_count: number;
+  sessions_per_week?: number;
 }): Promise<Program | null> => {
   try {
     const { data, error } = await supabase
@@ -190,6 +191,7 @@ export const updateProgram = async (
     name: string;
     objective: string;
     week_count: number;
+    sessions_per_week: number;
   }>
 ): Promise<Program | null> => {
   try {

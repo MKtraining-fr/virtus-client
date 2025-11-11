@@ -32,6 +32,8 @@ import {
   getSessionsByProgramId,
   getSessionExercisesBySessionId,
   getExercisesByIds,
+  createProgram,
+  updateProgram as updateProgramService,
 } from '../services/programService.ts';
 
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
@@ -237,8 +239,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     clients,
     exercises: exerciseDBFromAuth,
     programs,
-    addProgram,
-    updateProgram,
+    // addProgram et updateProgram retirés - utilisation de createProgram et updateProgramService du service
     sessions: storedSessions,
     addNotification,
   } = useAuth();
@@ -792,39 +793,48 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         throw new Error('Utilisateur non authentifié.');
       }
 
-      const programData: SupabaseProgram = {
-        id: editProgramId || undefined,
+      // Calculer le nombre de séances par semaine (basé sur la semaine 1)
+      const week1Sessions = sessionsByWeek[1] || [];
+      const sessionsPerWeek = week1Sessions.length;
+
+      const programData = {
         name: programName,
         objective: objective,
         week_count: typeof weekCount === 'number' ? weekCount : 1,
+        sessions_per_week: sessionsPerWeek > 0 ? sessionsPerWeek : undefined,
         coach_id: user.id,
-        client_id: selectedClient === '0' ? null : selectedClient,
-        created_at: editProgramId ? undefined : new Date().toISOString(),
       };
 
       const savedProgram = editProgramId
-        ? await updateProgram(editProgramId, programData)
-        : await addProgram(programData);
+        ? await updateProgramService(editProgramId, programData)
+        : await createProgram(programData);
       if (!savedProgram) {
         throw new Error('La sauvegarde du programme a échoué.');
       }
 
-      const currentProgramSessions = Object.values(sessionsByWeek).flat();
+      // Créer un tableau de sessions avec leur numéro de semaine
+      const currentProgramSessions: Array<{ session: WorkoutSession; weekNumber: number }> = [];
+      Object.entries(sessionsByWeek).forEach(([week, sessions]) => {
+        sessions.forEach((session) => {
+          currentProgramSessions.push({ session, weekNumber: parseInt(week) });
+        });
+      });
+
       const existingSessionIds = (storedSessions || [])
         .filter((s) => s.program_id === savedProgram.id)
         .map((s) => s.id);
       const sessionsToDelete = existingSessionIds.filter(
-        (id) => !currentProgramSessions.some((s) => s.dbId === id)
+        (id) => !currentProgramSessions.some((s) => s.session.dbId === id)
       );
 
       await Promise.all(sessionsToDelete.map((id) => deleteSession(id)));
 
-      const sessionPromises = currentProgramSessions.map(async (session) => {
-        const sessionData: SupabaseSession = {
-          id: session.dbId || undefined,
+      const sessionPromises = currentProgramSessions.map(async ({ session, weekNumber }) => {
+        const sessionData = {
           program_id: savedProgram.id,
           name: session.name,
-          order: session.id, // Using frontend ID as order for now
+          week_number: weekNumber,
+          session_order: session.id,
         };
         const savedSession = session.dbId
           ? await updateSession(session.dbId, sessionData)
@@ -879,7 +889,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       setHasUnsavedChanges(false);
       addNotification({ message: 'Programme sauvegardé avec succès !', type: 'success' });
 
-      // Refresh auth context data is now handled by addProgram/updateProgram in useDataStore
+      // Refresh auth context data is now handled by createProgram/updateProgramService in programService
 
       // Étape 8 : Assignement automatique si un client est sélectionné
       if (selectedClient !== '0' && savedProgram.id) {

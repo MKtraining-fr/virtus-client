@@ -18,32 +18,24 @@ export const mapWorkoutProgramToProgram = (
   return {
     coach_id: coachId,
     name: workoutProgram.name || 'Nouveau programme',
-    goal: workoutProgram.objective || null,
-    max_weeks: workoutProgram.weekCount || 1,
-    description: null,
+    objective: workoutProgram.objective || null,
+    week_count: workoutProgram.weekCount || 1,
     sessions_per_week: null,
-    is_template: false,
-    is_public: false,
-    created_by: coachId,
   };
 };
 
 export const mapWorkoutSessionToSession = (
   workoutSession: WorkoutSession,
   programId: string | null,
-  weekNumber: number
+  weekNumber: number,
+  coachId: string | null
 ): Omit<Session, 'id' | 'created_at' | 'updated_at'> => {
   return {
     program_id: programId,
+    coach_id: coachId,
     name: workoutSession.name,
     week_number: weekNumber,
     session_order: workoutSession.id,
-    exercises: [] as any, // Utilisation de 'any' pour Json
-    notes: null,
-    description: null,
-    day_of_week: null,
-    is_template: false,
-    created_by: null, // Sera probablement défini par le service
   };
 };
 
@@ -79,8 +71,8 @@ export const mapProgramToWorkoutProgram = (program: Program): Partial<WorkoutPro
   return {
     id: program.id,
     name: program.name,
-    objective: program.goal || '',
-    weekCount: program.max_weeks || 0,
+    objective: program.objective || '',
+    weekCount: program.week_count || 0,
     sessionsByWeek: {},
   };
 };
@@ -168,8 +160,8 @@ export const reconstructWorkoutProgram = (
   return {
     id: program.id,
     name: program.name,
-    objective: program.goal || '',
-    weekCount: program.max_weeks || 0,
+    objective: program.objective || '',
+    weekCount: program.week_count || 0,
     sessionsByWeek,
   };
 };

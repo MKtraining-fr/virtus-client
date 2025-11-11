@@ -1,91 +1,82 @@
-import React from 'react';
+import { Json } from './types/database';
 
-// ---- GENERAL ----
+// ---- USER ROLES ----
 export type UserRole = 'admin' | 'coach' | 'client';
 
 export interface Notification {
   id: string;
   userId: string;
-  fromName: string;
-  type: 'assignment' | 'session_completed' | 'message';
+  title: string;
   message: string;
-  link: string;
-  isRead: boolean;
-  timestamp: string;
+  type?: string;
+  read: boolean;
+  createdAt: string;
 }
 
-// ---- BILAN TEMPLATES ----
+// ---- BILAN TYPES ----
 export type BilanFieldType =
   | 'text'
-  | 'textarea'
   | 'number'
+  | 'date'
   | 'select'
-  | 'checkbox'
-  | 'radio_yes_no'
-  | 'scale'
-  | 'date';
+  | 'multiselect'
+  | 'textarea'
+  | 'file'
+  | 'photo'
+  | 'measurement';
 
 export interface BilanField {
   id: string;
   label: string;
   type: BilanFieldType;
-  placeholder?: string;
+  required?: boolean;
   options?: string[];
-  hasOther?: boolean;
-  otherFieldId?: string;
-  conditionalOn?: string;
-  conditionalValue?: string;
+  placeholder?: string;
+  unit?: string;
+  measurementType?: string;
 }
 
 export interface BilanSection {
   id: string;
   title: string;
-  isRemovable: boolean;
   fields: BilanField[];
-  isCivility?: boolean;
 }
 
 export interface BilanTemplate {
   id: string;
   name: string;
-  coachId: 'system' | string;
+  coachId: string;
   sections: BilanSection[];
 }
 
 export interface BilanAssignment {
   id: string;
+  bilanTemplateId: string;
   clientId: string;
   coachId: string;
-  templateId: string;
-  templateName: string;
-  status: 'pending' | 'completed';
   assignedAt: string;
+  dueDate?: string;
+  status: 'pending' | 'completed' | 'overdue';
   completedAt?: string;
-  recurrence?: 'daily' | 'weekly' | 'monthly' | 'yearly';
-  nextAssignmentDate?: string;
-  // Les réponses seront stockées dans une autre table ou directement dans la table client.bilans[]
+  responses?: Record<string, any>;
 }
 
 export interface BilanResult {
   id: string;
-  templateId: string;
-  templateName: string;
-  status: 'pending' | 'completed';
-  assignedAt: string;
-  completedAt?: string;
-  answers?: Record<string, unknown>;
+  bilanAssignmentId: string;
+  clientId: string;
+  coachId: string;
+  responses: Record<string, any>;
+  completedAt: string;
 }
 
-// ---- CLIENTS / USERS ----
+// ---- NUTRITION TYPES ----
 export interface Measurement {
-  neck?: number;
-  chest?: number;
-  l_bicep?: number;
-  r_bicep?: number;
-  waist?: number;
-  hips?: number;
-  l_thigh?: number;
-  r_thigh?: number;
+  date: string;
+  weight?: number;
+  bodyFat?: number;
+  muscleMass?: number;
+  [key: string]: string | number | undefined;
 }
 
 export interface DataPoint {
@@ -101,133 +92,100 @@ export interface MacroData {
 
 export interface NutritionLogEntry {
   date: string;
-  weight: number | null;
-  calories: number;
+  meals: any[];
+  totalCalories: number;
   macros: MacroData;
-  measurements?: Measurement;
 }
 
 export interface PerformanceSet {
-  reps: string;
-  load: string;
-  comment?: string;
-  viewedByCoach?: boolean;
-  restTime?: string;
+  reps: number;
+  weight: number;
+  completed: boolean;
 }
 
 export interface ExerciseLog {
-  exerciseId: number;
-  exerciseName: string;
-  loggedSets: PerformanceSet[];
+  exerciseId: string;
+  sets: PerformanceSet[];
 }
 
 export interface PerformanceLog {
+  id: string;
+  clientId: string;
+  sessionId: string;
   date: string;
-  week: number;
-  programName: string;
-  sessionName: string;
-  exerciseLogs: ExerciseLog[];
+  exercises: ExerciseLog[];
 }
 
 export interface SharedFile {
   id: string;
-  fileName: string;
-  fileType: string;
-  fileContent: string; // base64
+  name: string;
+  url: string;
+  type: string;
+  uploadedBy: string;
   uploadedAt: string;
-  size: number; // in bytes
 }
 
+// ---- CLIENT TYPES ----
 export interface Client {
   id: string;
-  status: 'active' | 'archived' | 'prospect';
+  email: string;
   firstName: string;
   lastName: string;
-  email: string;
-  phone: string;
-  age: number;
-  sex: 'Homme' | 'Femme' | 'Autre';
-  address?: string;
-  dob?: string;
-  registrationDate: string;
+  phone?: string;
   role: UserRole;
   coachId?: string;
   affiliationCode?: string;
-  avatar?: string;
-
+  dob?: string;
+  age?: number;
+  sex?: string;
   height?: number;
   weight?: number;
-  energyExpenditureLevel?: 'Sédentaire' | 'Légèrement actif' | 'Actif' | 'Très actif';
-
-  // For Dashboard view
+  address?: string;
+  energyExpenditureLevel?: string;
+  objective?: string;
+  notes?: string;
+  status?: 'active' | 'prospect' | 'archived';
+  lifestyle?: Json;
+  medicalInfo?: Json;
+  nutrition?: Json;
+  bilans?: Json;
+  assignedBilans?: Json;
+  nutritionLogs?: Json;
+  performanceLogs?: Json;
+  assignedNutritionPlans?: Json;
+  createdAt: string;
+  updatedAt: string;
+  programName?: string;
   programWeek?: number;
-  totalWeeks?: number;
-  sessionProgress?: number;
-  totalSessions?: number;
-  viewed?: boolean;
-
-  // For Profile View
-  objective: string;
-  notes: string;
-  medicalInfo: {
-    history: string;
-    allergies: string;
-  };
-  lifestyle?: {
-    profession: string;
-  };
-  bilans?: BilanResult[];
-  nutrition: {
-    measurements: Measurement;
-    weightHistory: DataPoint[];
-    calorieHistory: DataPoint[];
-    macros: MacroData;
-    foodAversions?: string;
-    generalHabits?: string;
-    historyLog: NutritionLogEntry[];
-    foodJournal?: Record<string, Meal[]>; // Key: "YYYY-MM-DD"
-  };
   assignedPrograms?: WorkoutProgram[];
   savedPrograms?: WorkoutProgram[];
-  performanceLog?: PerformanceLog[];
-  assignedNutritionPlans?: NutritionPlan[];
-  grantedFormationIds?: string[];
-  sharedFiles?: SharedFile[];
-  canUseWorkoutBuilder?: boolean;
-  shopAccess?: {
-    adminShop: boolean;
-    coachShop: boolean;
-  };
 }
 
-// ---- WORKOUT ----
+// ---- EXERCISE TYPES ----
 export interface Exercise {
   id: string;
   name: string;
-  category: 'Musculation' | 'Mobilité' | 'Échauffement';
-  description: string;
-  videoUrl: string;
-  illustrationUrl: string;
+  description?: string;
+  category?: string;
+  muscleGroup?: string;
   equipment?: string;
-  alternativeIds?: string[];
-  muscleGroups?: string[]; // Groupes musculaires principaux
-  secondaryMuscleGroups?: string[]; // Groupes musculaires secondaires
-  coachId?: 'system' | string;
+  difficulty?: string;
+  videoUrl?: string;
+  imageUrl?: string;
+  type?: string;
 }
 
 export interface WorkoutExercise {
   id: number;
-  exerciseId: string; // Ref to Exercise DB
+  dbId?: string;
+  exerciseId: string;
   name: string;
-  illustrationUrl: string;
-  sets: string;
-  isDetailed: boolean;
-  details?: {
-    reps: string;
-    load: { value: string; unit: 'kg' | '%' | 'RPE' | 'km/h' | 'W' | 'lvl' };
-    tempo: string;
-    rest: string;
-  }[];
+  illustrationUrl?: string;
+  sets: number;
+  reps: string;
+  load: string;
+  tempo: string;
+  restTime: string;
   intensification: { id: number; value: string }[];
   alternatives?: { id: string; name: string; illustrationUrl: string }[];
   notes?: string | null;
@@ -248,6 +206,58 @@ export interface WorkoutProgram {
   sessionsByWeek: Record<number, WorkoutSession[]>;
 }
 
+// ---- PROGRAM TYPES (Supabase) ----
+/**
+ * Type représentant un programme dans la base de données Supabase
+ * Correspond à la table `programs`
+ */
+export interface Program {
+  id: string;
+  coach_id: string | null;
+  name: string;
+  objective: string | null;
+  week_count: number;
+  created_at: string;
+  updated_at: string;
+  sessions_per_week: number | null;
+}
+
+/**
+ * Type représentant une session dans la base de données Supabase
+ * Correspond à la table `sessions`
+ */
+export interface Session {
+  id: string;
+  program_id: string | null;
+  coach_id: string | null;
+  name: string;
+  week_number: number;
+  session_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Type représentant un exercice de session dans la base de données Supabase
+ * Correspond à la table `session_exercises`
+ */
+export interface SessionExercise {
+  id: string;
+  session_id: string | null;
+  exercise_id: string | null;
+  coach_id: string | null;
+  exercise_order: number;
+  sets: number | null;
+  reps: string | null;
+  load: string | null;
+  tempo: string | null;
+  rest_time: string | null;
+  intensification: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ---- MESSAGING ----
 export interface Message {
   id: string;
@@ -259,101 +269,69 @@ export interface Message {
   voiceUrl?: string;
   seenBySender: boolean;
   seenByRecipient: boolean;
+  subject?: string;
 }
 
-// ---- NUTRITION ----
-export interface FoodItem {
-  name: string;
-  category: string;
-  calories: number; // per 100g/ml
-  protein: number; // per 100g/ml
-  carbs: number; // per 100g/ml
-  fat: number; // per 100g/ml
-}
-
-export interface MealItem {
-  id: string; // unique id for this item in the meal
-  food: FoodItem; // a copy of the food item data
-  quantity: number; // in grams or ml
-  unit: 'g' | 'ml';
-}
-
-export interface Meal {
-  id: string; // e.g. 'breakfast', 'lunch'
-  name: string; // 'Petit-déjeuner'
-  items: MealItem[];
-  // FIX: Add optional steps, coachId, and type properties to support recipes.
-  steps?: string[];
-  coachId?: string;
-  type?: 'Recette' | 'Repas';
-}
-
-export interface NutritionDay {
-  id: number; // Day number e.g. 1
-  name: string; // "Jour 1"
-  meals: Meal[];
-}
-
+// ---- NUTRITION PLAN TYPES ----
 export interface NutritionPlan {
   id: string;
-  name: string;
-  objective: string;
   clientId?: string;
-  coachId?: string;
-  weekCount: number;
-  daysByWeek: Record<number, NutritionDay[]>;
+  name: string;
+  description?: string;
+  caloriesTarget?: number;
+  proteinTarget?: number;
+  carbsTarget?: number;
+  fatTarget?: number;
+  meals?: Json;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// ---- FORMATIONS ----
-export interface ClientFormation {
+export interface FoodItem {
   id: string;
-  title: string;
-  coachId: string;
-  type: 'file' | 'link';
-  url?: string;
-  fileName?: string;
-  fileContent?: string; // base64
+  name: string;
+  category?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  servingSize?: string;
+  foodFamily?: string;
+  micronutrients?: Json;
+  createdBy?: string;
+  isPublic?: boolean;
+  createdAt: string;
 }
 
-export interface ProfessionalFormation {
+export interface Recipe {
   id: string;
-  title: string;
-  description: string;
-  price: number;
-  coverImageUrl: string;
-  accessType: 'purchase' | 'subscription';
+  name: string;
+  description?: string;
+  ingredients?: Json;
+  instructions?: string;
+  prepTime?: number;
+  cookTime?: number;
+  servings?: number;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  imageUrl?: string;
+  createdBy?: string;
+  isPublic?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
+// ---- INTENSIFICATION TECHNIQUES ----
 export interface IntensificationTechnique {
   id: string;
   name: string;
-  description: string;
-}
-
-// ---- SHOP ----
-export interface Partner {
-  id: string;
-  ownerId: string; // 'admin' or coachId
-  name: string;
-  logoUrl: string;
-  description: string;
-  offerUrl: string;
-}
-
-export interface Product {
-  id: string;
-  ownerId: string; // 'admin' or coachId
-  name: string;
-  description: string;
-  imageUrl: string;
-  productUrl: string;
-  price: number;
-  category: string;
-}
-
-// ---- UI TYPES ----
-export interface ClientNav {
-  path: string;
-  name: string;
-  icon: (props: React.SVGProps<SVGSVGElement>) => React.JSX.Element;
+  description?: string;
+  addsSubSeries?: boolean;
+  subSeriesConfig?: Json;
+  createdBy?: string;
+  isPublic?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }

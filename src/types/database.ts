@@ -157,45 +157,33 @@ export interface Database {
       programs: {
         Row: {
           id: string;
-          name: string;
-          description: string | null;
           coach_id: string | null;
-          max_weeks: number | null;
-          goal: string | null;
-          sessions_per_week: number | null;
-          is_template: boolean | null;
-          is_public: boolean | null;
-          created_by: string | null;
+          name: string;
+          objective: string | null;
+          week_count: number;
           created_at: string;
           updated_at: string;
+          sessions_per_week: number | null;
         };
         Insert: {
           id?: string;
-          name: string;
-          description?: string | null;
           coach_id?: string | null;
-          max_weeks?: number | null;
-          goal?: string | null;
-          sessions_per_week?: number | null;
-          is_template?: boolean | null;
-          is_public?: boolean | null;
-          created_by?: string | null;
+          name: string;
+          objective?: string | null;
+          week_count?: number;
           created_at?: string;
           updated_at?: string;
+          sessions_per_week?: number | null;
         };
         Update: {
           id?: string;
-          name?: string;
-          description?: string | null;
           coach_id?: string | null;
-          max_weeks?: number | null;
-          goal?: string | null;
-          sessions_per_week?: number | null;
-          is_template?: boolean | null;
-          is_public?: boolean | null;
-          created_by?: string | null;
+          name?: string;
+          objective?: string | null;
+          week_count?: number;
           created_at?: string;
           updated_at?: string;
+          sessions_per_week?: number | null;
         };
       };
       sessions: {
