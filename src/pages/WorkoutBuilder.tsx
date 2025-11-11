@@ -27,6 +27,12 @@ import {
   deleteSessionExercise,
 } from '../services/sessionService.ts';
 import { assignProgramToClient } from '../services/programAssignmentService.ts';
+import {
+  getProgramById,
+  getSessionsByProgramId,
+  getSessionExercisesBySessionId,
+  getExercisesByIds,
+} from '../services/programService.ts';
 
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
 import { useAuth } from '../context/AuthContext.tsx';

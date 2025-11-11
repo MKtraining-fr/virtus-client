@@ -16,6 +16,12 @@ import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
 import { assignProgramToClient, getAssignmentCountByProgram } from '../services/programAssignmentService';
+import {
+  getProgramsByCoachId,
+  getSessionsByProgramId,
+  getSessionExercisesBySessionId,
+  getExercisesByIds,
+} from '../services/programService';
 
 const WorkoutLibrary: React.FC = () => {
   const { user, clients, setClients, addNotification } = useAuth();
