@@ -21,6 +21,7 @@ import NutritionLibrary from '../pages/coach/NutritionLibrary.tsx';
 import NutritionDatabase from '../pages/coach/NutritionDatabase.tsx';
 import BilanTemplates from '../pages/coach/BilanTemplates.tsx';
 import CoachShop from '../pages/coach/CoachShop.tsx';
+import ScrollToTop from '../components/ScrollToTop.tsx';
 
 const CoachLayout: React.FC = () => {
   const { user, currentViewRole } = useAuth();
@@ -42,6 +43,7 @@ const CoachLayout: React.FC = () => {
         <ViewBanner />
         <Header />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-light-bg p-6 md:p-8">
+          <ScrollToTop />
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="clients" element={<Clients />} />

@@ -961,7 +961,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   }, [selectedWeek]);
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex h-full bg-gray-100">
       <div className="flex-1 flex flex-col p-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Créateur d'entrainement</h1>
