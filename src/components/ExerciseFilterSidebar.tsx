@@ -6,6 +6,7 @@ import FilterChip from './FilterChip.tsx';
 
 interface ExerciseFilterSidebarProps {
   db: Exercise[];
+  onDropExercise?: (exercise: Exercise) => void;
 }
 
 const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db }) => {
@@ -51,19 +52,19 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db }) => 
     'https://img.gymvisual.com/illustrations/1749/male-Bodyweight-Squat.png';
 
   return (
-    <Card className="p-4 h-full flex flex-col">
-      <h2 className="text-xl font-bold mb-4">Filtres</h2>
+    <Card className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <h2 className="mb-4 text-lg font-semibold text-gray-900">Filtres</h2>
       <Input
         placeholder="Rechercher un mouvement"
-        className="mb-4"
+        className="mb-4 rounded-xl"
         aria-label="Rechercher un mouvement"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
       />
 
       {equipmentTypes.length > 0 && (
-        <div className="mb-4">
-          <h3 className="font-semibold mb-2 text-gray-700">Types d'équipement :</h3>
+        <div className="mb-5">
+          <h3 className="mb-2 text-sm font-semibold text-gray-700">Types d'équipement</h3>
           <div className="flex flex-wrap gap-2">
             {equipmentTypes.map((type) => (
               <FilterChip
@@ -78,8 +79,8 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db }) => 
       )}
 
       {muscleGroups.length > 0 && (
-        <div className="mb-4">
-          <h3 className="font-semibold mb-2 text-gray-700">Groupes musculaires :</h3>
+        <div className="mb-5">
+          <h3 className="mb-2 text-sm font-semibold text-gray-700">Groupes musculaires</h3>
           <div className="flex flex-wrap gap-2">
             {muscleGroups.map((part) => (
               <FilterChip
@@ -93,23 +94,25 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db }) => 
         </div>
       )}
 
-      <hr className="my-4" />
+      <hr className="my-4 border-gray-200" />
 
-      <h3 className="font-semibold mb-2 text-gray-700">Résultats ({filteredResults.length})</h3>
-      <div className="space-y-3 overflow-y-auto flex-grow pr-2">
+      <h3 className="mb-3 text-sm font-semibold text-gray-700">
+        Résultats ({filteredResults.length})
+      </h3>
+      <div className="flex-grow space-y-3 overflow-y-auto pr-2">
         {filteredResults.map((ex) => (
           <div
             key={ex.id}
-            className="cursor-grab group flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100"
+            className="group flex cursor-grab items-center gap-3 rounded-xl border border-gray-100 p-3 hover:border-primary/30 hover:bg-primary/5"
             draggable
             onDragStart={(e) => handleDragStart(e, ex)}
           >
             <img
               src={ex.illustrationUrl || DEFAULT_ILLUSTRATION}
               alt={ex.name}
-              className="w-16 h-16 object-contain rounded-md bg-white border border-gray-200 flex-shrink-0"
+              className="h-16 w-16 flex-shrink-0 rounded-lg border border-gray-200 bg-white object-contain"
             />
-            <p className="font-semibold text-gray-800 group-hover:text-primary flex-grow">
+            <p className="flex-grow font-medium text-gray-800 transition-colors group-hover:text-primary">
               {ex.name}
             </p>
           </div>
