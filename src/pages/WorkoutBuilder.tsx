@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import Card from '../components/Card.tsx';
 import Input from '../components/Input.tsx';
 import Select from '../components/Select.tsx';
@@ -245,6 +245,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     addNotification,
   } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const [programDraft, setProgramDraft] = useLocalStorage<WorkoutProgram | null>(
@@ -538,6 +539,16 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       setHasUnsavedChanges(false);
     }
   }, [isSaving, lastSavedAt, hasUnsavedChanges]);
+
+  // Détecter les changements de route pour quitter le créateur
+  useEffect(() => {
+    // Si l'URL ne contient plus '/musculation/createur', on est sorti du créateur
+    if (!location.pathname.includes('/musculation/createur') && !location.pathname.includes('/workout/builder')) {
+      // Réinitialiser le composant si nécessaire
+      // La navigation est gérée par React Router, pas besoin d'action supplémentaire
+      return;
+    }
+  }, [location.pathname]);
 
   const onUpdateExercise = useCallback(
     (exerciseId: number, field: string, value: unknown, setIndex?: number) => {
@@ -961,7 +972,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   }, [selectedWeek]);
 
   return (
-    <div className="flex h-full bg-gray-100">
+    <div className="flex min-h-screen bg-gray-100 relative">
       <div className="flex-1 flex flex-col p-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Créateur d'entrainement</h1>
@@ -969,22 +980,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             {hasUnsavedChanges && (
               <span className="text-sm text-yellow-600">Modifications non sauvegardées</span>
             )}
-            <Button
-              onClick={() => setIsFilterSidebarVisible(!isFilterSidebarVisible)}
-              className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              {isFilterSidebarVisible ? (
-                <>
-                  <ChevronDoubleRightIcon className="w-5 h-5" />
-                  Masquer filtres
-                </>
-              ) : (
-                <>
-                  <ChevronDoubleRightIcon className="w-5 h-5 rotate-180" />
-                  Afficher filtres
-                </>
-              )}
-            </Button>
           </div>
         </div>
         <CollapsibleSection title="Informations et notes" defaultOpen={true}>
@@ -1340,10 +1335,23 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         </div>
       </div>
       <div
-        className={`transition-all duration-300 ${isFilterSidebarVisible ? 'w-1/4' : 'w-0'} overflow-hidden`}
+        className={`fixed top-[88px] right-6 h-[calc(100vh-112px)] transition-all duration-300 ease-in-out z-30 ${isFilterSidebarVisible ? 'w-[400px]' : 'w-0'}`}
       >
-        <ExerciseFilterSidebar db={availableExercises} onDropExercise={handleDropExercise} />
+        <div
+          className={`transition-opacity duration-300 ${isFilterSidebarVisible ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <ExerciseFilterSidebar db={availableExercises} onDropExercise={handleDropExercise} />
+        </div>
       </div>
+      <button
+        onClick={() => setIsFilterSidebarVisible(!isFilterSidebarVisible)}
+        className="fixed top-1/2 -translate-y-1/2 bg-white p-2 rounded-l-full shadow-lg border border-r-0 transition-all duration-300 z-40"
+        style={{ right: isFilterSidebarVisible ? '424px' : '24px' }}
+      >
+        <ChevronDoubleRightIcon
+          className={`w-5 h-5 text-gray-600 transition-transform ${isFilterSidebarVisible ? 'rotate-180' : ''}`}
+        />
+      </button>
       {isHistoryModalOpen && clientData && (
         <ClientHistoryModal
           client={clientData}
