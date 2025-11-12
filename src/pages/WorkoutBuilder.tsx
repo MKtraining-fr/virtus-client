@@ -282,7 +282,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   const [isFilterSidebarVisible, setIsFilterSidebarVisible] = useState(true);
   const [workoutMode, setWorkoutMode] = useState<'session' | 'program'>('session');
 
-  const [isGeneralInfoVisible, setIsGeneralInfoVisible] = useState(false);
+  const [isGeneralInfoVisible, setIsGeneralInfoVisible] = useState(true);
   const [programName, setProgramName] = useState(programDraft?.name || 'Nouveau programme');
   const [objective, setObjective] = useState(programDraft?.objective || '');
   const [weekCount, setWeekCount] = useState<number | ''>(
@@ -1046,7 +1046,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             )}
           </div>
         </div>
-        <CollapsibleSection title="Informations et notes" defaultOpen={true}>
+        <CollapsibleSection
+          title="Informations et notes"
+          isOpen={isGeneralInfoVisible}
+          onToggle={(open) => setIsGeneralInfoVisible(open)}
+        >
           <div className="grid grid-cols-2 gap-6">
             {/* Colonne gauche : Informations Générales */}
             <div>
