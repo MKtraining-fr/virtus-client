@@ -68,6 +68,25 @@ type SessionsByWeekState = Record<number, EditableWorkoutSession[]>;
 const FILTER_SIDEBAR_WIDTH = 400;
 const FILTER_SIDEBAR_GAP = 24;
 
+const isFormLikeElement = (element: HTMLElement | null): boolean => {
+  if (!element) {
+    return false;
+  }
+
+  const tagName = element.tagName;
+
+  if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+    return true;
+  }
+
+  if (element.isContentEditable) {
+    return true;
+  }
+
+  const role = element.getAttribute('role');
+  return role === 'combobox';
+};
+
 const DEFAULT_SESSION: EditableWorkoutSession = {
   id: 1,
   name: 'Séance 1',
@@ -689,13 +708,22 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     setHasUnsavedChanges(true);
   };
 
+  const [isDragInteractionLocked, setIsDragInteractionLocked] = useState(false);
+
   const handleDragStart = useCallback((e: React.DragEvent, exerciseId: number) => {
+    if (isDragInteractionLocked) {
+      e.preventDefault();
+      return;
+    }
     exerciseDragItem.current = exerciseId;
-  }, []);
+  }, [isDragInteractionLocked]);
 
   const handleDragEnter = useCallback((e: React.DragEvent, exerciseId: number) => {
+    if (isDragInteractionLocked) {
+      return;
+    }
     exerciseDragOverItem.current = exerciseId;
-  }, []);
+  }, [isDragInteractionLocked]);
 
   const handleDrop = useCallback(() => {
     const draggedExerciseId = exerciseDragItem.current;
@@ -939,11 +967,37 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   };
 
   const handleDragSessionStart = useCallback((e: React.DragEvent, sessionId: number) => {
+    if (isDragInteractionLocked) {
+      e.preventDefault();
+      return;
+    }
     sessionDragItem.current = sessionId;
-  }, []);
+  }, [isDragInteractionLocked]);
 
   const handleDragSessionEnter = useCallback((e: React.DragEvent, sessionId: number) => {
+    if (isDragInteractionLocked) {
+      return;
+    }
     sessionDragOverItem.current = sessionId;
+  }, [isDragInteractionLocked]);
+
+  const handleFocusCapture = useCallback((event: React.FocusEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (isFormLikeElement(target)) {
+      setIsDragInteractionLocked(true);
+    }
+  }, []);
+
+  const handleBlurCapture = useCallback((event: React.FocusEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (!isFormLikeElement(target)) {
+      return;
+    }
+
+    const relatedTarget = event.relatedTarget as HTMLElement | null;
+    if (!isFormLikeElement(relatedTarget)) {
+      setIsDragInteractionLocked(false);
+    }
   }, []);
 
   const handleDropSession = useCallback(() => {
@@ -975,7 +1029,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   }, [selectedWeek]);
 
   return (
-    <div className="flex min-h-screen bg-gray-100 relative">
+    <div
+      className="flex min-h-screen bg-gray-100 relative"
+      onFocusCapture={handleFocusCapture}
+      onBlurCapture={handleBlurCapture}
+    >
       <div
         className="flex-1 flex flex-col p-6 transition-all duration-300"
         style={{ paddingRight: isFilterSidebarVisible ? `${FILTER_SIDEBAR_WIDTH + FILTER_SIDEBAR_GAP}px` : '0' }}
@@ -1126,11 +1184,19 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     <span>{session.name}</span>
                     <button
                       type="button"
-                      draggable
+                      draggable={!isDragInteractionLocked}
                       onDragStart={(e) => handleDragSessionStart(e, session.id)}
                       onDragEnd={handleDropSession}
-                      className="p-1 text-gray-500 hover:text-gray-700 cursor-grab active:cursor-grabbing"
+                      className={`p-1 text-gray-500 hover:text-gray-700 ${
+                        isDragInteractionLocked ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'
+                      }`}
+                      onMouseDown={(e) => {
+                        if (isDragInteractionLocked) {
+                          e.preventDefault();
+                        }
+                      }}
                       aria-label="Réordonner la séance"
+                      aria-disabled={isDragInteractionLocked}
                     >
                       <ListBulletIcon className="w-4 h-4" />
                     </button>
@@ -1198,11 +1264,19 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     )}
                     <button
                       type="button"
-                      draggable
+                      draggable={!isDragInteractionLocked}
                       onDragStart={(e) => handleDragStart(e, ex.id)}
                       onDragEnd={handleDrop}
-                      className="p-1 mt-2 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+                      className={`p-1 mt-2 text-gray-400 hover:text-gray-600 ${
+                        isDragInteractionLocked ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'
+                      }`}
+                      onMouseDown={(e) => {
+                        if (isDragInteractionLocked) {
+                          e.preventDefault();
+                        }
+                      }}
                       aria-label="Réordonner l'exercice"
+                      aria-disabled={isDragInteractionLocked}
                     >
                       <EllipsisHorizontalIcon className="w-4 h-4" />
                     </button>
