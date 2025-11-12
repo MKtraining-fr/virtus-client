@@ -8,10 +8,11 @@ import ToggleSwitch from '../components/ToggleSwitch.tsx';
 import ExerciseFilterSidebar from '../components/ExerciseFilterSidebar.tsx';
 import { Exercise, WorkoutExercise, WorkoutSession, WorkoutProgram, Client } from '../types.ts';
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
+import CollapsibleSection from '../src/components/CollapsibleSection.tsx';
 import { useAuth } from '../src/context/AuthContext';
 import {
     FolderIcon, EllipsisHorizontalIcon, PlusIcon, DocumentDuplicateIcon, TrashIcon, XMarkIcon,
-    ChevronDoubleRightIcon, ChevronUpIcon, ListBulletIcon, LockClosedIcon
+    ChevronDoubleRightIcon, ListBulletIcon, LockClosedIcon
 } from '../constants/icons.ts';
 
 
@@ -618,81 +619,80 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 <h1 className="text-3xl font-bold text-gray-800">{isEditMode ? 'Modifier le programme' : "Créateur d'entraînement"}</h1>
 
                 {/* General Info Section */}
-                 <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                    <button onClick={() => setIsGeneralInfoVisible(!isGeneralInfoVisible)} className="w-full flex justify-between items-center font-bold text-lg text-gray-800">
-                        <span>Informations et notes</span>
-                        <ChevronUpIcon className={`w-6 h-6 transition-transform ${isGeneralInfoVisible ? '' : 'rotate-180'}`} />
-                    </button>
-                    {isGeneralInfoVisible && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t">
-                            <Card className="p-4 flex flex-col gap-4 !shadow-none border">
-                                <h2 className="font-bold text-lg">Informations Générales</h2>
-                                <Input label="Nom de la séance/programme" value={programName} onChange={e => setProgramName(e.target.value)} />
-                                 <Input label="Objectif" value={objective} onChange={e => setObjective(e.target.value)} />
-                                {workoutMode === 'program' && (
-                                   <Input label="Nombre de semaines" type="number" value={weekCount} onChange={handleWeekCountChange} onBlur={handleWeekCountBlur} min="1" max="52" />
-                                )}
-                                {mode === 'coach' && (
-                                    <Select label="Nom du client" value={selectedClient} onChange={handleClientSelectionChange} disabled={isEditMode}>
-                                        {clientOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </Select>
+                <CollapsibleSection
+                    title="Informations et notes"
+                    className="shadow-sm border border-gray-200 mb-0"
+                    isOpen={isGeneralInfoVisible}
+                    onToggle={(open) => setIsGeneralInfoVisible(open)}
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card className="p-4 flex flex-col gap-4 !shadow-none border">
+                            <h2 className="font-bold text-lg">Informations Générales</h2>
+                            <Input label="Nom de la séance/programme" value={programName} onChange={e => setProgramName(e.target.value)} />
+                            <Input label="Objectif" value={objective} onChange={e => setObjective(e.target.value)} />
+                            {workoutMode === 'program' && (
+                                <Input label="Nombre de semaines" type="number" value={weekCount} onChange={handleWeekCountChange} onBlur={handleWeekCountBlur} min="1" max="52" />
+                            )}
+                            {mode === 'coach' && (
+                                <Select label="Nom du client" value={selectedClient} onChange={handleClientSelectionChange} disabled={isEditMode}>
+                                    {clientOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </Select>
+                            )}
+                        </Card>
+                        <div className="space-y-4">
+                            <Card className="p-4 !shadow-none border">
+                                <div className="flex items-center mb-2">
+                                    <FolderIcon className="w-6 h-6 text-primary mr-2" />
+                                    <h3 className="font-semibold">Dernière note du coach</h3>
+                                </div>
+                                {clientData && clientData.notes ? (
+                                    <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded-md max-h-24 overflow-y-auto whitespace-pre-wrap">
+                                        {getLatestNote(clientData.notes).full}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-500 italic">
+                                        {selectedClient !== '0' ? 'Aucune note pour ce client.' : 'Sélectionnez un client pour voir les notes.'}
+                                    </p>
                                 )}
                             </Card>
-                            <div className="space-y-4">
-                                <Card className="p-4 !shadow-none border">
-                                    <div className="flex items-center mb-2">
-                                        <FolderIcon className="w-6 h-6 text-primary mr-2" />
-                                        <h3 className="font-semibold">Dernière note du coach</h3>
-                                    </div>
-                                    {clientData && clientData.notes ? (
-                                        <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded-md max-h-24 overflow-y-auto whitespace-pre-wrap">
-                                            {getLatestNote(clientData.notes).full}
+                            <Card className="p-4 !shadow-none border">
+                                <div className="flex items-center mb-2">
+                                    <FolderIcon className="w-6 h-6 text-primary mr-2" />
+                                    <h3 className="font-semibold">Informations Médicales</h3>
+                                </div>
+                                {clientData ? (
+                                    <div className="text-sm text-gray-700 space-y-2">
+                                        <div>
+                                            <h4 className="font-semibold text-xs text-gray-500 uppercase">Antécédents:</h4>
+                                            <p className="whitespace-pre-wrap bg-gray-50 p-2 rounded-md">{clientData.medicalInfo?.history || 'Non renseigné'}</p>
                                         </div>
-                                    ) : (
-                                        <p className="text-sm text-gray-500 italic">
-                                            {selectedClient !== '0' ? 'Aucune note pour ce client.' : 'Sélectionnez un client pour voir les notes.'}
-                                        </p>
-                                    )}
-                                </Card>
-                                <Card className="p-4 !shadow-none border">
-                                    <div className="flex items-center mb-2">
-                                        <FolderIcon className="w-6 h-6 text-primary mr-2" />
-                                        <h3 className="font-semibold">Informations Médicales</h3>
-                                    </div>
-                                    {clientData ? (
-                                        <div className="text-sm text-gray-700 space-y-2">
-                                            <div>
-                                                <h4 className="font-semibold text-xs text-gray-500 uppercase">Antécédents:</h4>
-                                                <p className="whitespace-pre-wrap bg-gray-50 p-2 rounded-md">{clientData.medicalInfo?.history || 'Non renseigné'}</p>
-                                            </div>
-                                             <div>
-                                                <h4 className="font-semibold text-xs text-gray-500 uppercase">Allergies:</h4>
-                                                <p className="whitespace-pre-wrap bg-gray-50 p-2 rounded-md">{clientData.medicalInfo?.allergies || 'Non renseigné'}</p>
-                                            </div>
+                                        <div>
+                                            <h4 className="font-semibold text-xs text-gray-500 uppercase">Allergies:</h4>
+                                            <p className="whitespace-pre-wrap bg-gray-50 p-2 rounded-md">{clientData.medicalInfo?.allergies || 'Non renseigné'}</p>
                                         </div>
-                                    ) : (
-                                        <p className="text-sm text-gray-500 italic">
-                                            Sélectionnez un client pour voir les informations médicales.
-                                        </p>
-                                    )}
-                                </Card>
-                                {selectedClient !== '0' && (
-                                    <div className="mt-2">
-                                        <Button 
-                                            variant="secondary"
-                                            onClick={() => {
-                                                setIsHistoryModalOpen(true);
-                                                setIsHistoryModalMinimized(false);
-                                            }}
-                                        >
-                                            Historique du client
-                                        </Button>
                                     </div>
+                                ) : (
+                                    <p className="text-sm text-gray-500 italic">
+                                        Sélectionnez un client pour voir les informations médicales.
+                                    </p>
                                 )}
-                            </div>
+                            </Card>
+                            {selectedClient !== '0' && (
+                                <div className="mt-2">
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => {
+                                            setIsHistoryModalOpen(true);
+                                            setIsHistoryModalMinimized(false);
+                                        }}
+                                    >
+                                        Historique du client
+                                    </Button>
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
+                    </div>
+                </CollapsibleSection>
 
 
                 {/* Main creator */}
