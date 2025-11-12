@@ -4,6 +4,7 @@ import Card from '../components/Card.tsx';
 import Input from '../components/Input.tsx';
 import Select from '../components/Select.tsx';
 import Button from '../components/Button.tsx';
+import ToggleSwitch from '../components/ToggleSwitch.tsx';
 import ExerciseFilterSidebar from '../components/ExerciseFilterSidebar.tsx';
 import CollapsibleSection from '../components/CollapsibleSection.tsx';
 import {
@@ -49,9 +50,6 @@ import {
   ChevronUpIcon,
   ListBulletIcon,
   LockClosedIcon,
-  DocumentTextIcon,
-  BeakerIcon,
-  ClockIcon,
 } from '../constants/icons.ts';
 
 type EditableWorkoutExercise = WorkoutExercise & {
@@ -66,40 +64,6 @@ type EditableWorkoutSession = WorkoutSession & {
 };
 
 type SessionsByWeekState = Record<number, EditableWorkoutSession[]>;
-
-interface InfoHighlightProps {
-  icon: React.ReactNode;
-  title: string;
-  description: React.ReactNode;
-  muted?: boolean;
-}
-
-const InfoHighlight: React.FC<InfoHighlightProps> = ({
-  icon,
-  title,
-  description,
-  muted = false,
-}) => (
-  <div
-    className={`flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-sm transition-colors ${
-      muted
-        ? 'border-dashed border-gray-300 bg-white'
-        : 'border-primary/20 bg-primary/5'
-    }`}
-  >
-    <div
-      className={`flex h-10 w-10 items-center justify-center rounded-full ${
-        muted ? 'bg-gray-100 text-gray-400' : 'bg-primary/10 text-primary'
-      }`}
-    >
-      {icon}
-    </div>
-    <div className="space-y-1">
-      <p className="text-sm font-semibold text-gray-900">{title}</p>
-      <div className={`text-sm leading-5 ${muted ? 'text-gray-500' : 'text-gray-700'}`}>{description}</div>
-    </div>
-  </div>
-);
 
 const FILTER_SIDEBAR_WIDTH = 400;
 const FILTER_SIDEBAR_GAP = 24;
@@ -164,78 +128,6 @@ const ensureDetailsArray = (
     tempo: detail?.tempo ?? DEFAULT_DETAIL_TEMPLATE.tempo,
     rest: detail?.rest ?? DEFAULT_DETAIL_TEMPLATE.rest,
   }));
-};
-
-const parseDurationToSeconds = (value: string | undefined | null): number => {
-  if (!value) {
-    return 0;
-  }
-
-  const trimmed = value.toString().trim().toLowerCase();
-  if (!trimmed) {
-    return 0;
-  }
-
-  if (trimmed.includes(':')) {
-    const [minutes, seconds] = trimmed.split(':');
-    const mins = parseInt(minutes, 10);
-    const secs = parseInt(seconds, 10);
-    return (Number.isNaN(mins) ? 0 : mins * 60) + (Number.isNaN(secs) ? 0 : secs);
-  }
-
-  const minuteMatch = trimmed.match(/(\d+)\s*(?:m|min|minutes?)/);
-  const secondMatch = trimmed.match(/(\d+)\s*(?:s|sec|secs|secondes?)/);
-
-  let total = 0;
-  if (minuteMatch) {
-    total += parseInt(minuteMatch[1], 10) * 60;
-  }
-  if (secondMatch) {
-    total += parseInt(secondMatch[1], 10);
-  }
-
-  if (total > 0) {
-    return total;
-  }
-
-  const numeric = parseInt(trimmed.replace(/[^0-9]/g, ''), 10);
-  return Number.isNaN(numeric) ? 0 : numeric;
-};
-
-const parseTempoToSeconds = (tempo: string | undefined | null): number => {
-  if (!tempo) {
-    return 0;
-  }
-
-  const sanitized = tempo.toString().replace(/[^0-9:]/g, '');
-  if (!sanitized) {
-    return 0;
-  }
-
-  if (sanitized.includes(':')) {
-    const segments = sanitized.split(':').map((part) => parseInt(part, 10) || 0);
-    return segments.reduce((acc, value) => acc + value, 0);
-  }
-
-  return sanitized
-    .split('')
-    .map((char) => parseInt(char, 10) || 0)
-    .reduce((acc, value) => acc + value, 0);
-};
-
-const formatDuration = (totalSeconds: number): string => {
-  if (!totalSeconds || totalSeconds <= 0) {
-    return '--';
-  }
-
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-  if (hours > 0) {
-    return `${hours}h ${minutes.toString().padStart(2, '0')}`;
-  }
-
-  return `${minutes} min`;
 };
 
 // Fonction de normalisation pour garantir que les exercices ont toujours des structures valides
@@ -464,38 +356,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   } | null>(null);
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<number[]>([]);
 
-  const toggleExerciseSelection = useCallback((exerciseId: number) => {
-    setSelectedExerciseIds((prev) =>
-      prev.includes(exerciseId)
-        ? prev.filter((id) => id !== exerciseId)
-        : [...prev, exerciseId]
-    );
-  }, []);
-
-  const handleDeleteSelectedExercises = useCallback(() => {
-    if (selectedExerciseIds.length === 0) {
-      return;
-    }
-
-    setSessionsByWeek((prev) => {
-      const newSessionsByWeek = { ...prev };
-      newSessionsByWeek[selectedWeek] = (newSessionsByWeek[selectedWeek] || []).map((session) => {
-        if (session.id !== activeSessionId) {
-          return session;
-        }
-
-        return {
-          ...session,
-          exercises: session.exercises.filter((exercise) => !selectedExerciseIds.includes(exercise.id)),
-        };
-      });
-      return newSessionsByWeek;
-    });
-
-    setSelectedExerciseIds([]);
-    setHasUnsavedChanges(true);
-  }, [selectedExerciseIds, selectedWeek, activeSessionId]);
-
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isHistoryModalMinimized, setIsHistoryModalMinimized] = useState(false);
 
@@ -518,31 +378,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   const activeSession = useMemo(() => {
     return sessions.find((s) => s.id === activeSessionId);
   }, [sessions, activeSessionId]);
-
-  const totalSessionDurationSeconds = useMemo(() => {
-    if (!activeSession) {
-      return 0;
-    }
-
-    return activeSession.exercises.reduce((sessionTotal, exercise) => {
-      const normalizedDetails = ensureDetailsArray(exercise.details, exercise.sets);
-
-      const exerciseDuration = normalizedDetails.reduce((detailTotal, detail) => {
-        const reps = parseInt(detail.reps ?? '0', 10);
-        const tempoSeconds = parseTempoToSeconds(detail.tempo);
-        const workTime = (Number.isNaN(reps) ? 0 : reps * tempoSeconds);
-        const restTime = parseDurationToSeconds(detail.rest);
-        return detailTotal + workTime + restTime;
-      }, 0);
-
-      return sessionTotal + exerciseDuration;
-    }, 0);
-  }, [activeSession]);
-
-  const formattedSessionDuration = useMemo(
-    () => formatDuration(totalSessionDurationSeconds),
-    [totalSessionDurationSeconds]
-  );
 
   const availableExercises = useMemo(() => {
     // Vérifier que exerciseDBFromAuth est défini
@@ -883,16 +718,12 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     exerciseDragItem.current = exerciseId;
   }, [isDragInteractionLocked]);
 
-  const handleDragEnter = useCallback(
-    (e: React.DragEvent, exerciseId: number) => {
-      if (isDragInteractionLocked) {
-        return;
-      }
-      exerciseDragOverItem.current = exerciseId;
-      setDraggedOverExerciseId(exerciseId);
-    },
-    [isDragInteractionLocked]
-  );
+  const handleDragEnter = useCallback((e: React.DragEvent, exerciseId: number) => {
+    if (isDragInteractionLocked) {
+      return;
+    }
+    exerciseDragOverItem.current = exerciseId;
+  }, [isDragInteractionLocked]);
 
   const handleDrop = useCallback(() => {
     const draggedExerciseId = exerciseDragItem.current;
@@ -926,7 +757,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     setHasUnsavedChanges(true);
     exerciseDragItem.current = null;
     exerciseDragOverItem.current = null;
-    setDraggedOverExerciseId(null);
   }, [activeSessionId, selectedWeek]);
 
   const handleAddWeek = () => {
@@ -1200,572 +1030,440 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
   return (
     <div
-      className="min-h-screen bg-[#F6F7FB]"
+      className="flex min-h-screen bg-gray-100 relative"
       onFocusCapture={handleFocusCapture}
       onBlurCapture={handleBlurCapture}
     >
-      <div className="mx-auto max-w-7xl px-6 py-8">
-        <div className="flex flex-col gap-6 lg:flex-row">
-          <div className="flex-1 space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">Créateur de séance</h1>
-                <p className="text-sm text-gray-500">
-                  Assemblez des séances et programmes sur mesure pour vos clients.
-                </p>
-              </div>
-              {hasUnsavedChanges && (
-                <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-700">
-                  Modifications non sauvegardées
-                </span>
-              )}
-            </div>
-
-            <CollapsibleSection
-              title="Informations et notes"
-              isOpen={isGeneralInfoVisible}
-              onToggle={(open) => setIsGeneralInfoVisible(open)}
-              className="border-none bg-transparent shadow-none"
-              headerClassName="w-full rounded-2xl border border-gray-200 bg-white px-6 py-4 text-left shadow-sm hover:bg-white"
-              titleClassName="text-xl font-semibold text-gray-900"
-              contentClassName="px-0 py-0"
-              hideChevron
-            >
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                  <div className="space-y-6">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Input
-                        label="Nom de la séance/programme"
-                        value={programName}
-                        onChange={(e) => setProgramName(e.target.value)}
-                      />
-                      <Input
-                        label="Objectif"
-                        value={objective}
-                        onChange={(e) => setObjective(e.target.value)}
-                      />
-                      {workoutMode === 'program' && (
-                        <Input
-                          label="Nombre de semaines"
-                          type="number"
-                          min="1"
-                          max="52"
-                          value={weekCount}
-                          onChange={handleWeekCountChange}
-                          onBlur={handleWeekCountBlur}
-                        />
-                      )}
-                      <Select
-                        label="Nom du client"
-                        options={clientOptions}
-                        value={selectedClient}
-                        onChange={handleClientSelectionChange}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <InfoHighlight
-                      icon={<DocumentTextIcon className="h-5 w-5" />}
-                      title="Dernière note du coach"
-                      description={
-                        selectedClient === '0' ? (
-                          <span>Sélectionnez un client pour afficher ses notes personnelles.</span>
-                        ) : (
-                          <span>{clientData?.notes?.trim() || 'Aucune note enregistrée.'}</span>
-                        )
-                      }
-                      muted={selectedClient === '0' || !clientData?.notes?.trim()}
-                    />
-                    <InfoHighlight
-                      icon={<BeakerIcon className="h-5 w-5" />}
-                      title="Informations Médicales"
-                      description={
-                        selectedClient === '0' ? (
-                          <span>Sélectionnez un client pour consulter ses informations médicales.</span>
-                        ) : (
-                          <div className="space-y-1">
-                            <p>
-                              <span className="font-medium text-gray-900">Antécédents :</span>{' '}
-                              {clientData?.medicalInfo?.history || 'RAS'}
-                            </p>
-                            <p>
-                              <span className="font-medium text-gray-900">Allergies :</span>{' '}
-                              {clientData?.medicalInfo?.allergies || 'Aucune'}
-                            </p>
-                          </div>
-                        )
-                      }
-                      muted={selectedClient === '0'}
-                    />
-                    <Button
-                      variant="secondary"
-                      onClick={() => setIsHistoryModalOpen(true)}
-                      disabled={selectedClient === '0'}
-                      className="w-full justify-center"
-                    >
-                      Historique du client
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CollapsibleSection>
-
-            <Card className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="inline-flex rounded-full bg-gray-100 p-1">
-                      <button
-                        type="button"
-                        onClick={() => setWorkoutMode('session')}
-                        className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
-                          workoutMode === 'session'
-                            ? 'bg-primary text-white shadow'
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
-                      >
-                        Séance
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setWorkoutMode('program')}
-                        className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
-                          workoutMode === 'program'
-                            ? 'bg-primary text-white shadow'
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
-                      >
-                        Programme
-                      </button>
-                    </div>
-                  </div>
-                  {workoutMode === 'program' && (
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Select
-                        label="Semaine"
-                        options={Object.keys(sessionsByWeek || {}).map((week) => ({
-                          value: week,
-                          label: `Semaine ${week}`,
-                        }))}
-                        value={String(selectedWeek)}
-                        onChange={(value) => {
-                          const weekValue = Array.isArray(value) ? value[0] : value;
-                          if (weekValue) {
-                            setSelectedWeek(Number(weekValue));
-                          }
-                        }}
-                        className="min-w-[180px]"
-                      />
-                      <Button variant="secondary" size="sm" onClick={handleAddWeek}>
-                        Ajouter une semaine
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
+      <div
+        className="flex-1 flex flex-col p-6 transition-all duration-300"
+        style={{ paddingRight: isFilterSidebarVisible ? `${FILTER_SIDEBAR_WIDTH + FILTER_SIDEBAR_GAP}px` : '0' }}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-gray-800">Créateur d'entrainement</h1>
+          <div className="flex items-center gap-4">
+            {hasUnsavedChanges && (
+              <span className="text-sm text-yellow-600">Modifications non sauvegardées</span>
+            )}
+          </div>
+        </div>
+        <CollapsibleSection
+          title="Informations et notes"
+          isOpen={isGeneralInfoVisible}
+          onToggle={(open) => setIsGeneralInfoVisible(open)}
+        >
+          <div className="grid grid-cols-2 gap-6">
+            {/* Colonne gauche : Informations Générales */}
+            <div>
+              <h3 className="font-semibold mb-4">Informations Générales</h3>
+              <div className="space-y-4">
+                <Input
+                  label="Nom de la séance/programme"
+                  value={programName}
+                  onChange={(e) => setProgramName(e.target.value)}
+                />
+                <Input
+                  label="Objectif"
+                  value={objective}
+                  onChange={(e) => setObjective(e.target.value)}
+                />
                 {workoutMode === 'program' && (
-                  <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-3 py-3">
-                    {sessions.map((session) => {
-                      const isActive = activeSessionId === session.id;
-                      const isDragging = sessionDragItem.current === session.id;
-                      return (
-                        <div
-                          key={session.id}
-                          role="button"
-                          tabIndex={0}
-                          className={`group flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium shadow-sm transition-all ${
-                            isActive
-                              ? 'border-primary bg-primary text-white'
-                              : 'border-transparent bg-white text-gray-600 hover:border-primary/30 hover:bg-primary/10'
-                          } ${isDragging ? 'opacity-60' : ''} ${
-                            isDragInteractionLocked
-                              ? 'cursor-not-allowed opacity-70'
-                              : 'cursor-grab active:cursor-grabbing'
-                          }`}
-                          onClick={() => setActiveSessionId(session.id)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              setActiveSessionId(session.id);
-                            }
-                          }}
-                          draggable={!isDragInteractionLocked}
-                          onDragStart={(event) => handleDragSessionStart(event, session.id)}
-                          onDragEnter={(event) => handleDragSessionEnter(event, session.id)}
-                          onDragEnd={handleDropSession}
-                          onDragOver={(event) => event.preventDefault()}
-                        >
-                          <span className="truncate">{session.name}</span>
-                          <button
-                            type="button"
-                            className="rounded-full p-1 text-inherit opacity-80 transition-opacity hover:opacity-100"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleDuplicateSession();
-                            }}
-                            title="Dupliquer la séance"
-                          >
-                            <DocumentDuplicateIcon className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded-full p-1 text-inherit opacity-80 transition-opacity hover:opacity-100"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleDeleteSession(session.id);
-                            }}
-                            title="Supprimer la séance"
-                          >
-                            <XMarkIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      onClick={handleAddSession}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-gray-300 bg-white text-gray-500 transition-colors hover:border-primary hover:text-primary"
-                    >
-                      <PlusIcon className="h-5 w-5" />
-                    </button>
-                  </div>
+                  <Input
+                    label="Nombre de semaines"
+                    type="number"
+                    value={weekCount}
+                    onChange={handleWeekCountChange}
+                    onBlur={handleWeekCountBlur}
+                  />
                 )}
-
-                <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-inner">
-                      <ClockIcon className="h-5 w-5 text-primary" />
+                <Select
+                  label="Nom du client"
+                  options={clientOptions}
+                  value={selectedClient}
+                  onChange={handleClientSelectionChange}
+                />
+              </div>
+            </div>
+            
+            {/* Colonne droite : Notes et Informations Médicales */}
+            <div>
+              <div className="mb-4">
+                <h3 className="font-semibold mb-2">Dernière note du coach</h3>
+                <textarea
+                  className="w-full p-2 border rounded-lg"
+                  rows={3}
+                  placeholder={selectedClient === '0' ? 'Sélectionnez un client pour voir les notes.' : 'Très motivée, suit le plan à la lettre.'}
+                  disabled={selectedClient === '0'}
+                />
+              </div>
+              
+              <div>
+                <h3 className="font-semibold mb-2">Informations Médicales</h3>
+                {selectedClient !== '0' ? (
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium">ANTÉCÉDENTS:</span>
+                      <p className="ml-4 text-gray-600">RAS</p>
                     </div>
                     <div>
-                      <p className="text-xs uppercase text-gray-500">Temps global de la séance</p>
-                      <p className="text-lg font-semibold text-gray-900">{formattedSessionDuration}</p>
+                      <span className="font-medium">ALLERGIES:</span>
+                      <p className="ml-4 text-gray-600">Aucune connue</p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {selectedExerciseIds.length > 0 && (
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={handleDeleteSelectedExercises}
-                        className="flex items-center gap-2"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                        Supprimer ({selectedExerciseIds.length})
-                      </Button>
-                    )}
-                    {workoutMode === 'program' && activeSession && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleDuplicateSession}
-                        className="flex items-center gap-2"
-                      >
-                        <DocumentDuplicateIcon className="h-4 w-4" />
-                        Dupliquer
-                      </Button>
-                    )}
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleDeleteSession(activeSessionId)}
-                      disabled={!activeSession}
-                      className="flex items-center gap-2 text-red-600 hover:text-red-600"
+                ) : (
+                  <p className="text-sm text-gray-500">Sélectionnez un client pour voir les informations médicales.</p>
+                )}
+                <Button
+                  onClick={() => setIsHistoryModalOpen(true)}
+                  className="mt-4"
+                  disabled={selectedClient === '0'}
+                >
+                  Historique du client
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CollapsibleSection>
+        
+        {/* Toggle Séance / Programme */}
+        <div className="flex items-center justify-center my-6">
+          <div className="inline-flex rounded-lg bg-gray-200 p-1">
+            <button
+              onClick={() => setWorkoutMode('session')}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+                workoutMode === 'session'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Séance
+            </button>
+            <button
+              onClick={() => setWorkoutMode('program')}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+                workoutMode === 'program'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Programme
+            </button>
+          </div>
+        </div>
+        
+        <div className="mt-6 flex-1 flex flex-col">
+          {workoutMode === 'program' && (
+            <div className="flex items-center justify-end gap-4 mb-4">
+              <Select
+                label="Semaine"
+                options={Object.keys(sessionsByWeek || {}).map((week) => ({
+                  value: week,
+                  label: `Semaine ${week}`,
+                }))}
+                value={String(selectedWeek)}
+                onChange={(value) => {
+                  const weekValue = Array.isArray(value) ? value[0] : value;
+                  if (weekValue) {
+                    setSelectedWeek(Number(weekValue));
+                  }
+                }}
+              />
+              <Button onClick={handleAddWeek}>
+                Ajouter une semaine
+              </Button>
+            </div>
+          )}
+          <div className="flex-1 flex mt-4">
+            {workoutMode === 'program' && (
+              <div className="w-1/4 pr-4 border-r border-gray-200">
+                <h2 className="text-lg font-semibold mb-4">Séances</h2>
+              {(sessions || []).map((session) => (
+                <div
+                  key={session.id}
+                  onDragEnter={(e) => handleDragSessionEnter(e, session.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={() => setActiveSessionId(session.id)}
+                  className={`relative p-3 rounded-lg cursor-pointer ${activeSessionId === session.id ? 'bg-primary-light text-primary-dark' : 'hover:bg-gray-200'} ${sessionDragItem.current === session.id ? 'opacity-50' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span>{session.name}</span>
+                    <button
+                      type="button"
+                      draggable={!isDragInteractionLocked}
+                      onDragStart={(e) => handleDragSessionStart(e, session.id)}
+                      onDragEnd={handleDropSession}
+                      className={`p-1 text-gray-500 hover:text-gray-700 ${
+                        isDragInteractionLocked ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'
+                      }`}
+                      onMouseDown={(e) => {
+                        if (isDragInteractionLocked) {
+                          e.preventDefault();
+                        }
+                      }}
+                      aria-label="Réordonner la séance"
+                      aria-disabled={isDragInteractionLocked}
                     >
-                      <TrashIcon className="h-4 w-4" />
-                      Supprimer la séance
-                    </Button>
+                      <ListBulletIcon className="w-4 h-4" />
+                    </button>
                   </div>
-                </div>
-
-                <div className="space-y-4">
-                  {activeSession && activeSession.exercises.length === 0 && (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white py-12 text-center text-gray-500">
-                      <p className="text-sm font-medium">
-                        Glissez-déposez des exercices depuis la colonne de droite ou utilisez le bouton ci-dessous.
-                      </p>
-                    </div>
-                  )}
-
-                  {activeSession?.exercises.map((ex, index) => {
-                    const isDraggedOver = draggedOverExerciseId === ex.id;
-                    const isDragging = exerciseDragItem.current === ex.id;
-                    return (
-                      <div
-                        key={ex.id}
-                        className={`rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-colors ${
-                          isDraggedOver ? 'border-primary bg-primary/5' : ''
-                        } ${isDragging ? 'opacity-60' : ''}`}
-                        onDragEnter={(event) => {
-                          handleDragEnter(event, ex.id);
-                          setDraggedOverExerciseId(ex.id);
-                        }}
-                        onDragOver={(event) => event.preventDefault()}
-                        onDragLeave={() => setDraggedOverExerciseId(null)}
-                        draggable={!isDragInteractionLocked}
-                        onDragStart={(event) => handleDragStart(event, ex.id)}
-                        onDragEnd={handleDrop}
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
-                              checked={selectedExerciseIds.includes(ex.id)}
-                              onChange={() => toggleExerciseSelection(ex.id)}
-                            />
-                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                              {index + 1}
-                            </span>
-                          </div>
-                          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-                            <div className="min-w-0 flex-1">
-                              <Input
-                                placeholder="Écrire ou déposer un exercice"
-                                value={ex.name}
-                                onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-                                className="h-12 rounded-xl border-gray-200 bg-gray-50 font-semibold"
-                              />
-                            </div>
-                            {ex.illustrationUrl && (
-                              <img
-                                src={ex.illustrationUrl}
-                                alt={ex.name}
-                                className="h-12 w-12 rounded-lg border border-gray-200 object-cover"
-                              />
-                            )}
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                className={`rounded-full p-2 text-gray-400 transition-colors hover:text-gray-600 ${
-                                  isDragInteractionLocked
-                                    ? 'cursor-not-allowed opacity-60'
-                                    : 'cursor-grab active:cursor-grabbing'
-                                }`}
-                                draggable={!isDragInteractionLocked}
-                                onDragStart={(event) => handleDragStart(event, ex.id)}
-                                onDragEnd={handleDrop}
-                                onMouseDown={(event) => {
-                                  if (isDragInteractionLocked) {
-                                    event.preventDefault();
-                                  }
-                                }}
-                                aria-label="Réordonner l'exercice"
-                                aria-disabled={isDragInteractionLocked}
-                              >
-                                <EllipsisHorizontalIcon className="h-4 w-4" />
-                              </button>
-                              {ex.exerciseId && (
-                                <button
-                                  type="button"
-                                  onClick={() => setIsHistoryModalOpen(true)}
-                                  className="rounded-full p-2 text-gray-400 transition-colors hover:text-gray-600"
-                                  title="Voir l'historique du client"
-                                >
-                                  <FolderIcon className="h-4 w-4" />
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteExercise(ex.id)}
-                                className="rounded-full p-2 text-red-500 transition-colors hover:bg-red-50"
-                                title="Supprimer l'exercice"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-5 rounded-xl border border-gray-100 bg-gray-50 p-4">
-                          <div className="grid grid-cols-5 gap-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            <span>Séries</span>
-                            <span>Répétitions</span>
-                            <span>Charge</span>
-                            <span>Tempo</span>
-                            <span>Repos</span>
-                          </div>
-                          <div className="mt-3 space-y-2">
-                            {ensureDetailsArray(ex.details, ex.sets).map((detail, detailIndex) => (
-                              <div key={detailIndex} className="grid grid-cols-5 gap-3">
-                                <Input type="number" value={detailIndex + 1} readOnly className="text-center" />
-                                <Input
-                                  type="text"
-                                  value={detail.reps}
-                                  onChange={(e) =>
-                                    onUpdateExercise(ex.id, 'reps', e.target.value, detailIndex)
-                                  }
-                                />
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    type="text"
-                                    value={detail.load.value}
-                                    onChange={(e) =>
-                                      onUpdateExercise(ex.id, 'load.value', e.target.value, detailIndex)
-                                    }
-                                  />
-                                  <Select
-                                    value={detail.load.unit || 'kg'}
-                                    onChange={(value) =>
-                                      onUpdateExercise(ex.id, 'load.unit', value, detailIndex)
-                                    }
-                                    className="w-20"
-                                  >
-                                    <option value="kg">kg</option>
-                                    <option value="%">%</option>
-                                    <option value="RPE">RPE</option>
-                                    <option value="km/h">km/h</option>
-                                    <option value="W">W</option>
-                                    <option value="lvl">lvl</option>
-                                  </Select>
-                                </div>
-                                <Input
-                                  type="text"
-                                  value={detail.tempo}
-                                  onChange={(e) =>
-                                    onUpdateExercise(ex.id, 'tempo', e.target.value, detailIndex)
-                                  }
-                                />
-                                <Input
-                                  type="text"
-                                  value={detail.rest}
-                                  onChange={(e) =>
-                                    onUpdateExercise(ex.id, 'rest', e.target.value, detailIndex)
-                                  }
-                                />
-                              </div>
-                            ))}
-                          </div>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() =>
-                              onUpdateExercise(
-                                ex.id,
-                                'sets',
-                                String((parseInt(ex.sets, 10) || 0) + 1)
-                              )
-                            }
-                            className="mt-3"
-                          >
-                            Ajouter une série
-                          </Button>
-                        </div>
-
-                        <div className="mt-5 space-y-4">
-                          <div>
-                            <label
-                              htmlFor={`exercise-${ex.id}-notes`}
-                              className="mb-1 block text-sm font-medium text-gray-700"
-                            >
-                              Notes
-                            </label>
-                            <textarea
-                              id={`exercise-${ex.id}-notes`}
-                              value={ex.notes || ''}
-                              onChange={(e) => onUpdateExercise(ex.id, 'notes', e.target.value)}
-                              rows={2}
-                              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                            />
-                          </div>
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                              <label
-                                htmlFor={`exercise-${ex.id}-alternatives`}
-                                className="mb-1 block text-sm font-medium text-gray-700"
-                              >
-                                Alternatives
-                              </label>
-                              <Select
-                                id={`exercise-${ex.id}-alternatives`}
-                                multiple
-                                value={(ex.alternatives ?? []).map((alternative) => alternative.id)}
-                                onChange={(values) => {
-                                  const nextValues = Array.isArray(values) ? values : [values];
-                                  const selectedAlts = availableExercises.filter((exerciseOption) =>
-                                    nextValues.includes(exerciseOption.id)
-                                  );
-                                  onUpdateExercise(
-                                    ex.id,
-                                    'alternatives',
-                                    selectedAlts.map((alt) => ({
-                                      id: alt.id,
-                                      name: alt.name,
-                                      illustrationUrl: alt.illustrationUrl,
-                                    }))
-                                  );
-                                }}
-                                options={availableExercises.map((exerciseOption) => ({
-                                  value: exerciseOption.id,
-                                  label: exerciseOption.name,
-                                }))}
-                              />
-                            </div>
-                            <div>
-                              <label
-                                htmlFor={`exercise-${ex.id}-intensification`}
-                                className="mb-1 block text-sm font-medium text-gray-700"
-                              >
-                                Intensification
-                              </label>
-                              <Select
-                                id={`exercise-${ex.id}-intensification`}
-                                value={ex.intensification[0]?.value || 'Aucune'}
-                                onChange={(value) => onUpdateExercise(ex.id, 'intensification', value)}
-                                options={[
-                                  { value: 'Aucune', label: 'Aucune' },
-                                  { value: 'Dégressif', label: 'Dégressif' },
-                                  { value: 'Superset', label: 'Superset' },
-                                  { value: 'Dropset', label: 'Dropset' },
-                                  { value: 'Rest-Pause', label: 'Rest-Pause' },
-                                  { value: 'Myo-reps', label: 'Myo-reps' },
-                                  { value: 'Cluster', label: 'Cluster' },
-                                  { value: 'Partielles', label: 'Partielles' },
-                                  { value: 'Tempo', label: 'Tempo' },
-                                  { value: 'Isometric', label: 'Isometric' },
-                                ]}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="pt-2">
                   <button
-                    type="button"
-                    onClick={addExercise}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-white px-4 py-5 text-sm font-semibold text-gray-600 transition-colors hover:border-primary hover:text-primary"
+                    className="absolute top-1 right-1 p-1 text-gray-500 hover:text-gray-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSession(session.id);
+                    }}
                   >
-                    <PlusIcon className="h-5 w-5" />
-                    Ajouter un exercice
+                    <XMarkIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    className="absolute top-1 right-7 p-1 text-gray-500 hover:text-gray-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDuplicateSession();
+                    }}
+                  >
+                    <DocumentDuplicateIcon className="w-4 h-4" />
                   </button>
                 </div>
+              ))}
+                <Button onClick={handleAddSession} className="mt-4 w-full">
+                  Ajouter une séance
+                </Button>
               </div>
-            </Card>
-          </div>
-
-          <div className={`lg:w-[360px] ${isFilterSidebarVisible ? 'block' : 'hidden lg:block'}`}>
-            <div className="lg:sticky lg:top-8">
-              <ExerciseFilterSidebar db={availableExercises} onDropExercise={handleDropExercise} />
+            )}
+            <div className={workoutMode === 'program' ? 'w-3/4 pl-4' : 'w-full'}>
+              <h2 className="text-lg font-semibold mb-4">{activeSession?.name}</h2>
+              {activeSession && activeSession.exercises.length === 0 && (
+                <div className="text-center text-gray-500 py-10 border rounded-lg bg-white">
+                  Glissez-déposez des exercices ici ou utilisez le bouton "Ajouter un exercice".
+                </div>
+              )}
+              {activeSession?.exercises?.map((ex) => (
+                <div
+                  key={ex.id}
+                  onDragEnter={(e) => handleDragEnter(e, ex.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  className={`mb-4 p-4 border rounded-lg bg-white ${draggedOverExerciseId === ex.id ? 'border-primary-dark' : ''} ${exerciseDragItem.current === ex.id ? 'opacity-50' : ''}`}
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedExerciseIds.includes(ex.id)}
+                      onChange={() => toggleExerciseSelection(ex.id)}
+                      className="w-4 h-4 mt-3"
+                    />
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Écrire ou déposer un exercice"
+                        value={ex.name}
+                        onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
+                        className="font-semibold"
+                      />
+                    </div>
+                    {ex.illustrationUrl && (
+                      <img
+                        src={ex.illustrationUrl}
+                        alt={ex.name}
+                        className="w-8 h-8 rounded-full mt-2"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      draggable={!isDragInteractionLocked}
+                      onDragStart={(e) => handleDragStart(e, ex.id)}
+                      onDragEnd={handleDrop}
+                      className={`p-1 mt-2 text-gray-400 hover:text-gray-600 ${
+                        isDragInteractionLocked ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'
+                      }`}
+                      onMouseDown={(e) => {
+                        if (isDragInteractionLocked) {
+                          e.preventDefault();
+                        }
+                      }}
+                      aria-label="Réordonner l'exercice"
+                      aria-disabled={isDragInteractionLocked}
+                    >
+                      <EllipsisHorizontalIcon className="w-4 h-4" />
+                    </button>
+                    {ex.exerciseId && (
+                      <button
+                        type="button"
+                        onClick={() => setIsHistoryModalOpen(true)}
+                        className="p-1 hover:bg-gray-100 rounded-full mt-2"
+                        title="Voir l'historique du client"
+                      >
+                        <FolderIcon className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex justify-end items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteExercise(ex.id)}
+                      className="p-1 hover:bg-red-100 rounded-full"
+                      disabled={false}
+                      title="Supprimer l'exercice"
+                    >
+                      <TrashIcon className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
+                  <div className="mt-4">
+                    <div className="grid grid-cols-5 gap-2 text-sm font-medium text-gray-600 mb-2">
+                      <span>Séries</span>
+                      <span>Répétitions</span>
+                      <span>Charge</span>
+                      <span>Tempo</span>
+                      <span>Repos</span>
+                    </div>
+                      {(ex.details ?? []).map((detail, detailIndex) => (
+                        <div key={detailIndex} className="grid grid-cols-5 gap-2 mb-2">
+                          <Input
+                            type="number"
+                            value={detailIndex + 1}
+                            readOnly
+                            className="bg-gray-100"
+                          />
+                          <Input
+                            type="text"
+                            value={detail.reps}
+                            onChange={(e) =>
+                              onUpdateExercise(ex.id, 'reps', e.target.value, detailIndex)
+                            }
+                          />
+                          <Input
+                            type="text"
+                            value={detail.load.value}
+                            onChange={(e) =>
+                              onUpdateExercise(ex.id, 'load.value', e.target.value, detailIndex)
+                            }
+                            placeholder="Charge"
+                          />
+                          <Input
+                            type="text"
+                            value={detail.tempo}
+                            onChange={(e) =>
+                              onUpdateExercise(ex.id, 'tempo', e.target.value, detailIndex)
+                            }
+                            placeholder="Tempo"
+                          />
+                          <Input
+                            type="text"
+                            value={detail.rest}
+                            onChange={(e) =>
+                              onUpdateExercise(ex.id, 'rest', e.target.value, detailIndex)
+                            }
+                            placeholder="Repos"
+                          />
+                        </div>
+                      ))}
+                    <Button
+                      onClick={() => onUpdateExercise(ex.id, 'sets', parseInt(ex.sets, 10) + 1)}
+                      className="mt-2"
+                    >
+                      Ajouter une série
+                    </Button>
+                  </div>
+                  <div className="mt-4">
+                    <label
+                      htmlFor={`exercise-${ex.id}-notes`}
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Notes
+                    </label>
+                    <textarea
+                      id={`exercise-${ex.id}-notes`}
+                      value={ex.notes || ''}
+                      onChange={(e) => onUpdateExercise(ex.id, 'notes', e.target.value)}
+                      rows={1}
+                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-gray-900 placeholder:text-gray-500"
+                    />
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor={`exercise-${ex.id}-alternatives`}
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Alternatives
+                      </label>
+                      <Select
+                        id={`exercise-${ex.id}-alternatives`}
+                        options={availableExercises.map((e) => ({ value: e.id, label: e.name }))}
+                        value={(ex.alternatives ?? []).map((a) => a.id)}
+                        onChange={(values) => {
+                          const selectedAlts = availableExercises.filter((ae) =>
+                            values.includes(ae.id)
+                          );
+                          onUpdateExercise(
+                            ex.id,
+                            'alternatives',
+                            selectedAlts.map((sa) => ({ id: sa.id, name: sa.name }))
+                          );
+                        }}
+                        isMulti
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor={`exercise-${ex.id}-intensification`}
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Intensification
+                      </label>
+                      <Select
+                        id={`exercise-${ex.id}-intensification`}
+                        options={[
+                          { value: 'Aucune', label: 'Aucune' },
+                          { value: 'Dégressif', label: 'Dégressif' },
+                          { value: 'Superset', label: 'Superset' },
+                          { value: 'Dropset', label: 'Dropset' },
+                          { value: 'Rest-Pause', label: 'Rest-Pause' },
+                          { value: 'Myo-reps', label: 'Myo-reps' },
+                          { value: 'Cluster', label: 'Cluster' },
+                          { value: 'Partielles', label: 'Partielles' },
+                          { value: 'Tempo', label: 'Tempo' },
+                          { value: 'Isometric', label: 'Isometric' },
+                        ]}
+                        value={
+                          ex.intensification.length > 0 ? ex.intensification[0].value : 'Aucune'
+                        }
+                        onChange={(value) => onUpdateExercise(ex.id, 'intensification', value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button onClick={addExercise} className="mt-4">
+                Ajouter un exercice
+              </Button>
             </div>
           </div>
         </div>
       </div>
-
+      <div
+        className={`fixed top-[88px] right-6 h-[calc(100vh-112px)] transition-all duration-300 ease-in-out z-30 overflow-hidden ${
+          isFilterSidebarVisible ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
+        style={{ width: isFilterSidebarVisible ? `${FILTER_SIDEBAR_WIDTH}px` : '0px' }}
+      >
+        <div
+          className={`transition-opacity duration-300 ${isFilterSidebarVisible ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <ExerciseFilterSidebar db={availableExercises} onDropExercise={handleDropExercise} />
+        </div>
+      </div>
       <button
-        type="button"
-        onClick={() => setIsFilterSidebarVisible((prev) => !prev)}
-        className="fixed bottom-24 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-lg transition-colors hover:text-primary lg:hidden"
+        onClick={() => setIsFilterSidebarVisible(!isFilterSidebarVisible)}
+        className="fixed top-1/2 -translate-y-1/2 bg-white p-2 rounded-l-full shadow-lg border border-r-0 transition-all duration-300 z-40"
+        style={{
+          right: isFilterSidebarVisible
+            ? `${FILTER_SIDEBAR_WIDTH + FILTER_SIDEBAR_GAP}px`
+            : `${FILTER_SIDEBAR_GAP}px`,
+        }}
       >
         <ChevronDoubleRightIcon
-          className={`h-4 w-4 transition-transform ${isFilterSidebarVisible ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 text-gray-600 transition-transform ${isFilterSidebarVisible ? 'rotate-180' : ''}`}
         />
-        {isFilterSidebarVisible ? 'Masquer les filtres' : 'Afficher les filtres'}
       </button>
-
       {isHistoryModalOpen && clientData && (
         <ClientHistoryModal
           client={clientData}
@@ -1775,13 +1473,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           onMinimizeToggle={() => setIsHistoryModalMinimized(!isHistoryModalMinimized)}
         />
       )}
-
       <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          onClick={onSave}
-          disabled={isSaving || !user}
-          className="bg-primary px-8 py-3 text-lg text-white shadow-lg hover:bg-violet-700"
-        >
+        <Button onClick={onSave} disabled={isSaving || !user} className="bg-primary text-white px-8 py-3 text-lg shadow-lg">
           {isSaving ? 'Sauvegarde...' : 'Valider'}
         </Button>
       </div>
