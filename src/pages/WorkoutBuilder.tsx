@@ -962,14 +962,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
   return (
     <div className="flex h-full bg-gray-100">
-      <div
-        className={`transition-all duration-300 ${isFilterSidebarVisible ? 'w-1/4' : 'w-0'} overflow-hidden`}
-      >
-        <ExerciseFilterSidebar db={availableExercises} onDropExercise={handleDropExercise} />
-      </div>
       <div className="flex-1 flex flex-col p-6">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">{programName}</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Créateur d'entrainement</h1>
           {hasUnsavedChanges && (
             <span className="text-sm text-yellow-600">Modifications non sauvegardées</span>
           )}
@@ -1325,6 +1320,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             </div>
           </div>
         </div>
+      </div>
+      <div
+        className={`transition-all duration-300 ${isFilterSidebarVisible ? 'w-1/4' : 'w-0'} overflow-hidden`}
+      >
+        <ExerciseFilterSidebar db={availableExercises} onDropExercise={handleDropExercise} />
       </div>
       {isHistoryModalOpen && clientData && (
         <ClientHistoryModal
