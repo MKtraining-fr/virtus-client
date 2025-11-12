@@ -6,6 +6,7 @@ import Select from '../components/Select.tsx';
 import Button from '../components/Button.tsx';
 import ToggleSwitch from '../components/ToggleSwitch.tsx';
 import ExerciseFilterSidebar from '../components/ExerciseFilterSidebar.tsx';
+import CollapsibleSection from '../components/CollapsibleSection.tsx';
 import {
   Exercise,
   WorkoutExercise,
@@ -256,6 +257,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isFilterSidebarVisible, setIsFilterSidebarVisible] = useState(true);
+  const [workoutMode, setWorkoutMode] = useState<'session' | 'program'>('session');
 
   const [isGeneralInfoVisible, setIsGeneralInfoVisible] = useState(false);
   const [programName, setProgramName] = useState(programDraft?.name || 'Nouveau programme');
@@ -977,55 +979,127 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             </Button>
           </div>
         </div>
-        <Card>
-          <div className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label="Nom du programme"
-                value={programName}
-                onChange={(e) => setProgramName(e.target.value)}
-              />
-              <Input
-                label="Objectif"
-                value={objective}
-                onChange={(e) => setObjective(e.target.value)}
-              />
-              <Select
-                label="Client"
-                options={clientOptions}
-                value={selectedClient}
-                onChange={handleClientSelectionChange}
-              />
+        <CollapsibleSection title="Informations et notes" defaultOpen={true}>
+          <div className="grid grid-cols-2 gap-6">
+            {/* Colonne gauche : Informations Générales */}
+            <div>
+              <h3 className="font-semibold mb-4">Informations Générales</h3>
+              <div className="space-y-4">
+                <Input
+                  label="Nom de la séance/programme"
+                  value={programName}
+                  onChange={(e) => setProgramName(e.target.value)}
+                />
+                <Input
+                  label="Objectif"
+                  value={objective}
+                  onChange={(e) => setObjective(e.target.value)}
+                />
+                {workoutMode === 'program' && (
+                  <Input
+                    label="Nombre de semaines"
+                    type="number"
+                    value={weekCount}
+                    onChange={handleWeekCountChange}
+                    onBlur={handleWeekCountBlur}
+                  />
+                )}
+                <Select
+                  label="Nom du client"
+                  options={clientOptions}
+                  value={selectedClient}
+                  onChange={handleClientSelectionChange}
+                />
+              </div>
             </div>
-            <div className="mt-4">
-              <Input
-                label="Nombre de semaines"
-                type="number"
-                value={weekCount}
-                onChange={handleWeekCountChange}
-                onBlur={handleWeekCountBlur}
-              />
+            
+            {/* Colonne droite : Notes et Informations Médicales */}
+            <div>
+              <div className="mb-4">
+                <h3 className="font-semibold mb-2">Dernière note du coach</h3>
+                <textarea
+                  className="w-full p-2 border rounded-lg"
+                  rows={3}
+                  placeholder={selectedClient === '0' ? 'Sélectionnez un client pour voir les notes.' : 'Très motivée, suit le plan à la lettre.'}
+                  disabled={selectedClient === '0'}
+                />
+              </div>
+              
+              <div>
+                <h3 className="font-semibold mb-2">Informations Médicales</h3>
+                {selectedClient !== '0' ? (
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium">ANTÉCÉDENTS:</span>
+                      <p className="ml-4 text-gray-600">RAS</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">ALLERGIES:</span>
+                      <p className="ml-4 text-gray-600">Aucune connue</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Sélectionnez un client pour voir les informations médicales.</p>
+                )}
+                <Button
+                  onClick={() => setIsHistoryModalOpen(true)}
+                  className="mt-4"
+                  disabled={selectedClient === '0'}
+                >
+                  Historique du client
+                </Button>
+              </div>
             </div>
           </div>
-        </Card>
+        </CollapsibleSection>
+        
+        {/* Toggle Séance / Programme */}
+        <div className="flex items-center justify-center my-6">
+          <div className="inline-flex rounded-lg bg-gray-200 p-1">
+            <button
+              onClick={() => setWorkoutMode('session')}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+                workoutMode === 'session'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Séance
+            </button>
+            <button
+              onClick={() => setWorkoutMode('program')}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+                workoutMode === 'program'
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Programme
+            </button>
+          </div>
+        </div>
+        
         <div className="mt-6 flex-1 flex flex-col">
-          <div className="flex border-b border-gray-200">
-            {Object.keys(sessionsByWeek || {}).map((week) => (
-              <button
-                key={week}
-                onClick={() => setSelectedWeek(Number(week))}
-                className={`px-4 py-2 text-sm font-medium ${selectedWeek === Number(week) ? 'border-b-2 border-primary text-primary' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                Semaine {week}
-              </button>
-            ))}
-            <Button onClick={handleAddWeek} className="ml-auto">
-              Ajouter une semaine
-            </Button>
-          </div>
+          {workoutMode === 'program' && (
+            <div className="flex border-b border-gray-200">
+              {Object.keys(sessionsByWeek || {}).map((week) => (
+                <button
+                  key={week}
+                  onClick={() => setSelectedWeek(Number(week))}
+                  className={`px-4 py-2 text-sm font-medium ${selectedWeek === Number(week) ? 'border-b-2 border-primary text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  Semaine {week}
+                </button>
+              ))}
+              <Button onClick={handleAddWeek} className="ml-auto">
+                Ajouter une semaine
+              </Button>
+            </div>
+          )}
           <div className="flex-1 flex mt-4">
-            <div className="w-1/4 pr-4 border-r border-gray-200">
-              <h2 className="text-lg font-semibold mb-4">Séances</h2>
+            {workoutMode === 'program' && (
+              <div className="w-1/4 pr-4 border-r border-gray-200">
+                <h2 className="text-lg font-semibold mb-4">Séances</h2>
               {(sessions || []).map((session) => (
                 <div
                   key={session.id}
@@ -1058,11 +1132,12 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   </button>
                 </div>
               ))}
-              <Button onClick={handleAddSession} className="mt-4 w-full">
-                Ajouter une séance
-              </Button>
-            </div>
-            <div className="w-3/4 pl-4">
+                <Button onClick={handleAddSession} className="mt-4 w-full">
+                  Ajouter une séance
+                </Button>
+              </div>
+            )}
+            <div className={workoutMode === 'program' ? 'w-3/4 pl-4' : 'w-full'}>
               <h2 className="text-lg font-semibold mb-4">{activeSession?.name}</h2>
               {activeSession && activeSession.exercises.length === 0 && (
                 <div className="text-center text-gray-500 py-10 border rounded-lg bg-white">
