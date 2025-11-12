@@ -973,7 +973,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
   return (
     <div className="flex min-h-screen bg-gray-100 relative">
-      <div className="flex-1 flex flex-col p-6">
+      <div 
+        className="flex-1 flex flex-col p-6 transition-all duration-300"
+        style={{ marginRight: isFilterSidebarVisible ? '424px' : '0' }}
+      >
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Créateur d'entrainement</h1>
           <div className="flex items-center gap-4">
