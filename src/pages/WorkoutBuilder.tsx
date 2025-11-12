@@ -1117,15 +1117,24 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               {(sessions || []).map((session) => (
                 <div
                   key={session.id}
-                  draggable
-                  onDragStart={(e) => handleDragSessionStart(e, session.id)}
                   onDragEnter={(e) => handleDragSessionEnter(e, session.id)}
-                  onDragEnd={handleDropSession}
                   onDragOver={(e) => e.preventDefault()}
                   onClick={() => setActiveSessionId(session.id)}
                   className={`relative p-3 rounded-lg cursor-pointer ${activeSessionId === session.id ? 'bg-primary-light text-primary-dark' : 'hover:bg-gray-200'} ${sessionDragItem.current === session.id ? 'opacity-50' : ''}`}
                 >
-                  {session.name}
+                  <div className="flex items-start justify-between gap-2">
+                    <span>{session.name}</span>
+                    <button
+                      type="button"
+                      draggable
+                      onDragStart={(e) => handleDragSessionStart(e, session.id)}
+                      onDragEnd={handleDropSession}
+                      className="p-1 text-gray-500 hover:text-gray-700 cursor-grab active:cursor-grabbing"
+                      aria-label="Réordonner la séance"
+                    >
+                      <ListBulletIcon className="w-4 h-4" />
+                    </button>
+                  </div>
                   <button
                     className="absolute top-1 right-1 p-1 text-gray-500 hover:text-gray-700"
                     onClick={(e) => {
@@ -1161,10 +1170,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               {activeSession?.exercises?.map((ex) => (
                 <div
                   key={ex.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, ex.id)}
                   onDragEnter={(e) => handleDragEnter(e, ex.id)}
-                  onDragEnd={handleDrop}
                   onDragOver={(e) => e.preventDefault()}
                   className={`mb-4 p-4 border rounded-lg bg-white ${draggedOverExerciseId === ex.id ? 'border-primary-dark' : ''} ${exerciseDragItem.current === ex.id ? 'opacity-50' : ''}`}
                 >
@@ -1190,6 +1196,16 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                         className="w-8 h-8 rounded-full mt-2"
                       />
                     )}
+                    <button
+                      type="button"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, ex.id)}
+                      onDragEnd={handleDrop}
+                      className="p-1 mt-2 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+                      aria-label="Réordonner l'exercice"
+                    >
+                      <EllipsisHorizontalIcon className="w-4 h-4" />
+                    </button>
                     {ex.exerciseId && (
                       <button
                         type="button"
