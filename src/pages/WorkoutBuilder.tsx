@@ -65,6 +65,9 @@ type EditableWorkoutSession = WorkoutSession & {
 
 type SessionsByWeekState = Record<number, EditableWorkoutSession[]>;
 
+const FILTER_SIDEBAR_WIDTH = 400;
+const FILTER_SIDEBAR_GAP = 24;
+
 const DEFAULT_SESSION: EditableWorkoutSession = {
   id: 1,
   name: 'Séance 1',
@@ -286,12 +289,12 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     }
   };
 
-  const clientOptions = useMemo(() => {
+  const clientOptions = useMemo<{ value: string; label: string }[]>(() => {
     // Vérifier que clients est défini avant de filtrer
     if (!clients || !Array.isArray(clients)) {
-      return [{ id: '0', name: 'Aucun client' }];
+      return [{ value: '0', label: 'Aucun client' }];
     }
-    
+
     const myClients = clients.filter(
       (c) =>
         c.role === 'client' &&
@@ -299,8 +302,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         (user?.role === 'admin' || c.coachId === user?.id)
     );
     return [
-      { id: '0', name: 'Aucun client' },
-      ...(myClients || []).map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName}` })),
+      { value: '0', label: 'Aucun client' },
+      ...(myClients || []).map((c) => ({ value: c.id, label: `${c.firstName} ${c.lastName}` })),
     ];
   }, [clients, user]);
 
@@ -373,8 +376,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     );
   }, [exerciseDBFromAuth, user, mode]);
 
-  const handleClientSelectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const clientId = e.target.value;
+  const handleClientSelectionChange = (value: string | string[]) => {
+    const clientId = Array.isArray(value) ? (value[0] ?? '0') : value;
     setSelectedClient(clientId);
 
     if (clientId === '0') {
@@ -973,9 +976,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
   return (
     <div className="flex min-h-screen bg-gray-100 relative">
-      <div 
+      <div
         className="flex-1 flex flex-col p-6 transition-all duration-300"
-        style={{ marginRight: isFilterSidebarVisible ? '424px' : '0' }}
+        style={{ paddingRight: isFilterSidebarVisible ? `${FILTER_SIDEBAR_WIDTH + FILTER_SIDEBAR_GAP}px` : '0' }}
       >
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Créateur d'entrainement</h1>
@@ -1095,7 +1098,12 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   label: `Semaine ${week}`,
                 }))}
                 value={String(selectedWeek)}
-                onChange={(e) => setSelectedWeek(Number(e.target.value))}
+                onChange={(value) => {
+                  const weekValue = Array.isArray(value) ? value[0] : value;
+                  if (weekValue) {
+                    setSelectedWeek(Number(weekValue));
+                  }
+                }}
               />
               <Button onClick={handleAddWeek}>
                 Ajouter une semaine
@@ -1338,7 +1346,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         </div>
       </div>
       <div
-        className={`fixed top-[88px] right-6 h-[calc(100vh-112px)] transition-all duration-300 ease-in-out z-30 ${isFilterSidebarVisible ? 'w-[400px]' : 'w-0'}`}
+        className={`fixed top-[88px] right-6 h-[calc(100vh-112px)] transition-all duration-300 ease-in-out z-30 overflow-hidden ${
+          isFilterSidebarVisible ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
+        style={{ width: isFilterSidebarVisible ? `${FILTER_SIDEBAR_WIDTH}px` : '0px' }}
       >
         <div
           className={`transition-opacity duration-300 ${isFilterSidebarVisible ? 'opacity-100' : 'opacity-0'}`}
@@ -1349,7 +1360,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       <button
         onClick={() => setIsFilterSidebarVisible(!isFilterSidebarVisible)}
         className="fixed top-1/2 -translate-y-1/2 bg-white p-2 rounded-l-full shadow-lg border border-r-0 transition-all duration-300 z-40"
-        style={{ right: isFilterSidebarVisible ? '424px' : '24px' }}
+        style={{
+          right: isFilterSidebarVisible
+            ? `${FILTER_SIDEBAR_WIDTH + FILTER_SIDEBAR_GAP}px`
+            : `${FILTER_SIDEBAR_GAP}px`,
+        }}
       >
         <ChevronDoubleRightIcon
           className={`w-5 h-5 text-gray-600 transition-transform ${isFilterSidebarVisible ? 'rotate-180' : ''}`}
