@@ -965,9 +965,27 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       <div className="flex-1 flex flex-col p-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Créateur d'entrainement</h1>
-          {hasUnsavedChanges && (
-            <span className="text-sm text-yellow-600">Modifications non sauvegardées</span>
-          )}
+          <div className="flex items-center gap-4">
+            {hasUnsavedChanges && (
+              <span className="text-sm text-yellow-600">Modifications non sauvegardées</span>
+            )}
+            <Button
+              onClick={() => setIsFilterSidebarVisible(!isFilterSidebarVisible)}
+              className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              {isFilterSidebarVisible ? (
+                <>
+                  <ChevronDoubleRightIcon className="w-5 h-5" />
+                  Masquer filtres
+                </>
+              ) : (
+                <>
+                  <ChevronDoubleRightIcon className="w-5 h-5 rotate-180" />
+                  Afficher filtres
+                </>
+              )}
+            </Button>
+          </div>
         </div>
         <CollapsibleSection title="Informations et notes" defaultOpen={true}>
           <div className="grid grid-cols-2 gap-6">
