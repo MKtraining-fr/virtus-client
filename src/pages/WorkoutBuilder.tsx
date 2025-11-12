@@ -970,14 +970,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       <div className="flex-1 flex flex-col p-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">{programName}</h1>
-          <div className="flex items-center space-x-4">
-            {hasUnsavedChanges && (
-              <span className="text-sm text-yellow-600">Modifications non sauvegardées</span>
-            )}
-            <Button onClick={onSave} disabled={isSaving || !user}>
-              {isSaving ? 'Sauvegarde...' : 'Sauvegarder le programme'}
-            </Button>
-          </div>
+          {hasUnsavedChanges && (
+            <span className="text-sm text-yellow-600">Modifications non sauvegardées</span>
+          )}
         </div>
         <CollapsibleSection title="Informations et notes" defaultOpen={true}>
           <div className="grid grid-cols-2 gap-6">
@@ -1081,17 +1076,17 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         
         <div className="mt-6 flex-1 flex flex-col">
           {workoutMode === 'program' && (
-            <div className="flex border-b border-gray-200">
-              {Object.keys(sessionsByWeek || {}).map((week) => (
-                <button
-                  key={week}
-                  onClick={() => setSelectedWeek(Number(week))}
-                  className={`px-4 py-2 text-sm font-medium ${selectedWeek === Number(week) ? 'border-b-2 border-primary text-primary' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  Semaine {week}
-                </button>
-              ))}
-              <Button onClick={handleAddWeek} className="ml-auto">
+            <div className="flex items-center justify-end gap-4 mb-4">
+              <Select
+                label="Semaine"
+                options={Object.keys(sessionsByWeek || {}).map((week) => ({
+                  value: week,
+                  label: `Semaine ${week}`,
+                }))}
+                value={String(selectedWeek)}
+                onChange={(e) => setSelectedWeek(Number(e.target.value))}
+              />
+              <Button onClick={handleAddWeek}>
                 Ajouter une semaine
               </Button>
             </div>
@@ -1154,57 +1149,58 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   onDragOver={(e) => e.preventDefault()}
                   className={`mb-4 p-4 border rounded-lg bg-white ${draggedOverExerciseId === ex.id ? 'border-primary-dark' : ''} ${exerciseDragItem.current === ex.id ? 'opacity-50' : ''}`}
                 >
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-semibold flex items-center gap-2">
-                      {ex.name}
-                      {ex.illustrationUrl && (
-                        <img
-                          src={ex.illustrationUrl}
-                          alt={ex.name}
-                          className="w-6 h-6 rounded-full"
-                        />
-                      )}
-                      {ex.exerciseId && (
-                        <button
-                          type="button"
-                          onClick={() => setIsHistoryModalOpen(true)}
-                          className="p-1 hover:bg-gray-100 rounded-full"
-                          title="Voir l'historique du client"
-                        >
-                          <FolderIcon className="w-4 h-4" />
-                        </button>
-                      )}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onUpdateExercise(ex.id, 'isDetailed', !ex.isDetailed)}
-                        className="p-1 hover:bg-gray-100 rounded-full"
-                        disabled={false}
-                        title="Basculer la vue détaillée"
-                      >
-                        <EllipsisHorizontalIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteExercise(ex.id)}
-                        className="p-1 hover:bg-red-100 rounded-full"
-                        disabled={false}
-                        title="Supprimer l'exercice"
-                      >
-                        <TrashIcon className="w-4 h-4 text-red-600" />
-                      </button>
+                  <div className="flex items-start gap-3 mb-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedExerciseIds.includes(ex.id)}
+                      onChange={() => toggleExerciseSelection(ex.id)}
+                      className="w-4 h-4 mt-3"
+                    />
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Écrire ou déposer un exercice"
+                        value={ex.name}
+                        onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
+                        className="font-semibold"
+                      />
                     </div>
+                    {ex.illustrationUrl && (
+                      <img
+                        src={ex.illustrationUrl}
+                        alt={ex.name}
+                        className="w-8 h-8 rounded-full mt-2"
+                      />
+                    )}
+                    {ex.exerciseId && (
+                      <button
+                        type="button"
+                        onClick={() => setIsHistoryModalOpen(true)}
+                        className="p-1 hover:bg-gray-100 rounded-full mt-2"
+                        title="Voir l'historique du client"
+                      >
+                        <FolderIcon className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                  {ex.isDetailed ? (
-                    <div className="mt-4">
-                      <div className="grid grid-cols-5 gap-2 text-sm font-medium text-gray-600 mb-2">
-                        <span>Séries</span>
-                        <span>Répétitions</span>
-                        <span>Charge</span>
-                        <span>Tempo</span>
-                        <span>Repos</span>
-                      </div>
+                  <div className="flex justify-end items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteExercise(ex.id)}
+                      className="p-1 hover:bg-red-100 rounded-full"
+                      disabled={false}
+                      title="Supprimer l'exercice"
+                    >
+                      <TrashIcon className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
+                  <div className="mt-4">
+                    <div className="grid grid-cols-5 gap-2 text-sm font-medium text-gray-600 mb-2">
+                      <span>Séries</span>
+                      <span>Répétitions</span>
+                      <span>Charge</span>
+                      <span>Tempo</span>
+                      <span>Repos</span>
+                    </div>
                       {(ex.details ?? []).map((detail, detailIndex) => (
                         <div key={detailIndex} className="grid grid-cols-5 gap-2 mb-2">
                           <Input
@@ -1246,88 +1242,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                           />
                         </div>
                       ))}
-                      <Button
-                        onClick={() => onUpdateExercise(ex.id, 'sets', parseInt(ex.sets, 10) + 1)}
-                        className="mt-2"
-                      >
-                        Ajouter une série
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-4">
-                      <div>
-                        <label
-                          htmlFor={`exercise-${ex.id}-sets`}
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Séries
-                        </label>
-                        <Input
-                          id={`exercise-${ex.id}-sets`}
-                          type="number"
-                          min="0"
-                          value={ex.sets}
-                          onChange={(e) => onUpdateExercise(ex.id, 'sets', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor={`exercise-${ex.id}-reps`}
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Répétitions
-                        </label>
-                        <Input
-                          id={`exercise-${ex.id}-reps`}
-                          type="text"
-                          value={ex.details?.[0]?.reps || ''}
-                          onChange={(e) => onUpdateExercise(ex.id, 'reps', e.target.value, 0)}
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor={`exercise-${ex.id}-load`}
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Charge
-                        </label>
-                        <Input
-                          id={`exercise-${ex.id}-load`}
-                          type="text"
-                          value={ex.details?.[0]?.load?.value || ''}
-                          onChange={(e) => onUpdateExercise(ex.id, 'load.value', e.target.value, 0)}
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor={`exercise-${ex.id}-tempo`}
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Tempo
-                        </label>
-                        <Input
-                          id={`exercise-${ex.id}-tempo`}
-                          type="text"
-                          value={ex.details?.[0]?.tempo || ''}
-                          onChange={(e) => onUpdateExercise(ex.id, 'tempo', e.target.value, 0)}
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor={`exercise-${ex.id}-rest`}
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Repos
-                        </label>
-                        <Input
-                          id={`exercise-${ex.id}-rest`}
-                          type="text"
-                          value={ex.details?.[0]?.rest || ''}
-                          onChange={(e) => onUpdateExercise(ex.id, 'rest', e.target.value, 0)}
-                        />
-                      </div>
-                    </div>
-                  )}
+                    <Button
+                      onClick={() => onUpdateExercise(ex.id, 'sets', parseInt(ex.sets, 10) + 1)}
+                      className="mt-2"
+                    >
+                      Ajouter une série
+                    </Button>
+                  </div>
                   <div className="mt-4">
                     <label
                       htmlFor={`exercise-${ex.id}-notes`}
@@ -1414,6 +1335,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           onMinimizeToggle={() => setIsHistoryModalMinimized(!isHistoryModalMinimized)}
         />
       )}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button onClick={onSave} disabled={isSaving || !user} className="bg-primary text-white px-8 py-3 text-lg shadow-lg">
+          {isSaving ? 'Sauvegarde...' : 'Valider'}
+        </Button>
+      </div>
     </div>
   );
 };
