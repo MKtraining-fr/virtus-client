@@ -949,29 +949,45 @@ export const useDataStore = create<DataState>((set, get) => {
     },
 
     addNotification: async (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
-      const targetUserId = notification.userId ?? useAuthStore.getState().user?.id ?? null;
+      const authUser = useAuthStore.getState().user;
+      const explicitTargetUserId = notification.userId;
+      const targetUserId = explicitTargetUserId ?? authUser?.id ?? null;
       const createdAt = new Date().toISOString();
+      const authUserFullName =
+        authUser && authUser.firstName && authUser.lastName
+          ? `${authUser.firstName} ${authUser.lastName}`
+          : undefined;
+
+      const pushNotification = (newNotification: Notification) => {
+        set((state) => ({
+          ...state,
+          notifications: [
+            newNotification,
+            ...state.notifications.filter((existing) => existing.id !== newNotification.id),
+          ],
+        }));
+      };
 
       const fallbackNotification = {
         id: `local-${Date.now()}`,
-        userId: targetUserId ?? 'unknown',
-        fromName: notification.fromName ?? '',
+        userId: targetUserId ?? 'system',
+        fromName:
+          notification.fromName ??
+          (explicitTargetUserId ? authUserFullName ?? '' : 'Virtus'),
         type: notification.type ?? 'info',
         message: notification.message,
         link: notification.link ?? '',
         isRead: false,
         timestamp: createdAt,
-        title: notification.title ?? '',
       } as Notification;
 
-      if (!targetUserId) {
-        logger.warn("Impossible d'ajouter la notification : aucun utilisateur cible défini", {
-          notification,
-        });
-        set((state) => ({
-          ...state,
-          notifications: [fallbackNotification, ...state.notifications],
-        }));
+      if (!explicitTargetUserId || !targetUserId) {
+        if (!targetUserId) {
+          logger.warn("Impossible d'ajouter la notification : aucun utilisateur cible défini", {
+            notification,
+          });
+        }
+        pushNotification(fallbackNotification);
         return;
       }
 
@@ -1000,17 +1016,10 @@ export const useDataStore = create<DataState>((set, get) => {
           link: notification.link ?? mappedNotification.link,
         } as Notification;
 
-        set((state) => ({
-          ...state,
-          notifications: [finalNotification, ...state.notifications],
-        }));
+        pushNotification(finalNotification);
       } catch (error) {
         logger.error("Erreur lors de l'ajout de la notification", error as Error);
-        set((state) => ({
-          ...state,
-          notifications: [fallbackNotification, ...state.notifications],
-        }));
-        throw error;
+        pushNotification(fallbackNotification);
       }
     },
   };
