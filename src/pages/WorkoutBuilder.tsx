@@ -1248,7 +1248,22 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             <div className={workoutMode === 'program' ? 'w-3/4 pl-4' : 'w-full'}>
               <h2 className="text-lg font-semibold mb-4">{activeSession?.name}</h2>
               {activeSession && activeSession.exercises.length === 0 && (
-                <div className="text-center text-gray-500 py-10 border rounded-lg bg-white">
+                <div 
+                  className="text-center text-gray-500 py-10 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    try {
+                      const exerciseData = e.dataTransfer.getData('application/json');
+                      if (exerciseData) {
+                        const exercise = JSON.parse(exerciseData);
+                        handleDropExercise(exercise);
+                      }
+                    } catch (error) {
+                      console.error('Erreur lors du drop:', error);
+                    }
+                  }}
+                >
                   Glissez-déposez des exercices ici ou utilisez le bouton "Ajouter un exercice".
                 </div>
               )}
@@ -1325,7 +1340,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     <div className="grid grid-cols-5 gap-2 text-sm font-medium text-gray-600 mb-2">
                       <span>Séries</span>
                       <span>Répétitions</span>
-                      <span>Charge</span>
+                      <span>Charge (valeur + unité)</span>
                       <span>Tempo</span>
                       <span>Repos</span>
                     </div>
@@ -1344,14 +1359,29 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                               onUpdateExercise(ex.id, 'reps', e.target.value, detailIndex)
                             }
                           />
-                          <Input
-                            type="text"
-                            value={detail.load.value}
-                            onChange={(e) =>
-                              onUpdateExercise(ex.id, 'load.value', e.target.value, detailIndex)
-                            }
-                            placeholder="Charge"
-                          />
+                          <div className="flex gap-1">
+                            <Input
+                              type="text"
+                              value={detail.load.value}
+                              onChange={(e) =>
+                                onUpdateExercise(ex.id, 'load.value', e.target.value, detailIndex)
+                              }
+                              placeholder="Charge"
+                              className="flex-1"
+                            />
+                            <select
+                              value={detail.load.unit}
+                              onChange={(e) =>
+                                onUpdateExercise(ex.id, 'load.unit', e.target.value, detailIndex)
+                              }
+                              className="px-2 py-1 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                            >
+                              <option value="kg">kg</option>
+                              <option value="lbs">lbs</option>
+                              <option value="%">%</option>
+                              <option value="@">@</option>
+                            </select>
+                          </div>
                           <Input
                             type="text"
                             value={detail.tempo}

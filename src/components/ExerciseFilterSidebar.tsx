@@ -6,9 +6,10 @@ import FilterChip from './FilterChip.tsx';
 
 interface ExerciseFilterSidebarProps {
   db: Exercise[];
+  onDropExercise?: (exercise: Exercise) => void;
 }
 
-const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db }) => {
+const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDropExercise }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEquipments, setSelectedEquipments] = useState<string[]>([]);
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
