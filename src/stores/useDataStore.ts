@@ -949,22 +949,67 @@ export const useDataStore = create<DataState>((set, get) => {
     },
 
     addNotification: async (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
+      const targetUserId = notification.userId ?? useAuthStore.getState().user?.id ?? null;
+      const createdAt = new Date().toISOString();
+
+      const fallbackNotification = {
+        id: `local-${Date.now()}`,
+        userId: targetUserId ?? 'unknown',
+        fromName: notification.fromName ?? '',
+        type: notification.type ?? 'info',
+        message: notification.message,
+        link: notification.link ?? '',
+        isRead: false,
+        timestamp: createdAt,
+        title: notification.title ?? '',
+      } as Notification;
+
+      if (!targetUserId) {
+        logger.warn("Impossible d'ajouter la notification : aucun utilisateur cible défini", {
+          notification,
+        });
+        set((state) => ({
+          ...state,
+          notifications: [fallbackNotification, ...state.notifications],
+        }));
+        return;
+      }
+
       try {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('notifications')
           .insert([
-            { ...notification, created_at: new Date().toISOString(), read: false },
-          ] as any);
+            {
+              user_id: targetUserId,
+              title: notification.title ?? '',
+              message: notification.message,
+              type: notification.type ?? null,
+              read: false,
+              created_at: createdAt,
+            },
+          ])
+          .select('*')
+          .single();
+
         if (error) throw error;
 
-        // Recharger les notifications après l'ajout
-        const { data: notificationsData, error: fetchError } = await supabase
-          .from('notifications')
-          .select('*');
-        if (fetchError) throw fetchError;
-        set({ notifications: notificationsData.map(mapSupabaseNotificationToNotification) });
+        const mappedNotification = mapSupabaseNotificationToNotification(data as any);
+        const finalNotification = {
+          ...mappedNotification,
+          fromName: notification.fromName ?? mappedNotification.fromName,
+          link: notification.link ?? mappedNotification.link,
+        } as Notification;
+
+        set((state) => ({
+          ...state,
+          notifications: [finalNotification, ...state.notifications],
+        }));
       } catch (error) {
         logger.error("Erreur lors de l'ajout de la notification", error as Error);
+        set((state) => ({
+          ...state,
+          notifications: [fallbackNotification, ...state.notifications],
+        }));
         throw error;
       }
     },
