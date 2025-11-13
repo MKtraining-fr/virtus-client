@@ -30,6 +30,7 @@ import {
   mapClientToSupabaseClient,
   mapSupabaseBilanTemplateToTemplate,
 } from '../services/typeMappers';
+import { useAuthStore } from './useAuthStore';
 // import { deleteUserAndProfile } from '../services/authService'; // Migré ici
 // Fonctions qui étaient dans authService.ts
 const deleteUserAndProfile = async (userIdToDelete: string, accessToken: string): Promise<void> => {
@@ -68,7 +69,16 @@ export interface ProgramInput {
   is_public?: boolean;
   created_by?: string;
 }
-import { useAuthStore } from './useAuthStore';
+const generateLocalNotificationId = () => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+
+  const randomSuffix = Math.random().toString(36).slice(2, 10);
+  return `local-${Date.now()}-${randomSuffix}`;
+};
+
+let notificationsPersistenceDisabledReason: string | null = null;
 
 // Définition de l'état et des actions
 interface DataState {
@@ -949,18 +959,12 @@ export const useDataStore = create<DataState>((set, get) => {
     },
 
     addNotification: async (notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
-      const authUser = useAuthStore.getState().user;
-      const explicitTargetUserId = notification.userId;
-      const targetUserId = explicitTargetUserId ?? authUser?.id ?? null;
       const createdAt = new Date().toISOString();
-      const authUserFullName =
-        authUser && authUser.firstName && authUser.lastName
-          ? `${authUser.firstName} ${authUser.lastName}`
-          : undefined;
+      const authUser = useAuthStore.getState().user;
+      const targetUserId = notification.userId ?? null;
 
       const pushNotification = (newNotification: Notification) => {
         set((state) => ({
-          ...state,
           notifications: [
             newNotification,
             ...state.notifications.filter((existing) => existing.id !== newNotification.id),
@@ -969,24 +973,34 @@ export const useDataStore = create<DataState>((set, get) => {
       };
 
       const fallbackNotification = {
-        id: `local-${Date.now()}`,
-        userId: targetUserId ?? 'system',
+        id: generateLocalNotificationId(),
+        userId: targetUserId ?? authUser?.id ?? 'system',
         fromName:
           notification.fromName ??
-          (explicitTargetUserId ? authUserFullName ?? '' : 'Virtus'),
+          (authUser?.firstName && authUser?.lastName
+            ? `${authUser.firstName} ${authUser.lastName}`
+            : authUser?.firstName || authUser?.lastName || 'Virtus'),
         type: notification.type ?? 'info',
         message: notification.message,
+        title: notification.title ?? '',
         link: notification.link ?? '',
         isRead: false,
         timestamp: createdAt,
       } as Notification;
 
-      if (!explicitTargetUserId || !targetUserId) {
-        if (!targetUserId) {
-          logger.warn("Impossible d'ajouter la notification : aucun utilisateur cible défini", {
-            notification,
-          });
-        }
+      if (!targetUserId) {
+        logger.warn("Impossible d'ajouter la notification : aucun utilisateur cible explicite", {
+          notification,
+        });
+        pushNotification(fallbackNotification);
+        return;
+      }
+
+      if (notificationsPersistenceDisabledReason) {
+        logger.warn('Insertion Supabase des notifications désactivée', {
+          reason: notificationsPersistenceDisabledReason,
+          notification,
+        });
         pushNotification(fallbackNotification);
         return;
       }
@@ -1012,13 +1026,39 @@ export const useDataStore = create<DataState>((set, get) => {
         const mappedNotification = mapSupabaseNotificationToNotification(data as any);
         const finalNotification = {
           ...mappedNotification,
-          fromName: notification.fromName ?? mappedNotification.fromName,
-          link: notification.link ?? mappedNotification.link,
+          fromName: notification.fromName ?? mappedNotification.fromName ?? 'Virtus',
+          link: notification.link ?? mappedNotification.link ?? '',
         } as Notification;
 
         pushNotification(finalNotification);
       } catch (error) {
-        logger.error("Erreur lors de l'ajout de la notification", error as Error);
+        const errorDetails = error as { code?: string; message?: string } | Error;
+        const errorCode = (errorDetails as any)?.code ?? null;
+
+        if (errorCode === '42501' || errorCode === 'PGRST301' || errorCode === 'PGRST302') {
+          const disableReason =
+            (errorDetails && 'message' in errorDetails && errorDetails.message) ||
+            'RLS policy prevented insertion';
+          if (!notificationsPersistenceDisabledReason) {
+            logger.warn('Désactivation de la persistance Supabase des notifications côté client', {
+              errorCode,
+              disableReason,
+            });
+          }
+          notificationsPersistenceDisabledReason = disableReason;
+        }
+
+        const normalizedError =
+          error instanceof Error
+            ? error
+            : new Error(
+                (errorDetails && 'message' in errorDetails && errorDetails.message) ||
+                  'Erreur inconnue Supabase lors de la création de notification'
+              );
+
+        logger.error("Erreur lors de l'ajout de la notification", normalizedError, {
+          errorCode,
+        });
         pushNotification(fallbackNotification);
       }
     },
