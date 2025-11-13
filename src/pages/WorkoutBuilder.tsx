@@ -277,6 +277,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   const [lastSavedAt, setLastSavedAt] = useLocalStorage<string | null>('last_saved_at', null);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isFilterSidebarVisible, setIsFilterSidebarVisible] = useState(true);
@@ -412,6 +413,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   };
 
   useEffect(() => {
+    // Éviter de recharger si les données initiales sont déjà chargées
+    if (hasLoadedInitialData) return;
+
     const clientIdFromUrl = searchParams.get('clientId');
     const programIdToEdit = searchParams.get('editProgramId');
     const sessionIdToEdit = searchParams.get('editSessionId');
@@ -516,6 +520,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       }
       setIsLoading(false);
     }
+    
+    // Marquer les données comme chargées
+    setHasLoadedInitialData(true);
   }, [
     searchParams,
     addNotification,
@@ -524,6 +531,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     programDraft,
     setProgramDraft,
     setLastSavedAt,
+    hasLoadedInitialData,
   ]);
 
   // Debounce pour éviter les re-renders excessifs pendant la saisie
