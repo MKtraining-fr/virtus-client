@@ -47,8 +47,9 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db }) => 
     });
   }, [db, searchTerm, selectedEquipments, selectedMuscleGroups]);
 
+  // Image par défaut locale ou data URI pour éviter les erreurs réseau
   const DEFAULT_ILLUSTRATION =
-    'https://img.gymvisual.com/illustrations/1749/male-Bodyweight-Squat.png';
+    'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext x="50" y="50" font-family="Arial" font-size="14" fill="%239ca3af" text-anchor="middle" dominant-baseline="middle"%3EExercice%3C/text%3E%3C/svg%3E';
 
   return (
     <Card className="p-4 h-full flex flex-col">

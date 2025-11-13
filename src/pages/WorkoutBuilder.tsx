@@ -386,12 +386,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     }
     
     if (mode === 'client') {
+      // Client : exercices système (coachId null) + exercices de son coach
       return exerciseDBFromAuth.filter(
-        (ex) => ex.coachId === 'system' || ex.coachId === user?.coachId
+        (ex) => !ex.coachId || ex.coachId === user?.coachId
       );
     }
+    // Coach : exercices système (coachId null) + ses propres exercices
     return exerciseDBFromAuth.filter(
-      (ex) => ex.coachId === 'system' || ex.coachId === user?.id || !ex.coachId
+      (ex) => !ex.coachId || ex.coachId === user?.id
     );
   }, [exerciseDBFromAuth, user, mode]);
 

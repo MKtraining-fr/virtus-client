@@ -167,12 +167,16 @@ export interface Exercise {
   name: string;
   description?: string;
   category?: string;
-  muscleGroup?: string;
+  muscleGroups?: string[];  // Array de groupes musculaires principaux
+  secondaryMuscleGroups?: string[];  // Array de groupes musculaires secondaires
   equipment?: string;
   difficulty?: string;
   videoUrl?: string;
-  imageUrl?: string;
+  illustrationUrl?: string;  // URL de l'illustration (renommé de imageUrl)
   type?: string;
+  coachId?: string;  // ID du coach créateur (null pour exercices système)
+  isPublic?: boolean;  // Visibilité publique
+  isArchived?: boolean;  // Exercice archivé
 }
 
 export interface WorkoutExercise {
