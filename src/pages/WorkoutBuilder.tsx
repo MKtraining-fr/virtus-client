@@ -526,26 +526,31 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     setLastSavedAt,
   ]);
 
+  // Debounce pour éviter les re-renders excessifs pendant la saisie
   useEffect(() => {
-    if (
-      !isLoading &&
-      programName &&
-      objective &&
-      weekCount > 0 &&
-      Object.keys(sessionsByWeek).length > 0
-    ) {
-      const currentProgram: WorkoutProgram = {
-        id: editProgramId || `draft-${Date.now()}`,
-        name: programName,
-        objective: objective,
-        weekCount: typeof weekCount === 'number' ? weekCount : 1,
-        sessionsByWeek: sanitizeSessionsByWeek(sessionsByWeek),
-        coachId: user?.id || 'unknown',
-        clientId: selectedClient === '0' ? null : selectedClient,
-      };
-      setProgramDraft(currentProgram);
-      setHasUnsavedChanges(true);
-    }
+    const timeoutId = setTimeout(() => {
+      if (
+        !isLoading &&
+        programName &&
+        objective &&
+        weekCount > 0 &&
+        Object.keys(sessionsByWeek).length > 0
+      ) {
+        const currentProgram: WorkoutProgram = {
+          id: editProgramId || `draft-${Date.now()}`,
+          name: programName,
+          objective: objective,
+          weekCount: typeof weekCount === 'number' ? weekCount : 1,
+          sessionsByWeek: sanitizeSessionsByWeek(sessionsByWeek),
+          coachId: user?.id || 'unknown',
+          clientId: selectedClient === '0' ? null : selectedClient,
+        };
+        setProgramDraft(currentProgram);
+        setHasUnsavedChanges(true);
+      }
+    }, 500); // Attendre 500ms après la dernière modification
+
+    return () => clearTimeout(timeoutId);
   }, [
     programName,
     objective,
