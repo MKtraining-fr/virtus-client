@@ -669,7 +669,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   );
 
   const addExercise = () => {
-    if (!activeSession) return;
+    console.log('addExercise appelé', { activeSession, activeSessionId, selectedWeek });
+    if (!activeSession) {
+      console.error('Impossible d\'ajouter un exercice : activeSession est undefined');
+      return;
+    }
     const newId = getNextExerciseId(sessionsByWeek);
     const newExercise: EditableWorkoutExercise = {
       id: newId,
@@ -686,13 +690,18 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       intensification: [],
       alternatives: [],
     };
-    setSessionsByWeek((prev) => ({
-      ...prev,
-      [selectedWeek]: prev[selectedWeek].map((s) =>
-        s.id === activeSessionId ? { ...s, exercises: [...s.exercises, newExercise] } : s
-      ),
-    }));
+    setSessionsByWeek((prev) => {
+      const updated = {
+        ...prev,
+        [selectedWeek]: prev[selectedWeek].map((s) =>
+          s.id === activeSessionId ? { ...s, exercises: [...s.exercises, newExercise] } : s
+        ),
+      };
+      console.log('sessionsByWeek mis à jour', updated);
+      return updated;
+    });
     setHasUnsavedChanges(true);
+    console.log('Exercice ajouté avec succès', newExercise);
   };
 
   const handleDeleteExercise = (exerciseId: number) => {
