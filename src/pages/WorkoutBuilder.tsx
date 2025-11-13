@@ -6,6 +6,7 @@ import Select from '../components/Select.tsx';
 import Button from '../components/Button.tsx';
 import ToggleSwitch from '../components/ToggleSwitch.tsx';
 import ExerciseFilterSidebar from '../components/ExerciseFilterSidebar.tsx';
+import ExerciseCard from '../components/ExerciseCard.tsx';
 import CollapsibleSection from '../components/CollapsibleSection.tsx';
 import {
   Exercise,
@@ -1268,214 +1269,23 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 </div>
               )}
               {activeSession?.exercises?.map((ex) => (
-                <div
+                <ExerciseCard
                   key={ex.id}
-                  onDragEnter={(e) => handleDragEnter(e, ex.id)}
+                  exercise={ex}
+                  availableExercises={availableExercises}
+                  isSelected={selectedExerciseIds.includes(ex.id)}
+                  isDragInteractionLocked={isDragInteractionLocked}
+                  draggedOverExerciseId={draggedOverExerciseId}
+                  exerciseDragItem={exerciseDragItem}
+                  onToggleSelection={toggleExerciseSelection}
+                  onUpdateExercise={onUpdateExercise}
+                  onDeleteExercise={handleDeleteExercise}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDrop}
+                  onDragEnter={handleDragEnter}
                   onDragOver={(e) => e.preventDefault()}
-                  className={`mb-4 p-4 border rounded-lg bg-white ${draggedOverExerciseId === ex.id ? 'border-primary-dark' : ''} ${exerciseDragItem.current === ex.id ? 'opacity-50' : ''}`}
-                >
-                  <div className="flex items-start gap-3 mb-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedExerciseIds.includes(ex.id)}
-                      onChange={() => toggleExerciseSelection(ex.id)}
-                      className="w-4 h-4 mt-3"
-                    />
-                    <div className="flex-1">
-                      <Input
-                        placeholder="Écrire ou déposer un exercice"
-                        value={ex.name}
-                        onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-                        className="font-semibold"
-                      />
-                    </div>
-                    {ex.illustrationUrl && (
-                      <img
-                        src={ex.illustrationUrl}
-                        alt={ex.name}
-                        className="w-8 h-8 rounded-full mt-2"
-                      />
-                    )}
-                    <button
-                      type="button"
-                      draggable={!isDragInteractionLocked}
-                      onDragStart={(e) => handleDragStart(e, ex.id)}
-                      onDragEnd={handleDrop}
-                      className={`p-1 mt-2 text-gray-400 hover:text-gray-600 ${
-                        isDragInteractionLocked ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'
-                      }`}
-                      onMouseDown={(e) => {
-                        if (isDragInteractionLocked) {
-                          e.preventDefault();
-                        }
-                      }}
-                      aria-label="Réordonner l'exercice"
-                      aria-disabled={isDragInteractionLocked}
-                    >
-                      <EllipsisHorizontalIcon className="w-4 h-4" />
-                    </button>
-                    {ex.exerciseId && (
-                      <button
-                        type="button"
-                        onClick={() => setIsHistoryModalOpen(true)}
-                        className="p-1 hover:bg-gray-100 rounded-full mt-2"
-                        title="Voir l'historique du client"
-                      >
-                        <FolderIcon className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex justify-end items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteExercise(ex.id)}
-                      className="p-1 hover:bg-red-100 rounded-full"
-                      disabled={false}
-                      title="Supprimer l'exercice"
-                    >
-                      <TrashIcon className="w-4 h-4 text-red-600" />
-                    </button>
-                  </div>
-                  <div className="mt-4">
-                    <div className="grid grid-cols-5 gap-2 text-sm font-medium text-gray-600 mb-2">
-                      <span>Séries</span>
-                      <span>Répétitions</span>
-                      <span>Charge (valeur + unité)</span>
-                      <span>Tempo</span>
-                      <span>Repos</span>
-                    </div>
-                      {(ex.details ?? []).map((detail, detailIndex) => (
-                        <div key={detailIndex} className="grid grid-cols-5 gap-2 mb-2">
-                          <Input
-                            type="number"
-                            value={detailIndex + 1}
-                            readOnly
-                            className="bg-gray-100"
-                          />
-                          <Input
-                            type="text"
-                            value={detail.reps}
-                            onChange={(e) =>
-                              onUpdateExercise(ex.id, 'reps', e.target.value, detailIndex)
-                            }
-                          />
-                          <div className="flex gap-1">
-                            <Input
-                              type="text"
-                              value={detail.load.value}
-                              onChange={(e) =>
-                                onUpdateExercise(ex.id, 'load.value', e.target.value, detailIndex)
-                              }
-                              placeholder="Charge"
-                              className="flex-1"
-                            />
-                            <select
-                              value={detail.load.unit}
-                              onChange={(e) =>
-                                onUpdateExercise(ex.id, 'load.unit', e.target.value, detailIndex)
-                              }
-                              className="px-2 py-1 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                            >
-                              <option value="kg">kg</option>
-                              <option value="lbs">lbs</option>
-                              <option value="%">%</option>
-                              <option value="@">@</option>
-                            </select>
-                          </div>
-                          <Input
-                            type="text"
-                            value={detail.tempo}
-                            onChange={(e) =>
-                              onUpdateExercise(ex.id, 'tempo', e.target.value, detailIndex)
-                            }
-                            placeholder="Tempo"
-                          />
-                          <Input
-                            type="text"
-                            value={detail.rest}
-                            onChange={(e) =>
-                              onUpdateExercise(ex.id, 'rest', e.target.value, detailIndex)
-                            }
-                            placeholder="Repos"
-                          />
-                        </div>
-                      ))}
-                    <Button
-                      onClick={() => onUpdateExercise(ex.id, 'sets', parseInt(ex.sets, 10) + 1)}
-                      className="mt-2"
-                    >
-                      Ajouter une série
-                    </Button>
-                  </div>
-                  <div className="mt-4">
-                    <label
-                      htmlFor={`exercise-${ex.id}-notes`}
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Notes
-                    </label>
-                    <textarea
-                      id={`exercise-${ex.id}-notes`}
-                      value={ex.notes || ''}
-                      onChange={(e) => onUpdateExercise(ex.id, 'notes', e.target.value)}
-                      rows={1}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-gray-900 placeholder:text-gray-500"
-                    />
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        htmlFor={`exercise-${ex.id}-alternatives`}
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Alternatives
-                      </label>
-                      <Select
-                        id={`exercise-${ex.id}-alternatives`}
-                        options={availableExercises.map((e) => ({ value: e.id, label: e.name }))}
-                        value={(ex.alternatives ?? []).map((a) => a.id)}
-                        onChange={(values) => {
-                          const selectedAlts = availableExercises.filter((ae) =>
-                            values.includes(ae.id)
-                          );
-                          onUpdateExercise(
-                            ex.id,
-                            'alternatives',
-                            selectedAlts.map((sa) => ({ id: sa.id, name: sa.name }))
-                          );
-                        }}
-                        isMulti
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor={`exercise-${ex.id}-intensification`}
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Intensification
-                      </label>
-                      <Select
-                        id={`exercise-${ex.id}-intensification`}
-                        options={[
-                          { value: 'Aucune', label: 'Aucune' },
-                          { value: 'Dégressif', label: 'Dégressif' },
-                          { value: 'Superset', label: 'Superset' },
-                          { value: 'Dropset', label: 'Dropset' },
-                          { value: 'Rest-Pause', label: 'Rest-Pause' },
-                          { value: 'Myo-reps', label: 'Myo-reps' },
-                          { value: 'Cluster', label: 'Cluster' },
-                          { value: 'Partielles', label: 'Partielles' },
-                          { value: 'Tempo', label: 'Tempo' },
-                          { value: 'Isometric', label: 'Isometric' },
-                        ]}
-                        value={
-                          ex.intensification.length > 0 ? ex.intensification[0].value : 'Aucune'
-                        }
-                        onChange={(value) => onUpdateExercise(ex.id, 'intensification', value)}
-                      />
-                    </div>
-                  </div>
-                </div>
+                  onOpenHistory={() => setIsHistoryModalOpen(true)}
+ />
               ))}
               <Button onClick={addExercise} className="mt-4">
                 Ajouter un exercice
