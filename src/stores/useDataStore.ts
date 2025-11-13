@@ -69,13 +69,29 @@ export interface ProgramInput {
   is_public?: boolean;
   created_by?: string;
 }
-const generateLocalNotificationId = () => {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
+const generateStableLocalNotificationId = (
+  userId: string,
+  notification: {
+    message: string;
+    title?: string | null;
+    type?: string | null;
+    link?: string | null;
+  }
+) => {
+  const base = [
+    userId,
+    notification.type ?? 'info',
+    notification.title ?? '',
+    notification.message,
+    notification.link ?? '',
+  ].join('|');
+
+  let hash = 0;
+  for (let index = 0; index < base.length; index += 1) {
+    hash = (hash * 31 + base.charCodeAt(index)) | 0;
   }
 
-  const randomSuffix = Math.random().toString(36).slice(2, 10);
-  return `local-${Date.now()}-${randomSuffix}`;
+  return `local-${Math.abs(hash).toString(36)}`;
 };
 
 let notificationsPersistenceDisabledReason: string | null = null;
@@ -962,31 +978,56 @@ export const useDataStore = create<DataState>((set, get) => {
       const createdAt = new Date().toISOString();
       const authUser = useAuthStore.getState().user;
       const targetUserId = notification.userId ?? null;
+      const fallbackUserId = targetUserId ?? authUser?.id ?? 'system';
+      const fallbackId = generateStableLocalNotificationId(fallbackUserId, {
+        message: notification.message,
+        title: notification.title ?? null,
+        type: notification.type ?? null,
+        link: notification.link ?? null,
+      });
 
-      const pushNotification = (newNotification: Notification) => {
-        set((state) => ({
-          notifications: [
-            newNotification,
-            ...state.notifications.filter((existing) => existing.id !== newNotification.id),
-          ],
-        }));
-      };
+      const existingFallback = get().notifications.find((item) => item.id === fallbackId);
 
-      const fallbackNotification = {
-        id: generateLocalNotificationId(),
-        userId: targetUserId ?? authUser?.id ?? 'system',
+      const fallbackNotification: Notification = {
+        id: fallbackId,
+        userId: fallbackUserId,
         fromName:
           notification.fromName ??
+          existingFallback?.fromName ??
           (authUser?.firstName && authUser?.lastName
             ? `${authUser.firstName} ${authUser.lastName}`
             : authUser?.firstName || authUser?.lastName || 'Virtus'),
-        type: notification.type ?? 'info',
+        type: notification.type ?? existingFallback?.type ?? 'info',
         message: notification.message,
-        title: notification.title ?? '',
-        link: notification.link ?? '',
-        isRead: false,
-        timestamp: createdAt,
+        title: notification.title ?? existingFallback?.title ?? '',
+        link: notification.link ?? existingFallback?.link ?? '',
+        isRead: existingFallback?.isRead ?? false,
+        timestamp: existingFallback?.timestamp ?? createdAt,
       } as Notification;
+
+      const pushNotification = (newNotification: Notification) => {
+        const existing = get().notifications.find((item) => item.id === newNotification.id);
+
+        if (
+          existing &&
+          existing.message === newNotification.message &&
+          existing.type === newNotification.type &&
+          existing.title === newNotification.title &&
+          existing.link === newNotification.link &&
+          existing.fromName === newNotification.fromName &&
+          existing.timestamp === newNotification.timestamp &&
+          existing.isRead === newNotification.isRead
+        ) {
+          return;
+        }
+
+        set((state) => ({
+          notifications: [
+            newNotification,
+            ...state.notifications.filter((existingItem) => existingItem.id !== newNotification.id),
+          ],
+        }));
+      };
 
       if (!targetUserId) {
         logger.warn("Impossible d'ajouter la notification : aucun utilisateur cible explicite", {
