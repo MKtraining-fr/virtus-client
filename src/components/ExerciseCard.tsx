@@ -106,11 +106,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
         <div className="flex-1">
           {/* Zone de drag and drop visible en pointillés */}
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-primary transition-colors">
-            <Input
+            <input
+              type="text"
               placeholder="Écrire ou déposer un exercice"
               value={ex.name}
               onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-              className="font-semibold border-none shadow-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-semibold focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
             />
           </div>
         </div>

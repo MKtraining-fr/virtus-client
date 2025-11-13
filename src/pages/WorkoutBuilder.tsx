@@ -678,7 +678,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       illustrationUrl: '',
       sets: '3',
       isDetailed: false,
-      details: [],
+      details: [
+        { reps: '12', load: { value: '', unit: 'kg' }, tempo: '2010', rest: '60s' },
+        { reps: '12', load: { value: '', unit: 'kg' }, tempo: '2010', rest: '60s' },
+        { reps: '12', load: { value: '', unit: 'kg' }, tempo: '2010', rest: '60s' },
+      ],
       intensification: [],
       alternatives: [],
     };
@@ -1287,9 +1291,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   onOpenHistory={() => setIsHistoryModalOpen(true)}
  />
               ))}
-              <Button onClick={addExercise} className="mt-4">
-                Ajouter un exercice
-              </Button>
+              <button
+                type="button"
+                onClick={addExercise}
+                className="mx-auto mt-4 flex items-center justify-center w-12 h-12 rounded-full border-2 border-gray-400 text-gray-600 hover:bg-gray-50 hover:border-gray-500 transition-colors"
+                title="Ajouter un exercice"
+              >
+                <PlusIcon className="w-6 h-6" />
+              </button>
             </div>
           </div>
         </div>
