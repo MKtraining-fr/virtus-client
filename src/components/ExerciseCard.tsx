@@ -104,14 +104,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           className="w-4 h-4 mt-3"
         />
         <div className="flex-1">
-          {/* Zone de drag and drop visible en pointillés */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-primary transition-colors">
+          {/* Zone de drag and drop visible en pointillés (encadré rouge) */}
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-gray-400 transition-colors bg-gray-50">
+            {/* Zone de recherche textuelle intégrée (encadré jaune) */}
             <input
               type="text"
               placeholder="Écrire ou déposer un exercice"
               value={ex.name}
               onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-semibold focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              className="w-full px-3 py-2 border-2 border-yellow-400 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 placeholder-gray-400"
             />
           </div>
         </div>
