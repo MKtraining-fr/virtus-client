@@ -384,19 +384,28 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   const availableExercises = useMemo(() => {
     // Vérifier que exerciseDBFromAuth est défini
     if (!exerciseDBFromAuth || !Array.isArray(exerciseDBFromAuth)) {
+      console.warn('[WorkoutBuilder] Aucun exercice disponible depuis exerciseDBFromAuth');
       return [];
     }
     
+    console.log('[WorkoutBuilder] Exercices bruts depuis Auth:', exerciseDBFromAuth.length);
+    
+    let filtered;
     if (mode === 'client') {
       // Client : exercices système (coachId null) + exercices de son coach
-      return exerciseDBFromAuth.filter(
+      filtered = exerciseDBFromAuth.filter(
         (ex) => !ex.coachId || ex.coachId === user?.coachId
       );
+      console.log('[WorkoutBuilder] Mode client - Exercices filtrés:', filtered.length);
+    } else {
+      // Coach : exercices système (coachId null) + ses propres exercices
+      filtered = exerciseDBFromAuth.filter(
+        (ex) => !ex.coachId || ex.coachId === user?.id
+      );
+      console.log('[WorkoutBuilder] Mode coach - Exercices filtrés:', filtered.length);
     }
-    // Coach : exercices système (coachId null) + ses propres exercices
-    return exerciseDBFromAuth.filter(
-      (ex) => !ex.coachId || ex.coachId === user?.id
-    );
+    
+    return filtered;
   }, [exerciseDBFromAuth, user, mode]);
 
   const handleClientSelectionChange = (value: string | string[]) => {

@@ -14,14 +14,23 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
   const [selectedEquipments, setSelectedEquipments] = useState<string[]>([]);
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
 
-  const equipmentTypes = useMemo(
-    () => Array.from(new Set(db.map((e) => e.equipment).filter(Boolean))),
-    [db]
-  ) as string[];
-  const muscleGroups = useMemo(
-    () => Array.from(new Set(db.flatMap((e) => e.muscleGroups).filter(Boolean))),
-    [db]
-  ) as string[];
+  // Log de débogage pour vérifier que les exercices sont bien chargés
+  React.useEffect(() => {
+    console.log('[ExerciseFilterSidebar] Exercices chargés:', db.length);
+    console.log('[ExerciseFilterSidebar] Premiers exercices:', db.slice(0, 3));
+  }, [db]);
+
+  const equipmentTypes = useMemo(() => {
+    const types = Array.from(new Set(db.map((e) => e.equipment).filter(Boolean)));
+    console.log('[ExerciseFilterSidebar] Équipements extraits:', types);
+    return types;
+  }, [db]) as string[];
+  
+  const muscleGroups = useMemo(() => {
+    const groups = Array.from(new Set(db.flatMap((e) => e.muscleGroups).filter(Boolean)));
+    console.log('[ExerciseFilterSidebar] Groupes musculaires extraits:', groups);
+    return groups;
+  }, [db]) as string[];
 
   const toggleSelection = (
     item: string,
@@ -62,6 +71,14 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
       />
+
+      {db.length === 0 && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            Aucun exercice chargé. Veuillez vérifier votre connexion à la base de données.
+          </p>
+        </div>
+      )}
 
       {equipmentTypes.length > 0 && (
         <div className="mb-4">

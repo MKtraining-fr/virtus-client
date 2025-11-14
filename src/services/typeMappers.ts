@@ -114,15 +114,22 @@ export function mapClientToSupabaseClient(client: Partial<Client>): Partial<Supa
  * Convertir un exercice Supabase vers le format de l'application
  */
 export function mapSupabaseExerciseToExercise(supabaseExercise: SupabaseExercise): Exercise {
+  // Combiner le groupe musculaire principal et les groupes secondaires
+  const primaryMuscleGroups = supabaseExercise.muscle_group
+    ? supabaseExercise.muscle_group.split('|').map((m) => m.trim()).filter(Boolean)
+    : [];
+  const secondaryGroups = supabaseExercise.secondary_muscle_groups || [];
+  
+  // Créer un array unique de tous les groupes musculaires pour les filtres
+  const allMuscleGroups = [...new Set([...primaryMuscleGroups, ...secondaryGroups])];
+  
   return {
     id: supabaseExercise.id,
     name: supabaseExercise.name,
     description: supabaseExercise.description || '',
     category: (supabaseExercise.category as any) || '',
-    muscleGroups: supabaseExercise.muscle_group
-      ? supabaseExercise.muscle_group.split('|').map((m) => m.trim())
-      : [],
-    secondaryMuscleGroups: supabaseExercise.secondary_muscle_groups || [],
+    muscleGroups: allMuscleGroups,
+    secondaryMuscleGroups: secondaryGroups,
     equipment: supabaseExercise.equipment || '',
     difficulty: supabaseExercise.difficulty || '',
     videoUrl: supabaseExercise.video_url || '',
