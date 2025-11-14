@@ -260,7 +260,10 @@ const WorkoutDatabase: React.FC = () => {
   };
 
   const selectAllExercises = () => {
-    const selectableExercises = filteredExercises.filter((ex) => ex.coachId === user?.id);
+    // Admin peut sélectionner tous les exercices, coach seulement les siens
+    const selectableExercises = user?.role === 'admin' 
+      ? filteredExercises 
+      : filteredExercises.filter((ex) => ex.coachId === user?.id);
     setSelectedExerciseIds(selectableExercises.map((ex) => ex.id));
   };
 
@@ -440,12 +443,12 @@ const WorkoutDatabase: React.FC = () => {
                 ? 'ring-2 ring-primary bg-primary/5'
                 : ''
             } ${
-              selectionMode && user?.id !== exercise.coachId
+              selectionMode && user?.role !== 'admin' && user?.id !== exercise.coachId
                 ? 'opacity-50 cursor-not-allowed'
                 : 'cursor-pointer'
             }`}
           >
-            {selectionMode && user?.id === exercise.coachId && (
+            {selectionMode && (user?.role === 'admin' || user?.id === exercise.coachId) && (
               <div
                 className="absolute top-2 left-2 z-10"
                 onClick={(e) => {
@@ -466,7 +469,7 @@ const WorkoutDatabase: React.FC = () => {
                 </div>
               </div>
             )}
-            {!selectionMode && user?.id === exercise.coachId && (
+            {!selectionMode && (user?.role === 'admin' || user?.id === exercise.coachId) && (
               <button
                 onClick={(e) => handleDeleteExercise(e, exercise.id)}
                 className="absolute top-2 right-2 z-10 p-1.5 bg-white/70 rounded-full text-gray-500 hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
