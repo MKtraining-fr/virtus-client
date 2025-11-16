@@ -61,54 +61,56 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db }) => 
                 />
             </div>
 
-            <div className="py-4 space-y-4 overflow-y-auto">
-                {equipmentTypes.length > 0 && <div className="space-y-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Types d'équipement</h3>
-                    <div className="flex flex-wrap gap-2">
-                        {equipmentTypes.map(type => (
-                            <FilterChip
-                                key={type}
-                                label={type}
-                                selected={selectedEquipments.includes(type)}
-                                onClick={() => toggleSelection(type, selectedEquipments, setSelectedEquipments)}
-                            />
+            <div className="mt-4 flex flex-col flex-grow gap-4 overflow-hidden">
+                <div className="flex flex-col flex-grow rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <h3 className="text-center text-base font-semibold text-gray-800">Résultats ({filteredResults.length})</h3>
+                    <div className="mt-3 space-y-3 overflow-y-auto flex-grow pr-2">
+                        {filteredResults.map(ex => (
+                            <div
+                                key={ex.id}
+                                className="cursor-grab group flex items-center gap-3 p-2 rounded-xl border border-gray-100 hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, ex)}
+                            >
+                                <img
+                                  src={ex.illustrationUrl || DEFAULT_ILLUSTRATION}
+                                  alt={ex.name}
+                                  className="w-16 h-16 object-contain rounded-lg bg-white border border-gray-200 flex-shrink-0"
+                                />
+                                <p className="font-semibold text-gray-800 group-hover:text-primary flex-grow text-sm">{ex.name}</p>
+                            </div>
                         ))}
                     </div>
-                </div>}
+                </div>
 
-                {muscleGroups.length > 0 && <div className="space-y-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Groupes musculaires</h3>
-                    <div className="flex flex-wrap gap-2">
-                         {muscleGroups.map(part => (
-                            <FilterChip
-                                key={part}
-                                label={part}
-                                selected={selectedMuscleGroups.includes(part)}
-                                onClick={() => toggleSelection(part, selectedMuscleGroups, setSelectedMuscleGroups)}
-                            />
-                        ))}
-                    </div>
-                </div>}
-            </div>
-
-            <div className="flex flex-col flex-grow rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                <h3 className="text-center text-base font-semibold text-gray-800">Résultats ({filteredResults.length})</h3>
-                <div className="mt-3 space-y-3 overflow-y-auto flex-grow pr-2">
-                    {filteredResults.map(ex => (
-                        <div
-                            key={ex.id}
-                            className="cursor-grab group flex items-center gap-3 p-2 rounded-xl border border-gray-100 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, ex)}
-                        >
-                            <img
-                              src={ex.illustrationUrl || DEFAULT_ILLUSTRATION}
-                              alt={ex.name}
-                              className="w-16 h-16 object-contain rounded-lg bg-white border border-gray-200 flex-shrink-0"
-                            />
-                            <p className="font-semibold text-gray-800 group-hover:text-primary flex-grow text-sm">{ex.name}</p>
+                <div className="space-y-4 overflow-y-auto pr-1 pb-1">
+                    {equipmentTypes.length > 0 && <div className="space-y-2">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Types d'équipement</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {equipmentTypes.map(type => (
+                                <FilterChip
+                                    key={type}
+                                    label={type}
+                                    selected={selectedEquipments.includes(type)}
+                                    onClick={() => toggleSelection(type, selectedEquipments, setSelectedEquipments)}
+                                />
+                            ))}
                         </div>
-                    ))}
+                    </div>}
+
+                    {muscleGroups.length > 0 && <div className="space-y-2">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Groupes musculaires</h3>
+                        <div className="flex flex-wrap gap-2">
+                             {muscleGroups.map(part => (
+                                <FilterChip
+                                    key={part}
+                                    label={part}
+                                    selected={selectedMuscleGroups.includes(part)}
+                                    onClick={() => toggleSelection(part, selectedMuscleGroups, setSelectedMuscleGroups)}
+                                />
+                            ))}
+                        </div>
+                    </div>}
                 </div>
             </div>
         </Card>
