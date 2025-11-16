@@ -1226,84 +1226,69 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             />
           </div>
           {workoutMode === 'program' && (
-            <div className="flex items-center gap-2 mb-4 border-b pb-2 overflow-x-auto">
-              {Object.keys(sessionsByWeek || {}).map((week) => (
+            <div className="mb-4">
+              <div className="flex items-center gap-3 border-b pb-2">
+                <h2 className="text-lg font-semibold">Séances</h2>
+                <Select
+                  label=""
+                  options={Object.keys(sessionsByWeek || {}).map((week) => ({
+                    value: week,
+                    label: `Semaine ${week}`,
+                  }))}
+                  value={String(selectedWeek)}
+                  onChange={(value) => {
+                    const weekValue = Array.isArray(value) ? value[0] : value;
+                    if (weekValue) {
+                      setSelectedWeek(Number(weekValue));
+                    }
+                  }}
+                />
+                {(sessions || []).map((session) => (
+                  <div key={session.id} className="flex items-center gap-1">
+                    <button
+                      onClick={() => setActiveSessionId(session.id)}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        activeSessionId === session.id
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      {session.name}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicateSession();
+                      }}
+                      className="p-1.5 text-gray-500 hover:text-primary transition-colors"
+                      title="Dupliquer la séance"
+                    >
+                      <DocumentDuplicateIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSession(session.id);
+                      }}
+                      className="p-1.5 text-gray-500 hover:text-red-500 transition-colors"
+                      title="Supprimer la séance"
+                    >
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
                 <button
-                  key={week}
-                  onClick={() => setSelectedWeek(Number(week))}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    selectedWeek === Number(week)
-                      ? 'bg-primary/10 text-primary'
-                      : 'hover:bg-gray-100'
-                  }`}
+                  onClick={handleAddSession}
+                  className="p-1.5 text-gray-500 hover:text-primary transition-colors"
+                  title="Ajouter une séance"
                 >
-                  Semaine {week}
+                  <PlusIcon className="w-5 h-5" />
                 </button>
-              ))}
-              <Button onClick={handleAddWeek} className="ml-2">
-                Ajouter une semaine
-              </Button>
+              </div>
             </div>
           )}
           <div className="flex-1 flex mt-4">
-            {workoutMode === 'program' && (
-              <div className="w-1/4 pr-4 border-r border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Séances</h2>
-              {(sessions || []).map((session) => (
-                <div
-                  key={session.id}
-                  onDragEnter={(e) => handleDragSessionEnter(e, session.id)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onClick={() => setActiveSessionId(session.id)}
-                  className={`relative p-3 rounded-lg cursor-pointer ${activeSessionId === session.id ? 'bg-primary-light text-primary-dark' : 'hover:bg-gray-200'} ${sessionDragItem.current === session.id ? 'opacity-50' : ''}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span>{session.name}</span>
-                    <button
-                      type="button"
-                      draggable={!isDragInteractionLocked}
-                      onDragStart={(e) => handleDragSessionStart(e, session.id)}
-                      onDragEnd={handleDropSession}
-                      className={`p-1 text-gray-500 hover:text-gray-700 ${
-                        isDragInteractionLocked ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'
-                      }`}
-                      onMouseDown={(e) => {
-                        if (isDragInteractionLocked) {
-                          e.preventDefault();
-                        }
-                      }}
-                      aria-label="Réordonner la séance"
-                      aria-disabled={isDragInteractionLocked}
-                    >
-                      <ListBulletIcon className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <button
-                    className="absolute top-1 right-1 p-1 text-gray-500 hover:text-gray-700"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteSession(session.id);
-                    }}
-                  >
-                    <XMarkIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    className="absolute top-1 right-7 p-1 text-gray-500 hover:text-gray-700"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDuplicateSession();
-                    }}
-                  >
-                    <DocumentDuplicateIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-                <Button onClick={handleAddSession} className="mt-4 w-full">
-                  Ajouter une séance
-                </Button>
-              </div>
-            )}
-            <div className={workoutMode === 'program' ? 'w-3/4 pl-4' : 'w-full'}>
+            <div className="w-full">
               <h2 className="text-lg font-semibold mb-4">{activeSession?.name}</h2>
               {activeSession?.exercises?.map((ex) => (
                 <ExerciseCard
