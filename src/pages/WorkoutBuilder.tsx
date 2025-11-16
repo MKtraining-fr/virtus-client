@@ -1288,12 +1288,34 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             )}
             <div className={workoutMode === 'program' ? 'w-3/4 pl-4' : 'w-full'}>
               <h2 className="text-lg font-semibold mb-4">{activeSession?.name}</h2>
-              {activeSession && activeSession.exercises.length === 0 && (
+              {activeSession?.exercises?.map((ex) => (
+                <ExerciseCard
+                  key={ex.id}
+                  exercise={ex}
+                  availableExercises={availableExercises}
+                  isSelected={selectedExerciseIds.includes(ex.id)}
+                  isDragInteractionLocked={isDragInteractionLocked}
+                  draggedOverExerciseId={draggedOverExerciseId}
+                  exerciseDragItem={exerciseDragItem}
+                  onToggleSelection={toggleExerciseSelection}
+                  onUpdateExercise={onUpdateExercise}
+                  onDeleteExercise={handleDeleteExercise}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDrop}
+                  onDragEnter={handleDragEnter}
+                  onDragOver={(e) => e.preventDefault()}
+                  onOpenHistory={() => setIsHistoryModalOpen(true)}
+ />
+              ))}
+              
+              {/* Zone de drag and drop persistante avec recherche */}
+              {activeSession && (
                 <div 
-                  className="text-center text-gray-500 py-10 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors relative z-10"
+                  className="mt-4 text-center text-gray-500 py-6 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors relative z-10"
                   onDragOver={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    e.currentTarget.classList.add('border-primary', 'bg-primary-light');
                   }}
                   onDragEnter={(e) => {
                     e.preventDefault();
@@ -1320,28 +1342,19 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     }
                   }}
                 >
-                  Glissez-déposez des exercices ici ou utilisez le bouton "Ajouter un exercice".
+                  <div className="mb-2 px-4">
+                    <Input
+                      type="text"
+                      placeholder="🔍 Rechercher ou déposer un exercice"
+                      className="w-full max-w-md mx-auto"
+                      onClick={(e) => e.stopPropagation()}
+                      onDragOver={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <p className="text-sm">Glissez-déposez un exercice ici</p>
                 </div>
               )}
-              {activeSession?.exercises?.map((ex) => (
-                <ExerciseCard
-                  key={ex.id}
-                  exercise={ex}
-                  availableExercises={availableExercises}
-                  isSelected={selectedExerciseIds.includes(ex.id)}
-                  isDragInteractionLocked={isDragInteractionLocked}
-                  draggedOverExerciseId={draggedOverExerciseId}
-                  exerciseDragItem={exerciseDragItem}
-                  onToggleSelection={toggleExerciseSelection}
-                  onUpdateExercise={onUpdateExercise}
-                  onDeleteExercise={handleDeleteExercise}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDrop}
-                  onDragEnter={handleDragEnter}
-                  onDragOver={(e) => e.preventDefault()}
-                  onOpenHistory={() => setIsHistoryModalOpen(true)}
- />
-              ))}
+              
               <button
                 type="button"
                 onClick={addExercise}
