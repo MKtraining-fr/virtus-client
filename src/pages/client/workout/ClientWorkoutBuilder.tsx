@@ -26,7 +26,7 @@ const FilterChip: React.FC<{ label: string; selected: boolean; onClick: () => vo
 }) => (
   <button
     onClick={onClick}
-    className={`px-3 py-1 text-sm rounded-full border transition-all ${selected ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-client-dark text-gray-700 dark:text-client-light border-gray-500 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+    className={`px-3 py-1 text-sm rounded-full border transition-all ${selected ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-client-dark text-gray-700 dark:text-client-light border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
   >
     {label}
   </button>
@@ -281,7 +281,7 @@ const ClientWorkoutBuilder: React.FC = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-128px)] text-gray-800 dark:text-client-light">
       {/* --- Header --- */}
-      <header className="flex items-center gap-4 p-4 shrink-0 border-b border-gray-400 dark:border-client-card">
+      <header className="flex items-center gap-4 p-4 shrink-0 border-b border-gray-200 dark:border-client-card">
         <button
           onClick={() => navigate(-1)}
           className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20"
@@ -381,7 +381,7 @@ const ClientWorkoutBuilder: React.FC = () => {
           <div className="pt-4">
             <button
               onClick={addExercise}
-              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-white dark:bg-client-card border-2 border-dashed border-gray-500 dark:border-client-subtle rounded-lg text-gray-800 dark:text-client-light hover:border-primary hover:text-primary transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-white dark:bg-client-card border-2 border-dashed border-gray-300 dark:border-client-subtle rounded-lg text-gray-800 dark:text-client-light hover:border-primary hover:text-primary transition-colors"
             >
               <PlusIcon className="w-6 h-6" />
               <span>Ajouter un exercice</span>
@@ -391,7 +391,7 @@ const ClientWorkoutBuilder: React.FC = () => {
       </main>
 
       {/* --- Floating & Fixed Elements --- */}
-      <footer className="fixed bottom-16 left-0 right-0 p-3 bg-white dark:bg-client-card border-t border-gray-400 dark:border-gray-700 shrink-0 z-20">
+      <footer className="fixed bottom-16 left-0 right-0 p-3 bg-white dark:bg-client-card border-t border-gray-200 dark:border-gray-700 shrink-0 z-20">
         <button
           onClick={handleSaveClient}
           className="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-violet-700 transition-colors"
@@ -534,7 +534,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
         </button>
       </div>
       {isExpanded && (
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-400 dark:border-client-dark/50">
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200 dark:border-client-dark/50">
           <div>
             <label
               htmlFor={`${idPrefix}-tempo`}

@@ -158,7 +158,7 @@ const Clients: React.FC = () => {
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-400">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="p-4">
                   <input

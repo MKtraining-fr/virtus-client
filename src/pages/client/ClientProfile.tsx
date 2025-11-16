@@ -85,7 +85,7 @@ const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 const InfoRow: React.FC<{ label: string; value?: string | number }> = ({ label, value }) => (
-  <div className="flex justify-between items-center py-3 border-b border-gray-400 dark:border-client-card">
+  <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-client-card">
     <span className="text-gray-500 dark:text-client-subtle capitalize">{label}</span>
     <span className="font-semibold text-gray-800 dark:text-client-light text-right">
       {value || 'Non défini'}
@@ -386,12 +386,12 @@ const ClientProfile: React.FC = () => {
             ))}
           </div>
 
-          <div className="pt-6 mt-6 border-t border-gray-400 dark:border-client-card">
+          <div className="pt-6 mt-6 border-t border-gray-200 dark:border-client-card">
             <h4 className="font-semibold text-lg mb-4 text-gray-900 dark:text-client-light">
               Historique des mensurations
             </h4>
             {measurementHistoryTable.data.length > 0 ? (
-              <div className="overflow-x-auto border border-gray-400 dark:border-gray-700 rounded-lg">
+              <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
                 <table className="w-full text-sm text-left">
                   <thead className="text-xs text-gray-500 dark:text-client-subtle uppercase bg-gray-50 dark:bg-client-dark">
                     <tr>
@@ -430,7 +430,7 @@ const ClientProfile: React.FC = () => {
             )}
           </div>
 
-          <div className="pt-6 mt-6 border-t border-gray-400 dark:border-client-card">
+          <div className="pt-6 mt-6 border-t border-gray-200 dark:border-client-card">
             <h4 className="font-semibold text-lg text-gray-900 dark:text-client-light mb-4">
               Enregistrer de nouvelles données
             </h4>
@@ -440,7 +440,7 @@ const ClientProfile: React.FC = () => {
                 type="number"
                 value={editableWeight}
                 onChange={(e) => setEditableWeight(e.target.value)}
-                className="!bg-gray-100 dark:!bg-client-dark !border-gray-500 dark:!border-gray-700 focus:!ring-primary text-gray-800 dark:text-client-light"
+                className="!bg-gray-100 dark:!bg-client-dark !border-gray-300 dark:!border-gray-700 focus:!ring-primary text-gray-800 dark:text-client-light"
               />
               <div className="grid grid-cols-2 gap-4">
                 {(Object.keys(measurementLabels) as Array<keyof MeasurementType>).map((key) => (
@@ -450,7 +450,7 @@ const ClientProfile: React.FC = () => {
                     type="number"
                     value={editableMeasurements[key] || ''}
                     onChange={(e) => handleMeasurementChange(key, e.target.value)}
-                    className="!bg-gray-100 dark:!bg-client-dark !border-gray-500 dark:!border-gray-700 focus:!ring-primary text-gray-800 dark:text-client-light"
+                    className="!bg-gray-100 dark:!bg-client-dark !border-gray-300 dark:!border-gray-700 focus:!ring-primary text-gray-800 dark:text-client-light"
                   />
                 ))}
               </div>
@@ -462,7 +462,7 @@ const ClientProfile: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-6 mt-6 border-t border-gray-400 dark:border-client-card">
+          <div className="pt-6 mt-6 border-t border-gray-200 dark:border-client-card">
             <h4 className="font-semibold text-lg text-gray-900 dark:text-client-light mb-4">
               Mes photos de suivi
             </h4>
@@ -544,7 +544,7 @@ const ClientProfile: React.FC = () => {
                 documentFiles.map((file) => (
                   <div
                     key={file.id}
-                    className="!bg-white dark:!bg-client-dark/50 p-3 !shadow-sm border border-gray-400 dark:border-gray-700/50 rounded-lg"
+                    className="!bg-white dark:!bg-client-dark/50 p-3 !shadow-sm border border-gray-200 dark:border-gray-700/50 rounded-lg"
                   >
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-gray-100 dark:bg-client-dark rounded-lg">
@@ -654,7 +654,7 @@ const ClientProfile: React.FC = () => {
 
               return (
                 <div key={section.id}>
-                  <h4 className="font-semibold text-lg text-gray-800 dark:text-client-light mb-2 pt-4 border-t border-gray-400 dark:border-client-card first:pt-0 first:border-t-0">
+                  <h4 className="font-semibold text-lg text-gray-800 dark:text-client-light mb-2 pt-4 border-t border-gray-200 dark:border-client-card first:pt-0 first:border-t-0">
                     {section.title}
                   </h4>
                   <div className="space-y-1">
@@ -663,7 +663,7 @@ const ClientProfile: React.FC = () => {
                       return (
                         <div
                           key={field.id}
-                          className="flex justify-between items-center py-2 border-b border-gray-400 dark:border-client-card"
+                          className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-client-card"
                         >
                           <span className="text-gray-600 dark:text-client-subtle">
                             {field.label}
@@ -679,7 +679,7 @@ const ClientProfile: React.FC = () => {
               );
             })}
             {selectedBilan.status === 'pending' && (
-              <div className="pt-6 border-t border-gray-400 dark:border-client-card mt-6 text-center">
+              <div className="pt-6 border-t border-gray-200 dark:border-client-card mt-6 text-center">
                 <Button>Commencer le bilan</Button>
                 <p className="text-xs text-client-subtle mt-2">(Fonctionnalité à venir)</p>
               </div>

@@ -12,7 +12,7 @@ const FilterChip: React.FC<{ label: string; selected: boolean; onClick: () => vo
 }) => (
   <button
     onClick={onClick}
-    className={`px-3 py-1 text-sm rounded-full border transition-all ${selected ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-client-dark text-gray-700 dark:text-client-light border-gray-500 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+    className={`px-3 py-1 text-sm rounded-full border transition-all ${selected ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-client-dark text-gray-700 dark:text-client-light border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
   >
     {label}
   </button>
@@ -111,7 +111,7 @@ const ClientExerciseFilterModal: React.FC<ClientExerciseFilterModalProps> = ({
           </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-4 border-t border-gray-400 dark:border-client-card">
+        <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-client-card">
           <Button variant="secondary" onClick={handleReset}>
             Réinitialiser
           </Button>

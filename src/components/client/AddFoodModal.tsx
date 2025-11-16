@@ -226,7 +226,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
               <label className="block text-sm font-medium text-gray-600 dark:text-client-subtle mb-1">
                 Unité
               </label>
-              <div className="flex rounded-lg bg-gray-100 dark:bg-client-dark border border-gray-500 dark:border-gray-700">
+              <div className="flex rounded-lg bg-gray-100 dark:bg-client-dark border border-gray-300 dark:border-gray-700">
                 <button
                   onClick={() => setUnit('g')}
                   className={`flex-1 py-2 rounded-l-md text-sm font-semibold transition-colors ${unit === 'g' ? 'bg-primary text-white' : 'text-gray-600 dark:text-client-subtle'}`}
@@ -262,7 +262,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-gray-400 dark:border-gray-700">
+          <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setSelectedFood(null)}
               className="text-gray-600 dark:text-client-subtle hover:text-gray-900 dark:hover:text-client-light px-4 py-2 rounded-lg text-sm font-semibold"

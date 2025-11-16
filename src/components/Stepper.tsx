@@ -42,7 +42,7 @@ const Stepper: React.FC<StepperProps> = ({ steps, currentStep }) => {
             </div>
             {index < steps.length - 1 && (
               <div
-                className={`flex-auto border-t-2 transition-colors mx-4 ${isCompleted ? 'border-primary' : 'border-gray-500'}`}
+                className={`flex-auto border-t-2 transition-colors mx-4 ${isCompleted ? 'border-primary' : 'border-gray-300'}`}
               ></div>
             )}
           </React.Fragment>

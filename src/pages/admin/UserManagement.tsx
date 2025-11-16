@@ -255,23 +255,23 @@ const UserManagement: React.FC = () => {
       </div>
 
       <div className="mb-4">
-        <div className="border-b border-gray-400">
+        <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('all')}
-              className={`${activeTab === 'all' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-500'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              className={`${activeTab === 'all' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
               Tous
             </button>
             <button
               onClick={() => setActiveTab('coaches')}
-              className={`${activeTab === 'coaches' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-500'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              className={`${activeTab === 'coaches' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
               Coachs
             </button>
             <button
               onClick={() => setActiveTab('clients')}
-              className={`${activeTab === 'clients' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-500'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              className={`${activeTab === 'clients' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
               Clients & Prospects
             </button>
@@ -290,7 +290,7 @@ const UserManagement: React.FC = () => {
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-400">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="p-4">
                   <input

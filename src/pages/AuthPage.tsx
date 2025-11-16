@@ -231,7 +231,7 @@ const AuthPage: React.FC = () => {
           />
 
           {!isLoginView && (
-            <div className="text-sm text-gray-500 mt-[-10px] p-2 bg-gray-50 rounded-md border border-gray-400">
+            <div className="text-sm text-gray-500 mt-[-10px] p-2 bg-gray-50 rounded-md border border-gray-200">
               <p className="font-semibold mb-1 text-gray-700">Exigences du mot de passe :</p>
               <ul className="list-disc list-inside ml-2 grid grid-cols-2 gap-x-4 text-xs">
                 <li className={password.length >= 8 ? 'text-green-600' : 'text-red-500'}>

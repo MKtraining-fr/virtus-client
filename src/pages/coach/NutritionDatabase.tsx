@@ -59,7 +59,7 @@ const NutritionDatabase: React.FC = () => {
       <Card className="overflow-hidden">
         <div className="overflow-auto max-h-[calc(100vh-250px)]">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-400 sticky top-0">
+            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
               <tr>
                 {renderHeader('Aliment', 'name')}
                 {renderHeader('Catégorie', 'category')}

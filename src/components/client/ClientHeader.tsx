@@ -10,7 +10,7 @@ const ClientHeader: React.FC<ClientHeaderProps> = ({ title }) => {
   const { user } = useAuth();
 
   return (
-    <header className="bg-white dark:bg-client-card sticky top-0 z-10 p-4 flex justify-between items-center border-b border-gray-400 dark:border-gray-700">
+    <header className="bg-white dark:bg-client-card sticky top-0 z-10 p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
       <h1 className="text-xl font-bold text-gray-900 dark:text-client-light">{title}</h1>
       <Link to="/app/profile">
         <img

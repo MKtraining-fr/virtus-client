@@ -43,7 +43,7 @@ const Accordion: React.FC<AccordionProps> = ({
     : () => setUncontrolledIsOpen(!uncontrolledIsOpen);
 
   return (
-    <div className="border border-gray-500 rounded-lg mb-4 bg-white shadow-sm">
+    <div className="border border-gray-300 rounded-lg mb-4 bg-white shadow-sm">
       <button
         onClick={toggle}
         onDragOver={onButtonDragOver}
@@ -53,7 +53,7 @@ const Accordion: React.FC<AccordionProps> = ({
         <span>{title}</span>
         <ChevronDownIcon className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
-      {isOpen && <div className="p-4 border-t border-gray-500">{children}</div>}
+      {isOpen && <div className="p-4 border-t border-gray-300">{children}</div>}
     </div>
   );
 };

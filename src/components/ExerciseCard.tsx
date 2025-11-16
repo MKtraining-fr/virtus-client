@@ -105,7 +105,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
         />
         <div className="flex-1">
           {/* Zone de drag and drop visible en pointillés (encadré rouge) */}
-          <div className="border-2 border-dashed border-gray-500 rounded-lg p-3 hover:border-gray-400 transition-colors bg-gray-50">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-gray-400 transition-colors bg-gray-50">
             {/* Zone de recherche textuelle intégrée (encadré jaune) */}
             <input
               type="text"
@@ -219,7 +219,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 <select
                   value={simpleValues.load.unit}
                   onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
-                  className="px-2 py-1 bg-white border border-gray-500 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                  className="px-2 py-1 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                 >
                   <option value="kg">kg</option>
                   <option value="lbs">lbs</option>
@@ -302,7 +302,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     onChange={(e) =>
                       onUpdateExercise(ex.id, 'load.unit', e.target.value, detailIndex)
                     }
-                    className="px-2 py-1 bg-white border border-gray-500 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                    className="px-2 py-1 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                   >
                     <option value="kg">kg</option>
                     <option value="lbs">lbs</option>

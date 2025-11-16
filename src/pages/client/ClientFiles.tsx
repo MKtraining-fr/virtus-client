@@ -144,7 +144,7 @@ const ClientFiles: React.FC = () => {
           user?.sharedFiles?.map((file) => (
             <Card
               key={file.id}
-              className="!bg-white dark:!bg-client-card p-3 !shadow-sm border border-gray-400 dark:border-transparent"
+              className="!bg-white dark:!bg-client-card p-3 !shadow-sm border border-gray-200 dark:border-transparent"
             >
               <div className="flex items-center gap-4">
                 <div className="p-2 bg-gray-100 dark:bg-client-dark rounded-lg">

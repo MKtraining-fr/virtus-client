@@ -460,7 +460,7 @@ const WorkoutDatabase: React.FC = () => {
                   className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
                     selectedExerciseIds.includes(exercise.id)
                       ? 'bg-primary border-primary'
-                      : 'bg-white border-gray-500'
+                      : 'bg-white border-gray-300'
                   }`}
                 >
                   {selectedExerciseIds.includes(exercise.id) && (
@@ -493,7 +493,7 @@ const WorkoutDatabase: React.FC = () => {
                   ? `${exercise.description.substring(0, 77)}...`
                   : exercise.description}
               </p>
-              <div className="mt-auto border-t border-gray-400 pt-2 text-xs space-y-1 text-gray-500">
+              <div className="mt-auto border-t border-gray-200 pt-2 text-xs space-y-1 text-gray-500">
                 <p>
                   <strong>Équipement:</strong> {exercise.equipment || 'N/A'}
                 </p>
@@ -666,7 +666,7 @@ const WorkoutDatabase: React.FC = () => {
               value={newExercise.description}
               onChange={handleFormChange}
               rows={3}
-              className="w-full px-3 py-2 bg-white border border-gray-500 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
             ></textarea>
           </div>
 
@@ -696,7 +696,7 @@ const WorkoutDatabase: React.FC = () => {
                 onBlur={() => setTimeout(() => setShowMuscleGroupSuggestions(false), 200)}
               />
               {showMuscleGroupSuggestions && filteredMuscleGroupSuggestions.length > 0 && (
-                <div className="absolute z-20 w-full bg-white border border-gray-500 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
                   {filteredMuscleGroupSuggestions.map((group) => (
                     <div
                       key={group}
@@ -742,7 +742,7 @@ const WorkoutDatabase: React.FC = () => {
               />
               {showSecondaryMuscleGroupSuggestions &&
                 filteredSecondaryMuscleGroupSuggestions.length > 0 && (
-                  <div className="absolute z-20 w-full bg-white border border-gray-500 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                  <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
                     {filteredSecondaryMuscleGroupSuggestions.map((group) => (
                       <div
                         key={group}
@@ -787,7 +787,7 @@ const WorkoutDatabase: React.FC = () => {
                 onBlur={() => setTimeout(() => setShowAlternativeSuggestions(false), 200)}
               />
               {showAlternativeSuggestions && filteredAlternativeSuggestions.length > 0 && (
-                <div className="absolute z-20 w-full bg-white border border-gray-500 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
                   {filteredAlternativeSuggestions.map((ex) => (
                     <div
                       key={ex.id}

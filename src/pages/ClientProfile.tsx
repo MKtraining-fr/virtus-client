@@ -122,7 +122,7 @@ const InfoItem: React.FC<{ label: string; value?: string | number }> = ({ label,
 );
 
 const InfoRowModal: React.FC<{ label: string; value?: string | number }> = ({ label, value }) => (
-  <div className="flex justify-between items-center py-2 border-b border-gray-400">
+  <div className="flex justify-between items-center py-2 border-b border-gray-200">
     <span className="text-gray-600">{label}</span>
     <span className="font-semibold text-gray-900 text-right">{value ?? 'N/A'}</span>
   </div>
@@ -473,7 +473,7 @@ const ClientProfile: React.FC = () => {
 
               return (
                 <div key={section.id}>
-                  <h4 className="font-semibold text-lg text-gray-800 mb-2 pt-4 border-t border-gray-400 first:pt-0 first:border-t-0">
+                  <h4 className="font-semibold text-lg text-gray-800 mb-2 pt-4 border-t border-gray-200 first:pt-0 first:border-t-0">
                     {section.title}
                   </h4>
                   <div className="space-y-1">

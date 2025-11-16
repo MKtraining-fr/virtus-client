@@ -21,7 +21,7 @@ const ProgramCard: React.FC<{
   onDelete?: (id: string) => void;
   isClientCreated?: boolean;
 }> = ({ program, isNext = false, onView, onDelete, isClientCreated = false }) => (
-  <div className="bg-white dark:bg-client-card rounded-lg p-4 flex flex-col justify-between relative shadow-sm border border-gray-400 dark:border-transparent">
+  <div className="bg-white dark:bg-client-card rounded-lg p-4 flex flex-col justify-between relative shadow-sm border border-gray-200 dark:border-transparent">
     {isNext && (
       <div className="absolute top-2 right-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded-full z-10">
         Prochain programme
@@ -133,7 +133,7 @@ const ClientMyPrograms: React.FC = () => {
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20 border border-gray-500 dark:border-gray-700"
+          className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20 border border-gray-300 dark:border-gray-700"
         >
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
@@ -184,7 +184,7 @@ const ClientMyPrograms: React.FC = () => {
       )}
 
       {otherAssignedPrograms.length === 0 && savedByClient.length === 0 && !loading && (
-        <div className="text-center py-10 bg-white dark:bg-client-card rounded-lg shadow-sm border border-gray-400 dark:border-transparent">
+        <div className="text-center py-10 bg-white dark:bg-client-card rounded-lg shadow-sm border border-gray-200 dark:border-transparent">
           <p className="text-gray-900 dark:text-client-light">
             Vous n'avez aucun programme sauvegardé.
           </p>

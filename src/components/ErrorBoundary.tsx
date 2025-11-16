@@ -92,7 +92,7 @@ class ErrorBoundary extends Component<Props, State> {
             </p>
 
             {this.state.error && (
-              <details className="mb-4 p-3 bg-gray-50 rounded border border-gray-400">
+              <details className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
                 <summary className="cursor-pointer text-sm font-medium text-gray-700 mb-2">
                   Détails techniques
                 </summary>

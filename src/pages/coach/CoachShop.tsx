@@ -112,17 +112,17 @@ const CoachShop: React.FC = () => {
   return (
     <div>
       <h1 className="text-3xl font-bold text-black mb-6">Ma Boutique Personnelle</h1>
-      <div className="border-b border-gray-400 mb-6">
+      <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('partners')}
-            className={`${activeTab === 'partners' ? 'border-primary text-primary' : 'border-transparent text-gray-700 hover:text-black hover:border-gray-500'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            className={`${activeTab === 'partners' ? 'border-primary text-primary' : 'border-transparent text-gray-700 hover:text-black hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             Gérer mes Partenaires
           </button>
           <button
             onClick={() => setActiveTab('products')}
-            className={`${activeTab === 'products' ? 'border-primary text-primary' : 'border-transparent text-gray-700 hover:text-black hover:border-gray-500'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            className={`${activeTab === 'products' ? 'border-primary text-primary' : 'border-transparent text-gray-700 hover:text-black hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             Gérer mes Produits
           </button>
@@ -243,7 +243,7 @@ const CoachShop: React.FC = () => {
                   setCurrentPartner((p) => (p ? { ...p, description: e.target.value } : null))
                 }
                 rows={3}
-                className="w-full px-3 py-2 bg-white border border-gray-500 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                 placeholder="Ex: -15% avec le code..."
               ></textarea>
             </div>
@@ -286,7 +286,7 @@ const CoachShop: React.FC = () => {
                   setCurrentProduct((p) => (p ? { ...p, description: e.target.value } : null))
                 }
                 rows={3}
-                className="w-full px-3 py-2 bg-white border border-gray-500 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
               ></textarea>
             </div>
             <Input

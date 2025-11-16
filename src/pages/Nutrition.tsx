@@ -808,7 +808,7 @@ const Nutrition: React.FC = () => {
               <select
                 value={item.unit}
                 onChange={(e) => handleItemUpdate(item.id, 'unit', e.target.value, mealId)}
-                className="bg-gray-100 border border-l-0 border-gray-500 rounded-r-lg px-2 h-[42px] text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                className="bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg px-2 h-[42px] text-sm focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="g">g</option>
                 <option value="ml">ml</option>
@@ -1095,7 +1095,7 @@ const Nutrition: React.FC = () => {
                         }}
                         onDragLeave={() => setDraggedOverMealId(null)}
                         onDrop={(e) => handleDrop(e, meal.id)}
-                        className={`p-4 rounded-lg border-2 ${draggedOverMealId === meal.id ? 'border-primary bg-primary/5' : 'border-dashed border-gray-500'} transition-colors`}
+                        className={`p-4 rounded-lg border-2 ${draggedOverMealId === meal.id ? 'border-primary bg-primary/5' : 'border-dashed border-gray-300'} transition-colors`}
                       >
                         {meal.items.length === 0 && (
                           <p className="text-center text-gray-500">
@@ -1150,7 +1150,7 @@ const Nutrition: React.FC = () => {
                 }}
                 onDragLeave={() => setDraggedOverRecipe(false)}
                 onDrop={(e) => handleDrop(e)}
-                className={`p-4 rounded-lg border-2 ${draggedOverRecipe ? 'border-primary bg-primary/5' : 'border-dashed border-gray-500'}`}
+                className={`p-4 rounded-lg border-2 ${draggedOverRecipe ? 'border-primary bg-primary/5' : 'border-dashed border-gray-300'}`}
               >
                 {recipe.items.length === 0 && (
                   <p className="text-center text-gray-500">Glissez un aliment ici.</p>

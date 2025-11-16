@@ -93,7 +93,7 @@ const ClientMessaging: React.FC = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] bg-white dark:bg-client-card rounded-lg overflow-hidden">
       <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b border-gray-400 dark:border-client-dark flex items-center space-x-3 sticky top-0 bg-white dark:bg-client-card z-10">
+        <div className="p-4 border-b border-gray-200 dark:border-client-dark flex items-center space-x-3 sticky top-0 bg-white dark:bg-client-card z-10">
           <img
             src={coach.avatar || `https://i.pravatar.cc/40?u=${coach.id}`}
             alt={coach.firstName}
@@ -132,7 +132,7 @@ const ClientMessaging: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-2 md:p-4 bg-white dark:bg-client-card border-t border-gray-400 dark:border-client-dark flex items-center space-x-2">
+        <div className="p-2 md:p-4 bg-white dark:bg-client-card border-t border-gray-200 dark:border-client-dark flex items-center space-x-2">
           <Input
             placeholder="Écrire un message..."
             className="flex-1"

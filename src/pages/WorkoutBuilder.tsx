@@ -1212,7 +1212,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           )}
           <div className="flex-1 flex mt-4">
             {workoutMode === 'program' && (
-              <div className="w-1/4 pr-4 border-r border-gray-400">
+              <div className="w-1/4 pr-4 border-r border-gray-200">
                 <h2 className="text-lg font-semibold mb-4">Séances</h2>
               {(sessions || []).map((session) => (
                 <div
