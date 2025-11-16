@@ -62,6 +62,38 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db }) => 
             </div>
 
             <div className="mt-4 flex flex-col flex-grow gap-4 overflow-hidden">
+                {/* Section des filtres - réduite */}
+                <div className="space-y-3 overflow-y-auto pr-1 pb-1 border-2 border-amber-700 rounded-lg p-3 max-h-48">
+                    {equipmentTypes.length > 0 && <div className="space-y-2">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Types d'équipement :</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {equipmentTypes.map(type => (
+                                <FilterChip
+                                    key={type}
+                                    label={type}
+                                    selected={selectedEquipments.includes(type)}
+                                    onClick={() => toggleSelection(type, selectedEquipments, setSelectedEquipments)}
+                                />
+                            ))}
+                        </div>
+                    </div>}
+
+                    {muscleGroups.length > 0 && <div className="space-y-2">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Groupes musculaires :</h3>
+                        <div className="flex flex-wrap gap-2">
+                             {muscleGroups.map(part => (
+                                <FilterChip
+                                    key={part}
+                                    label={part}
+                                    selected={selectedMuscleGroups.includes(part)}
+                                    onClick={() => toggleSelection(part, selectedMuscleGroups, setSelectedMuscleGroups)}
+                                />
+                            ))}
+                        </div>
+                    </div>}
+                </div>
+
+                {/* Section des résultats - maintenant en dessous des filtres */}
                 <div className="flex flex-col flex-grow rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                     <h3 className="text-center text-base font-semibold text-gray-800">Résultats ({filteredResults.length})</h3>
                     <div className="mt-3 space-y-3 overflow-y-auto flex-grow pr-2">
@@ -81,36 +113,6 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db }) => 
                             </div>
                         ))}
                     </div>
-                </div>
-
-                <div className="space-y-4 overflow-y-auto pr-1 pb-1">
-                    {equipmentTypes.length > 0 && <div className="space-y-2">
-                        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Types d'équipement</h3>
-                        <div className="flex flex-wrap gap-2">
-                            {equipmentTypes.map(type => (
-                                <FilterChip
-                                    key={type}
-                                    label={type}
-                                    selected={selectedEquipments.includes(type)}
-                                    onClick={() => toggleSelection(type, selectedEquipments, setSelectedEquipments)}
-                                />
-                            ))}
-                        </div>
-                    </div>}
-
-                    {muscleGroups.length > 0 && <div className="space-y-2">
-                        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Groupes musculaires</h3>
-                        <div className="flex flex-wrap gap-2">
-                             {muscleGroups.map(part => (
-                                <FilterChip
-                                    key={part}
-                                    label={part}
-                                    selected={selectedMuscleGroups.includes(part)}
-                                    onClick={() => toggleSelection(part, selectedMuscleGroups, setSelectedMuscleGroups)}
-                                />
-                            ))}
-                        </div>
-                    </div>}
                 </div>
             </div>
         </Card>
