@@ -100,7 +100,7 @@ function ResponsiveTable<T extends Record<string, unknown>>({
           <div
             key={keyExtractor(item)}
             onClick={() => handleRowClick(item)}
-            className={`bg-white rounded-lg shadow p-4 border border-gray-200 ${
+            className={`bg-white rounded-lg shadow p-4 border border-gray-400 ${
               onRowClick ? 'cursor-pointer active:bg-gray-50' : ''
             }`}
           >

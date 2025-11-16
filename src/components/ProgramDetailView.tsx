@@ -68,7 +68,7 @@ const WeekContent: React.FC<{ sessions: WorkoutSession[] }> = ({ sessions }) => 
               session.exercises.map((ex, exerciseIndex) => (
                 <tr
                   key={ex.id}
-                  className={`bg-white ${exerciseIndex === 0 ? 'border-t-2 border-gray-300' : ''} ${sessionIndex === 0 && exerciseIndex === 0 ? '!border-t-0' : ''}`}
+                  className={`bg-white ${exerciseIndex === 0 ? 'border-t-2 border-gray-500' : ''} ${sessionIndex === 0 && exerciseIndex === 0 ? '!border-t-0' : ''}`}
                 >
                   {exerciseIndex === 0 ? (
                     <td
@@ -132,7 +132,7 @@ const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
 
   if (weeks.length === 0) {
     return (
-      <div className="border border-gray-200 rounded-lg bg-white">
+      <div className="border border-gray-400 rounded-lg bg-white">
         <h3 className="p-3 text-lg font-bold bg-gray-50 border-b">{program.name}</h3>
         <p className="p-4 text-center text-gray-500">
           Ce programme n'a pas encore de semaines définies.

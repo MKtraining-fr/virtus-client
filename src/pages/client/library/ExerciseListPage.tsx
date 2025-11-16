@@ -86,7 +86,7 @@ const ExerciseListPage: React.FC<ExerciseListPageProps> = ({ title, exercises, c
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20 border border-gray-300 dark:border-gray-700"
+          className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20 border border-gray-500 dark:border-gray-700"
         >
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
@@ -155,7 +155,7 @@ const ExerciseListPage: React.FC<ExerciseListPageProps> = ({ title, exercises, c
         {filteredExercises.map((exercise) => (
           <div
             key={exercise.id}
-            className="bg-white dark:bg-client-card rounded-lg p-3 flex items-center gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-primary/20 transition-colors border border-gray-200 dark:border-transparent"
+            className="bg-white dark:bg-client-card rounded-lg p-3 flex items-center gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-primary/20 transition-colors border border-gray-400 dark:border-transparent"
             onClick={() => handleCardClick(exercise)}
           >
             <img

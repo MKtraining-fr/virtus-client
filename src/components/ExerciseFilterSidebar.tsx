@@ -126,7 +126,7 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
             <img
               src={ex.illustrationUrl || DEFAULT_ILLUSTRATION}
               alt={ex.name}
-              className="w-16 h-16 object-contain rounded-md bg-white border border-gray-200 flex-shrink-0"
+              className="w-16 h-16 object-contain rounded-md bg-white border border-gray-400 flex-shrink-0"
             />
             <p className="font-semibold text-gray-800 group-hover:text-primary flex-grow">
               {ex.name}

@@ -87,7 +87,7 @@ const ClientProgressionView: React.FC = () => {
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 bg-white rounded-full text-gray-800 hover:bg-gray-100 border border-gray-300"
+          className="p-2 bg-white rounded-full text-gray-800 hover:bg-gray-100 border border-gray-500"
         >
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
@@ -128,7 +128,7 @@ const ClientProgressionView: React.FC = () => {
           <select
             value={filterProgram}
             onChange={(e) => setFilterProgram(e.target.value)}
-            className="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="w-full md:w-64 px-4 py-2 border border-gray-500 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
           >
             <option value="all">Tous les programmes</option>
             {uniquePrograms.map((programName) => (

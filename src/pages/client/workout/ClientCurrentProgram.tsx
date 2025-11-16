@@ -585,7 +585,7 @@ const ClientCurrentProgram: React.FC = () => {
       <div className="flex items-center gap-4 mb-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20 flex-shrink-0 border border-gray-300 dark:border-gray-700"
+          className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20 flex-shrink-0 border border-gray-500 dark:border-gray-700"
           aria-label="Retour"
         >
           <ArrowLeftIcon className="w-5 h-5" />
@@ -598,7 +598,7 @@ const ClientCurrentProgram: React.FC = () => {
               setSelectedSessionIndex(newOriginalIndex);
               setCurrentExerciseIndex(0);
             }}
-            className="w-full appearance-none bg-white dark:bg-client-card border border-gray-300 dark:border-client-dark text-gray-900 dark:text-client-light text-lg font-semibold py-3 px-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full appearance-none bg-white dark:bg-client-card border border-gray-500 dark:border-client-dark text-gray-900 dark:text-client-light text-lg font-semibold py-3 px-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             aria-label="Sélectionner une séance"
           >
             {availableSessions.map((session) => (
@@ -612,7 +612,7 @@ const ClientCurrentProgram: React.FC = () => {
       </div>
 
       {/* Exercise Details Card */}
-      <div className="bg-white dark:bg-client-card rounded-lg p-3 space-y-4 shadow-sm border border-gray-200 dark:border-transparent">
+      <div className="bg-white dark:bg-client-card rounded-lg p-3 space-y-4 shadow-sm border border-gray-400 dark:border-transparent">
         <div className="flex justify-between items-center gap-2">
           <div className="relative flex-1">
             <select
@@ -637,7 +637,7 @@ const ClientCurrentProgram: React.FC = () => {
               <EllipsisVerticalIcon className="w-6 h-6" />
             </button>
             {isOptionsPopoverOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-client-dark rounded-lg shadow-lg p-2 z-30 border border-gray-200 dark:border-gray-700">
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-client-dark rounded-lg shadow-lg p-2 z-30 border border-gray-400 dark:border-gray-700">
                 <button
                   onClick={() => {
                     setIsYouTubeModalOpen(true);
@@ -755,7 +755,7 @@ const ClientCurrentProgram: React.FC = () => {
                         handleLogChange(currentExercise.id, setIndex, 'reps', e.target.value)
                       }
                       onFocus={() => setActiveSetIndex(setIndex)}
-                      className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : 'bg-white dark:bg-client-card border-gray-300 dark:border-transparent text-gray-900 dark:text-client-light placeholder:text-gray-500 dark:placeholder:text-client-subtle'}`}
+                      className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : 'bg-white dark:bg-client-card border-gray-500 dark:border-transparent text-gray-900 dark:text-client-light placeholder:text-gray-500 dark:placeholder:text-client-subtle'}`}
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
@@ -768,7 +768,7 @@ const ClientCurrentProgram: React.FC = () => {
                         handleLogChange(currentExercise.id, setIndex, 'load', e.target.value)
                       }
                       onFocus={() => setActiveSetIndex(setIndex)}
-                      className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : 'bg-white dark:bg-client-card border-gray-300 dark:border-transparent text-gray-900 dark:text-client-light placeholder:text-gray-500 dark:placeholder:text-client-subtle'}`}
+                      className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : 'bg-white dark:bg-client-card border-gray-500 dark:border-transparent text-gray-900 dark:text-client-light placeholder:text-gray-500 dark:placeholder:text-client-subtle'}`}
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
@@ -816,7 +816,7 @@ const ClientCurrentProgram: React.FC = () => {
         <div className="fixed bottom-20 right-4 z-20">
           <button
             onClick={handleStartTimer}
-            className="w-16 h-16 bg-white text-client-dark rounded-full shadow-lg flex items-center justify-center hover:bg-gray-200 transition-transform active:scale-95 border border-gray-300"
+            className="w-16 h-16 bg-white text-client-dark rounded-full shadow-lg flex items-center justify-center hover:bg-gray-200 transition-transform active:scale-95 border border-gray-500"
             aria-label="Démarrer le chronomètre"
           >
             <ClockIcon className="w-8 h-8" />
@@ -918,7 +918,7 @@ const ClientCurrentProgram: React.FC = () => {
           <textarea
             value={currentComment}
             onChange={(e) => setCurrentComment(e.target.value)}
-            className="w-full h-32 p-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            className="w-full h-32 p-2 bg-white border border-gray-500 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
             placeholder="Écrivez vos notes ici..."
             autoFocus
           />

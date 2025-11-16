@@ -20,7 +20,7 @@ const Input: React.FC<InputProps> = ({ label, id, className = '', error, ...prop
       <input
         id={id}
         className={`w-full px-3 py-3 md:py-2 text-base md:text-sm bg-white border ${
-          error ? 'border-red-500' : 'border-gray-300'
+          error ? 'border-red-500' : 'border-gray-500'
         } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-gray-900 placeholder:text-gray-500 dark:bg-client-card dark:border-gray-600 dark:text-client-light dark:placeholder:text-client-subtle ${className}`}
         {...props}
       />

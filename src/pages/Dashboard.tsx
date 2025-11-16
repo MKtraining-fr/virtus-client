@@ -216,7 +216,7 @@ const Dashboard: React.FC = () => {
       <Card className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-auto">
           <table className="w-full table-fixed">
-            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+            <thead className="bg-gray-50 border-b border-gray-400 sticky top-0 z-10">
               <tr>
                 {renderHeader('Nom', 'lastName')}
                 {renderHeader('Prénom', 'firstName')}

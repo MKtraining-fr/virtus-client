@@ -287,7 +287,7 @@ const ProgramPerformanceDetail: React.FC<ProgramPerformanceDetailProps> = ({
           id="session-filter"
           value={selectedSessionName}
           onChange={(e) => setSelectedSessionName(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white"
+          className="px-3 py-2 border border-gray-500 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white"
         >
           <option value="all">Toutes les séances</option>
           {sessions.map((session) => (

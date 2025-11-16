@@ -33,7 +33,7 @@ const DynamicField: React.FC<{
           <textarea
             {...commonProps}
             rows={4}
-            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            className="w-full px-3 py-2 bg-white border border-gray-500 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
           />
         </div>
       );
@@ -68,7 +68,7 @@ const DynamicField: React.FC<{
                     type="checkbox"
                     checked={isChecked}
                     onChange={handleCheckboxChange}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    className="h-4 w-4 rounded border-gray-500 text-primary focus:ring-primary"
                   />
                   <span className="ml-2 text-gray-700">{opt}</span>
                 </label>
@@ -89,7 +89,7 @@ const DynamicField: React.FC<{
                 value="Oui"
                 checked={value === 'Oui'}
                 onChange={(e) => onChange(e.target.value)}
-                className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                className="h-4 w-4 border-gray-500 text-primary focus:ring-primary"
               />
               <span className="ml-2 text-gray-700">Oui</span>
             </label>
@@ -100,7 +100,7 @@ const DynamicField: React.FC<{
                 value="Non"
                 checked={value === 'Non'}
                 onChange={(e) => onChange(e.target.value)}
-                className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                className="h-4 w-4 border-gray-500 text-primary focus:ring-primary"
               />
               <span className="ml-2 text-gray-700">Non</span>
             </label>
@@ -124,7 +124,7 @@ const DynamicField: React.FC<{
                   value={num.toString()}
                   checked={value === num.toString()}
                   onChange={(e) => onChange(e.target.value)}
-                  className="h-5 w-5 border-gray-300 text-primary focus:ring-primary"
+                  className="h-5 w-5 border-gray-500 text-primary focus:ring-primary"
                 />
               </label>
             ))}

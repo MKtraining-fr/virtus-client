@@ -20,7 +20,7 @@ const FilterChip = ({
 }) => (
   <button
     onClick={onClick}
-    className={`px-3 py-1 text-sm rounded-full border transition-all ${selected ? 'bg-primary text-white border-primary' : 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200'}`}
+    className={`px-3 py-1 text-sm rounded-full border transition-all ${selected ? 'bg-primary text-white border-primary' : 'bg-gray-100 text-gray-800 border-gray-400 hover:bg-gray-200'}`}
   >
     {label}
   </button>

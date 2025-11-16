@@ -90,7 +90,7 @@ const ClientHistoryModal: React.FC<ClientHistoryModalProps> = ({
 
   if (isMinimized) {
     return (
-      <div className="fixed bottom-0 right-10 w-80 h-12 bg-white rounded-t-lg shadow-2xl flex justify-between items-center px-4 z-50 border border-gray-300">
+      <div className="fixed bottom-0 right-10 w-80 h-12 bg-white rounded-t-lg shadow-2xl flex justify-between items-center px-4 z-50 border border-gray-500">
         <span className="font-semibold text-gray-800">Historique de {client?.firstName}</span>
         <button onClick={onRestore} className="text-gray-500 hover:text-primary">
           <ArrowUpRightOnBoxIcon className="w-6 h-6" />

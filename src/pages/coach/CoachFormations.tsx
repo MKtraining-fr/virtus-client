@@ -217,7 +217,7 @@ const ClientFormationsTab: React.FC = () => {
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 border-b border-gray-400">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Titre
@@ -379,7 +379,7 @@ const ClientFormationsTab: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+            <div className="max-h-60 overflow-y-auto border border-gray-400 rounded-lg">
               {filteredClientsForModal.length > 0 ? (
                 filteredClientsForModal.map((client) => (
                   <label
@@ -459,17 +459,17 @@ const CoachFormations: React.FC = () => {
     <div>
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Formations</h1>
 
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-gray-400 mb-6">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           <button
             onClick={() => setActiveTab('mes-formations')}
-            className={`${activeTab === 'mes-formations' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            className={`${activeTab === 'mes-formations' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-500'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             Mes Formations (pour mes clients)
           </button>
           <button
             onClick={() => setActiveTab('formations-pro')}
-            className={`${activeTab === 'formations-pro' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            className={`${activeTab === 'formations-pro' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-500'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             Formations Professionnelles
           </button>

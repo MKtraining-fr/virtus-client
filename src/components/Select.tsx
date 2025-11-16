@@ -50,7 +50,7 @@ const Select: React.FC<SelectProps> = ({
       <select
         id={id}
         className={`w-full px-3 py-3 md:py-2 text-base md:text-sm border ${
-          error ? 'border-red-500' : 'border-gray-300'
+          error ? 'border-red-500' : 'border-gray-500'
         } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-white text-gray-900 dark:bg-client-card dark:border-gray-600 dark:text-client-light ${className}`}
         onChange={handleChange}
         value={value}

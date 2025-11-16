@@ -28,7 +28,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   const spinner = (
     <div className="flex flex-col items-center justify-center gap-3">
       <div
-        className={`${sizeClasses[size]} border-4 border-gray-200 border-t-primary rounded-full animate-spin`}
+        className={`${sizeClasses[size]} border-4 border-gray-400 border-t-primary rounded-full animate-spin`}
         role="status"
         aria-label="Chargement"
       />

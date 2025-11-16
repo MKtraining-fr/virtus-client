@@ -515,7 +515,7 @@ const BilanTemplates: React.FC = () => {
               value={clientSearchTerm}
               onChange={(e) => setClientSearchTerm(e.target.value)}
             />
-            <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+            <div className="max-h-60 overflow-y-auto border border-gray-400 rounded-lg">
               {filteredClientsForModal.length > 0 ? (
                 filteredClientsForModal.map((client) => (
                   <label

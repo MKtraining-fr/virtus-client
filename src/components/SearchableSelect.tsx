@@ -90,7 +90,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={`w-full px-3 py-3 md:py-2 text-base md:text-sm border ${
-            error ? 'border-red-500' : 'border-gray-300'
+            error ? 'border-red-500' : 'border-gray-500'
           } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-white text-gray-900 dark:bg-client-card dark:border-gray-600 dark:text-client-light text-left flex justify-between items-center ${className}`}
         >
           <span className={!selectedLabel ? 'text-gray-400' : ''}>
@@ -108,12 +108,12 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
         {/* Dropdown avec recherche */}
         {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-client-card border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-80 overflow-hidden">
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-client-card border border-gray-500 dark:border-gray-600 rounded-lg shadow-lg max-h-80 overflow-hidden">
             {/* Champ de recherche */}
-            <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+            <div className="p-2 border-b border-gray-400 dark:border-gray-600">
               <input
                 type="text"
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-client-card text-gray-900 dark:text-client-light"
+                className="w-full px-3 py-2 text-sm border border-gray-500 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-client-card text-gray-900 dark:text-client-light"
                 placeholder={placeholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}

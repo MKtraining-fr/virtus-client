@@ -257,7 +257,7 @@ const Journal: React.FC = () => {
     const canDelete = isCustom || !isFromPlan;
 
     return (
-      <div className="bg-white dark:bg-client-card rounded-lg p-4 border border-gray-200 dark:border-transparent">
+      <div className="bg-white dark:bg-client-card rounded-lg p-4 border border-gray-400 dark:border-transparent">
         <div className="flex justify-between items-center mb-2">
           <h4 className="font-semibold text-lg text-gray-900 dark:text-client-light">
             {meal.name}
@@ -324,7 +324,7 @@ const Journal: React.FC = () => {
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20 border border-gray-300 dark:border-gray-700"
+          className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20 border border-gray-500 dark:border-gray-700"
           aria-label="Retour"
         >
           <ArrowLeftIcon className="w-5 h-5" />
@@ -335,7 +335,7 @@ const Journal: React.FC = () => {
         type="date"
         value={dateKey}
         onChange={(e) => setSelectedDate(new Date(e.target.value))}
-        className="w-full p-2 rounded-lg bg-white dark:bg-client-card border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-client-light"
+        className="w-full p-2 rounded-lg bg-white dark:bg-client-card border border-gray-500 dark:border-gray-700 text-gray-800 dark:text-client-light"
         style={{ colorScheme: theme }}
       />
 
@@ -346,7 +346,7 @@ const Journal: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white dark:bg-client-card rounded-lg p-4 border border-gray-200 dark:border-transparent">
+      <div className="bg-white dark:bg-client-card rounded-lg p-4 border border-gray-400 dark:border-transparent">
         <h3 className="font-semibold text-lg mb-4 text-center text-gray-900 dark:text-client-light">
           Résumé du jour
         </h3>
@@ -405,7 +405,7 @@ const Journal: React.FC = () => {
       <div className="pt-4 relative" ref={addMealMenuRef}>
         <button
           onClick={() => setIsAddMealMenuOpen((prev) => !prev)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-client-card border-2 border-dashed border-gray-300 dark:border-client-subtle rounded-lg text-gray-800 dark:text-client-light hover:border-primary hover:text-primary transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-client-card border-2 border-dashed border-gray-500 dark:border-client-subtle rounded-lg text-gray-800 dark:text-client-light hover:border-primary hover:text-primary transition-colors"
         >
           <PlusIcon className="w-6 h-6" />
           <span>Ajouter une section repas</span>

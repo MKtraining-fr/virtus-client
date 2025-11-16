@@ -36,7 +36,7 @@ const ClientWorkout: React.FC = () => {
   }> = ({ title, subtitle, to, disabled }) => (
     <Link
       to={disabled ? '#' : to}
-      className={`bg-white dark:bg-client-card rounded-lg p-4 flex justify-between items-center w-full transition-colors group border border-gray-200 dark:border-transparent ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10 dark:hover:bg-primary/20'}`}
+      className={`bg-white dark:bg-client-card rounded-lg p-4 flex justify-between items-center w-full transition-colors group border border-gray-400 dark:border-transparent ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10 dark:hover:bg-primary/20'}`}
       onClick={(e) => disabled && e.preventDefault()}
     >
       <div>
@@ -54,7 +54,7 @@ const ClientWorkout: React.FC = () => {
       {hasAssignedProgram && program ? (
         <Link
           to="/app/workout/current-program"
-          className="block bg-white dark:bg-client-card rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-primary/10 transition-colors group border border-gray-200 dark:border-transparent"
+          className="block bg-white dark:bg-client-card rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-primary/10 transition-colors group border border-gray-400 dark:border-transparent"
         >
           <div className="flex justify-between items-center">
             <div>
@@ -88,7 +88,7 @@ const ClientWorkout: React.FC = () => {
           </div>
         </Link>
       ) : (
-        <div className="bg-white dark:bg-client-card rounded-lg p-6 text-center border border-gray-200 dark:border-transparent">
+        <div className="bg-white dark:bg-client-card rounded-lg p-6 text-center border border-gray-400 dark:border-transparent">
           <h3 className="font-bold text-gray-800 dark:text-client-light text-lg">
             Programme en cours
           </h3>

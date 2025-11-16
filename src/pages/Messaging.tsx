@@ -117,7 +117,7 @@ const Messaging: React.FC = () => {
   return (
     <div className="flex h-[calc(100vh-150px)]">
       {/* Sidebar */}
-      <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-1/3 bg-white border-r border-gray-400 flex flex-col">
         <div className="p-4 border-b">
           <h2 className="text-lg font-bold">Conversations</h2>
         </div>

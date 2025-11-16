@@ -199,7 +199,7 @@ export default function PWASettings() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Icône 192x192px
               </label>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+              <div className="border-2 border-dashed border-gray-500 dark:border-gray-600 rounded-lg p-4">
                 {config.icon_192 ? (
                   <div className="space-y-3">
                     <img 
@@ -253,7 +253,7 @@ export default function PWASettings() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Icône 512x512px
               </label>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+              <div className="border-2 border-dashed border-gray-500 dark:border-gray-600 rounded-lg p-4">
                 {config.icon_512 ? (
                   <div className="space-y-3">
                     <img 
@@ -321,7 +321,7 @@ export default function PWASettings() {
                 type="text"
                 value={config.name}
                 onChange={(e) => setConfig(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-500 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
 
@@ -333,7 +333,7 @@ export default function PWASettings() {
                 type="text"
                 value={config.short_name}
                 onChange={(e) => setConfig(prev => ({ ...prev, short_name: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-500 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
 
@@ -352,7 +352,7 @@ export default function PWASettings() {
                   type="text"
                   value={config.theme_color}
                   onChange={(e) => setConfig(prev => ({ ...prev, theme_color: e.target.value }))}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="flex-1 px-4 py-2 border border-gray-500 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </div>
@@ -372,7 +372,7 @@ export default function PWASettings() {
                   type="text"
                   value={config.background_color}
                   onChange={(e) => setConfig(prev => ({ ...prev, background_color: e.target.value }))}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="flex-1 px-4 py-2 border border-gray-500 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </div>
@@ -380,7 +380,7 @@ export default function PWASettings() {
         </div>
 
         {/* Bouton de sauvegarde */}
-        <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end pt-4 border-t border-gray-400 dark:border-gray-700">
           <button
             onClick={handleSave}
             disabled={saving || !config.icon_192 || !config.icon_512}

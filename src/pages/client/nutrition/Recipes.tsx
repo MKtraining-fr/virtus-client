@@ -37,7 +37,7 @@ const Recipes: React.FC = () => {
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20 border border-gray-300 dark:border-gray-700"
+          className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20 border border-gray-500 dark:border-gray-700"
           aria-label="Retour"
         >
           <ArrowLeftIcon className="w-5 h-5" />
@@ -53,7 +53,7 @@ const Recipes: React.FC = () => {
           return (
             <div
               key={recipe.id}
-              className="bg-white dark:bg-client-card rounded-lg p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-primary/20 border border-gray-200 dark:border-transparent"
+              className="bg-white dark:bg-client-card rounded-lg p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-primary/20 border border-gray-400 dark:border-transparent"
               onClick={() => setSelectedRecipe(recipe)}
             >
               <h3 className="font-semibold text-gray-900 dark:text-client-light">{recipe.name}</h3>

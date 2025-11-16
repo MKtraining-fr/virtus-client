@@ -148,7 +148,7 @@ const ProFormationManagement: React.FC = () => {
                   setCurrentFormation((p) => (p ? { ...p, description: e.target.value } : null))
                 }
                 rows={4}
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                className="w-full px-3 py-2 bg-white border border-gray-500 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
               ></textarea>
             </div>
             <Input
