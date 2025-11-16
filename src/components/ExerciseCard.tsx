@@ -97,12 +97,6 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     >
       {/* En-tête de l'exercice */}
       <div className="flex items-start gap-3 mb-3">
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={() => onToggleSelection(ex.id)}
-          className="w-4 h-4 mt-3"
-        />
         <div className="flex-1">
           <input
             type="text"
@@ -116,7 +110,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <img
             src={ex.illustrationUrl}
             alt={ex.name}
-            className="w-8 h-8 rounded-full mt-2"
+            className="w-16 h-16 rounded-lg mt-2 object-cover"
           />
         )}
         <button
