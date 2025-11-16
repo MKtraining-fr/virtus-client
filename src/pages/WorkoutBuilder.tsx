@@ -1220,9 +1220,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               {workoutMode === 'program' && (
                 <Select
                   label=""
-                  options={Object.keys(sessionsByWeek || {}).map((week) => ({
-                    value: week,
-                    label: `Semaine ${week}`,
+                  options={Array.from({ length: typeof weekCount === 'number' ? weekCount : 1 }, (_, i) => ({
+                    value: String(i + 1),
+                    label: `Semaine ${i + 1}`,
                   }))}
                   value={String(selectedWeek)}
                   onChange={(value) => {
@@ -1248,10 +1248,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               <div className="flex items-center gap-3 border-b pb-2">
                 <h2 className="text-lg font-semibold">Séances</h2>
                 {(sessions || []).map((session) => (
-                  <div key={session.id} className="flex items-center gap-1">
+                  <div key={session.id} className="relative flex items-center">
                     <button
                       onClick={() => setActiveSessionId(session.id)}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      className={`pl-4 pr-6 py-2 rounded-md text-sm font-medium transition-colors ${
                         activeSessionId === session.id
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-gray-100'
@@ -1262,22 +1262,22 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDuplicateSession();
+                        handleDeleteSession(session.id);
                       }}
-                      className="p-1.5 text-gray-500 hover:text-primary transition-colors"
-                      title="Dupliquer la séance"
+                      className="absolute top-0.5 right-0.5 p-0.5 text-gray-400 hover:text-red-500 transition-colors opacity-60 hover:opacity-100"
+                      title="Supprimer la séance"
                     >
-                      <DocumentDuplicateIcon className="w-4 h-4" />
+                      <XMarkIcon className="w-3 h-3" />
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteSession(session.id);
+                        handleDuplicateSession();
                       }}
-                      className="p-1.5 text-gray-500 hover:text-red-500 transition-colors"
-                      title="Supprimer la séance"
+                      className="ml-0.5 p-0.5 text-gray-400 hover:text-primary transition-colors"
+                      title="Dupliquer la séance"
                     >
-                      <XMarkIcon className="w-4 h-4" />
+                      <DocumentDuplicateIcon className="w-3 h-3" />
                     </button>
                   </div>
                 ))}
@@ -1315,7 +1315,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               ))}
               
               {/* Zone de drag and drop persistante avec recherche */}
-              {activeSession && (
+              {
                 <div className="mt-4 relative" ref={dropZoneRef}>
                   <div 
                     className="text-center text-gray-500 py-6 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors relative z-10"
@@ -1404,7 +1404,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     </div>
                   )}
                 </div>
-              )}
+              }
             </div>
           </div>
         </div>
