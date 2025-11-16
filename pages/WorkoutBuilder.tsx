@@ -6,6 +6,7 @@ import Select from '../components/Select.tsx';
 import Button from '../components/Button.tsx';
 import ToggleSwitch from '../components/ToggleSwitch.tsx';
 import ExerciseFilterSidebar from '../components/ExerciseFilterSidebar.tsx';
+import InlineExerciseSearch from '../components/InlineExerciseSearch.tsx';
 import { Exercise, WorkoutExercise, WorkoutSession, WorkoutProgram, Client } from '../types.ts';
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
 import CollapsibleSection from '../src/components/CollapsibleSection.tsx';
@@ -46,7 +47,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     const [lockedUntil, setLockedUntil] = useState<{ week: number; sessionIndex: number } | null>(null);
 
     const [workoutMode, setWorkoutMode] = useState<'session' | 'program'>('session');
-    const [isFilterSidebarVisible, setIsFilterSidebarVisible] = useState(true);
+    const [isFilterSidebarVisible, setIsFilterSidebarVisible] = useState(false);
     
     const [isGeneralInfoVisible, setIsGeneralInfoVisible] = useState(false);
     const [programName, setProgramName] = useState('Nouveau programme');
@@ -832,6 +833,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                                        <TrashIcon className="w-5 h-5" />
                                    </button>
                                 </div>
+                            </div>
+
+                            {/* Inline Exercise Search */}
+                            <div className="mt-6">
+                                <InlineExerciseSearch db={availableExercises} />
                             </div>
 
                             <div className="mt-4 space-y-4">
