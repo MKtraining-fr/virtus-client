@@ -1272,10 +1272,25 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               <h2 className="text-lg font-semibold mb-4">{activeSession?.name}</h2>
               {activeSession && activeSession.exercises.length === 0 && (
                 <div 
-                  className="text-center text-gray-500 py-10 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors"
-                  onDragOver={(e) => e.preventDefault()}
+                  className="text-center text-gray-500 py-10 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors relative z-10"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onDragEnter={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.add('border-primary', 'bg-primary-light');
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.remove('border-primary', 'bg-primary-light');
+                  }}
                   onDrop={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.remove('border-primary', 'bg-primary-light');
                     try {
                       const exerciseData = e.dataTransfer.getData('application/json');
                       if (exerciseData) {

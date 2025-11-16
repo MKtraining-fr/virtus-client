@@ -42,7 +42,19 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
   };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, exercise: Exercise) => {
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('application/json', JSON.stringify(exercise));
+    // Ajouter un feedback visuel
+    if (e.currentTarget) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    // Restaurer l'opacité
+    if (e.currentTarget) {
+      e.currentTarget.style.opacity = '1';
+    }
   };
 
   const filteredResults = useMemo(() => {
@@ -155,9 +167,10 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
         {filteredResults.map((ex) => (
           <div
             key={ex.id}
-            className="cursor-grab group flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100"
+            className="cursor-grab active:cursor-grabbing group flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-opacity"
             draggable
             onDragStart={(e) => handleDragStart(e, ex)}
+            onDragEnd={(e) => handleDragEnd(e)}
           >
             <img
               src={ex.illustrationUrl || DEFAULT_ILLUSTRATION}
