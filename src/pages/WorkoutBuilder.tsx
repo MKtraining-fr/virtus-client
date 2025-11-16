@@ -864,14 +864,19 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       const newSessionsByWeek = { ...prev };
       const currentWeekSessions = newSessionsByWeek[selectedWeek] || [];
       const newSessionId = getNextSessionId(newSessionsByWeek);
+      let nextExerciseId = getNextExerciseId(newSessionsByWeek);
+
       const duplicatedSession: EditableWorkoutSession = {
         ...activeSession,
         id: newSessionId,
         name: `${activeSession.name} (copie)`,
-        exercises: activeSession.exercises.map((ex) =>
-          cloneExercise(ex, getNextExerciseId(newSessionsByWeek))
-        ),
+        exercises: activeSession.exercises.map((ex) => {
+          const clonedExercise = cloneExercise(ex, nextExerciseId);
+          nextExerciseId += 1;
+          return clonedExercise;
+        }),
       };
+
       newSessionsByWeek[selectedWeek] = [...currentWeekSessions, duplicatedSession];
       return newSessionsByWeek;
     });
