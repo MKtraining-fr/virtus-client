@@ -63,7 +63,9 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
 
   return (
     <Card className="p-4 h-full flex flex-col">
-      <h2 className="text-xl font-bold mb-4">Filtres</h2>
+      <div className="mb-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+        <h2 className="text-xl font-bold mb-2">Filtres</h2>
+      </div>
       <Input
         placeholder="Rechercher un mouvement"
         className="mb-4"
@@ -81,7 +83,7 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
       )}
 
       {equipmentTypes.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <h3 className="font-semibold mb-2 text-gray-700">Types d'équipement :</h3>
           <div className="flex flex-wrap gap-2">
             {equipmentTypes.map((type) => (
@@ -97,7 +99,7 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
       )}
 
       {muscleGroups.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-4 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
           <h3 className="font-semibold mb-2 text-gray-700">Groupes musculaires :</h3>
           <div className="flex flex-wrap gap-2">
             {muscleGroups.map((part) => (
@@ -114,8 +116,10 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
 
       <hr className="my-4" />
 
-      <h3 className="font-semibold mb-2 text-gray-700">Résultats ({filteredResults.length})</h3>
-      <div className="space-y-3 overflow-y-auto flex-grow pr-2">
+      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+        <h3 className="font-semibold mb-2 text-gray-700">Résultats ({filteredResults.length})</h3>
+      </div>
+      <div className="space-y-3 overflow-y-auto flex-grow pr-2 mt-2">
         {filteredResults.map((ex) => (
           <div
             key={ex.id}
