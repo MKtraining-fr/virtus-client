@@ -1359,7 +1359,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           onMinimizeToggle={() => setIsHistoryModalMinimized(!isHistoryModalMinimized)}
         />
       )}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div
+        className="fixed bottom-6 z-50 transition-all duration-300"
+        style={{
+          right: isFilterSidebarVisible
+            ? FILTER_SIDEBAR_WIDTH + FILTER_SIDEBAR_GAP * 2
+            : FILTER_SIDEBAR_GAP,
+        }}
+      >
         <Button onClick={onSave} disabled={isSaving || !user} className="bg-primary text-white px-8 py-3 text-lg shadow-lg">
           {isSaving ? 'Sauvegarde...' : 'Valider'}
         </Button>
