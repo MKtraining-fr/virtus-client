@@ -13,6 +13,8 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEquipments, setSelectedEquipments] = useState<string[]>([]);
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
+  const [isEquipmentOpen, setIsEquipmentOpen] = useState(true);
+  const [isMuscleGroupOpen, setIsMuscleGroupOpen] = useState(true);
 
   // Log de débogage pour vérifier que les exercices sont bien chargés
   React.useEffect(() => {
@@ -84,37 +86,61 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
 
       {equipmentTypes.length > 0 && (
         <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">
-            Types d'équipement
-          </h3>
-          <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto pr-1">
-            {equipmentTypes.map((type) => (
-              <FilterChip
-                key={type}
-                label={type}
-                selected={selectedEquipments.includes(type)}
-                onClick={() => toggleSelection(type, setSelectedEquipments)}
-              />
-            ))}
+          <div className="flex items-center justify-between mb-1 gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+              Types d'équipement
+            </h3>
+            <button
+              type="button"
+              className="text-[11px] font-medium text-blue-700 hover:text-blue-900"
+              aria-expanded={isEquipmentOpen}
+              onClick={() => setIsEquipmentOpen((prev) => !prev)}
+            >
+              {isEquipmentOpen ? 'Masquer' : 'Afficher'}
+            </button>
           </div>
+          {isEquipmentOpen && (
+            <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto pr-1">
+              {equipmentTypes.map((type) => (
+                <FilterChip
+                  key={type}
+                  label={type}
+                  selected={selectedEquipments.includes(type)}
+                  onClick={() => toggleSelection(type, setSelectedEquipments)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {muscleGroups.length > 0 && (
         <div className="mb-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
-          <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">
-            Groupes musculaires
-          </h3>
-          <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto pr-1">
-            {muscleGroups.map((part) => (
-              <FilterChip
-                key={part}
-                label={part}
-                selected={selectedMuscleGroups.includes(part)}
-                onClick={() => toggleSelection(part, setSelectedMuscleGroups)}
-              />
-            ))}
+          <div className="flex items-center justify-between mb-1 gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+              Groupes musculaires
+            </h3>
+            <button
+              type="button"
+              className="text-[11px] font-medium text-indigo-700 hover:text-indigo-900"
+              aria-expanded={isMuscleGroupOpen}
+              onClick={() => setIsMuscleGroupOpen((prev) => !prev)}
+            >
+              {isMuscleGroupOpen ? 'Masquer' : 'Afficher'}
+            </button>
           </div>
+          {isMuscleGroupOpen && (
+            <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto pr-1">
+              {muscleGroups.map((part) => (
+                <FilterChip
+                  key={part}
+                  label={part}
+                  selected={selectedMuscleGroups.includes(part)}
+                  onClick={() => toggleSelection(part, setSelectedMuscleGroups)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
