@@ -1328,9 +1328,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         style={{ width: isFilterSidebarVisible ? `${FILTER_SIDEBAR_WIDTH}px` : '0px' }}
       >
         <div
-          className={`transition-opacity duration-300 ${isFilterSidebarVisible ? 'opacity-100' : 'opacity-0'}`}
+          className={`transition-opacity duration-300 h-full ${
+            isFilterSidebarVisible ? 'opacity-100' : 'opacity-0'
+          }`}
         >
-          <ExerciseFilterSidebar db={availableExercises} onDropExercise={handleDropExercise} />
+          <div className="h-full overflow-y-auto pr-2">
+            <ExerciseFilterSidebar db={availableExercises} onDropExercise={handleDropExercise} />
+          </div>
         </div>
       </div>
       <button
