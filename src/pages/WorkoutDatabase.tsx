@@ -164,6 +164,11 @@ const WorkoutDatabase: React.FC = () => {
     setNewExercise((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Fonction wrapper pour gérer les Select (signature différente)
+  const handleSelectChange = (name: string) => (value: string | string[]) => {
+    setNewExercise((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleIllustrationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -695,7 +700,7 @@ const WorkoutDatabase: React.FC = () => {
             label="Type d'équipement"
             name="equipment"
             value={newExercise.equipment}
-            onChange={handleFormChange}
+            onChange={handleSelectChange('equipment')}
           >
             {EQUIPMENT_TYPES.map((type) => (
               <option key={type} value={type}>
@@ -708,7 +713,7 @@ const WorkoutDatabase: React.FC = () => {
             label="Type d'exercice"
             name="type"
             value={newExercise.type}
-            onChange={handleFormChange}
+            onChange={handleSelectChange('type')}
           >
             <option value="musculation">Musculation</option>
             <option value="mobilite">Mobilité</option>
