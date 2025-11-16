@@ -797,6 +797,16 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     exerciseDragOverItem.current = null;
   }, [activeSessionId, selectedWeek]);
 
+  const toggleExerciseSelection = useCallback((exerciseId: number) => {
+    setSelectedExerciseIds((prev) => {
+      if (prev.includes(exerciseId)) {
+        return prev.filter((id) => id !== exerciseId);
+      } else {
+        return [...prev, exerciseId];
+      }
+    });
+  }, []);
+
   const handleAddWeek = () => {
     setSessionsByWeek((prev) => ({
       ...prev,
