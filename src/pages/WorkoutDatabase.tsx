@@ -8,6 +8,7 @@ import Select from '../components/Select';
 import { useAuth } from '../context/AuthContext';
 import { archiveMultipleExercises } from '../services/exerciseArchiveService';
 import { createExercise } from '../services/exerciseService';
+import { uploadExerciseImage } from '../services/imageStorageService';
 
 const EQUIPMENT_TYPES = [
   'Non spécifié',
@@ -118,6 +119,8 @@ const WorkoutDatabase: React.FC = () => {
   // State for the "add exercise" form
   const [newExercise, setNewExercise] = useState<Omit<Exercise, 'id'>>(initialNewExerciseState);
   const [illustrationPreview, setIllustrationPreview] = useState<string | null>(null);
+  const [illustrationFile, setIllustrationFile] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [alternativeSearch, setAlternativeSearch] = useState('');
   const [showAlternativeSuggestions, setShowAlternativeSuggestions] = useState(false);
@@ -155,6 +158,9 @@ const WorkoutDatabase: React.FC = () => {
 
   const closeAddModal = () => {
     setIsAddModalOpen(false);
+    setNewExercise(initialNewExerciseState);
+    setIllustrationPreview(null);
+    setIllustrationFile(null);
   };
 
   const handleFormChange = (
@@ -172,11 +178,13 @@ const WorkoutDatabase: React.FC = () => {
   const handleIllustrationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Stocker le fichier pour l'upload ultérieur
+      setIllustrationFile(file);
+      
+      // Créer un aperçu local
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setIllustrationPreview(base64String);
-        setNewExercise((prev) => ({ ...prev, illustrationUrl: base64String }));
+        setIllustrationPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -244,9 +252,27 @@ const WorkoutDatabase: React.FC = () => {
     }
 
     try {
-      // Créer l'exercice dans Supabase
+      setIsUploadingImage(true);
+      
+      // Uploader l'image vers Supabase Storage si un fichier est sélectionné
+      let imageUrl = newExercise.illustrationUrl || '';
+      if (illustrationFile) {
+        const uploadedUrl = await uploadExerciseImage(illustrationFile, newExercise.name);
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl;
+        } else {
+          throw new Error('Erreur lors de l\'upload de l\'image');
+        }
+      }
+      
+      // Créer l'exercice dans Supabase avec l'URL de l'image
+      const exerciseData = {
+        ...newExercise,
+        illustrationUrl: imageUrl,
+      };
+      
       const isAdmin = user.role === 'admin';
-      const createdExercise = await createExercise(newExercise, user.id, isAdmin);
+      const createdExercise = await createExercise(exerciseData, user.id, isAdmin);
 
       if (!createdExercise) {
         throw new Error('Erreur lors de la création de l\'exercice');
@@ -260,6 +286,8 @@ const WorkoutDatabase: React.FC = () => {
     } catch (error: any) {
       console.error('Erreur lors de l\'ajout de l\'exercice:', error);
       alert(`Erreur : ${error.message || 'Impossible d\'ajouter l\'exercice'}`);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -864,7 +892,9 @@ const WorkoutDatabase: React.FC = () => {
             <Button type="button" variant="secondary" onClick={closeAddModal}>
               Annuler
             </Button>
-            <Button type="submit">Enregistrer l'exercice</Button>
+            <Button type="submit" disabled={isUploadingImage}>
+              {isUploadingImage ? 'Upload en cours...' : "Enregistrer l'exercice"}
+            </Button>
           </div>
         </form>
       </Modal>
