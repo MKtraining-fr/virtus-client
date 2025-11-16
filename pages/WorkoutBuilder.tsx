@@ -210,6 +210,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             if (selectedWeek > numWeeks) {
                 setSelectedWeek(numWeeks > 0 ? numWeeks : 1);
             }
+            // Activer automatiquement la première séance lors du passage en mode Programme
+            if (sessionsByWeek[1] && sessionsByWeek[1].length > 0) {
+                setActiveSessionId(sessionsByWeek[1][0].id);
+            }
         } else {
             setSessionsByWeek({ 1: sessionsByWeek[1] || JSON.parse(JSON.stringify(initialSessions)) });
             setSelectedWeek(1);
@@ -791,15 +795,15 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                                                 >
                                                     {locked && <LockClosedIcon className="w-4 h-4 text-gray-400" />}
                                                     {session.name}
+                                                    {sessions.length > 1 && !locked && activeSessionId === session.id && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleQuickRemoveSession(session.id); }}
+                                                            className="ml-2 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600"
+                                                        >
+                                                            <XMarkIcon className="w-3 h-3" />
+                                                        </button>
+                                                    )}
                                                 </button>
-                                                {sessions.length > 1 && !locked && (
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleQuickRemoveSession(session.id); }}
-                                                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-gray-400 rounded-full flex items-center justify-center text-white hover:bg-red-500 opacity-0 group-hover:opacity-100"
-                                                    >
-                                                        <XMarkIcon className="w-3 h-3" />
-                                                    </button>
-                                                )}
                                             </div>
                                         );
                                     })}
@@ -835,12 +839,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                                 </div>
                             </div>
 
-                            {/* Inline Exercise Search */}
-                            <div className="mt-6">
-                                <InlineExerciseSearch db={availableExercises} />
-                            </div>
-
                             <div className="mt-4 space-y-4">
+                                {/* Inline Exercise Search */}
+                                <InlineExerciseSearch db={availableExercises} />
                                 {(activeSession?.exercises ?? []).map((ex, index) => {
                                     const sessionIndex = sessions.findIndex(s => s.id === activeSessionId);
                                     const locked = isLocked(selectedWeek, sessionIndex);
