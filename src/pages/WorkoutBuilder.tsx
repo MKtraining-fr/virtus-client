@@ -1214,21 +1214,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         <div className="mt-6 flex-1 flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">
-              {workoutMode === 'session' ? 'Séance unique' : `Programme - Semaine ${selectedWeek}`}
+              {workoutMode === 'session' ? 'Séance unique' : 'Programme'}
             </h2>
-            <ToggleSwitch
-              label1="Séance"
-              value1="session"
-              label2="Programme"
-              value2="program"
-              value={workoutMode}
-              onChange={(val) => setWorkoutMode(val as 'session' | 'program')}
-            />
-          </div>
-          {workoutMode === 'program' && (
-            <div className="mb-4">
-              <div className="flex items-center gap-3 border-b pb-2">
-                <h2 className="text-lg font-semibold">Séances</h2>
+            <div className="flex items-center gap-4">
+              {workoutMode === 'program' && (
                 <Select
                   label=""
                   options={Object.keys(sessionsByWeek || {}).map((week) => ({
@@ -1243,6 +1232,21 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     }
                   }}
                 />
+              )}
+              <ToggleSwitch
+                label1="Séance"
+                value1="session"
+                label2="Programme"
+                value2="program"
+                value={workoutMode}
+                onChange={(val) => setWorkoutMode(val as 'session' | 'program')}
+              />
+            </div>
+          </div>
+          {workoutMode === 'program' && (
+            <div className="mb-4">
+              <div className="flex items-center gap-3 border-b pb-2">
+                <h2 className="text-lg font-semibold">Séances</h2>
                 {(sessions || []).map((session) => (
                   <div key={session.id} className="flex items-center gap-1">
                     <button
