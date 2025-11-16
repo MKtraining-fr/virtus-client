@@ -726,14 +726,17 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
   const handleDropExercise = (newExercise: Exercise) => {
     const newId = getNextExerciseId(sessionsByWeek);
+    const defaultSets = 3;
+    const newDetails = Array.from({ length: defaultSets }, () => createDefaultDetail());
+    
     const exerciseToAdd: EditableWorkoutExercise = {
       id: newId,
       exerciseId: newExercise.id,
       name: newExercise.name,
       illustrationUrl: newExercise.illustrationUrl || '',
-      sets: '3',
+      sets: String(defaultSets),
       isDetailed: false,
-      details: [],
+      details: newDetails,
       intensification: [],
       alternatives: [],
     };
