@@ -104,17 +104,13 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           className="w-4 h-4 mt-3"
         />
         <div className="flex-1">
-          {/* Zone de drag and drop visible en pointillés (encadré rouge) */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-gray-400 transition-colors bg-gray-50">
-            {/* Zone de recherche textuelle intégrée (encadré jaune) */}
-            <input
-              type="text"
-              placeholder="Écrire ou déposer un exercice"
-              value={ex.name}
-              onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-              className="w-full px-3 py-2 border-2 border-yellow-400 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 placeholder-gray-400"
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Écrire ou déposer un exercice"
+            value={ex.name}
+            onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary placeholder-gray-400"
+          />
         </div>
         {ex.illustrationUrl && (
           <img
@@ -176,7 +172,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 <button
                   type="button"
                   onClick={toggleDetailedMode}
-                  className="p-1 rounded-full bg-red-500 hover:bg-red-600 text-white"
+                  className="p-1 rounded-full hover:bg-gray-100"
                   title="Passer en mode détaillé"
                 >
                   <Bars3Icon className="w-3 h-3" />
@@ -259,14 +255,14 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       ) : (
         /* MODE DÉTAILLÉ */
         <div className="space-y-4">
-          <div className="border-2 border-red-500 rounded-lg p-4">
+          <div className="border border-gray-300 rounded-lg p-4">
             <div className="grid grid-cols-4 gap-2 text-sm font-medium text-gray-700 mb-3">
               <div className="flex items-center gap-2">
                 <span>Série</span>
                 <button
                   type="button"
                   onClick={toggleDetailedMode}
-                  className="p-1 rounded-full bg-red-500 hover:bg-red-600 text-white"
+                  className="p-1 rounded-full hover:bg-gray-100"
                   title="Revenir en mode simple"
                 >
                   <Bars3Icon className="w-3 h-3" />
