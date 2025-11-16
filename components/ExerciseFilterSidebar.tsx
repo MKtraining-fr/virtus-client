@@ -45,7 +45,7 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db }) => 
     const DEFAULT_ILLUSTRATION = 'https://img.gymvisual.com/illustrations/1749/male-Bodyweight-Squat.png';
 
     return (
-        <Card className="p-4 h-full flex flex-col">
+        <Card className="p-4 max-h-screen flex flex-col">
             <h2 className="text-xl font-bold mb-4">Filtres</h2>
             <Input 
                 placeholder="Rechercher un mouvement" 
