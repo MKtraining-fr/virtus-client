@@ -283,6 +283,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isFilterSidebarVisible, setIsFilterSidebarVisible] = useState(true);
   const [workoutMode, setWorkoutMode] = useState<'session' | 'program'>('session');
+  const [dropZoneSearchTerm, setDropZoneSearchTerm] = useState('');
+  const [showDropZoneResults, setShowDropZoneResults] = useState(false);
 
   const [isGeneralInfoVisible, setIsGeneralInfoVisible] = useState(true);
   const [programName, setProgramName] = useState(programDraft?.name || 'Nouveau programme');
@@ -365,6 +367,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   const exerciseDragOverItem = useRef<number | null>(null);
   const sessionDragItem = useRef<number | null>(null);
   const sessionDragOverItem = useRef<number | null>(null);
+  const dropZoneRef = useRef<HTMLDivElement | null>(null);
 
   const sessions = useMemo(() => {
     return sessionsByWeek[selectedWeek] || [];
@@ -407,6 +410,16 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     
     return filtered;
   }, [exerciseDBFromAuth, user, mode]);
+
+  // Filtrer les exercices pour la recherche dans la drop zone
+  const dropZoneFilteredExercises = useMemo(() => {
+    if (!dropZoneSearchTerm.trim()) {
+      return [];
+    }
+    return availableExercises.filter((ex) =>
+      ex.name.toLowerCase().includes(dropZoneSearchTerm.toLowerCase())
+    );
+  }, [availableExercises, dropZoneSearchTerm]);
 
   const handleClientSelectionChange = (value: string | string[]) => {
     const clientId = Array.isArray(value) ? (value[0] ?? '0') : value;
@@ -586,6 +599,23 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       setHasUnsavedChanges(false);
     }
   }, [isSaving, lastSavedAt, hasUnsavedChanges]);
+
+  // Gérer le clic extérieur pour fermer la liste de résultats de la drop zone
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropZoneRef.current && !dropZoneRef.current.contains(event.target as Node)) {
+        setShowDropZoneResults(false);
+      }
+    };
+
+    if (showDropZoneResults) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropZoneResults]);
 
   // Détecter les changements de route pour quitter le créateur
   useEffect(() => {
@@ -1310,48 +1340,93 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               
               {/* Zone de drag and drop persistante avec recherche */}
               {activeSession && (
-                <div 
-                  className="mt-4 text-center text-gray-500 py-6 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors relative z-10"
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.classList.add('border-primary', 'bg-primary-light');
-                  }}
-                  onDragEnter={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.classList.add('border-primary', 'bg-primary-light');
-                  }}
-                  onDragLeave={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.classList.remove('border-primary', 'bg-primary-light');
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.classList.remove('border-primary', 'bg-primary-light');
-                    try {
-                      const exerciseData = e.dataTransfer.getData('application/json');
-                      if (exerciseData) {
-                        const exercise = JSON.parse(exerciseData);
-                        handleDropExercise(exercise);
+                <div className="mt-4 relative" ref={dropZoneRef}>
+                  <div 
+                    className="text-center text-gray-500 py-6 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors relative z-10"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.currentTarget.classList.add('border-primary', 'bg-primary-light');
+                    }}
+                    onDragEnter={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.currentTarget.classList.add('border-primary', 'bg-primary-light');
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.currentTarget.classList.remove('border-primary', 'bg-primary-light');
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.currentTarget.classList.remove('border-primary', 'bg-primary-light');
+                      try {
+                        const exerciseData = e.dataTransfer.getData('application/json');
+                        if (exerciseData) {
+                          const exercise = JSON.parse(exerciseData);
+                          handleDropExercise(exercise);
+                        }
+                      } catch (error) {
+                        console.error('Erreur lors du drop:', error);
                       }
-                    } catch (error) {
-                      console.error('Erreur lors du drop:', error);
-                    }
-                  }}
-                >
-                  <div className="mb-2 px-4">
-                    <Input
-                      type="text"
-                      placeholder="🔍 Rechercher ou déposer un exercice"
-                      className="w-full max-w-md mx-auto"
-                      onClick={(e) => e.stopPropagation()}
-                      onDragOver={(e) => e.stopPropagation()}
-                    />
+                    }}
+                  >
+                    <div className="mb-2 px-4">
+                      <Input
+                        type="text"
+                        placeholder="🔍 Rechercher ou déposer un exercice"
+                        className="w-full max-w-md mx-auto"
+                        value={dropZoneSearchTerm}
+                        onChange={(e) => {
+                          setDropZoneSearchTerm(e.target.value);
+                          setShowDropZoneResults(e.target.value.trim().length > 0);
+                        }}
+                        onFocus={() => {
+                          if (dropZoneSearchTerm.trim().length > 0) {
+                            setShowDropZoneResults(true);
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        onDragOver={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    {!showDropZoneResults && (
+                      <p className="text-sm">Glissez-déposez un exercice ici</p>
+                    )}
                   </div>
-                  <p className="text-sm">Glissez-déposez un exercice ici</p>
+                  
+                  {/* Liste des résultats de recherche */}
+                  {showDropZoneResults && dropZoneFilteredExercises.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto z-20">
+                      {dropZoneFilteredExercises.map((ex) => (
+                        <div
+                          key={ex.id}
+                          className="flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
+                          onClick={() => {
+                            handleDropExercise(ex);
+                            setDropZoneSearchTerm('');
+                            setShowDropZoneResults(false);
+                          }}
+                        >
+                          <img
+                            src={ex.illustrationUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext x="50" y="50" font-family="Arial" font-size="14" fill="%239ca3af" text-anchor="middle" dominant-baseline="middle"%3EExercice%3C/text%3E%3C/svg%3E'}
+                            alt={ex.name}
+                            className="w-12 h-12 object-cover rounded-md bg-gray-100 flex-shrink-0"
+                          />
+                          <p className="font-medium text-gray-800">{ex.name}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Message si aucun résultat */}
+                  {showDropZoneResults && dropZoneFilteredExercises.length === 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-20">
+                      <p className="text-sm text-gray-500 text-center">Aucun exercice trouvé</p>
+                    </div>
+                  )}
                 </div>
               )}
               
