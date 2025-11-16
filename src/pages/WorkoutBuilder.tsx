@@ -1211,49 +1211,36 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         </CollapsibleSection>
         
         {/* Toggle Séance / Programme */}
-        <div className="flex items-center justify-center my-6">
-          <div className="inline-flex rounded-lg bg-gray-200 p-1">
-            <button
-              onClick={() => setWorkoutMode('session')}
-              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
-                workoutMode === 'session'
-                  ? 'bg-primary text-white'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Séance
-            </button>
-            <button
-              onClick={() => setWorkoutMode('program')}
-              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
-                workoutMode === 'program'
-                  ? 'bg-primary text-white'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Programme
-            </button>
-          </div>
-        </div>
-        
         <div className="mt-6 flex-1 flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">
+              {workoutMode === 'session' ? 'Séance unique' : `Programme - Semaine ${selectedWeek}`}
+            </h2>
+            <ToggleSwitch
+              label1="Séance"
+              value1="session"
+              label2="Programme"
+              value2="program"
+              value={workoutMode}
+              onChange={(val) => setWorkoutMode(val as 'session' | 'program')}
+            />
+          </div>
           {workoutMode === 'program' && (
-            <div className="flex items-center justify-end gap-4 mb-4">
-              <Select
-                label="Semaine"
-                options={Object.keys(sessionsByWeek || {}).map((week) => ({
-                  value: week,
-                  label: `Semaine ${week}`,
-                }))}
-                value={String(selectedWeek)}
-                onChange={(value) => {
-                  const weekValue = Array.isArray(value) ? value[0] : value;
-                  if (weekValue) {
-                    setSelectedWeek(Number(weekValue));
-                  }
-                }}
-              />
-              <Button onClick={handleAddWeek}>
+            <div className="flex items-center gap-2 mb-4 border-b pb-2 overflow-x-auto">
+              {Object.keys(sessionsByWeek || {}).map((week) => (
+                <button
+                  key={week}
+                  onClick={() => setSelectedWeek(Number(week))}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    selectedWeek === Number(week)
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:bg-gray-100'
+                  }`}
+                >
+                  Semaine {week}
+                </button>
+              ))}
+              <Button onClick={handleAddWeek} className="ml-2">
                 Ajouter une semaine
               </Button>
             </div>
