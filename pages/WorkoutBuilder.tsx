@@ -389,6 +389,35 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         setActiveSessionId(newSessionId);
     };
 
+    const handleQuickRemoveSession = (sessionId: number) => {
+        if (sessions.length <= 1) return;
+
+        let nextActiveSessionId = activeSessionId;
+        let wasRemoved = false;
+
+        updateAllWeeksState(currentSessions => {
+            const sessionIndexToDelete = currentSessions.findIndex(s => s.id === sessionId);
+            if (sessionIndexToDelete === -1) return currentSessions;
+
+            wasRemoved = true;
+            const updatedSessions = currentSessions.filter(s => s.id !== sessionId);
+            if (updatedSessions.length === 0) {
+                return currentSessions;
+            }
+
+            if (nextActiveSessionId === sessionId) {
+                const fallbackIndex = Math.min(sessionIndexToDelete, updatedSessions.length - 1);
+                nextActiveSessionId = updatedSessions[fallbackIndex]?.id ?? updatedSessions[0].id;
+            }
+
+            return updatedSessions.map((session, index) => ({ ...session, name: `Séance ${index + 1}` }));
+        });
+
+        if (wasRemoved) {
+            setActiveSessionId(nextActiveSessionId);
+        }
+    };
+
     const handleDeleteOrClearSession = () => {
         if (!activeSession) return;
         if (workoutMode === 'session') {
@@ -697,17 +726,24 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
                 {/* Main creator */}
                 <Card className="p-6">
-                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-                        <ToggleSwitch
-                            label1="Séance"
-                            value1="session"
-                            label2="Programme"
-                            value2="program"
-                            value={workoutMode}
-                            onChange={(v) => setWorkoutMode(v as 'session' | 'program')}
-                        />
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <h2 className="text-xl font-bold text-gray-800">
+                                {workoutMode === 'program' ? `Plan de la semaine ${selectedWeek}` : 'Séance personnalisée'}
+                            </h2>
+                            <div className="flex justify-center md:justify-end">
+                                <ToggleSwitch
+                                    label1="Séance"
+                                    value1="session"
+                                    label2="Programme"
+                                    value2="program"
+                                    value={workoutMode}
+                                    onChange={(v) => setWorkoutMode(v as 'session' | 'program')}
+                                />
+                            </div>
+                        </div>
                         {workoutMode === 'program' && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex justify-end">
                                 <Select label="Semaine" id="week-selector" value={selectedWeek} onChange={e => setSelectedWeek(Number(e.target.value))}>
                                     {[...Array(Number(weekCount) || 1)].map((_, i) => (
                                         <option key={i + 1} value={i + 1}>Semaine {i + 1}</option>
@@ -738,30 +774,47 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
                         <div className={isWeek1LockActive ? 'blur-sm pointer-events-none' : ''}>
                             {workoutMode === 'program' && (
-                                <div className="flex items-center gap-1 mt-4 border-b border-gray-200 pb-2 overflow-x-auto">
+                                <div className="flex items-center gap-2 mt-4 border-b border-gray-200 pb-2 overflow-x-auto">
                                     {sessions.map((session, index) => {
                                         const locked = isLocked(selectedWeek, index);
                                         return (
-                                        <button
-                                            key={session.id}
-                                            draggable={!locked}
-                                            onDragStart={(e) => { if (!locked) sessionDragItem.current = index; }}
-                                            onDragEnter={(e) => { if (!locked) sessionDragOverItem.current = index; }}
-                                            onDragEnd={handleSessionDragEnd}
-                                            onDragOver={(e) => e.preventDefault()}
-                                            onClick={() => setActiveSessionId(session.id)}
-                                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex-shrink-0 flex items-center gap-2 ${activeSessionId === session.id ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-100'} ${locked ? 'cursor-not-allowed opacity-70' : 'cursor-grab'}`}
-                                        >
-                                            {locked && <LockClosedIcon className="w-4 h-4 text-gray-400" />}
-                                            {session.name}
-                                        </button>
-                                    )})}
-                                    <button onClick={addSession} className="ml-2 w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 hover:bg-primary hover:text-white transition-colors flex-shrink-0">
-                                        <PlusIcon className="w-4 h-4" />
+                                            <div key={session.id} className="relative group flex-shrink-0">
+                                                <button
+                                                    draggable={!locked}
+                                                    onDragStart={(e) => { if (!locked) sessionDragItem.current = index; }}
+                                                    onDragEnter={(e) => { if (!locked) sessionDragOverItem.current = index; }}
+                                                    onDragEnd={handleSessionDragEnd}
+                                                    onDragOver={(e) => e.preventDefault()}
+                                                    onClick={() => setActiveSessionId(session.id)}
+                                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeSessionId === session.id ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100 text-gray-700'} ${locked ? 'cursor-not-allowed opacity-70' : 'cursor-grab'}`}
+                                                >
+                                                    {locked && <LockClosedIcon className="w-4 h-4 text-gray-400" />}
+                                                    {session.name}
+                                                </button>
+                                                {sessions.length > 1 && !locked && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleQuickRemoveSession(session.id); }}
+                                                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-gray-400 rounded-full flex items-center justify-center text-white hover:bg-red-500 opacity-0 group-hover:opacity-100"
+                                                    >
+                                                        <XMarkIcon className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    <button
+                                        onClick={duplicateSession}
+                                        className={`ml-4 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-primary hover:text-white flex-shrink-0 ${isLocked(selectedWeek, sessions.findIndex(s => s.id === activeSessionId)) ? 'text-gray-400 cursor-not-allowed hover:bg-gray-200 hover:text-gray-400' : 'text-gray-600'}`}
+                                        disabled={isLocked(selectedWeek, sessions.findIndex(s => s.id === activeSessionId))}
+                                    >
+                                        <DocumentDuplicateIcon className="w-5 h-5" />
+                                    </button>
+                                    <button onClick={addSession} className="ml-2 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 hover:bg-primary hover:text-white flex-shrink-0">
+                                        <PlusIcon className="w-5 h-5" />
                                     </button>
                                 </div>
                             )}
-                            
+
                             <div className="mt-6 p-4 bg-gray-50 rounded-lg flex justify-between items-center">
                                 <div className="font-semibold">Temps global de la séance : <span className="text-primary">0:00</span></div>
                                 <div className="flex items-center gap-3 text-gray-500">
@@ -770,14 +823,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                                             Supprimer ({selectedExerciseIds.length})
                                         </Button>
                                    )}
-                                   <button 
-                                        onClick={duplicateSession}
-                                        disabled={workoutMode !== 'program' || isLocked(selectedWeek, sessions.findIndex(s => s.id === activeSessionId))}
-                                        className="hover:text-primary disabled:text-gray-300 disabled:cursor-not-allowed"
-                                        title={workoutMode === 'program' ? "Dupliquer la séance" : "La duplication est disponible en mode Programme"}
-                                   >
-                                       <DocumentDuplicateIcon className="w-5 h-5" />
-                                   </button>
                                    <button 
                                         onClick={handleDeleteOrClearSession}
                                         disabled={isLocked(selectedWeek, sessions.findIndex(s => s.id === activeSessionId))}
