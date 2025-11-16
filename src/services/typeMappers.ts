@@ -114,10 +114,13 @@ export function mapClientToSupabaseClient(client: Partial<Client>): Partial<Supa
  * Convertir un exercice Supabase vers le format de l'application
  */
 export function mapSupabaseExerciseToExercise(supabaseExercise: SupabaseExercise): Exercise {
-  // Combiner le groupe musculaire principal et les groupes secondaires
-  const primaryMuscleGroups = supabaseExercise.muscle_group
-    ? supabaseExercise.muscle_group.split('|').map((m) => m.trim()).filter(Boolean)
-    : [];
+  // Reconstituer le tableau des groupes musculaires principaux depuis les 3 colonnes
+  const primaryMuscleGroups: string[] = [
+    supabaseExercise.muscle_group,
+    supabaseExercise.muscle_group2,
+    supabaseExercise.muscle_group3,
+  ].filter((group): group is string => Boolean(group));
+  
   const secondaryGroups = supabaseExercise.secondary_muscle_groups || [];
   
   // Créer un array unique de tous les groupes musculaires pour les filtres
@@ -128,7 +131,7 @@ export function mapSupabaseExerciseToExercise(supabaseExercise: SupabaseExercise
     name: supabaseExercise.name,
     description: supabaseExercise.description || '',
     category: (supabaseExercise.category as any) || '',
-    muscleGroups: allMuscleGroups,
+    muscleGroups: primaryMuscleGroups.length > 0 ? primaryMuscleGroups : allMuscleGroups,
     secondaryMuscleGroups: secondaryGroups,
     equipment: supabaseExercise.equipment || '',
     difficulty: supabaseExercise.difficulty || '',
