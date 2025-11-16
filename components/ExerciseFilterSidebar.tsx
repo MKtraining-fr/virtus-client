@@ -63,7 +63,7 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db }) => 
 
             <div className="mt-4 flex flex-col flex-grow gap-4 overflow-hidden">
                 {/* Section des filtres - réduite */}
-                <div className="space-y-3 overflow-y-auto pr-1 pb-1 border-2 border-amber-700 rounded-lg p-3 max-h-48">
+                <div className="space-y-3 overflow-y-auto pr-1 pb-1 max-h-48">
                     {equipmentTypes.length > 0 && <div className="space-y-2">
                         <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Types d'équipement :</h3>
                         <div className="flex flex-wrap gap-2">
