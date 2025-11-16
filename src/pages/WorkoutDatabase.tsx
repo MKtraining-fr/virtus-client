@@ -7,6 +7,7 @@ import Input from '../components/Input';
 import Select from '../components/Select';
 import { useAuth } from '../context/AuthContext';
 import { archiveMultipleExercises } from '../services/exerciseArchiveService';
+import { createExercise } from '../services/exerciseService';
 
 const EQUIPMENT_TYPES = [
   'Non spécifié',
@@ -96,12 +97,14 @@ const CheckIcon = (props: React.SVGProps<SVGSVGElement>) => (
 const initialNewExerciseState: Omit<Exercise, 'id'> = {
   name: '',
   category: 'Musculation',
+  type: 'musculation',
   description: '',
   videoUrl: '',
   illustrationUrl: '',
   equipment: 'Non spécifié',
   alternativeIds: [],
   muscleGroups: [],
+  secondaryMuscleGroups: [],
   coachId: '',
 };
 
@@ -222,19 +225,37 @@ const WorkoutDatabase: React.FC = () => {
     }));
   };
 
-  const handleAddExercise = (e: React.FormEvent) => {
+  const handleAddExercise = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newExercise.name) {
+    
+    if (!newExercise.name || newExercise.name.trim() === '') {
       alert("Le titre de l'exercice est obligatoire.");
       return;
     }
-    const exerciseToAdd: Exercise = {
-      ...newExercise,
-      id: `ex-${Date.now()}`,
-      coachId: user?.id,
-    };
-    setExercises([...exercises, exerciseToAdd]);
-    closeAddModal();
+
+    if (!user?.id) {
+      alert('Erreur : utilisateur non connecté.');
+      return;
+    }
+
+    try {
+      // Créer l'exercice dans Supabase
+      const isAdmin = user.role === 'admin';
+      const createdExercise = await createExercise(newExercise, user.id, isAdmin);
+
+      if (!createdExercise) {
+        throw new Error('Erreur lors de la création de l\'exercice');
+      }
+
+      // Mettre à jour l'état local avec l'exercice créé
+      setExercises([...exercises, createdExercise]);
+      
+      closeAddModal();
+      alert('Exercice ajouté avec succès !');
+    } catch (error: any) {
+      console.error('Erreur lors de l\'ajout de l\'exercice:', error);
+      alert(`Erreur : ${error.message || 'Impossible d\'ajouter l\'exercice'}`);
+    }
   };
 
   const handleDeleteExercise = (e: React.MouseEvent, exerciseId: string) => {
@@ -681,6 +702,17 @@ const WorkoutDatabase: React.FC = () => {
                 {type}
               </option>
             ))}
+          </Select>
+
+          <Select
+            label="Type d'exercice"
+            name="type"
+            value={newExercise.type}
+            onChange={handleFormChange}
+          >
+            <option value="musculation">Musculation</option>
+            <option value="mobilite">Mobilité</option>
+            <option value="echauffement">Échauffement</option>
           </Select>
 
           <div>

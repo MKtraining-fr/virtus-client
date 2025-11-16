@@ -174,6 +174,7 @@ export interface Exercise {
   videoUrl?: string;
   illustrationUrl?: string;  // URL de l'illustration (renommé de imageUrl)
   type?: string;
+  alternativeIds?: string[];  // IDs des exercices alternatifs (max 2)
   coachId?: string;  // ID du coach créateur (null pour exercices système)
   isPublic?: boolean;  // Visibilité publique
   isArchived?: boolean;  // Exercice archivé
