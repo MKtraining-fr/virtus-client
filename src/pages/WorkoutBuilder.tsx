@@ -770,12 +770,32 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       intensification: [],
       alternatives: [],
     };
-    setSessionsByWeek((prev) => ({
-      ...prev,
-      [selectedWeek]: prev[selectedWeek].map((s) =>
-        s.id === activeSessionId ? { ...s, exercises: [...s.exercises, exerciseToAdd] } : s
-      ),
-    }));
+    
+    setSessionsByWeek((prev) => {
+      const newSessionsByWeek = { ...prev };
+      const currentWeekSessions = newSessionsByWeek[selectedWeek] || [];
+      
+      // Si aucune séance n'existe pour cette semaine, créer automatiquement "Séance 1"
+      if (currentWeekSessions.length === 0) {
+        const newSessionId = getNextSessionId(newSessionsByWeek);
+        const newSession: EditableWorkoutSession = {
+          id: newSessionId,
+          name: 'Séance 1',
+          exercises: [exerciseToAdd],
+        };
+        newSessionsByWeek[selectedWeek] = [newSession];
+        // Définir cette nouvelle séance comme active
+        setActiveSessionId(newSessionId);
+      } else {
+        // Ajouter l'exercice à la séance active
+        newSessionsByWeek[selectedWeek] = currentWeekSessions.map((s) =>
+          s.id === activeSessionId ? { ...s, exercises: [...s.exercises, exerciseToAdd] } : s
+        );
+      }
+      
+      return newSessionsByWeek;
+    });
+    
     setHasUnsavedChanges(true);
   };
 
@@ -1314,11 +1334,30 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
  />
               ))}
               
-              {/* Zone de drag and drop persistante avec recherche */}
+              {/* Barre de recherche en haut */}
+              <div className="mt-4 mb-2">
+                <Input
+                  type="text"
+                  placeholder="🔍 Rechercher un exercice"
+                  className="w-full max-w-md"
+                  value={dropZoneSearchTerm}
+                  onChange={(e) => {
+                    setDropZoneSearchTerm(e.target.value);
+                    setShowDropZoneResults(e.target.value.trim().length > 0);
+                  }}
+                  onFocus={() => {
+                    if (dropZoneSearchTerm.trim().length > 0) {
+                      setShowDropZoneResults(true);
+                    }
+                  }}
+                />
+              </div>
+              
+              {/* Zone de drag and drop persistante */}
               {
-                <div className="mt-4 relative" ref={dropZoneRef}>
+                <div className="relative" ref={dropZoneRef}>
                   <div 
-                    className="text-center text-gray-500 py-6 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors relative z-10"
+                    className="text-center text-gray-500 py-12 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors relative z-10"
                     onDragOver={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -1349,28 +1388,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                       }
                     }}
                   >
-                    <div className="mb-2 px-4">
-                      <Input
-                        type="text"
-                        placeholder="🔍 Rechercher ou déposer un exercice"
-                        className="w-full max-w-md mx-auto"
-                        value={dropZoneSearchTerm}
-                        onChange={(e) => {
-                          setDropZoneSearchTerm(e.target.value);
-                          setShowDropZoneResults(e.target.value.trim().length > 0);
-                        }}
-                        onFocus={() => {
-                          if (dropZoneSearchTerm.trim().length > 0) {
-                            setShowDropZoneResults(true);
-                          }
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        onDragOver={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                    {!showDropZoneResults && (
-                      <p className="text-sm">Glissez-déposez un exercice ici</p>
-                    )}
+                    <p className="text-sm">Glissez-déposez un exercice ici</p>
                   </div>
                   
                   {/* Liste des résultats de recherche */}
@@ -1448,7 +1466,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         />
       )}
       <div
-        className="fixed bottom-6 z-50 transition-all duration-300"
+        className="fixed bottom-8 z-50 transition-all duration-300"
         style={{
           right: isFilterSidebarVisible
             ? FILTER_SIDEBAR_WIDTH + FILTER_SIDEBAR_GAP * 2
