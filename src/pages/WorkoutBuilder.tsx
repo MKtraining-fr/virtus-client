@@ -384,6 +384,34 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     return sessions.find((s) => s.id === activeSessionId);
   }, [sessions, activeSessionId]);
 
+  // Assurer qu'une séance active existe toujours
+  useEffect(() => {
+    const currentWeekSessions = sessionsByWeek[selectedWeek] || [];
+    
+    // Si aucune séance n'existe pour la semaine actuelle, en créer une
+    if (currentWeekSessions.length === 0) {
+      console.log('[WorkoutBuilder] Aucune séance trouvée pour la semaine', selectedWeek, '- création automatique');
+      const newSessionId = getNextSessionId(sessionsByWeek);
+      const newSession: EditableWorkoutSession = {
+        id: newSessionId,
+        name: 'Séance 1',
+        exercises: [],
+      };
+      setSessionsByWeek(prev => ({
+        ...prev,
+        [selectedWeek]: [newSession]
+      }));
+      setActiveSessionId(newSessionId);
+    } else {
+      // Vérifier si la séance active existe dans la semaine actuelle
+      const activeExists = currentWeekSessions.some(s => s.id === activeSessionId);
+      if (!activeExists) {
+        console.log('[WorkoutBuilder] Séance active non trouvée - sélection de la première séance');
+        setActiveSessionId(currentWeekSessions[0].id);
+      }
+    }
+  }, [selectedWeek, sessionsByWeek, activeSessionId]);
+
   const availableExercises = useMemo(() => {
     // Vérifier que exerciseDBFromAuth est défini
     if (!exerciseDBFromAuth || !Array.isArray(exerciseDBFromAuth)) {
@@ -1564,6 +1592,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           right: isFilterSidebarVisible
             ? FILTER_SIDEBAR_WIDTH + FILTER_SIDEBAR_GAP * 2
             : FILTER_SIDEBAR_GAP,
+          bottom: '120px', // Déplacer le bouton plus haut pour éviter le chevauchement
         }}
       >
         <Button onClick={onSave} disabled={isSaving || !user} className="bg-primary text-white px-8 py-3 text-lg shadow-lg">
