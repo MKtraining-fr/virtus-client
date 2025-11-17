@@ -301,7 +301,39 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     } else {
       const num = parseInt(val, 10);
       if (!Number.isNaN(num) && num >= 1) {
-        setWeekCount(Math.min(num, 52));
+        const newWeekCount = Math.min(num, 52);
+        const currentWeekCount = typeof weekCount === 'number' ? weekCount : 1;
+        
+        // Si on augmente le nombre de semaines, dupliquer la semaine 1 sur les nouvelles semaines
+        if (newWeekCount > currentWeekCount) {
+          console.log(`[handleWeekCountChange] Augmentation de ${currentWeekCount} à ${newWeekCount} semaines - duplication de la semaine 1`);
+          
+          setSessionsByWeek((prev) => {
+            const newSessionsByWeek = { ...prev };
+            const week1Sessions = prev[1] || [];
+            
+            // Dupliquer la semaine 1 sur toutes les nouvelles semaines
+            for (let week = currentWeekCount + 1; week <= newWeekCount; week++) {
+              // Ne dupliquer que si la semaine n'existe pas déjà
+              if (!newSessionsByWeek[week]) {
+                // Créer des copies profondes des séances de la semaine 1
+                newSessionsByWeek[week] = week1Sessions.map((session) => ({
+                  ...session,
+                  id: getNextSessionId({ ...newSessionsByWeek, [week]: [] }),
+                  exercises: session.exercises.map((ex) => ({
+                    ...ex,
+                    id: getNextExerciseId({ ...newSessionsByWeek, [week]: [] }),
+                  })),
+                }));
+                console.log(`[handleWeekCountChange] Semaine ${week} créée avec ${week1Sessions.length} séance(s)`);
+              }
+            }
+            
+            return newSessionsByWeek;
+          });
+        }
+        
+        setWeekCount(newWeekCount);
       }
     }
   };
@@ -384,7 +416,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     return sessions.find((s) => s.id === activeSessionId);
   }, [sessions, activeSessionId]);
 
-  // Assurer qu'une séance active existe toujours
+  // Assurer qu'une séance active existe toujours et sélectionner automatiquement la première séance
   useEffect(() => {
     const currentWeekSessions = sessionsByWeek[selectedWeek] || [];
     
@@ -406,7 +438,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       // Vérifier si la séance active existe dans la semaine actuelle
       const activeExists = currentWeekSessions.some(s => s.id === activeSessionId);
       if (!activeExists) {
-        console.log('[WorkoutBuilder] Séance active non trouvée - sélection de la première séance');
+        console.log('[WorkoutBuilder] Séance active non trouvée - sélection automatique de la première séance');
         setActiveSessionId(currentWeekSessions[0].id);
       }
     }
@@ -1387,7 +1419,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           {workoutMode === 'program' && (
             <div className="mb-4">
               <div className="flex items-center gap-3 border-b pb-2">
-                <h2 className="text-lg font-semibold">Séances</h2>
                 {(sessions || []).map((session) => (
                   <div key={session.id} className="relative flex items-center">
                     <button
