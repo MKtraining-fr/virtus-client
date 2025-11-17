@@ -15,6 +15,7 @@ import { reconstructWorkoutProgram } from '../utils/workoutMapper';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
+import ProgramDetailView from '../components/ProgramDetailView';
 import { assignProgramToClient, getAssignmentCountByProgram } from '../services/programAssignmentService';
 import {
   getProgramsByCoachId,
@@ -46,6 +47,8 @@ const WorkoutLibrary: React.FC = () => {
   const [selectedClientsForAssign, setSelectedClientsForAssign] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [assignmentCounts, setAssignmentCounts] = useState<Record<string, number>>({});
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [programToPreview, setProgramToPreview] = useState<WorkoutProgram | null>(null);
 
   const myClients = useMemo(() => {
     return clients.filter(
@@ -140,6 +143,18 @@ const WorkoutLibrary: React.FC = () => {
     setSelectedClientsForAssign([]);
   };
 
+  const getTotalSessions = (program: WorkoutProgram) => {
+    return Object.values(program.sessionsByWeek || {}).reduce(
+      (total, weekSessions) => total + weekSessions.length,
+      0
+    );
+  };
+
+  const handleOpenPreviewModal = (program: WorkoutProgram) => {
+    setProgramToPreview(program);
+    setIsPreviewModalOpen(true);
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -185,11 +200,17 @@ const WorkoutLibrary: React.FC = () => {
                       )}
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
-                      {program.sessionsByWeek[1]?.length || 0} séances · {program.weekCount}{' '}
-                      semaines
+                      {getTotalSessions(program)} séances · {program.weekCount} semaines
                     </p>
                   </div>
                   <div className="bg-gray-50 p-4 flex justify-end space-x-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleOpenPreviewModal(program)}
+                    >
+                      Visualiser
+                    </Button>
                     <Button
                       variant="secondary"
                       size="sm"
@@ -290,6 +311,24 @@ const WorkoutLibrary: React.FC = () => {
               </Button>
               <Button onClick={handleAssign} disabled={selectedClientsForAssign.length === 0}>
                 Assigner
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {isPreviewModalOpen && programToPreview && (
+        <Modal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          title={`Aperçu de "${programToPreview.name}"`}
+          size="xl"
+        >
+          <div className="space-y-4">
+            <ProgramDetailView program={programToPreview} />
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={() => setIsPreviewModalOpen(false)}>
+                Fermer
               </Button>
             </div>
           </div>
