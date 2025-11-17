@@ -197,7 +197,6 @@ export interface Database {
           description: string | null;
           week_number: number | null;
           session_order: number | null;
-          is_template: boolean | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -212,7 +211,6 @@ export interface Database {
           description?: string | null;
           week_number?: number | null;
           session_order?: number | null;
-          is_template?: boolean | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -227,7 +225,6 @@ export interface Database {
           description?: string | null;
           week_number?: number | null;
           session_order?: number | null;
-          is_template?: boolean | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;

@@ -13,7 +13,6 @@ export interface Session {
   notes?: string | null;
   description?: string | null;
   day_of_week?: number | null;
-  is_template?: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -27,7 +26,6 @@ export interface SessionInput {
   notes?: string;
   description?: string;
   day_of_week?: number;
-  is_template?: boolean;
 }
 
 // Créer une nouvelle séance (matrice)
@@ -44,7 +42,6 @@ export const createSession = async (sessionData: SessionInput): Promise<Session 
         created_by: user.id,
         ...sessionData,
         exercises: sessionData.exercises ?? [],
-        is_template: sessionData.is_template ?? true,
       })
       .select()
       .single();

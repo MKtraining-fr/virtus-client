@@ -65,7 +65,6 @@ export interface ProgramInput {
   max_weeks: number; // Correspond à 'week_count' dans le frontend
   description?: string;
   sessions_per_week?: number;
-  is_template?: boolean;
   is_public?: boolean;
   created_by?: string;
 }

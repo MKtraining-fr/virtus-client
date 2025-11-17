@@ -250,7 +250,6 @@ export interface Session {
   exercises: Json;
   notes: string | null;
   description: string | null;
-  is_template?: boolean | null;
   created_at: string;
   updated_at: string;
 }
