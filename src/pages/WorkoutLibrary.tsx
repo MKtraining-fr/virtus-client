@@ -468,19 +468,12 @@ const useSupabaseWorkoutData = (
         console.log('[WorkoutLibrary] 🔑 Exercise IDs to fetch:', Array.from(exerciseIds));
         const exerciseDetails = await getExercisesByIds(Array.from(exerciseIds));
         console.log('[WorkoutLibrary] 📚 Exercise details:', exerciseDetails);
-        const exerciseNamesMap = new Map<string, { name: string; illustrationUrl: string }>();
-        exerciseDetails.forEach((ex) =>
-          exerciseNamesMap.set(ex.id, {
-            name: ex.name,
-            illustrationUrl: ex.illustration_url || '',
-          })
-        );
 
         const workoutProgram = reconstructWorkoutProgram(
           program,
           supabaseSessions,
           allSessionExercises,
-          exerciseNamesMap
+          exerciseDetails
         );
         console.log('[WorkoutLibrary] ✅ Reconstructed program:', workoutProgram);
         allWorkoutPrograms.push(workoutProgram);
