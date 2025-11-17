@@ -62,6 +62,7 @@ type EditableWorkoutSession = WorkoutSession & {
   dbId?: string;
   weekNumber?: number;
   exercises: EditableWorkoutExercise[];
+  templateSessionId?: number;
 };
 
 type SessionsByWeekState = Record<number, EditableWorkoutSession[]>;
@@ -92,6 +93,7 @@ const DEFAULT_SESSION: EditableWorkoutSession = {
   id: 1,
   name: 'Séance 1',
   exercises: [],
+  templateSessionId: 1,
 };
 
 const DEFAULT_DETAIL_TEMPLATE: WorkoutExercise['details'][number] = {
@@ -158,8 +160,41 @@ const normalizeWorkoutExercise = (exercise: WorkoutExercise): WorkoutExercise =>
 // Fonction de normalisation pour garantir que les séances ont toujours des exercices valides
 const normalizeWorkoutSession = (session: WorkoutSession): EditableWorkoutSession => ({
   ...session,
+  templateSessionId: (session as EditableWorkoutSession).templateSessionId,
   exercises: (session.exercises ?? []).map(normalizeWorkoutExercise),
 } as EditableWorkoutSession);
+
+const assignTemplateSessionIds = (state: SessionsByWeekState): SessionsByWeekState => {
+  const baseWeek = state[1] || [];
+  const updatedWeekOne = baseWeek.map((session) => ({
+    ...session,
+    templateSessionId: session.templateSessionId ?? session.id,
+  }));
+
+  const templateOrder = updatedWeekOne.map((session) => session.templateSessionId!);
+  const updatedState: SessionsByWeekState = { ...state, 1: updatedWeekOne };
+
+  Object.entries(state).forEach(([weekKey, sessions]) => {
+    const weekNumber = Number(weekKey);
+    if (weekNumber === 1) return;
+    if (!sessions) {
+      updatedState[weekNumber] = [];
+      return;
+    }
+
+    updatedState[weekNumber] = sessions.map((session, index) => {
+      if (session.templateSessionId) {
+        return session;
+      }
+      if (index < templateOrder.length) {
+        return { ...session, templateSessionId: templateOrder[index] };
+      }
+      return session;
+    });
+  });
+
+  return updatedState;
+};
 
 // Fonction de normalisation pour garantir que sessionsByWeek est toujours valide
 const normalizeSessionsByWeek = (
@@ -178,7 +213,7 @@ const normalizeSessionsByWeek = (
   entries.forEach(([week, sessions]) => {
     normalized[Number(week)] = (sessions ?? []).map(normalizeWorkoutSession);
   });
-  return normalized;
+  return assignTemplateSessionIds(normalized);
 };
 
 const cloneExercise = (
@@ -258,6 +293,7 @@ const deepCloneExercise = (exercise: EditableWorkoutExercise, newId: number): Ed
   return {
     ...exercise,
     id: newId,
+    dbId: undefined,
     // Cloner profondément les détails
     details: exercise.details ? exercise.details.map(detail => ({
       ...detail,
@@ -276,13 +312,73 @@ const deepCloneSession = (session: EditableWorkoutSession, newSessionId: number,
   return {
     ...session,
     id: newSessionId,
+    dbId: undefined,
     // Cloner profondément tous les exercices
     exercises: session.exercises.map(ex => {
       const cloned = deepCloneExercise(ex, currentExerciseId);
       currentExerciseId++;
       return cloned;
     }),
+    templateSessionId: session.templateSessionId ?? session.id,
   };
+};
+
+const mirrorWeekOneStructure = (state: SessionsByWeekState): SessionsByWeekState => {
+  const stateWithTemplates = assignTemplateSessionIds(state);
+  const baseWeek = stateWithTemplates[1] || [];
+  if (baseWeek.length === 0) {
+    return stateWithTemplates;
+  }
+
+  const templateOrder = baseWeek.map((session) => session.templateSessionId!);
+  const baseTemplateMap = new Map<number, EditableWorkoutSession>();
+  baseWeek.forEach((session) => {
+    baseTemplateMap.set(session.templateSessionId!, session);
+  });
+
+  let nextSessionId = getNextSessionId(stateWithTemplates);
+  let nextExerciseId = getNextExerciseId(stateWithTemplates);
+
+  const updatedState: SessionsByWeekState = { ...stateWithTemplates, 1: baseWeek };
+
+  Object.entries(stateWithTemplates).forEach(([weekKey, sessions]) => {
+    const weekNumber = Number(weekKey);
+    if (weekNumber === 1) return;
+
+    const weekSessions = sessions ? [...sessions] : [];
+    const canonicalByTemplate = new Map<number, EditableWorkoutSession>();
+    const customSessions: EditableWorkoutSession[] = [];
+
+    weekSessions.forEach((session) => {
+      if (session.templateSessionId && templateOrder.includes(session.templateSessionId)) {
+        canonicalByTemplate.set(session.templateSessionId, session);
+      } else {
+        customSessions.push(session);
+      }
+    });
+
+    const syncedWeekSessions: EditableWorkoutSession[] = [];
+
+    templateOrder.forEach((templateId) => {
+      const existing = canonicalByTemplate.get(templateId);
+      if (existing) {
+        syncedWeekSessions.push(existing);
+      } else {
+        const baseSession = baseTemplateMap.get(templateId);
+        if (!baseSession) return;
+        const clonedSession = deepCloneSession(baseSession, nextSessionId, nextExerciseId);
+        clonedSession.templateSessionId = templateId;
+        syncedWeekSessions.push(clonedSession);
+        nextSessionId++;
+        nextExerciseId += baseSession.exercises.length;
+      }
+    });
+
+    syncedWeekSessions.push(...customSessions);
+    updatedState[weekNumber] = syncedWeekSessions;
+  });
+
+  return updatedState;
 };
 
 interface WorkoutBuilderProps {
@@ -339,11 +435,12 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         // Si on augmente le nombre de semaines, dupliquer la semaine 1 sur les nouvelles semaines
         if (newWeekCount > currentWeekCount) {
           console.log(`[handleWeekCountChange] Augmentation de ${currentWeekCount} à ${newWeekCount} semaines - duplication de la semaine 1`);
-          
+
           setSessionsByWeek((prev) => {
-            const newSessionsByWeek = { ...prev };
-            const week1Sessions = prev[1] || [];
-            
+            const prevWithTemplates = assignTemplateSessionIds(prev);
+            const newSessionsByWeek = { ...prevWithTemplates };
+            const week1Sessions = prevWithTemplates[1] || [];
+
             // Dupliquer la semaine 1 sur toutes les nouvelles semaines
             for (let week = currentWeekCount + 1; week <= newWeekCount; week++) {
               // Ne dupliquer que si la semaine n'existe pas déjà
@@ -351,18 +448,19 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 // Créer des copies PROFONDES des séances de la semaine 1
                 let currentSessionId = getNextSessionId({ ...newSessionsByWeek, [week]: [] });
                 let currentExerciseId = getNextExerciseId({ ...newSessionsByWeek, [week]: [] });
-                
+
                 newSessionsByWeek[week] = week1Sessions.map((session) => {
                   const clonedSession = deepCloneSession(session, currentSessionId, currentExerciseId);
+                  clonedSession.templateSessionId = session.templateSessionId ?? session.id;
                   currentSessionId++;
                   currentExerciseId += session.exercises.length;
                   return clonedSession;
                 });
-                
+
                 console.log(`[handleWeekCountChange] Semaine ${week} créée avec ${week1Sessions.length} séance(s) - clonage profond`);
               }
             }
-            
+
             return newSessionsByWeek;
           });
         }
@@ -411,10 +509,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   const [sessionsByWeek, setSessionsByWeek] = useState<SessionsByWeekState>(() => {
     const initial = programDraft?.sessionsByWeek;
     if (initial && typeof initial === 'object' && Object.keys(initial).length > 0) {
-      return initial as SessionsByWeekState;
+      return normalizeSessionsByWeek(initial);
     }
     // Ensure DEFAULT_SESSION is a fresh copy to prevent shared references
-    return { 1: [{ ...DEFAULT_SESSION, exercises: [] }] };
+    return normalizeSessionsByWeek({ 1: [{ ...DEFAULT_SESSION, exercises: [] }] });
   });
   const [selectedWeek, setSelectedWeek] = useState<number>(1);
   const [activeSessionId, setActiveSessionId] = useState(DEFAULT_SESSION.id);
@@ -480,12 +578,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     let didChange = false;
 
     setSessionsByWeek((prev) => {
-      const newSessionsByWeek = { ...prev };
+      const prevWithTemplates = assignTemplateSessionIds(prev);
+      const newSessionsByWeek = { ...prevWithTemplates };
 
       if (!newSessionsByWeek[1] || newSessionsByWeek[1].length === 0) {
         didChange = true;
         const newSessionId = getNextSessionId(newSessionsByWeek);
-        newSessionsByWeek[1] = [{ ...DEFAULT_SESSION, id: newSessionId, exercises: [] }];
+        newSessionsByWeek[1] = [{ ...DEFAULT_SESSION, id: newSessionId, exercises: [], templateSessionId: newSessionId }];
       }
 
       const baseWeekSessions = newSessionsByWeek[1] || [];
@@ -503,6 +602,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
           newSessionsByWeek[week] = baseWeekSessions.map((session) => {
             const clonedSession = deepCloneSession(session, currentSessionId, currentExerciseId);
+            clonedSession.templateSessionId = session.templateSessionId ?? session.id;
             currentSessionId++;
             currentExerciseId += session.exercises.length;
             return clonedSession;
@@ -528,7 +628,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   // Assurer qu'une séance active existe toujours et sélectionner automatiquement la première séance
   useEffect(() => {
     const currentWeekSessions = sessionsByWeek[selectedWeek] || [];
-    
+
     // Si aucune séance n'existe pour la semaine actuelle, en créer une
     if (currentWeekSessions.length === 0) {
       console.log('[WorkoutBuilder] Aucune séance trouvée pour la semaine', selectedWeek, '- création automatique');
@@ -537,11 +637,19 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         id: newSessionId,
         name: 'Séance 1',
         exercises: [],
+        templateSessionId: selectedWeek === 1 ? newSessionId : undefined,
       };
-      setSessionsByWeek(prev => ({
-        ...prev,
-        [selectedWeek]: [newSession]
-      }));
+      setSessionsByWeek(prev => {
+        const prevWithTemplates = assignTemplateSessionIds(prev);
+        const updated = {
+          ...prevWithTemplates,
+          [selectedWeek]: [newSession]
+        };
+        if (selectedWeek === 1) {
+          return mirrorWeekOneStructure(updated);
+        }
+        return updated;
+      });
       setActiveSessionId(newSessionId);
     } else {
       // Vérifier si la séance active existe dans la semaine actuelle
@@ -708,7 +816,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         setProgramName('Nouveau programme');
         setObjective('');
         setWeekCount(1);
-        setSessionsByWeek({ 1: [DEFAULT_SESSION] });
+        setSessionsByWeek(normalizeSessionsByWeek({ 1: [DEFAULT_SESSION] }));
       }
       setIsLoading(false);
     }
@@ -1051,15 +1159,21 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
   const handleAddSession = () => {
     setSessionsByWeek((prev) => {
-      const newSessionsByWeek = { ...prev };
+      const prevWithTemplates = assignTemplateSessionIds(prev);
+      const newSessionsByWeek = { ...prevWithTemplates };
       const currentWeekSessions = newSessionsByWeek[selectedWeek] || [];
       const newSessionId = getNextSessionId(newSessionsByWeek);
       const newSession: EditableWorkoutSession = {
         id: newSessionId,
         name: `Séance ${currentWeekSessions.length + 1}`,
         exercises: [],
+        templateSessionId: selectedWeek === 1 ? newSessionId : undefined,
       };
-      newSessionsByWeek[selectedWeek] = [...currentWeekSessions, newSession];
+      const updatedWeekSessions = [...currentWeekSessions, newSession];
+      newSessionsByWeek[selectedWeek] = updatedWeekSessions;
+      if (selectedWeek === 1) {
+        return mirrorWeekOneStructure(newSessionsByWeek);
+      }
       return newSessionsByWeek;
     });
     setHasUnsavedChanges(true);
@@ -1067,10 +1181,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
   const handleDeleteSession = (sessionId: number) => {
     setSessionsByWeek((prev) => {
-      const newSessionsByWeek = { ...prev };
+      const prevWithTemplates = assignTemplateSessionIds(prev);
+      const newSessionsByWeek = { ...prevWithTemplates };
       newSessionsByWeek[selectedWeek] = (newSessionsByWeek[selectedWeek] || []).filter(
         (s) => s.id !== sessionId
       );
+      if (selectedWeek === 1) {
+        return mirrorWeekOneStructure(newSessionsByWeek);
+      }
       return newSessionsByWeek;
     });
     setHasUnsavedChanges(true);
@@ -1083,7 +1201,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     if (!activeSession) return;
 
     setSessionsByWeek((prev) => {
-      const newSessionsByWeek = { ...prev };
+      const prevWithTemplates = assignTemplateSessionIds(prev);
+      const newSessionsByWeek = { ...prevWithTemplates };
       const currentWeekSessions = newSessionsByWeek[selectedWeek] || [];
       const newSessionId = getNextSessionId(newSessionsByWeek);
       let nextExerciseId = getNextExerciseId(newSessionsByWeek);
@@ -1097,9 +1216,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           nextExerciseId += 1;
           return clonedExercise;
         }),
+        templateSessionId: selectedWeek === 1 ? newSessionId : undefined,
+        dbId: undefined,
       };
 
       newSessionsByWeek[selectedWeek] = [...currentWeekSessions, duplicatedSession];
+      if (selectedWeek === 1) {
+        return mirrorWeekOneStructure(newSessionsByWeek);
+      }
       return newSessionsByWeek;
     });
     setHasUnsavedChanges(true);
@@ -1375,7 +1499,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     if (draggedSessionId === null || droppedOnSessionId === null) return;
 
     setSessionsByWeek((prev) => {
-      const newSessionsByWeek = { ...prev };
+      const prevWithTemplates = assignTemplateSessionIds(prev);
+      const newSessionsByWeek = { ...prevWithTemplates };
       const currentWeekSessions = newSessionsByWeek[selectedWeek];
 
       if (!currentWeekSessions) return prev;
@@ -1389,7 +1514,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       const [reorderedItem] = sessions.splice(draggedIndex, 1);
       sessions.splice(droppedIndex, 0, reorderedItem);
 
-      return { ...newSessionsByWeek, [selectedWeek]: sessions };
+      newSessionsByWeek[selectedWeek] = sessions;
+      if (selectedWeek === 1) {
+        return mirrorWeekOneStructure(newSessionsByWeek);
+      }
+      return newSessionsByWeek;
     });
     setHasUnsavedChanges(true);
     sessionDragItem.current = null;
@@ -1527,7 +1656,15 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             <div className="mb-4">
               <div className="flex items-center gap-3 border-b pb-2">
                 {(sessions || []).map((session) => (
-                  <div key={session.id} className="relative flex items-center">
+                  <div
+                    key={session.id}
+                    className="relative flex items-center"
+                    draggable
+                    onDragStart={(e) => handleDragSessionStart(e, session.id)}
+                    onDragEnter={(e) => handleDragSessionEnter(e, session.id)}
+                    onDragEnd={handleDropSession}
+                    onDragOver={(e) => e.preventDefault()}
+                  >
                     <button
                       onClick={() => setActiveSessionId(session.id)}
                       className={`pl-4 pr-6 py-2 rounded-md text-sm font-medium transition-colors ${
