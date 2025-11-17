@@ -253,6 +253,38 @@ const getNextExerciseId = (state: SessionsByWeekState): number => {
   return Math.max(...allExercises.map((exercise) => exercise.id)) + 1;
 };
 
+// Fonction de clonage profond pour les exercices
+const deepCloneExercise = (exercise: EditableWorkoutExercise, newId: number): EditableWorkoutExercise => {
+  return {
+    ...exercise,
+    id: newId,
+    // Cloner profondément les détails
+    details: exercise.details ? exercise.details.map(detail => ({
+      ...detail,
+      load: detail.load ? { ...detail.load } : undefined,
+    })) : [],
+    // Cloner profondément les intensifications
+    intensification: exercise.intensification ? exercise.intensification.map(int => ({ ...int })) : [],
+    // Cloner profondément les alternatives
+    alternatives: exercise.alternatives ? exercise.alternatives.map(alt => ({ ...alt })) : [],
+  };
+};
+
+// Fonction de clonage profond pour les séances
+const deepCloneSession = (session: EditableWorkoutSession, newSessionId: number, startExerciseId: number): EditableWorkoutSession => {
+  let currentExerciseId = startExerciseId;
+  return {
+    ...session,
+    id: newSessionId,
+    // Cloner profondément tous les exercices
+    exercises: session.exercises.map(ex => {
+      const cloned = deepCloneExercise(ex, currentExerciseId);
+      currentExerciseId++;
+      return cloned;
+    }),
+  };
+};
+
 interface WorkoutBuilderProps {
   mode?: 'coach' | 'client';
 }
@@ -316,16 +348,18 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             for (let week = currentWeekCount + 1; week <= newWeekCount; week++) {
               // Ne dupliquer que si la semaine n'existe pas déjà
               if (!newSessionsByWeek[week]) {
-                // Créer des copies profondes des séances de la semaine 1
-                newSessionsByWeek[week] = week1Sessions.map((session) => ({
-                  ...session,
-                  id: getNextSessionId({ ...newSessionsByWeek, [week]: [] }),
-                  exercises: session.exercises.map((ex) => ({
-                    ...ex,
-                    id: getNextExerciseId({ ...newSessionsByWeek, [week]: [] }),
-                  })),
-                }));
-                console.log(`[handleWeekCountChange] Semaine ${week} créée avec ${week1Sessions.length} séance(s)`);
+                // Créer des copies PROFONDES des séances de la semaine 1
+                let currentSessionId = getNextSessionId({ ...newSessionsByWeek, [week]: [] });
+                let currentExerciseId = getNextExerciseId({ ...newSessionsByWeek, [week]: [] });
+                
+                newSessionsByWeek[week] = week1Sessions.map((session) => {
+                  const clonedSession = deepCloneSession(session, currentSessionId, currentExerciseId);
+                  currentSessionId++;
+                  currentExerciseId += session.exercises.length;
+                  return clonedSession;
+                });
+                
+                console.log(`[handleWeekCountChange] Semaine ${week} créée avec ${week1Sessions.length} séance(s) - clonage profond`);
               }
             }
             
@@ -1618,12 +1652,12 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         />
       )}
       <div
-        className="fixed bottom-8 z-50 transition-all duration-300"
+        className="fixed z-50 transition-all duration-300"
         style={{
           right: isFilterSidebarVisible
             ? FILTER_SIDEBAR_WIDTH + FILTER_SIDEBAR_GAP * 2
             : FILTER_SIDEBAR_GAP,
-          bottom: '120px', // Déplacer le bouton plus haut pour éviter le chevauchement
+          bottom: '32px', // Position optimale : ni trop haut, ni trop bas
         }}
       >
         <Button onClick={onSave} disabled={isSaving || !user} className="bg-primary text-white px-8 py-3 text-lg shadow-lg">
