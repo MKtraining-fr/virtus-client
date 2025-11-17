@@ -1,4 +1,4 @@
-import { Json } from './types/database';
+import type { Json } from './types/database';
 
 // ---- USER ROLES ----
 export type UserRole = 'admin' | 'coach' | 'client';
@@ -186,7 +186,7 @@ export interface WorkoutExercise {
   exerciseId: string;
   name: string;
   illustrationUrl?: string;
-  sets: number;
+  sets: number | string;
   reps: string;
   load: string;
   tempo: string;
@@ -194,12 +194,20 @@ export interface WorkoutExercise {
   intensification: { id: number; value: string }[];
   alternatives?: { id: string; name: string; illustrationUrl: string }[];
   notes?: string | null;
+  isDetailed?: boolean;
+  details?: Array<{
+    reps: string;
+    load: { value: string; unit: 'kg' | 'lbs' | '%' };
+    tempo: string;
+    rest: string;
+  }>;
 }
 
 export interface WorkoutSession {
   id: number;
   name: string;
   exercises: WorkoutExercise[];
+  dbId?: string;
 }
 
 export interface WorkoutProgram {
@@ -234,10 +242,15 @@ export interface Program {
 export interface Session {
   id: string;
   program_id: string | null;
-  coach_id: string | null;
+  created_by: string | null;
   name: string;
   week_number: number;
   session_order: number;
+  day_of_week?: number | null;
+  exercises: Json;
+  notes: string | null;
+  description: string | null;
+  is_template?: boolean | null;
   created_at: string;
   updated_at: string;
 }
