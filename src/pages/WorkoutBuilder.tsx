@@ -434,6 +434,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   const sessionDragItem = useRef<number | null>(null);
   const sessionDragOverItem = useRef<number | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
+  const previousModeRef = useRef<'session' | 'program'>(workoutMode);
 
   const sessions = useMemo(() => {
     return sessionsByWeek[selectedWeek] || [];
@@ -450,49 +451,79 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     return sessions.find((s) => s.id === activeSessionId);
   }, [sessions, activeSessionId]);
 
-  // Dupliquer automatiquement la semaine 1 lors du passage en mode programme
+  // Assurer la conversion automatique vers le mode programme et la duplication des semaines
   useEffect(() => {
-    if (workoutMode === 'program' && hasLoadedInitialData) {
-      const currentWeekCount = typeof weekCount === 'number' ? weekCount : 1;
-      const week1Sessions = sessionsByWeek[1] || [];
-      
-      // Vérifier si des semaines manquent
-      let needsDuplication = false;
-      for (let week = 2; week <= currentWeekCount; week++) {
+    if (!hasLoadedInitialData || workoutMode !== 'program') {
+      previousModeRef.current = workoutMode;
+      return;
+    }
+
+    const totalWeeks = typeof weekCount === 'number' && weekCount > 0 ? weekCount : 1;
+    const switchedFromSession = previousModeRef.current === 'session';
+
+    let needsDuplication = switchedFromSession;
+    if (!needsDuplication) {
+      for (let week = 2; week <= totalWeeks; week++) {
         if (!sessionsByWeek[week] || sessionsByWeek[week].length === 0) {
           needsDuplication = true;
           break;
         }
       }
-      
-      if (needsDuplication && week1Sessions.length > 0) {
-        console.log('[WorkoutBuilder] Passage en mode programme - duplication de la semaine 1 sur les semaines manquantes');
-        
-        setSessionsByWeek((prev) => {
-          const newSessionsByWeek = { ...prev };
-          
-          for (let week = 2; week <= currentWeekCount; week++) {
-            // Dupliquer uniquement si la semaine n'existe pas ou est vide
-            if (!newSessionsByWeek[week] || newSessionsByWeek[week].length === 0) {
-              let currentSessionId = getNextSessionId({ ...newSessionsByWeek, [week]: [] });
-              let currentExerciseId = getNextExerciseId({ ...newSessionsByWeek, [week]: [] });
-              
-              newSessionsByWeek[week] = week1Sessions.map((session) => {
-                const clonedSession = deepCloneSession(session, currentSessionId, currentExerciseId);
-                currentSessionId++;
-                currentExerciseId += session.exercises.length;
-                return clonedSession;
-              });
-              
-              console.log(`[WorkoutBuilder] Semaine ${week} dupliquée avec ${week1Sessions.length} séance(s)`);
-            }
-          }
-          
-          return newSessionsByWeek;
-        });
-      }
     }
-  }, [workoutMode, hasLoadedInitialData, weekCount]);
+
+    if (!needsDuplication) {
+      previousModeRef.current = workoutMode;
+      return;
+    }
+
+    let nextActiveSessionId: number | null = null;
+    let didChange = false;
+
+    setSessionsByWeek((prev) => {
+      const newSessionsByWeek = { ...prev };
+
+      if (!newSessionsByWeek[1] || newSessionsByWeek[1].length === 0) {
+        didChange = true;
+        const newSessionId = getNextSessionId(newSessionsByWeek);
+        newSessionsByWeek[1] = [{ ...DEFAULT_SESSION, id: newSessionId, exercises: [] }];
+      }
+
+      const baseWeekSessions = newSessionsByWeek[1] || [];
+      nextActiveSessionId = baseWeekSessions[0]?.id ?? null;
+
+      if (baseWeekSessions.length === 0) {
+        return newSessionsByWeek;
+      }
+
+      for (let week = 2; week <= totalWeeks; week++) {
+        if (!newSessionsByWeek[week] || newSessionsByWeek[week].length === 0) {
+          didChange = true;
+          let currentSessionId = getNextSessionId(newSessionsByWeek);
+          let currentExerciseId = getNextExerciseId(newSessionsByWeek);
+
+          newSessionsByWeek[week] = baseWeekSessions.map((session) => {
+            const clonedSession = deepCloneSession(session, currentSessionId, currentExerciseId);
+            currentSessionId++;
+            currentExerciseId += session.exercises.length;
+            return clonedSession;
+          });
+        }
+      }
+
+      return newSessionsByWeek;
+    });
+
+    if (switchedFromSession && nextActiveSessionId !== null) {
+      setActiveSessionId(nextActiveSessionId);
+      setSelectedWeek(1);
+    }
+
+    if (didChange) {
+      setHasUnsavedChanges(true);
+    }
+
+    previousModeRef.current = workoutMode;
+  }, [workoutMode, hasLoadedInitialData, weekCount, sessionsByWeek]);
 
   // Assurer qu'une séance active existe toujours et sélectionner automatiquement la première séance
   useEffect(() => {
@@ -1372,7 +1403,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       onBlurCapture={handleBlurCapture}
     >
       <div
-        className="flex-1 flex flex-col p-6 transition-all duration-300"
+        className="flex-1 flex flex-col p-6 pb-24 transition-all duration-300"
         style={{ paddingRight: isFilterSidebarVisible ? `${FILTER_SIDEBAR_WIDTH + FILTER_SIDEBAR_GAP}px` : '0' }}
       >
         <div className="flex justify-between items-center mb-4">
@@ -1403,15 +1434,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   value={objective}
                   onChange={(e) => setObjective(e.target.value)}
                 />
-                {workoutMode === 'program' && (
-                  <Input
-                    label="Nombre de semaines"
-                    type="number"
-                    value={weekCount}
-                    onChange={handleWeekCountChange}
-                    onBlur={handleWeekCountBlur}
-                  />
-                )}
+                <Input
+                  label="Nombre de semaines"
+                  type="number"
+                  value={weekCount}
+                  onChange={handleWeekCountChange}
+                  onBlur={handleWeekCountBlur}
+                />
                 <Select
                   label="Nom du client"
                   options={clientOptions}
@@ -1653,6 +1682,16 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   )}
                 </div>
               }
+              <div className="mt-6 flex justify-end">
+                <Button
+                  onClick={onSave}
+                  disabled={isSaving || !user}
+                  size="lg"
+                  className="shadow-lg"
+                >
+                  {isSaving ? 'Sauvegarde...' : 'Valider'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -1695,11 +1734,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           onMinimizeToggle={() => setIsHistoryModalMinimized(!isHistoryModalMinimized)}
         />
       )}
-      <div className="flex justify-end mt-8 mb-8">
-        <Button onClick={onSave} disabled={isSaving || !user} className="bg-primary text-white px-8 py-3 text-lg shadow-lg">
-          {isSaving ? 'Sauvegarde...' : 'Valider'}
-        </Button>
-      </div>
     </div>
   );
 };
