@@ -938,14 +938,35 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
   const onSave = async () => {
     setIsSaving(true);
+    console.log('[onSave] Début de la sauvegarde du programme');
+    
     try {
+      // Étape 1 : Validation de l'utilisateur
       if (!user?.id) {
         throw new Error('Utilisateur non authentifié.');
       }
+      console.log('[onSave] Utilisateur authentifié:', user.id);
 
-      // Calculer le nombre de séances par semaine (basé sur la semaine 1)
+      // Étape 2 : Validation des données du programme
       const week1Sessions = sessionsByWeek[1] || [];
       const sessionsPerWeek = week1Sessions.length;
+      
+      console.log('[onSave] Données du programme:', {
+        programName,
+        objective,
+        weekCount,
+        sessionsPerWeek,
+        totalWeeks: Object.keys(sessionsByWeek).length,
+        sessionsByWeek: Object.keys(sessionsByWeek).map(week => ({
+          week,
+          sessionCount: sessionsByWeek[parseInt(week)].length
+        }))
+      });
+
+      // Validation : vérifier qu'il y a au moins une séance
+      if (sessionsPerWeek === 0) {
+        throw new Error('Impossible de sauvegarder un programme sans séance. Veuillez ajouter au moins une séance.');
+      }
 
       const programData = {
         name: programName,
@@ -955,108 +976,168 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         coach_id: user.id,
       };
 
+      // Étape 3 : Sauvegarde du programme
+      console.log('[onSave] Sauvegarde du programme...', programData);
       const savedProgram = editProgramId
         ? await updateProgramService(editProgramId, programData)
         : await createProgram(programData);
+      
       if (!savedProgram) {
-        throw new Error('La sauvegarde du programme a échoué.');
+        throw new Error('La sauvegarde du programme a échoué. Vérifiez les permissions et la connexion à la base de données.');
       }
+      console.log('[onSave] Programme sauvegardé avec succès:', savedProgram.id);
 
-      // Créer un tableau de sessions avec leur numéro de semaine
+      // Étape 4 : Préparation des sessions
+      console.log('[onSave] Préparation des sessions...');
       const currentProgramSessions: Array<{ session: WorkoutSession; weekNumber: number }> = [];
       Object.entries(sessionsByWeek).forEach(([week, sessions]) => {
         sessions.forEach((session) => {
           currentProgramSessions.push({ session, weekNumber: parseInt(week) });
         });
       });
+      console.log('[onSave] Nombre total de sessions à sauvegarder:', currentProgramSessions.length);
 
+      // Étape 5 : Suppression des sessions obsolètes
       const existingSessionIds = (storedSessions || [])
         .filter((s) => s.program_id === savedProgram.id)
         .map((s) => s.id);
       const sessionsToDelete = existingSessionIds.filter(
         (id) => !currentProgramSessions.some((s) => s.session.dbId === id)
       );
+      
+      if (sessionsToDelete.length > 0) {
+        console.log('[onSave] Suppression de', sessionsToDelete.length, 'sessions obsolètes');
+        await Promise.all(sessionsToDelete.map((id) => deleteSession(id)));
+      }
 
-      await Promise.all(sessionsToDelete.map((id) => deleteSession(id)));
-
-      const sessionPromises = currentProgramSessions.map(async ({ session, weekNumber }) => {
-        const sessionData = {
-          program_id: savedProgram.id,
-          name: session.name,
-          week_number: weekNumber,
-          session_order: session.id,
-        };
-        const savedSession = session.dbId
-          ? await updateSession(session.dbId, sessionData)
-          : await createSession(sessionData);
-
-        if (!savedSession) {
-          throw new Error(`La sauvegarde de la session ${session.name} a échoué.`);
-        }
-
-        const currentSessionExercises = session.exercises;
-        const existingExerciseIds =
-          (storedSessions || []).find((s) => s.id === savedSession.id)?.exercises?.map((ex) => ex.id) || []; // Assuming storedSessions has exercises
-        const exercisesToDelete = existingExerciseIds.filter(
-          (id) => !currentSessionExercises.some((ex) => ex.dbId === id)
-        );
-
-        await Promise.all(exercisesToDelete.map((id) => deleteSessionExercise(id)));
-
-        const exercisePromises = currentSessionExercises.map(async (exercise, index) => {
-          // Extraire les valeurs du premier détail pour les exercices simples
-          const firstDetail = exercise.details?.[0];
-          const loadValue = firstDetail?.load?.value || '';
-          const loadUnit = firstDetail?.load?.unit || 'kg';
-          const load = loadValue ? `${loadValue} ${loadUnit}` : '';
+      // Étape 6 : Sauvegarde des sessions et exercices
+      console.log('[onSave] Sauvegarde des sessions...');
+      const sessionPromises = currentProgramSessions.map(async ({ session, weekNumber }, sessionIndex) => {
+        try {
+          console.log(`[onSave] Sauvegarde session ${sessionIndex + 1}/${currentProgramSessions.length}: ${session.name} (Semaine ${weekNumber})`);
           
-          const exerciseData = {
-            exercise_id: exercise.exerciseId,
-            exercise_order: index + 1,
-            sets: parseInt(exercise.sets, 10) || 1,
-            reps: firstDetail?.reps || exercise.sets,
-            load: load || undefined,
-            tempo: firstDetail?.tempo || undefined,
-            rest_time: firstDetail?.rest || undefined,
-            intensification: exercise.intensification ? JSON.stringify(exercise.intensification) : undefined,
-            notes: exercise.notes || undefined,
+          const sessionData = {
+            program_id: savedProgram.id,
+            name: session.name,
+            week_number: weekNumber,
+            session_order: session.id,
           };
           
-          if (exercise.dbId) {
-            return await updateSessionExercise(exercise.dbId, exerciseData);
-          } else {
-            return await addExerciseToSession(savedSession.id, exerciseData);
+          const savedSession = session.dbId
+            ? await updateSession(session.dbId, sessionData)
+            : await createSession(sessionData);
+
+          if (!savedSession) {
+            throw new Error(`La sauvegarde de la session ${session.name} (semaine ${weekNumber}) a échoué.`);
           }
-        });
-        return Promise.all(exercisePromises);
+          console.log(`[onSave] Session ${session.name} sauvegardée avec succès:`, savedSession.id);
+
+          // Suppression des exercices obsolètes
+          const currentSessionExercises = session.exercises;
+          const existingExerciseIds =
+            (storedSessions || []).find((s) => s.id === savedSession.id)?.exercises?.map((ex) => ex.id) || [];
+          const exercisesToDelete = existingExerciseIds.filter(
+            (id) => !currentSessionExercises.some((ex) => ex.dbId === id)
+          );
+
+          if (exercisesToDelete.length > 0) {
+            console.log(`[onSave] Suppression de ${exercisesToDelete.length} exercices obsolètes de la session ${session.name}`);
+            await Promise.all(exercisesToDelete.map((id) => deleteSessionExercise(id)));
+          }
+
+          // Sauvegarde des exercices
+          console.log(`[onSave] Sauvegarde de ${currentSessionExercises.length} exercices pour la session ${session.name}`);
+          const exercisePromises = currentSessionExercises.map(async (exercise, index) => {
+            try {
+              // Validation : vérifier que l'exercice a un ID valide
+              if (!exercise.exerciseId) {
+                console.warn(`[onSave] Exercice ignoré (pas d'exerciseId):`, exercise.name || 'Sans nom');
+                return null; // Ignorer les exercices sans ID
+              }
+
+              // Extraire les valeurs du premier détail pour les exercices simples
+              const firstDetail = exercise.details?.[0];
+              const loadValue = firstDetail?.load?.value || '';
+              const loadUnit = firstDetail?.load?.unit || 'kg';
+              const load = loadValue ? `${loadValue} ${loadUnit}` : '';
+              
+              const exerciseData = {
+                exercise_id: exercise.exerciseId,
+                exercise_order: index + 1,
+                sets: parseInt(exercise.sets, 10) || 1,
+                reps: firstDetail?.reps || exercise.sets,
+                load: load || undefined,
+                tempo: firstDetail?.tempo || undefined,
+                rest_time: firstDetail?.rest || undefined,
+                intensification: exercise.intensification ? JSON.stringify(exercise.intensification) : undefined,
+                notes: exercise.notes || undefined,
+              };
+              
+              console.log(`[onSave] Sauvegarde exercice ${index + 1}: ${exercise.name}`, exerciseData);
+              
+              if (exercise.dbId) {
+                return await updateSessionExercise(exercise.dbId, exerciseData);
+              } else {
+                return await addExerciseToSession(savedSession.id, exerciseData);
+              }
+            } catch (exerciseError) {
+              console.error(`[onSave] Erreur lors de la sauvegarde de l'exercice ${exercise.name}:`, exerciseError);
+              throw new Error(`Échec de la sauvegarde de l'exercice "${exercise.name}" dans la session "${session.name}": ${exerciseError.message}`);
+            }
+          });
+          
+          const exerciseResults = await Promise.all(exercisePromises);
+          const successfulExercises = exerciseResults.filter(r => r !== null).length;
+          console.log(`[onSave] ${successfulExercises} exercices sauvegardés avec succès pour la session ${session.name}`);
+          
+          return exerciseResults;
+        } catch (sessionError) {
+          console.error(`[onSave] Erreur lors de la sauvegarde de la session ${session.name}:`, sessionError);
+          throw new Error(`Échec de la sauvegarde de la session "${session.name}" (semaine ${weekNumber}): ${sessionError.message}`);
+        }
       });
 
       await Promise.all(sessionPromises);
+      console.log('[onSave] Toutes les sessions et exercices ont été sauvegardés avec succès');
 
+      // Étape 7 : Mise à jour de l'état local
       setEditProgramId(savedProgram.id);
       setIsEditMode(true);
       setLastSavedAt(new Date().toISOString());
       setHasUnsavedChanges(false);
+      console.log('[onSave] État local mis à jour');
+      
       addNotification({ message: 'Programme sauvegardé avec succès !', type: 'success' });
 
       // Refresh auth context data is now handled by createProgram/updateProgramService in programService
 
       // Étape 8 : Assignement automatique si un client est sélectionné
       if (selectedClient !== '0' && savedProgram.id) {
+        console.log('[onSave] Assignement du programme au client:', selectedClient);
         const templateId = savedProgram.id;
         const clientId = selectedClient;
         const coachId = user.id;
         const startDate = new Date().toISOString().split('T')[0];
 
-        // L'assignement est fait à partir du template (le programme que l'on vient de créer)
-        const assignmentId = await assignProgramToClient(templateId, clientId, coachId, startDate);
+        try {
+          // L'assignement est fait à partir du template (le programme que l'on vient de créer)
+          const assignmentId = await assignProgramToClient(templateId, clientId, coachId, startDate);
 
-        if (assignmentId) {
-          addNotification({
-            message: `Programme sauvegardé et assigné automatiquement au client ${clientData?.firstName} !`,
-            type: 'success',
-          });
-        } else {
+          if (assignmentId) {
+            console.log('[onSave] Programme assigné avec succès au client');
+            addNotification({
+              message: `Programme sauvegardé et assigné automatiquement au client ${clientData?.firstName} !`,
+              type: 'success',
+            });
+          } else {
+            console.warn('[onSave] Échec de l\'assignement du programme au client');
+            addNotification({
+              message: `Programme sauvegardé, mais l'assignement automatique au client ${clientData?.firstName} a échoué.`,
+              type: 'warning',
+            });
+          }
+        } catch (assignmentError) {
+          console.error('[onSave] Erreur lors de l\'assignement du programme:', assignmentError);
           addNotification({
             message: `Programme sauvegardé, mais l'assignement automatique au client ${clientData?.firstName} a échoué.`,
             type: 'warning',
@@ -1064,11 +1145,23 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         }
       }
 
+      console.log('[onSave] Sauvegarde terminée avec succès');
+
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde du programme :', error);
-      addNotification({ message: 'Erreur lors de la sauvegarde du programme.', type: 'error' });
+      console.error('[onSave] ERREUR CRITIQUE lors de la sauvegarde:', error);
+      
+      // Message d'erreur détaillé pour l'utilisateur
+      const errorMessage = error instanceof Error 
+        ? `Erreur lors de la sauvegarde : ${error.message}` 
+        : 'Erreur inconnue lors de la sauvegarde du programme.';
+      
+      addNotification({ 
+        message: errorMessage, 
+        type: 'error' 
+      });
     } finally {
       setIsSaving(false);
+      console.log('[onSave] Fin de la tentative de sauvegarde');
     }
   };
 
