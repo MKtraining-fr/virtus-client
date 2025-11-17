@@ -208,6 +208,7 @@ export interface WorkoutSession {
   name: string;
   exercises: WorkoutExercise[];
   dbId?: string;
+  programId?: string;
 }
 
 export interface WorkoutProgram {

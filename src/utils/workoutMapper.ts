@@ -82,6 +82,8 @@ export const mapSessionToWorkoutSession = (session: Session): WorkoutSession => 
     id: session.session_order || 0,
     name: session.name,
     exercises: [],
+    dbId: session.id,
+    programId: session.program_id || undefined,
   };
 };
 

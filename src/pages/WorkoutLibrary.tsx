@@ -1,15 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import {
-  WorkoutProgram,
-  WorkoutSession,
-  Client,
-  Program as SupabaseProgram,
-  Session as SupabaseSession,
-  SessionExercise as SupabaseSessionExercise,
-} from '../types';
+import { WorkoutProgram, WorkoutSession, SessionExercise as SupabaseSessionExercise } from '../types';
 
 import { reconstructWorkoutProgram } from '../utils/workoutMapper';
 import { useAuth } from '../context/AuthContext';
@@ -22,11 +15,19 @@ import {
   getSessionsByProgramId,
   getSessionExercisesBySessionId,
   getExercisesByIds,
+  deleteProgram,
 } from '../services/programService';
+import { deleteSession } from '../services/sessionService';
 
 const WorkoutLibrary: React.FC = () => {
   const { user, clients, setClients, addNotification } = useAuth();
-  const { programs, sessions, isLoading } = useSupabaseWorkoutData(user?.id, addNotification);
+  const {
+    programs,
+    sessions,
+    isLoading,
+    removeProgramFromState,
+    removeSessionFromState,
+  } = useSupabaseWorkoutData(user?.id, addNotification);
 
   // Charger les comptes d'assignement
   useEffect(() => {
@@ -49,6 +50,8 @@ const WorkoutLibrary: React.FC = () => {
   const [assignmentCounts, setAssignmentCounts] = useState<Record<string, number>>({});
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [programToPreview, setProgramToPreview] = useState<WorkoutProgram | null>(null);
+  const [deletingProgramId, setDeletingProgramId] = useState<string | null>(null);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
   const myClients = useMemo(() => {
     return clients.filter(
@@ -155,6 +158,68 @@ const WorkoutLibrary: React.FC = () => {
     setIsPreviewModalOpen(true);
   };
 
+  const handleDeleteProgram = async (programId: string, programName: string) => {
+    const confirmed = window.confirm(
+      `Voulez-vous vraiment supprimer le programme "${programName}" ? Cette action est définitive.`
+    );
+    if (!confirmed) return;
+
+    setDeletingProgramId(programId);
+    const success = await deleteProgram(programId);
+
+    if (success) {
+      removeProgramFromState(programId);
+      setAssignmentCounts((prev) => {
+        const { [programId]: _removed, ...rest } = prev;
+        return rest;
+      });
+      addNotification({
+        message: `Programme "${programName}" supprimé avec succès.`,
+        type: 'success',
+      });
+    } else {
+      addNotification({
+        message: 'Erreur lors de la suppression du programme.',
+        type: 'error',
+      });
+    }
+
+    setDeletingProgramId(null);
+  };
+
+  const handleDeleteSession = async (session: WorkoutSession) => {
+    if (!session.dbId) {
+      addNotification({
+        message: 'Impossible de supprimer cette séance : identifiant manquant.',
+        type: 'error',
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Voulez-vous vraiment supprimer la séance "${session.name}" ? Cette action est définitive.`
+    );
+    if (!confirmed) return;
+
+    setDeletingSessionId(session.dbId);
+    const success = await deleteSession(session.dbId);
+
+    if (success) {
+      removeSessionFromState(session.dbId);
+      addNotification({
+        message: `Séance "${session.name}" supprimée avec succès.`,
+        type: 'success',
+      });
+    } else {
+      addNotification({
+        message: 'Erreur lors de la suppression de la séance.',
+        type: 'error',
+      });
+    }
+
+    setDeletingSessionId(null);
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -223,6 +288,14 @@ const WorkoutLibrary: React.FC = () => {
                     <Button size="sm" onClick={() => handleOpenAssignModal(program)}>
                       Assigner
                     </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleDeleteProgram(program.id, program.name)}
+                      isLoading={deletingProgramId === program.id}
+                    >
+                      Supprimer
+                    </Button>
                   </div>
                 </Card>
               ))}
@@ -240,7 +313,7 @@ const WorkoutLibrary: React.FC = () => {
           ) : (
             <>
               {sessions.map((session: WorkoutSession) => (
-                <Card key={session.id} className="flex flex-col">
+                <Card key={session.dbId || session.id} className="flex flex-col">
                   <div className="p-6 flex-grow">
                     <h3 className="text-lg font-semibold text-gray-900">{session.name}</h3>
                     <p className="text-sm text-gray-500 mt-1">
@@ -253,7 +326,7 @@ const WorkoutLibrary: React.FC = () => {
                       size="sm"
                       onClick={() =>
                         navigate(
-                          `/app/musculation/createur?editProgramId=${session.programId}&editSessionId=${session.id}`
+                          `/app/musculation/createur?editProgramId=${session.programId}&editSessionId=${session.dbId || session.id}`
                         )
                       }
                     >
@@ -261,6 +334,15 @@ const WorkoutLibrary: React.FC = () => {
                     </Button>
                     <Button size="sm" onClick={() => handleOpenAssignModal(session)}>
                       Assigner
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleDeleteSession(session)}
+                      isLoading={deletingSessionId === session.dbId}
+                      disabled={!session.dbId}
+                    >
+                      Supprimer
                     </Button>
                   </div>
                 </Card>
@@ -352,67 +434,76 @@ const useSupabaseWorkoutData = (
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchProgramsAndSessions = async () => {
-      if (!coachId) {
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const supabasePrograms = await getProgramsByCoachId(coachId);
-        const allWorkoutPrograms: WorkoutProgram[] = [];
-        const allWorkoutSessions: WorkoutSession[] = [];
+  const fetchProgramsAndSessions = useCallback(async () => {
+    if (!coachId) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const supabasePrograms = await getProgramsByCoachId(coachId);
+      const allWorkoutPrograms: WorkoutProgram[] = [];
+      const allWorkoutSessions: WorkoutSession[] = [];
 
-        for (const program of supabasePrograms) {
-          const supabaseSessions = await getSessionsByProgramId(program.id);
-          const allSessionExercises: Map<string, SupabaseSessionExercise[]> = new Map();
-          const exerciseIds = new Set<string>();
+      for (const program of supabasePrograms) {
+        const supabaseSessions = await getSessionsByProgramId(program.id);
+        const allSessionExercises: Map<string, SupabaseSessionExercise[]> = new Map();
+        const exerciseIds = new Set<string>();
 
-          for (const session of supabaseSessions) {
-            const exercises = await getSessionExercisesBySessionId(session.id);
-            allSessionExercises.set(session.id, exercises);
-            exercises.forEach((ex) => {
-              if (ex.exercise_id) exerciseIds.add(ex.exercise_id);
-            });
-          }
-
-          const exerciseDetails = await getExercisesByIds(Array.from(exerciseIds));
-          const exerciseNamesMap = new Map<string, { name: string; illustrationUrl: string }>();
-          exerciseDetails.forEach((ex) =>
-            exerciseNamesMap.set(ex.id, {
-              name: ex.name,
-              illustrationUrl: ex.illustration_url || '',
-            })
-          );
-
-          const workoutProgram = reconstructWorkoutProgram(
-            program,
-            supabaseSessions,
-            allSessionExercises,
-            exerciseNamesMap
-          );
-          allWorkoutPrograms.push(workoutProgram);
-
-          Object.values(workoutProgram.sessionsByWeek).forEach((weekSessions) => {
-            allWorkoutSessions.push(...weekSessions);
+        for (const session of supabaseSessions) {
+          const exercises = await getSessionExercisesBySessionId(session.id);
+          allSessionExercises.set(session.id, exercises);
+          exercises.forEach((ex) => {
+            if (ex.exercise_id) exerciseIds.add(ex.exercise_id);
           });
         }
-        setPrograms(allWorkoutPrograms);
-        setSessions(allWorkoutSessions);
-      } catch (error) {
-        console.error('Erreur lors du chargement des programmes/sessions depuis Supabase:', error);
-        addNotification({
-          message: 'Erreur lors du chargement des programmes et sessions.',
-          type: 'error',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
-    fetchProgramsAndSessions();
+        const exerciseDetails = await getExercisesByIds(Array.from(exerciseIds));
+        const exerciseNamesMap = new Map<string, { name: string; illustrationUrl: string }>();
+        exerciseDetails.forEach((ex) =>
+          exerciseNamesMap.set(ex.id, {
+            name: ex.name,
+            illustrationUrl: ex.illustration_url || '',
+          })
+        );
+
+        const workoutProgram = reconstructWorkoutProgram(
+          program,
+          supabaseSessions,
+          allSessionExercises,
+          exerciseNamesMap
+        );
+        allWorkoutPrograms.push(workoutProgram);
+
+        Object.values(workoutProgram.sessionsByWeek).forEach((weekSessions) => {
+          allWorkoutSessions.push(...weekSessions);
+        });
+      }
+      setPrograms(allWorkoutPrograms);
+      setSessions(allWorkoutSessions);
+    } catch (error) {
+      console.error('Erreur lors du chargement des programmes/sessions depuis Supabase:', error);
+      addNotification({
+        message: 'Erreur lors du chargement des programmes et sessions.',
+        type: 'error',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, [coachId, addNotification]);
 
-  return { programs, sessions, isLoading };
+  useEffect(() => {
+    fetchProgramsAndSessions();
+  }, [fetchProgramsAndSessions]);
+
+  const removeProgramFromState = useCallback((programId: string) => {
+    setPrograms((prev) => prev.filter((program) => program.id !== programId));
+    setSessions((prev) => prev.filter((session) => session.programId !== programId));
+  }, []);
+
+  const removeSessionFromState = useCallback((sessionId: string) => {
+    setSessions((prev) => prev.filter((session) => session.dbId !== sessionId));
+  }, []);
+
+  return { programs, sessions, isLoading, removeProgramFromState, removeSessionFromState };
 };
