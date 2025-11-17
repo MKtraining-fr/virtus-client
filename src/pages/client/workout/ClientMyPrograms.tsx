@@ -83,18 +83,26 @@ const ClientMyPrograms: React.FC = () => {
   // Récupérer les programmes créés par le client ET les programmes assignés depuis Supabase
   useEffect(() => {
     const fetchPrograms = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        console.error('[ClientMyPrograms] ❌ User ID is missing!');
+        return;
+      }
+      
+      console.log('[ClientMyPrograms] 🔍 Fetching programs for user ID:', user.id);
       setLoading(true);
       
       // Charger les programmes créés par le client
       const createdPrograms = await getClientCreatedPrograms(user.id);
+      console.log('[ClientMyPrograms] 📊 Created programs:', createdPrograms);
       setClientPrograms(createdPrograms);
       
       // Charger les programmes assignés par le coach depuis Supabase
       const assigned = await getClientAssignedPrograms(user.id);
+      console.log('[ClientMyPrograms] 📊 Assigned programs:', assigned);
       setAssignedPrograms(assigned);
       
       setLoading(false);
+      console.log('[ClientMyPrograms] ✅ Programs loaded successfully');
     };
     fetchPrograms();
   }, [user?.id]);

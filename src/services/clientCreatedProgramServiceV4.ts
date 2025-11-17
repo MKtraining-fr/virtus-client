@@ -22,6 +22,8 @@ export const getClientCreatedPrograms = async (
   clientId: string
 ): Promise<ClientCreatedProgram[]> => {
   try {
+    console.log('[DEBUG] 🔍 Fetching programs for client:', clientId);
+    
     // Récupérer les programmes
     const { data: programs, error: programsError } = await supabase
       .from('client_created_programs')
@@ -29,13 +31,21 @@ export const getClientCreatedPrograms = async (
       .eq('client_id', clientId)
       .order('created_at', { ascending: false });
 
+    console.log('[DEBUG] 📊 Programs fetched:', programs);
+    console.log('[DEBUG] ❌ Programs error:', programsError);
+
     if (programsError) throw programsError;
-    if (!programs || programs.length === 0) return [];
+    if (!programs || programs.length === 0) {
+      console.warn('[DEBUG] ⚠️ No programs found for client:', clientId);
+      return [];
+    }
 
     // Pour chaque programme, récupérer les séances et exercices
     const enrichedPrograms: ClientCreatedProgram[] = [];
 
     for (const program of programs) {
+      console.log('[DEBUG] 📋 Processing program:', program.id, program.name);
+      
       // Récupérer les séances du programme
       const { data: sessions, error: sessionsError } = await supabase
         .from('client_created_sessions')
@@ -43,6 +53,9 @@ export const getClientCreatedPrograms = async (
         .eq('program_id', program.id)
         .order('week_number', { ascending: true })
         .order('session_order', { ascending: true });
+
+      console.log('[DEBUG] 📝 Sessions for program', program.id, ':', sessions);
+      console.log('[DEBUG] ❌ Sessions error:', sessionsError);
 
       if (sessionsError) throw sessionsError;
 
@@ -52,6 +65,8 @@ export const getClientCreatedPrograms = async (
 
       if (sessions && sessions.length > 0) {
         for (const session of sessions) {
+          console.log('[DEBUG] 💪 Processing session:', session.id, session.name);
+          
           // Récupérer les exercices de la séance SANS jointure
           const { data: sessionExercises, error: exercisesError } = await supabase
             .from('client_created_session_exercises')
@@ -59,13 +74,17 @@ export const getClientCreatedPrograms = async (
             .eq('session_id', session.id)
             .order('exercise_order', { ascending: true});
 
+          console.log('[DEBUG] 🏋️ Exercises for session', session.id, ':', sessionExercises);
+          console.log('[DEBUG] ❌ Exercises error:', exercisesError);
+
           if (exercisesError) {
-            console.error('Error fetching session exercises:', exercisesError);
+            console.error('[ERROR] Error fetching session exercises:', exercisesError);
             throw exercisesError;
           }
 
           // Récupérer les IDs d'exercices uniques
           const exerciseIds = sessionExercises?.map((ex: any) => ex.exercise_id) || [];
+          console.log('[DEBUG] 🔑 Exercise IDs to fetch:', exerciseIds);
           
           // Récupérer les infos des exercices séparément
           const { data: exercisesInfo, error: exercisesInfoError } = await supabase
@@ -73,8 +92,11 @@ export const getClientCreatedPrograms = async (
             .select('id, name, image_url')
             .in('id', exerciseIds);
 
+          console.log('[DEBUG] 📚 Exercises info:', exercisesInfo);
+          console.log('[DEBUG] ❌ Exercises info error:', exercisesInfoError);
+
           if (exercisesInfoError) {
-            console.error('Error fetching exercises info:', exercisesInfoError);
+            console.error('[ERROR] Error fetching exercises info:', exercisesInfoError);
             throw exercisesInfoError;
           }
 
@@ -132,7 +154,7 @@ export const getClientCreatedPrograms = async (
       // Calculer session_count (nombre de séances dans la première semaine)
       const sessionCount = sessionsByWeek[1]?.length || 0;
 
-      enrichedPrograms.push({
+      const enrichedProgram = {
         id: program.id,
         client_id: program.client_id,
         coach_id: program.coach_id,
@@ -144,12 +166,17 @@ export const getClientCreatedPrograms = async (
         sessions_by_week: sessionsByWeek,
         created_at: program.created_at,
         updated_at: program.updated_at,
-      });
+      };
+      
+      console.log('[DEBUG] ✅ Enriched program:', enrichedProgram);
+      enrichedPrograms.push(enrichedProgram);
     }
 
+    console.log('[DEBUG] 🎉 Total enriched programs:', enrichedPrograms.length);
     return enrichedPrograms;
   } catch (error) {
-    console.error('Error fetching client created programs:', error);
+    console.error('[ERROR] ❌ Error fetching client created programs:', error);
+    console.error('[ERROR] 📍 Error details:', JSON.stringify(error, null, 2));
     return [];
   }
 };
@@ -395,7 +422,7 @@ export const getCoachVisiblePrograms = async (
 
       const sessionCount = sessionsByWeek[1]?.length || 0;
 
-      enrichedPrograms.push({
+      const enrichedProgram = {
         id: program.id,
         client_id: program.client_id,
         coach_id: program.coach_id,
@@ -407,9 +434,13 @@ export const getCoachVisiblePrograms = async (
         sessions_by_week: sessionsByWeek,
         created_at: program.created_at,
         updated_at: program.updated_at,
-      });
+      };
+      
+      console.log('[DEBUG] ✅ Enriched program:', enrichedProgram);
+      enrichedPrograms.push(enrichedProgram);
     }
 
+    console.log('[DEBUG] 🎉 Total enriched programs:', enrichedPrograms.length);
     return enrichedPrograms;
   } catch (error) {
     console.error('Error fetching coach visible programs:', error);
