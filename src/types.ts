@@ -243,6 +243,7 @@ export interface Session {
   id: string;
   program_id: string | null;
   created_by: string | null;
+  coach_id?: string | null;
   name: string;
   week_number: number;
   session_order: number;

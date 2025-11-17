@@ -190,6 +190,7 @@ export interface Database {
         Row: {
           id: string;
           program_id: string | null;
+          coach_id: string | null;
           name: string;
           day_of_week: number | null;
           exercises: Json;
@@ -204,6 +205,7 @@ export interface Database {
         Insert: {
           id?: string;
           program_id?: string | null;
+          coach_id?: string | null;
           name: string;
           day_of_week?: number | null;
           exercises: Json;
@@ -218,6 +220,7 @@ export interface Database {
         Update: {
           id?: string;
           program_id?: string | null;
+          coach_id?: string | null;
           name?: string;
           day_of_week?: number | null;
           exercises?: Json;

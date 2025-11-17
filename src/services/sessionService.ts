@@ -40,6 +40,7 @@ export const createSession = async (sessionData: SessionInput): Promise<Session 
       .from('sessions')
       .insert({
         created_by: user.id,
+        coach_id: user.id,
         ...sessionData,
         exercises: sessionData.exercises ?? [],
       })
