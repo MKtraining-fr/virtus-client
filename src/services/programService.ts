@@ -84,39 +84,24 @@ export const getSessionsByProgramId = async (programId: string) => {
 };
 
 /**
- * Récupère les exercices d'une séance spécifique
- * Alias pour getSessionExercises de sessionService pour compatibilité
+ * Récupère les exercices d'une séance spécifique depuis la table session_exercises
  * @param sessionId - ID de la séance
  * @returns Liste des exercices de la séance
  */
 export const getSessionExercisesBySessionId = async (sessionId: string) => {
   try {
     const { data, error } = await supabase
-      .from('sessions')
-      .select('exercises')
-      .eq('id', sessionId)
-      .single();
+      .from('session_exercises')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('exercise_order', { ascending: true });
 
     if (error) {
       console.error('Erreur lors de la récupération des exercices de séance:', error);
       return [];
     }
 
-    const exercises = Array.isArray(data?.exercises) ? data?.exercises : [];
-
-    return exercises.map((exercise: any, index: number) => ({
-      ...exercise,
-      session_id: sessionId,
-      exercise_id: exercise?.exercise_id ?? null,
-      exercise_order: exercise?.exercise_order ?? index + 1,
-      sets: exercise?.sets ?? null,
-      reps: exercise?.reps ?? null,
-      load: exercise?.load ?? null,
-      tempo: exercise?.tempo ?? null,
-      rest_time: exercise?.rest_time ?? null,
-      intensification: exercise?.intensification ?? null,
-      notes: exercise?.notes ?? null,
-    }));
+    return data || [];
   } catch (error) {
     console.error('Erreur globale lors de la récupération des exercices de séance:', error);
     return [];

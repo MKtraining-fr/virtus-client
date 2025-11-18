@@ -9,7 +9,6 @@ export interface Session {
   name: string;
   week_number: number;
   session_order: number;
-  exercises: Json;
   notes?: string | null;
   description?: string | null;
   day_of_week?: number | null;
@@ -22,7 +21,6 @@ export interface SessionInput {
   name: string;
   week_number: number;
   session_order: number;
-  exercises: Json;
   notes?: string;
   description?: string;
   day_of_week?: number;
@@ -42,7 +40,6 @@ export const createSession = async (sessionData: SessionInput): Promise<Session 
         created_by: user.id,
         coach_id: user.id,
         ...sessionData,
-        exercises: sessionData.exercises ?? [],
       })
       .select()
       .single();
@@ -122,10 +119,6 @@ export const updateSession = async (
       ...updates,
       updated_at: new Date().toISOString(),
     };
-
-    if (updates.exercises !== undefined) {
-      payload.exercises = updates.exercises;
-    }
 
     const { data, error } = await supabase
       .from('sessions')
