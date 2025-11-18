@@ -19,15 +19,9 @@ import {
   SessionExercise as SupabaseSessionExercise,
 } from '../types.ts';
 import { useLocalStorage } from '../hooks/useLocalStorage.ts';
+import type { Json } from '../types/database.ts';
 import { reconstructWorkoutProgram } from '../utils/workoutMapper.ts';
-import {
-  createSession,
-  updateSession,
-  deleteSession,
-  addExerciseToSession,
-  updateSessionExercise,
-  deleteSessionExercise,
-} from '../services/sessionService.ts';
+import { createSession, updateSession, deleteSession } from '../services/sessionService.ts';
 import { assignProgramToClient } from '../services/programAssignmentService.ts';
 import {
   getProgramById,
@@ -321,6 +315,50 @@ const deepCloneSession = (session: EditableWorkoutSession, newSessionId: number,
     }),
     templateSessionId: session.templateSessionId ?? session.id,
   };
+};
+
+const buildSessionExercisesPayload = (exercises: EditableWorkoutExercise[]): Json => {
+  const payload = exercises.reduce((acc, exercise) => {
+    if (!exercise.exerciseId) {
+      console.warn('[WorkoutBuilder] Exercice ignoré (pas d\'exerciseId) :', exercise.name || 'Sans nom');
+      return acc;
+    }
+
+    const normalized = normalizeWorkoutExercise(exercise);
+    const details = ensureDetailsArray(normalized.details, String(normalized.sets));
+    const mainDetail = details[0] || createDefaultDetail();
+    const parsedSets = parseInt(String(normalized.sets), 10);
+    const sets = Number.isNaN(parsedSets) ? details.length : parsedSets;
+
+    acc.push({
+      id: exercise.dbId ?? `temp-${exercise.id}`,
+      exercise_id: normalized.exerciseId || null,
+      exercise_order: acc.length + 1,
+      sets,
+      reps: mainDetail.reps || null,
+      load: mainDetail.load?.value
+        ? `${mainDetail.load.value}${mainDetail.load.unit || 'kg'}`
+        : null,
+      tempo: mainDetail.tempo || null,
+      rest_time: mainDetail.rest || null,
+      intensification: normalized.intensification || [],
+      notes: normalized.notes ?? null,
+      alternatives: normalized.alternatives || [],
+      is_detailed: normalized.isDetailed ?? false,
+      details: details.map((detail) => ({
+        reps: detail.reps || DEFAULT_DETAIL_TEMPLATE.reps,
+        tempo: detail.tempo || DEFAULT_DETAIL_TEMPLATE.tempo,
+        rest: detail.rest || DEFAULT_DETAIL_TEMPLATE.rest,
+        load: {
+          value: detail.load?.value ?? DEFAULT_DETAIL_TEMPLATE.load.value,
+          unit: detail.load?.unit ?? DEFAULT_DETAIL_TEMPLATE.load.unit,
+        },
+      })),
+    });
+    return acc;
+  }, [] as Array<Record<string, unknown>>);
+
+  return payload as Json;
 };
 
 const mirrorWeekOneStructure = (state: SessionsByWeekState): SessionsByWeekState => {
@@ -1309,13 +1347,17 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         try {
           console.log(`[onSave] Sauvegarde session ${sessionIndex + 1}/${currentProgramSessions.length}: ${session.name} (Semaine ${weekNumber})`);
           
+          const currentSessionExercises = session.exercises;
+          const exercisesPayload = buildSessionExercisesPayload(currentSessionExercises);
+
           const sessionData = {
             program_id: savedProgram.id,
             name: session.name,
             week_number: weekNumber,
             session_order: session.id,
+            exercises: exercisesPayload,
           };
-          
+
           const savedSession = session.dbId
             ? await updateSession(session.dbId, sessionData)
             : await createSession(sessionData);
@@ -1324,66 +1366,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             throw new Error(`La sauvegarde de la session ${session.name} (semaine ${weekNumber}) a échoué.`);
           }
           console.log(`[onSave] Session ${session.name} sauvegardée avec succès:`, savedSession.id);
-
-          // Suppression des exercices obsolètes
-          const currentSessionExercises = session.exercises;
-          const existingExerciseIds =
-            (storedSessions || []).find((s) => s.id === savedSession.id)?.exercises?.map((ex) => ex.id) || [];
-          const exercisesToDelete = existingExerciseIds.filter(
-            (id) => !currentSessionExercises.some((ex) => ex.dbId === id)
+          console.log(
+            `[onSave] ${currentSessionExercises.length} exercices enregistrés dans la session ${session.name}`
           );
 
-          if (exercisesToDelete.length > 0) {
-            console.log(`[onSave] Suppression de ${exercisesToDelete.length} exercices obsolètes de la session ${session.name}`);
-            await Promise.all(exercisesToDelete.map((id) => deleteSessionExercise(id)));
-          }
-
-          // Sauvegarde des exercices
-          console.log(`[onSave] Sauvegarde de ${currentSessionExercises.length} exercices pour la session ${session.name}`);
-          const exercisePromises = currentSessionExercises.map(async (exercise, index) => {
-            try {
-              // Validation : vérifier que l'exercice a un ID valide
-              if (!exercise.exerciseId) {
-                console.warn(`[onSave] Exercice ignoré (pas d'exerciseId):`, exercise.name || 'Sans nom');
-                return null; // Ignorer les exercices sans ID
-              }
-
-              // Extraire les valeurs du premier détail pour les exercices simples
-              const firstDetail = exercise.details?.[0];
-              const loadValue = firstDetail?.load?.value || '';
-              const loadUnit = firstDetail?.load?.unit || 'kg';
-              const load = loadValue ? `${loadValue} ${loadUnit}` : '';
-              
-              const exerciseData = {
-                exercise_id: exercise.exerciseId,
-                exercise_order: index + 1,
-                sets: parseInt(exercise.sets, 10) || 1,
-                reps: firstDetail?.reps || exercise.sets,
-                load: load || undefined,
-                tempo: firstDetail?.tempo || undefined,
-                rest_time: firstDetail?.rest || undefined,
-                intensification: exercise.intensification ? JSON.stringify(exercise.intensification) : undefined,
-                notes: exercise.notes || undefined,
-              };
-              
-              console.log(`[onSave] Sauvegarde exercice ${index + 1}: ${exercise.name}`, exerciseData);
-              
-              if (exercise.dbId) {
-                return await updateSessionExercise(exercise.dbId, exerciseData);
-              } else {
-                return await addExerciseToSession(savedSession.id, exerciseData);
-              }
-            } catch (exerciseError) {
-              console.error(`[onSave] Erreur lors de la sauvegarde de l'exercice ${exercise.name}:`, exerciseError);
-              throw new Error(`Échec de la sauvegarde de l'exercice "${exercise.name}" dans la session "${session.name}": ${exerciseError.message}`);
-            }
-          });
-          
-          const exerciseResults = await Promise.all(exercisePromises);
-          const successfulExercises = exerciseResults.filter(r => r !== null).length;
-          console.log(`[onSave] ${successfulExercises} exercices sauvegardés avec succès pour la session ${session.name}`);
-          
-          return exerciseResults;
+          return savedSession;
         } catch (sessionError) {
           console.error(`[onSave] Erreur lors de la sauvegarde de la session ${session.name}:`, sessionError);
           throw new Error(`Échec de la sauvegarde de la session "${session.name}" (semaine ${weekNumber}): ${sessionError.message}`);
