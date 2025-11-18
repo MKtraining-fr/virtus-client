@@ -5,7 +5,7 @@ import type { Json } from '../types/database';
 export interface Session {
   id: string;
   program_id?: string | null;
-  created_by?: string | null;
+  coach_id?: string | null;
   name: string;
   week_number: number;
   session_order: number;
@@ -37,7 +37,6 @@ export const createSession = async (sessionData: SessionInput): Promise<Session 
     const { data, error } = await supabase
       .from('sessions')
       .insert({
-        created_by: user.id,
         coach_id: user.id,
         ...sessionData,
       })
@@ -63,7 +62,7 @@ export const getCoachSessions = async (): Promise<Session[]> => {
     const { data, error } = await supabase
       .from('sessions')
       .select('*')
-      .eq('created_by', user.id)
+      .eq('coach_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
