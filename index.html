@@ -7,7 +7,7 @@
     <title>Virtus</title>
 
     <!-- PWA Tags -->
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/.netlify/functions/manifest" />
     <meta name="theme-color" content="#6D5DD3" />
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3043/3043222.png">
 
@@ -53,16 +53,17 @@
     <div id="modal-root"></div>
     <script type="module" src="/index.tsx"></script>
 
-    <!-- Service Worker désactivé - Causait des problèmes de cache -->
+    <!-- Service Worker pour PWA -->
     <script>
-        // Désinstaller les anciens Service Workers
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                    registration.unregister().then(function(success) {
-                        console.log('Service Worker désenregistré:', success);
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('Service Worker enregistré avec succès:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Erreur lors de l\'enregistrement du Service Worker:', error);
                     });
-                }
             });
         }
     </script>
