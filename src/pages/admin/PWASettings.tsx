@@ -142,8 +142,13 @@ export default function PWASettings() {
 
       const { error } = await supabase
         .from('app_settings')
-        .update({ value: config, updated_at: new Date().toISOString() })
-        .eq('key', 'pwa_config');
+        .upsert({
+          key: 'pwa_config',
+          value: config,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'key'
+        });
 
       if (error) throw error;
 
