@@ -8,6 +8,7 @@ import { SignUpSchema, SignInSchema } from '../validation/schemas';
 import { logger } from '../utils/logger';
 import { supabase } from '../services/supabase';
 import { mapSupabaseClientToClient } from '../services/typeMappers';
+import { getClientAssignedPrograms } from '../services/clientProgramService';
 
 // Fonctions qui étaient dans authService.ts
 const getClientProfile = async (userId: string): Promise<Client | null> => {
@@ -21,7 +22,22 @@ const getClientProfile = async (userId: string): Promise<Client | null> => {
       return null;
     }
   
-    return mapSupabaseClientToClient(data);
+    const client = mapSupabaseClientToClient(data);
+    
+    // Charger les programmes assignés si l'utilisateur est un client
+    if (client && client.role === 'client') {
+      try {
+        const assignedPrograms = await getClientAssignedPrograms(userId);
+        client.assignedPrograms = assignedPrograms;
+        logger.info('Programmes assignés chargés', { count: assignedPrograms.length });
+      } catch (programError) {
+        logger.error('Erreur lors du chargement des programmes assignés:', programError);
+        // Ne pas bloquer la connexion si le chargement des programmes échoue
+        client.assignedPrograms = [];
+      }
+    }
+    
+    return client;
   } catch (error) {
     logger.error('Erreur inattendue lors de la récupération du profil:', error);
     return null;

@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import BilanAssignmentModal from '../components/coach/BilanAssignmentModal';
 import ProgramDetailView from '../components/ProgramDetailView';
 import ProgramPerformanceDetail from '../components/ProgramPerformanceDetail';
+import { getClientAssignedProgramsForCoach, getClientProgramDetails } from '../services/coachClientProgramService';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import SimpleLineChart from '../components/charts/SimpleLineChart';
@@ -294,6 +295,8 @@ const ClientProfile: React.FC = () => {
   const [selectedProgram, setSelectedProgram] = useState<WorkoutProgram | null>(null);
   const [selectedNutritionPlan, setSelectedNutritionPlan] = useState<NutritionPlan | null>(null);
   const [selectedBilan, setSelectedBilan] = useState<BilanResult | null>(null);
+  const [assignedPrograms, setAssignedPrograms] = useState<any[]>([]);
+  const [isLoadingPrograms, setIsLoadingPrograms] = useState(true);
 
   const client = useMemo(() => clients.find((c) => c.id === clientId), [clients, clientId]);
 
@@ -312,7 +315,24 @@ const ClientProfile: React.FC = () => {
 
   const isCoach = user.role === 'coach';
 
-  const programHistory = client.programHistory || [];
+  // Charger les programmes assignés au client
+  useEffect(() => {
+    const loadAssignedPrograms = async () => {
+      if (!clientId) return;
+      setIsLoadingPrograms(true);
+      try {
+        const programs = await getClientAssignedProgramsForCoach(clientId);
+        setAssignedPrograms(programs);
+      } catch (error) {
+        console.error('Erreur lors du chargement des programmes assignés:', error);
+      } finally {
+        setIsLoadingPrograms(false);
+      }
+    };
+    loadAssignedPrograms();
+  }, [clientId]);
+
+  const programHistory = assignedPrograms;
   const measurementHistory = client.measurements || [];
   const nutritionLogs = client.nutrition?.foodJournal
     ? Object.values(client.nutrition.foodJournal).flat()
@@ -369,17 +389,33 @@ const ClientProfile: React.FC = () => {
 
       {/* Programmes */}
       <Accordion title="Programmes Assignés" defaultOpen={true}>
-        {programHistory.length > 0 ? (
+        {isLoadingPrograms ? (
+          <p className="text-gray-500">Chargement des programmes...</p>
+        ) : programHistory.length > 0 ? (
           <div className="space-y-4">
             {programHistory.map((program) => (
               <Card key={program.id} className="p-4 flex justify-between items-center">
                 <div>
                   <h4 className="font-semibold text-lg">{program.name}</h4>
                   <p className="text-sm text-gray-500">
-                    Du {program.startDate} au {program.endDate}
+                    Début: {new Date(program.startDate).toLocaleDateString('fr-FR')} | 
+                    Semaine {program.currentWeek}/{program.weekCount} | 
+                    Statut: {program.status === 'active' ? 'Actif' : program.status === 'completed' ? 'Terminé' : program.status}
                   </p>
+                  {program.objective && (
+                    <p className="text-sm text-gray-600 mt-1">{program.objective}</p>
+                  )}
                 </div>
-                <Button onClick={() => setSelectedProgram(program)} variant="secondary" size="sm">
+                <Button 
+                  onClick={async () => {
+                    const details = await getClientProgramDetails(program.clientProgramId);
+                    if (details) {
+                      setSelectedProgram(details as WorkoutProgram);
+                    }
+                  }} 
+                  variant="secondary" 
+                  size="sm"
+                >
                   Voir Détails
                 </Button>
               </Card>
