@@ -13,7 +13,7 @@ export interface ClientAssignedProgramSummary {
   endDate?: string;
   currentWeek: number;
   currentSession: number;
-  status: 'active' | 'paused' | 'completed' | 'cancelled';
+  status: 'active' | 'paused' | 'completed' | 'cancelled' | 'upcoming';
   weekCount: number;
   assignmentId: string;
   clientProgramId: string;
@@ -29,28 +29,15 @@ export const getClientAssignedProgramsForCoach = async (
   clientId: string
 ): Promise<ClientAssignedProgramSummary[]> => {
   try {
-    const { data: assignments, error } = await supabase
+    // Récupérer les assignations
+    const { data: assignments, error: assignmentsError } = await supabase
       .from('program_assignments')
-      .select(`
-        id,
-        start_date,
-        end_date,
-        current_week,
-        current_session,
-        status,
-        client_program_id,
-        client_programs (
-          id,
-          name,
-          objective,
-          week_count
-        )
-      `)
+      .select('*')
       .eq('client_id', clientId)
       .order('start_date', { ascending: false });
 
-    if (error) {
-      console.error('Erreur lors de la récupération des programmes assignés:', error);
+    if (assignmentsError) {
+      console.error('Erreur lors de la récupération des assignations:', assignmentsError);
       return [];
     }
 
@@ -58,25 +45,36 @@ export const getClientAssignedProgramsForCoach = async (
       return [];
     }
 
-    // Mapper les données vers le format attendu
-    const programs: ClientAssignedProgramSummary[] = assignments
-      .filter((assignment) => assignment.client_programs)
-      .map((assignment) => {
-        const program = assignment.client_programs as any;
-        return {
-          id: program.id,
-          name: program.name,
-          objective: program.objective || '',
-          startDate: assignment.start_date,
-          endDate: assignment.end_date || undefined,
-          currentWeek: assignment.current_week || 1,
-          currentSession: assignment.current_session || 1,
-          status: assignment.status as 'active' | 'paused' | 'completed' | 'cancelled',
-          weekCount: program.week_count,
-          assignmentId: assignment.id,
-          clientProgramId: assignment.client_program_id,
-        };
+    // Pour chaque assignation, récupérer le programme client correspondant
+    const programs: ClientAssignedProgramSummary[] = [];
+
+    for (const assignment of assignments) {
+      // Récupérer le programme client via l'assignation
+      const { data: clientPrograms, error: programError } = await supabase
+        .from('client_programs')
+        .select('id, name, objective, week_count')
+        .eq('assignment_id', assignment.id)
+        .single();
+
+      if (programError || !clientPrograms) {
+        console.warn(`Programme client non trouvé pour l'assignation ${assignment.id}`);
+        continue;
+      }
+
+      programs.push({
+        id: clientPrograms.id,
+        name: clientPrograms.name,
+        objective: clientPrograms.objective || '',
+        startDate: assignment.start_date,
+        endDate: assignment.end_date || undefined,
+        currentWeek: assignment.current_week || 1,
+        currentSession: assignment.current_session_order || 1,
+        status: assignment.status as 'active' | 'paused' | 'completed' | 'cancelled' | 'upcoming',
+        weekCount: clientPrograms.week_count,
+        assignmentId: assignment.id,
+        clientProgramId: clientPrograms.id,
       });
+    }
 
     return programs;
   } catch (error) {
