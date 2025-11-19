@@ -1,3 +1,5 @@
+// Fichier corrigé : src/stores/useAuthStore.ts
+// Modifications apportées pour résoudre les problèmes d'authentification
 
 import { create } from 'zustand';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
@@ -176,16 +178,49 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  // ========== FONCTION LOGOUT CORRIGÉE ==========
   logout: async () => {
     set({ isAuthLoading: true });
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Vérifier si une session existe avant de tenter la déconnexion
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        logger.warn('Erreur lors de la récupération de la session', { error: sessionError });
+      }
+      
+      // Ne tenter la déconnexion que si une session valide existe
+      if (session) {
+        const { error } = await supabase.auth.signOut();
+        
+        // Gérer les erreurs de session manquante
+        if (error) {
+          if (error.message === 'Session not found' || 
+              error.message.includes('Auth session missing') ||
+              error.message.includes('session_not_found')) {
+            logger.warn('Session déjà expirée ou inexistante', { error });
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        logger.info('Aucune session active à déconnecter');
+      }
+      
+      // Nettoyer l'état local dans tous les cas
       set({ user: null, originalUser: null, currentViewRole: 'admin' });
       sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
       sessionStorage.removeItem('virtus_current_view_role');
+      
+      logger.info('Déconnexion réussie et état nettoyé');
     } catch (error) {
       logger.error('Erreur de déconnexion', { error });
+      
+      // Forcer le nettoyage de l'état local même en cas d'erreur
+      set({ user: null, originalUser: null, currentViewRole: 'admin' });
+      sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
+      sessionStorage.removeItem('virtus_current_view_role');
+      
       throw error;
     } finally {
       set({ isAuthLoading: false });
@@ -345,48 +380,64 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     sessionStorage.setItem(ORIGINAL_USER_SESSION_KEY, JSON.stringify(user));
   },
 
+  // ========== FONCTION RESETVIEWROLE AMÉLIORÉE ==========
   resetViewRole: () => {
-    const user = get().user;
-    if (user?.role !== 'admin') {
-      logger.error("Impossible de réinitialiser la vue : l'utilisateur n'est pas un administrateur.");
+    const originalUser = get().originalUser;
+    if (!originalUser || originalUser.role !== 'admin') {
+      logger.error("Impossible de réinitialiser la vue : pas d'utilisateur admin original.");
       return;
     }
-    set({ currentViewRole: 'admin', originalUser: null });
+    
+    // Restaurer l'utilisateur admin original
+    set({ 
+      user: originalUser,
+      currentViewRole: 'admin', 
+      originalUser: null 
+    });
     sessionStorage.removeItem('virtus_current_view_role');
-	    sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
-	  },
-	
-	  impersonate: async (userId: string) => {
-	    const adminUser = get().user;
-	    if (adminUser?.role !== 'admin') {
-	      logger.error("Seul un administrateur peut usurper l'identité.");
-	      throw new Error("Seul un administrateur peut usurper l'identité.");
-	    }
-	    set({ isAuthLoading: true });
-	    try {
-	      const impersonatedProfile = await getClientProfile(userId);
-	      if (!impersonatedProfile) {
-	        throw new Error("Profil utilisateur à usurper introuvable.");
-	      }
-	
-	      // L'usurpation se fait en changeant le user actuel pour le user cible
-	      // et en stockant l'admin original dans originalUser.
-	      set({
-	        user: impersonatedProfile,
-	        originalUser: adminUser,
-	        currentViewRole: impersonatedProfile.role as 'coach' | 'client',
-	      });
-	
-	      // Persistance de l'état d'usurpation dans sessionStorage
-	      sessionStorage.setItem(ORIGINAL_USER_SESSION_KEY, JSON.stringify(adminUser));
-	      sessionStorage.setItem('virtus_current_view_role', impersonatedProfile.role);
-	
-	      logger.info(`Usurpation réussie de l'utilisateur ${userId} en tant que ${impersonatedProfile.role}`);
-	    } catch (error) {
-	      logger.error("Échec de l'usurpation d'identité", { error });
-	      throw error;
-	    } finally {
-	      set({ isAuthLoading: false });
-	    }
-	  },
-	}));
+    sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
+    
+    logger.info('Vue réinitialisée vers admin');
+  },
+
+  // ========== FONCTION IMPERSONATE AMÉLIORÉE ==========
+  impersonate: async (userId: string) => {
+    const adminUser = get().user;
+    if (adminUser?.role !== 'admin') {
+      logger.error("Seul un administrateur peut usurper l'identité.");
+      throw new Error("Seul un administrateur peut usurper l'identité.");
+    }
+    
+    set({ isAuthLoading: true });
+    try {
+      const impersonatedProfile = await getClientProfile(userId);
+      if (!impersonatedProfile) {
+        throw new Error("Profil utilisateur à usurper introuvable.");
+      }
+
+      // Important : Ne pas modifier la session Supabase
+      // L'admin reste connecté avec sa propre session
+      // On change uniquement l'état local pour afficher les données de l'utilisateur impersonné
+      set({
+        user: impersonatedProfile,
+        originalUser: adminUser,
+        currentViewRole: impersonatedProfile.role as 'coach' | 'client',
+      });
+
+      // Persistance de l'état d'usurpation dans sessionStorage
+      sessionStorage.setItem(ORIGINAL_USER_SESSION_KEY, JSON.stringify(adminUser));
+      sessionStorage.setItem('virtus_current_view_role', impersonatedProfile.role);
+
+      logger.info(`Usurpation réussie de l'utilisateur ${userId} en tant que ${impersonatedProfile.role}`, {
+        adminId: adminUser.id,
+        impersonatedId: userId,
+        impersonatedRole: impersonatedProfile.role,
+      });
+    } catch (error) {
+      logger.error("Échec de l'usurpation d'identité", { error });
+      throw error;
+    } finally {
+      set({ isAuthLoading: false });
+    }
+  },
+}));

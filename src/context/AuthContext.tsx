@@ -16,7 +16,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [initializeAuth]);
 
   useEffect(() => {
-    if (isAuthLoading) return;
+    if (isAuthLoading) {
+      logger.info('Auth loading...');
+      return;
+    }
+
+    logger.info('Auth state changed', { 
+      userEmail: user?.email, 
+      userRole: user?.role, 
+      currentViewRole,
+      hasOriginalUser: !!originalUser
+    });
 
     // Récupération de loadData du store de données
     const { loadData } = useDataStore.getState();
@@ -35,14 +45,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         realtimeChannel.unsubscribe();
       }
     };
+  }, [user, isAuthLoading, currentViewRole, originalUser]);
+
+  // Effet séparé pour gérer les redirections
+  useEffect(() => {
+    if (isAuthLoading) return;
 
     const currentPath = window.location.hash.substring(1) || '/'; // Utilise le hash pour HashRouter. Si vide, on considère la racine '/'
+    
+    logger.info('Navigation check', { currentPath, hasUser: !!user, currentViewRole });
 
     if (user) {
       // Si l'utilisateur est déjà connecté, on le redirige vers son tableau de bord
       // uniquement s'il est sur une page publique (login, set-password, ou la page d'accueil '/')
-
-
       const targetPath =
         currentViewRole === 'admin'
           ? '/app/admin/dashboard'
@@ -55,15 +70,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         currentPath === '/login' ||
         currentPath === '/set-password'
       ) {
+        logger.info('Redirecting authenticated user', { from: currentPath, to: targetPath });
         navigate(targetPath, { replace: true });
       }
     } else {
       const publicPaths = ['/', '/login', '/set-password'];
       if (!publicPaths.includes(currentPath)) {
+        logger.info('Redirecting unauthenticated user to login', { from: currentPath });
         navigate('/login', { replace: true });
       }
     }
-  }, [user, isAuthLoading, navigate]);
+  }, [user, isAuthLoading, navigate, currentViewRole]);
 
   return <>{children}</>;
 };
