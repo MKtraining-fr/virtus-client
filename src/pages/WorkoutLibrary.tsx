@@ -153,6 +153,13 @@ const WorkoutLibrary: React.FC = () => {
     );
   };
 
+  const getSessionsPerWeek = (program: WorkoutProgram) => {
+    const sessionsByWeek = program.sessionsByWeek || {};
+    const weekCount = program.weekCount || 1;
+    const totalSessions = getTotalSessions(program);
+    return Math.round(totalSessions / weekCount);
+  };
+
   const handleOpenPreviewModal = (program: WorkoutProgram) => {
     setProgramToPreview(program);
     setIsPreviewModalOpen(true);
@@ -265,7 +272,7 @@ const WorkoutLibrary: React.FC = () => {
                       )}
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
-                      {getTotalSessions(program)} séances · {program.weekCount} semaines
+                      {getSessionsPerWeek(program)} séances/semaine · {program.weekCount} semaines
                     </p>
                   </div>
                   <div className="bg-gray-50 p-4 flex justify-end space-x-2">
