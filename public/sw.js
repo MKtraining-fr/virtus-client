@@ -1,7 +1,7 @@
 // Service Worker pour Virtus PWA
-// Version: 1.0.0
+// Version: 1.0.1
 
-const CACHE_NAME = 'virtus-v1';
+const CACHE_NAME = 'virtus-v1.0.1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -40,9 +40,29 @@ self.addEventListener('activate', (event) => {
 
 // Stratégie de cache: Network First, fallback to Cache
 self.addEventListener('fetch', (event) => {
+  // Ne mettre en cache que les requêtes GET
+  // Les requêtes POST, PUT, DELETE, etc. ne peuvent pas être mises en cache
+  if (event.request.method !== 'GET') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Ne pas mettre en cache les requêtes vers des APIs externes
+  const url = new URL(event.request.url);
+  if (url.hostname.includes('cloudinary.com') || 
+      url.hostname.includes('supabase.co')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
+        // Ne mettre en cache que les réponses réussies
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
+        }
+
         // Clone la réponse car elle ne peut être utilisée qu'une fois
         const responseToCache = response.clone();
         
