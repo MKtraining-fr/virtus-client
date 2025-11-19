@@ -1,8 +1,15 @@
+/**
+ * Service pour la gestion des programmes clients (instances)
+ * Utilise le nouveau modèle de données avec client_programs, client_sessions, etc.
+ * 
+ * Version refactorisée - 2025-11-19
+ */
+
 import { supabase } from './supabase';
 import { WorkoutProgram } from '../types';
 
 /**
- * Récupère tous les programmes assignés à un client
+ * Récupère tous les programmes assignés à un client avec leurs détails complets
  * 
  * @param clientId - ID du client
  * @returns Liste des programmes assignés sous forme de WorkoutProgram
@@ -11,17 +18,16 @@ export const getClientAssignedPrograms = async (
   clientId: string
 ): Promise<WorkoutProgram[]> => {
   try {
-    // Récupérer les assignements actifs du client
+    // Récupérer les assignations actives du client
     const { data: assignments, error: assignmentsError } = await supabase
       .from('program_assignments')
       .select(`
         id,
         start_date,
         current_week,
-        current_session,
+        current_session_order,
         status,
-        client_program_id,
-        client_created_programs (
+        client_programs (
           id,
           name,
           objective,
@@ -29,11 +35,11 @@ export const getClientAssignedPrograms = async (
         )
       `)
       .eq('client_id', clientId)
-      .eq('status', 'active')
+      .in('status', ['active', 'upcoming'])
       .order('start_date', { ascending: false });
 
     if (assignmentsError) {
-      console.error('Erreur lors de la récupération des assignements:', assignmentsError);
+      console.error('Erreur lors de la récupération des assignations:', assignmentsError);
       return [];
     }
 
@@ -41,20 +47,21 @@ export const getClientAssignedPrograms = async (
       return [];
     }
 
-    // Pour chaque assignement, récupérer les séances et exercices
+    // Pour chaque assignation, récupérer les séances et exercices
     const programs: WorkoutProgram[] = [];
 
     for (const assignment of assignments) {
-      const clientProgramId = assignment.client_program_id;
-      const programData = assignment.client_created_programs;
+      const clientProgramData = assignment.client_programs;
 
-      if (!programData) continue;
+      if (!clientProgramData) continue;
+
+      const clientProgramId = clientProgramData.id;
 
       // Récupérer les séances du programme
       const { data: sessions, error: sessionsError } = await supabase
-        .from('client_created_sessions')
+        .from('client_sessions')
         .select('*')
-        .eq('program_id', clientProgramId)
+        .eq('client_program_id', clientProgramId)
         .order('week_number', { ascending: true })
         .order('session_order', { ascending: true });
 
@@ -67,9 +74,9 @@ export const getClientAssignedPrograms = async (
       const sessionIds = sessions?.map((s) => s.id) || [];
       
       const { data: exercises, error: exercisesError } = await supabase
-        .from('client_created_session_exercises')
+        .from('client_session_exercises')
         .select('*')
-        .in('session_id', sessionIds)
+        .in('client_session_id', sessionIds)
         .order('exercise_order', { ascending: true });
 
       if (exercisesError) {
@@ -88,7 +95,7 @@ export const getClientAssignedPrograms = async (
         }
 
         // Récupérer les exercices de cette séance
-        const sessionExercises = exercises?.filter((ex) => ex.session_id === session.id) || [];
+        const sessionExercises = exercises?.filter((ex) => ex.client_session_id === session.id) || [];
 
         const workoutExercises = sessionExercises.map((ex) => ({
           id: ex.id,
@@ -115,14 +122,14 @@ export const getClientAssignedPrograms = async (
 
       const workoutProgram: WorkoutProgram = {
         id: clientProgramId,
-        name: programData.name,
-        objective: programData.objective || '',
-        weekCount: programData.week_count,
+        name: clientProgramData.name,
+        objective: clientProgramData.objective || '',
+        weekCount: clientProgramData.week_count,
         sessionsByWeek,
-        // Ajouter des métadonnées d'assignement
+        // Ajouter des métadonnées d'assignation
         assignmentId: assignment.id,
         currentWeek: assignment.current_week,
-        currentSession: assignment.current_session,
+        currentSession: assignment.current_session_order,
       };
 
       programs.push(workoutProgram);
@@ -138,7 +145,7 @@ export const getClientAssignedPrograms = async (
 /**
  * Récupère un programme assigné spécifique avec tous ses détails
  * 
- * @param assignmentId - ID de l'assignement
+ * @param assignmentId - ID de l'assignation
  * @returns Le programme complet ou null
  */
 export const getAssignedProgramDetails = async (
@@ -151,10 +158,9 @@ export const getAssignedProgramDetails = async (
         id,
         start_date,
         current_week,
-        current_session,
+        current_session_order,
         status,
-        client_program_id,
-        client_created_programs (
+        client_programs (
           id,
           name,
           objective,
@@ -165,20 +171,21 @@ export const getAssignedProgramDetails = async (
       .single();
 
     if (assignmentError || !assignment) {
-      console.error('Erreur lors de la récupération de l\'assignement:', assignmentError);
+      console.error('Erreur lors de la récupération de l\'assignation:', assignmentError);
       return null;
     }
 
-    const clientProgramId = assignment.client_program_id;
-    const programData = assignment.client_created_programs;
+    const clientProgramData = assignment.client_programs;
 
-    if (!programData) return null;
+    if (!clientProgramData) return null;
+
+    const clientProgramId = clientProgramData.id;
 
     // Récupérer les séances
     const { data: sessions, error: sessionsError } = await supabase
-      .from('client_created_sessions')
+      .from('client_sessions')
       .select('*')
-      .eq('program_id', clientProgramId)
+      .eq('client_program_id', clientProgramId)
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
 
@@ -191,9 +198,9 @@ export const getAssignedProgramDetails = async (
     const sessionIds = sessions?.map((s) => s.id) || [];
     
     const { data: exercises, error: exercisesError } = await supabase
-      .from('client_created_session_exercises')
+      .from('client_session_exercises')
       .select('*')
-      .in('session_id', sessionIds)
+      .in('client_session_id', sessionIds)
       .order('exercise_order', { ascending: true });
 
     if (exercisesError) {
@@ -211,7 +218,7 @@ export const getAssignedProgramDetails = async (
         sessionsByWeek[weekNumber] = [];
       }
 
-      const sessionExercises = exercises?.filter((ex) => ex.session_id === session.id) || [];
+      const sessionExercises = exercises?.filter((ex) => ex.client_session_id === session.id) || [];
 
       const workoutExercises = sessionExercises.map((ex) => ({
         id: ex.id,
@@ -238,13 +245,13 @@ export const getAssignedProgramDetails = async (
 
     return {
       id: clientProgramId,
-      name: programData.name,
-      objective: programData.objective || '',
-      weekCount: programData.week_count,
+      name: clientProgramData.name,
+      objective: clientProgramData.objective || '',
+      weekCount: clientProgramData.week_count,
       sessionsByWeek,
       assignmentId: assignment.id,
       currentWeek: assignment.current_week,
-      currentSession: assignment.current_session,
+      currentSession: assignment.current_session_order,
     };
   } catch (error) {
     console.error('Erreur globale lors de la récupération des détails:', error);
@@ -255,22 +262,22 @@ export const getAssignedProgramDetails = async (
 /**
  * Met à jour la progression du client dans un programme assigné
  * 
- * @param assignmentId - ID de l'assignement
+ * @param assignmentId - ID de l'assignation
  * @param currentWeek - Semaine actuelle
- * @param currentSession - Séance actuelle
+ * @param currentSessionOrder - Ordre de la séance actuelle
  * @returns true si succès, false sinon
  */
 export const updateClientProgress = async (
   assignmentId: string,
   currentWeek: number,
-  currentSession: number
+  currentSessionOrder: number
 ): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('program_assignments')
       .update({
         current_week: currentWeek,
-        current_session: currentSession,
+        current_session_order: currentSessionOrder,
         updated_at: new Date().toISOString(),
       })
       .eq('id', assignmentId);
@@ -283,6 +290,35 @@ export const updateClientProgress = async (
     return true;
   } catch (error) {
     console.error('Erreur globale lors de la mise à jour de la progression:', error);
+    return false;
+  }
+};
+
+/**
+ * Marque une séance comme complétée
+ * 
+ * @param sessionId - ID de la séance client
+ * @returns true si succès, false sinon
+ */
+export const markSessionAsCompleted = async (sessionId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('client_sessions')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId);
+
+    if (error) {
+      console.error('Erreur lors du marquage de la séance:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erreur globale:', error);
     return false;
   }
 };

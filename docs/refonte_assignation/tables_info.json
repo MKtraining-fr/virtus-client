@@ -1,0 +1,24 @@
+Tables principales identifiées dans Supabase:
+
+1. clients - Table des utilisateurs (coachs et clients)
+2. exercises - Bibliothèque d'exercices
+3. programs - Programmes d'entraînement (templates ou instances?)
+4. sessions - Séances d'entraînement
+5. session_exercises - Exercices dans les séances
+6. program_assignments - Assignations de programmes aux clients
+7. nutrition_plans - Plans nutritionnels
+8. messages - Messagerie
+9. notifications - Notifications
+10. food_items - Aliments
+11. bilan_templates - Templates de bilans
+12. intensification_techniques - Techniques d'intensification
+
+Tables critiques pour l'assignation:
+- program_assignments (0 rows, RLS disabled)
+- programs 
+- sessions
+- session_exercises
+
+À investiguer:
+- Relation entre programs et program_assignments
+- Existence de client_programs, client_sessions mentionnés dans migration
