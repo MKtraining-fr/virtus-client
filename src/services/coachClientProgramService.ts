@@ -39,7 +39,7 @@ export const getClientAssignedProgramsForCoach = async (
         current_session,
         status,
         client_program_id,
-        client_created_programs (
+        client_programs (
           id,
           name,
           objective,
@@ -60,9 +60,9 @@ export const getClientAssignedProgramsForCoach = async (
 
     // Mapper les données vers le format attendu
     const programs: ClientAssignedProgramSummary[] = assignments
-      .filter((assignment) => assignment.client_created_programs)
+      .filter((assignment) => assignment.client_programs)
       .map((assignment) => {
-        const program = assignment.client_created_programs as any;
+        const program = assignment.client_programs as any;
         return {
           id: program.id,
           name: program.name,
@@ -95,7 +95,7 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
   try {
     // Récupérer le programme
     const { data: program, error: programError } = await supabase
-      .from('client_created_programs')
+      .from('client_programs')
       .select('*')
       .eq('id', clientProgramId)
       .single();
@@ -107,7 +107,7 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
 
     // Récupérer les séances
     const { data: sessions, error: sessionsError } = await supabase
-      .from('client_created_sessions')
+      .from('client_sessions')
       .select('*')
       .eq('program_id', clientProgramId)
       .order('week_number', { ascending: true })
@@ -122,7 +122,7 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
     const sessionIds = sessions?.map((s) => s.id) || [];
     
     const { data: exercises, error: exercisesError } = await supabase
-      .from('client_created_session_exercises')
+      .from('client_session_exercises')
       .select(`
         *,
         exercises (
