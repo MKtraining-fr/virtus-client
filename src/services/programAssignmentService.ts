@@ -313,3 +313,4 @@ export const getAssignmentCountByTemplate = async (
 // Alias pour compatibilité avec l'ancien code
 export const getCoachAssignments = getAssignmentsForCoach;
 export const getClientAssignments = getAssignmentsForClient;
+export const getAssignmentCountByProgram = getAssignmentCountByTemplate;

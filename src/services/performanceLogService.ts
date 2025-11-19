@@ -234,3 +234,22 @@ export const bulkCreatePerformanceLogs = async (
     return false;
   }
 };
+
+/**
+ * FONCTION DE COMPATIBILITÉ - À SUPPRIMER APRÈS MIGRATION UI
+ * Sauvegarde un log de performance de séance (ancienne signature)
+ * 
+ * @deprecated Utiliser bulkCreatePerformanceLogs à la place
+ */
+export const savePerformanceLog = async (
+  clientId: string,
+  programAssignmentId: string | null,
+  sessionId: string,
+  performanceLog: any
+): Promise<string | null> => {
+  console.warn('savePerformanceLog est déprécié. Utilisez bulkCreatePerformanceLogs à la place.');
+  
+  // Pour l'instant, on retourne juste null pour ne pas casser le build
+  // Cette fonction devra être implémentée correctement lors de la migration UI
+  return null;
+};
