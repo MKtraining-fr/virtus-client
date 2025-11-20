@@ -15,7 +15,7 @@ export const createProgramTemplate = async (
   try {
     // Étape 1: Créer le template de programme dans la table `programs`
     const { data: programTemplateData, error: programTemplateError } = await supabase
-      .from('programs')
+      .from('program_templates')
       .insert({
         coach_id: creatorId,
         name: program.name,

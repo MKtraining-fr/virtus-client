@@ -107,7 +107,7 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
     const { data: sessions, error: sessionsError } = await supabase
       .from('client_sessions')
       .select('*')
-      .eq('program_id', clientProgramId)
+      .eq('client_program_id', clientProgramId)
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
 

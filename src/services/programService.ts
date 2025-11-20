@@ -14,7 +14,7 @@ import { Program, Exercise } from '../types';
 export const getProgramById = async (programId: string): Promise<Program | null> => {
   try {
     const { data, error } = await supabase
-      .from('programs')
+      .from('program_templates')
       .select('*')
       .eq('id', programId)
       .single();
@@ -39,7 +39,7 @@ export const getProgramById = async (programId: string): Promise<Program | null>
 export const getProgramsByCoachId = async (coachId: string): Promise<Program[]> => {
   try {
     const { data, error } = await supabase
-      .from('programs')
+      .from('program_templates')
       .select('*')
       .eq('coach_id', coachId)
       .order('created_at', { ascending: false });
@@ -160,7 +160,7 @@ export const createProgram = async (programData: {
 }): Promise<Program | null> => {
   try {
     const { data, error } = await supabase
-      .from('programs')
+      .from('program_templates')
       .insert(programData)
       .select()
       .single();
@@ -194,7 +194,7 @@ export const updateProgram = async (
 ): Promise<Program | null> => {
   try {
     const { data, error } = await supabase
-      .from('programs')
+      .from('program_templates')
       .update({
         ...updates,
         updated_at: new Date().toISOString(),
@@ -222,7 +222,7 @@ export const updateProgram = async (
  */
 export const deleteProgram = async (programId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase.from('programs').delete().eq('id', programId);
+    const { error } = await supabase.from('program_templates').delete().eq('id', programId);
 
     if (error) {
       console.error('Erreur lors de la suppression du programme:', error);

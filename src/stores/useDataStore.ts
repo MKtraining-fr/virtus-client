@@ -239,7 +239,7 @@ export const useDataStore = create<DataState>((set, get) => {
       ] = await Promise.all([
         supabase.from('clients').select('*'),
         supabase.from('exercises').select('*'),
-        supabase.from('programs').select('*'),
+        supabase.from('program_templates').select('*'),
         supabase.from('sessions').select('*'),
         supabase.from('nutrition_plans').select('*'),
         supabase.from('messages').select('*'),
@@ -668,7 +668,7 @@ export const useDataStore = create<DataState>((set, get) => {
         if (!user) throw new Error('User not authenticated');
 
         const { data, error } = await supabase
-          .from('programs')
+          .from('program_templates')
           .insert({
             ...programData,
             coach_id: user.id,
@@ -694,7 +694,7 @@ export const useDataStore = create<DataState>((set, get) => {
       logger.info('Mise à jour de programme', { programId, programData });
       try {
         const { data, error } = await supabase
-          .from('programs')
+          .from('program_templates')
           .update({
             ...programData,
             updated_at: new Date().toISOString(),
@@ -720,7 +720,7 @@ export const useDataStore = create<DataState>((set, get) => {
     deleteProgram: async (programId: string): Promise<void> => {
       logger.info('Suppression de programme', { programId });
       try {
-        const { error } = await supabase.from('programs').delete().eq('id', programId);
+        const { error } = await supabase.from('program_templates').delete().eq('id', programId);
 
         if (error) throw error;
         set((state) => ({ ...state, programs: state.programs.filter((p) => p.id !== programId) }));
