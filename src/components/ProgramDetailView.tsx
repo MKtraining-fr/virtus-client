@@ -9,15 +9,17 @@ const areSessionsIdentical = (
 ): boolean => {
   if (sessionsA.length !== sessionsB.length) return false;
   try {
-    // We remove 'id' from exercises for comparison as it can differ between weeks even if content is identical
-    const comparableA = sessionsA.map((s) => ({
-      ...s,
-      exercises: s.exercises.map(({ id, ...ex }) => ex),
-    }));
-    const comparableB = sessionsB.map((s) => ({
-      ...s,
-      exercises: s.exercises.map(({ id, ...ex }) => ex),
-    }));
+    // Normalise les séances pour la comparaison : ignore les identifiants internes
+    const normalizeSession = (session: WorkoutSession) => {
+      const { id: _ignoredId, dbId: _ignoredDbId, templateSessionId: _ignoredTemplateId, ...restSession } = session;
+      return {
+        ...restSession,
+        exercises: session.exercises.map(({ id: _exId, dbId: _exDbId, ...exercise }) => exercise),
+      };
+    };
+
+    const comparableA = sessionsA.map(normalizeSession);
+    const comparableB = sessionsB.map(normalizeSession);
     return JSON.stringify(comparableA) === JSON.stringify(comparableB);
   } catch (e) {
     console.error('Could not compare sessions:', e);
