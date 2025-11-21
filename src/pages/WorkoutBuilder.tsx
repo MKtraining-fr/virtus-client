@@ -1004,10 +1004,17 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           };
         });
       };
-      setSessionsByWeek((prev) => ({
-        ...prev,
-        [selectedWeek]: performUpdate(prev[selectedWeek] || []),
-      }));
+      setSessionsByWeek((prev) => {
+        const prevWithTemplates = assignTemplateSessionIds(prev);
+        const updated = {
+          ...prevWithTemplates,
+          [selectedWeek]: performUpdate(prevWithTemplates[selectedWeek] || []),
+        };
+        if (selectedWeek === 1) {
+          return mirrorWeekOneStructure(updated);
+        }
+        return updated;
+      });
       setHasUnsavedChanges(true);
     },
     [activeSessionId, selectedWeek]
@@ -1036,27 +1043,36 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       alternatives: [],
     };
     setSessionsByWeek((prev) => {
+      const prevWithTemplates = assignTemplateSessionIds(prev);
       const updated = {
-        ...prev,
-        [selectedWeek]: prev[selectedWeek].map((s) =>
+        ...prevWithTemplates,
+        [selectedWeek]: prevWithTemplates[selectedWeek].map((s) =>
           s.id === activeSessionId ? { ...s, exercises: [...s.exercises, newExercise] } : s
         ),
       };
-      console.log('sessionsByWeek mis à jour', updated);
-      return updated;
+      const mirrored = selectedWeek === 1 ? mirrorWeekOneStructure(updated) : updated;
+      console.log('sessionsByWeek mis à jour', mirrored);
+      return mirrored;
     });
     setHasUnsavedChanges(true);
     console.log('Exercice ajouté avec succès', newExercise);
   };
 
   const handleDeleteExercise = (exerciseId: number) => {
-    setSessionsByWeek((prev) => ({
-      ...prev,
-      [selectedWeek]: prev[selectedWeek].map((s) => {
-        if (s.id !== activeSessionId) return s;
-        return { ...s, exercises: s.exercises.filter((ex) => ex.id !== exerciseId) };
-      }),
-    }));
+    setSessionsByWeek((prev) => {
+      const prevWithTemplates = assignTemplateSessionIds(prev);
+      const updated = {
+        ...prevWithTemplates,
+        [selectedWeek]: prevWithTemplates[selectedWeek].map((s) => {
+          if (s.id !== activeSessionId) return s;
+          return { ...s, exercises: s.exercises.filter((ex) => ex.id !== exerciseId) };
+        }),
+      };
+      if (selectedWeek === 1) {
+        return mirrorWeekOneStructure(updated);
+      }
+      return updated;
+    });
     setHasUnsavedChanges(true);
   };
 
@@ -1078,9 +1094,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     };
     
     setSessionsByWeek((prev) => {
-      const newSessionsByWeek = { ...prev };
+      const prevWithTemplates = assignTemplateSessionIds(prev);
+      const newSessionsByWeek = { ...prevWithTemplates };
       const currentWeekSessions = newSessionsByWeek[selectedWeek] || [];
-      
+
       // Si aucune séance n'existe pour cette semaine, créer automatiquement "Séance 1"
       if (currentWeekSessions.length === 0) {
         const newSessionId = getNextSessionId(newSessionsByWeek);
@@ -1099,9 +1116,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         );
       }
       
+      if (selectedWeek === 1) {
+        return mirrorWeekOneStructure(newSessionsByWeek);
+      }
+
       return newSessionsByWeek;
     });
-    
+
     setHasUnsavedChanges(true);
   };
 
@@ -1129,7 +1150,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     if (draggedExerciseId === null || droppedOnExerciseId === null) return;
 
     setSessionsByWeek((prev) => {
-      const newSessionsByWeek = { ...prev };
+      const prevWithTemplates = assignTemplateSessionIds(prev);
+      const newSessionsByWeek = { ...prevWithTemplates };
       const currentSessions = newSessionsByWeek[selectedWeek];
 
       if (!currentSessions) return prev;
@@ -1149,7 +1171,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         return { ...s, exercises };
       });
 
-      return { ...newSessionsByWeek, [selectedWeek]: newSessions };
+      const updated = { ...newSessionsByWeek, [selectedWeek]: newSessions };
+      if (selectedWeek === 1) {
+        return mirrorWeekOneStructure(updated);
+      }
+      return updated;
     });
     setHasUnsavedChanges(true);
     exerciseDragItem.current = null;
