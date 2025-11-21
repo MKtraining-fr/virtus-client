@@ -473,6 +473,38 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     }
   };
 
+  const handleResetBuilder = () => {
+    const shouldReset = window.confirm(
+      "Voulez-vous vraiment vider toutes les séances et exercices en cours ?"
+    );
+
+    if (!shouldReset) return;
+
+    const resetSession = { ...DEFAULT_SESSION, exercises: [] };
+
+    setWorkoutMode('session');
+    setProgramName('Nouveau programme');
+    setObjective('');
+    setWeekCount(1);
+    setSelectedClient('0');
+    setIsEditMode(false);
+    setEditProgramId(null);
+    setLockedUntil(null);
+    setIsWeek1LockActive(false);
+    setSessionsByWeek(normalizeSessionsByWeek({ 1: [resetSession] }));
+    setSelectedWeek(1);
+    setActiveSessionId(DEFAULT_SESSION.id);
+    setSelectedExerciseIds([]);
+    setDropZoneSearchTerm('');
+    setShowDropZoneResults(false);
+    setActiveSearchBox(null);
+    setIsHistoryModalOpen(false);
+    setIsHistoryModalMinimized(false);
+    setHasUnsavedChanges(false);
+    setProgramDraft(null);
+    setLastSavedAt(null);
+  };
+
   const clientOptions = useMemo<{ value: string; label: string }[]>(() => {
     // Vérifier que clients est défini avant de filtrer
     if (!clients || !Array.isArray(clients)) {
@@ -1519,6 +1551,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Créateur d'entrainement</h1>
           <div className="flex items-center gap-4">
+            <Button variant="danger" size="sm" onClick={handleResetBuilder}>
+              Vider
+            </Button>
             {hasUnsavedChanges && (
               <span className="text-sm text-yellow-600">Modifications non sauvegardées</span>
             )}
@@ -1800,7 +1835,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   )}
                 </div>
               }
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-end gap-3">
+                <Button variant="danger" onClick={handleResetBuilder} size="lg" className="shadow-lg">
+                  Vider
+                </Button>
                 <Button
                   onClick={onSave}
                   disabled={isSaving || !user}
