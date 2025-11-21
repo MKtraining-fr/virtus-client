@@ -220,18 +220,58 @@ export const updateProgram = async (
  * @param programId - ID du programme
  * @returns true si succès, false sinon
  */
-export const deleteProgram = async (programId: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase.from('program_templates').delete().eq('id', programId);
+export interface ProgramDeletionResult {
+  success: boolean;
+  /** Liste des clients impactés par la suppression (assignations supprimées) */
+  affectedClientIds: string[];
+}
 
-    if (error) {
-      console.error('Erreur lors de la suppression du programme:', error);
-      return false;
+export const deleteProgram = async (
+  programId: string
+): Promise<ProgramDeletionResult> => {
+  try {
+    // Récupérer les assignations avant la suppression pour informer les clients
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from('program_assignments')
+      .select('id, client_id')
+      .eq('program_template_id', programId);
+
+    if (assignmentsError) {
+      console.error('Erreur lors de la récupération des assignations du programme:', assignmentsError);
+      return { success: false, affectedClientIds: [] };
     }
 
-    return true;
+    const affectedClientIds = Array.from(
+      new Set((assignments || []).map((assignment) => assignment.client_id).filter(Boolean))
+    );
+
+    // Supprimer d'abord les assignations (cascade sur les données client)
+    if ((assignments || []).length > 0) {
+      const { error: deleteAssignmentsError } = await supabase
+        .from('program_assignments')
+        .delete()
+        .eq('program_template_id', programId);
+
+      if (deleteAssignmentsError) {
+        console.error('Erreur lors de la suppression des assignations liées au programme:', deleteAssignmentsError);
+        return { success: false, affectedClientIds };
+      }
+    }
+
+    // Supprimer ensuite le template du programme
+    const { error: deleteProgramError } = await supabase
+      .from('program_templates')
+      .delete()
+      .eq('id', programId);
+
+    if (deleteProgramError) {
+      console.error('Erreur lors de la suppression du programme:', deleteProgramError);
+      return { success: false, affectedClientIds };
+    }
+
+    return { success: true, affectedClientIds };
   } catch (error) {
     console.error('Erreur globale lors de la suppression du programme:', error);
-    return false;
+    return { success: false, affectedClientIds: [] };
   }
 };

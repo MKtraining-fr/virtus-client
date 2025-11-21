@@ -50,6 +50,7 @@ const WorkoutLibrary: React.FC = () => {
   const [assignmentCounts, setAssignmentCounts] = useState<Record<string, number>>({});
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [programToPreview, setProgramToPreview] = useState<WorkoutProgram | null>(null);
+  const [programToDelete, setProgramToDelete] = useState<WorkoutProgram | null>(null);
   const [deletingProgramId, setDeletingProgramId] = useState<string | null>(null);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
@@ -165,24 +166,40 @@ const WorkoutLibrary: React.FC = () => {
     setIsPreviewModalOpen(true);
   };
 
-  const handleDeleteProgram = async (programId: string, programName: string) => {
-    const confirmed = window.confirm(
-      `Voulez-vous vraiment supprimer le programme "${programName}" ? Cette action est définitive.`
-    );
-    if (!confirmed) return;
+  const executeProgramDeletion = async (
+    program: WorkoutProgram,
+    { skipPrompt = false }: { skipPrompt?: boolean } = {}
+  ) => {
+    if (!skipPrompt) {
+      const confirmed = window.confirm(
+        `Voulez-vous vraiment supprimer le programme "${program.name}" ? Cette action est définitive.`
+      );
+      if (!confirmed) return;
+    }
 
-    setDeletingProgramId(programId);
-    const success = await deleteProgram(programId);
+    setDeletingProgramId(program.id);
+    const { success, affectedClientIds } = await deleteProgram(program.id);
 
     if (success) {
-      removeProgramFromState(programId);
+      removeProgramFromState(program.id);
       setAssignmentCounts((prev) => {
-        const { [programId]: _removed, ...rest } = prev;
+        const { [program.id]: _removed, ...rest } = prev;
         return rest;
       });
       addNotification({
-        message: `Programme "${programName}" supprimé avec succès.`,
+        message: `Programme "${program.name}" supprimé avec succès.`,
         type: 'success',
+      });
+
+      affectedClientIds.forEach((clientId) => {
+        addNotification({
+          userId: clientId,
+          fromName: `${user?.firstName ?? 'Votre'} ${user?.lastName ?? 'coach'}`.trim(),
+          type: 'program_deleted',
+          title: 'Programme supprimé',
+          message: `Votre coach a supprimé le programme "${program.name}". Toutes les données liées ont été effacées et le programme n'est plus accessible, même s'il était en cours.`,
+          link: '/app/workout',
+        });
       });
     } else {
       addNotification({
@@ -191,7 +208,19 @@ const WorkoutLibrary: React.FC = () => {
       });
     }
 
+    setProgramToDelete(null);
     setDeletingProgramId(null);
+  };
+
+  const handleDeleteProgram = (program: WorkoutProgram) => {
+    const assignedCount = assignmentCounts[program.id] || 0;
+
+    if (assignedCount > 0) {
+      setProgramToDelete(program);
+      return;
+    }
+
+    executeProgramDeletion(program);
   };
 
   const handleDeleteSession = async (session: WorkoutSession) => {
@@ -298,7 +327,7 @@ const WorkoutLibrary: React.FC = () => {
                     <Button
                       variant="danger"
                       size="sm"
-                      onClick={() => handleDeleteProgram(program.id, program.name)}
+                      onClick={() => handleDeleteProgram(program)}
                       isLoading={deletingProgramId === program.id}
                     >
                       Supprimer
@@ -418,6 +447,38 @@ const WorkoutLibrary: React.FC = () => {
             <div className="flex justify-end">
               <Button variant="secondary" onClick={() => setIsPreviewModalOpen(false)}>
                 Fermer
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {programToDelete && (
+        <Modal
+          isOpen={Boolean(programToDelete)}
+          onClose={() => setProgramToDelete(null)}
+          title="Supprimer un programme assigné ?"
+        >
+          <div className="space-y-4">
+            <p>
+              Ce programme est actuellement assigné à{' '}
+              <strong>{assignmentCounts[programToDelete.id] || 0}</strong> client(s). Si vous le supprimez,
+              toutes les données associées (sessions, progrès, suivis) seront définitivement effacées pour ces clients.
+            </p>
+            <p className="text-sm text-gray-600">
+              Les clients concernés recevront une notification et ne pourront plus accéder au programme, même s'il était en
+              cours.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <Button variant="secondary" onClick={() => setProgramToDelete(null)}>
+                Annuler
+              </Button>
+              <Button
+                variant="danger"
+                isLoading={deletingProgramId === programToDelete.id}
+                onClick={() => executeProgramDeletion(programToDelete, { skipPrompt: true })}
+              >
+                Confirmer la suppression
               </Button>
             </div>
           </div>
