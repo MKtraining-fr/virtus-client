@@ -94,6 +94,23 @@ const ClientWorkoutBuilder: React.FC = () => {
     }
   };
 
+  const handleResetBuilder = () => {
+    const shouldReset = window.confirm(
+      'Voulez-vous vraiment vider toutes les séances et exercices en cours ?'
+    );
+
+    if (!shouldReset) return;
+
+    setWorkoutMode('session');
+    setSessions(initialSessions);
+    setActiveSessionId(1);
+    setProgramName('Nouvelle séance');
+    setObjective('');
+    setWeekCount(4);
+    setIsExerciseModalOpen(false);
+    setExerciseToReplace(null);
+  };
+
   const handleWeekCountBlur = () => {
     if (weekCount === '' || Number(weekCount) < 1) {
       setWeekCount(1);
@@ -291,6 +308,14 @@ const ClientWorkoutBuilder: React.FC = () => {
         <h1 className="text-xl font-bold text-gray-800 dark:text-client-light">
           Créateur de séance
         </h1>
+        <div className="ml-auto">
+          <button
+            onClick={handleResetBuilder}
+            className="px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-400/50 dark:text-red-300"
+          >
+            Vider
+          </button>
+        </div>
       </header>
 
       {/* --- Config & Main Content --- */}
@@ -392,12 +417,20 @@ const ClientWorkoutBuilder: React.FC = () => {
 
       {/* --- Floating & Fixed Elements --- */}
       <footer className="fixed bottom-16 left-0 right-0 p-3 bg-white dark:bg-client-card border-t border-gray-200 dark:border-gray-700 shrink-0 z-20">
-        <button
-          onClick={handleSaveClient}
-          className="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-violet-700 transition-colors"
-        >
-          Enregistrer
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleResetBuilder}
+            className="w-1/3 border border-gray-200 dark:border-client-subtle text-red-600 dark:text-red-300 font-semibold py-3 rounded-lg hover:bg-red-50 dark:hover:bg-client-dark transition-colors"
+          >
+            Vider
+          </button>
+          <button
+            onClick={handleSaveClient}
+            className="flex-1 bg-primary text-white font-bold py-3 rounded-lg hover:bg-violet-700 transition-colors"
+          >
+            Enregistrer
+          </button>
+        </div>
       </footer>
 
       <ExerciseSelectionModal
