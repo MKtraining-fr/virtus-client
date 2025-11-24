@@ -63,6 +63,28 @@ export const getClientAssignedPrograms = async (
       .eq('client_id', clientId)
       .order('start_date', { ascending: false });
 
+    // ÉTAPE 1.5 : Vérifier et mettre à jour les programmes 'upcoming' qui devraient être 'active'
+    const assignmentsToActivate = assignments.filter(
+      (a) => a.status === 'upcoming' && new Date(a.start_date) <= new Date()
+    );
+
+    if (assignmentsToActivate.length > 0) {
+      const idsToActivate = assignmentsToActivate.map((a) => a.id);
+      console.log(`Activation de ${idsToActivate.length} programmes: ${idsToActivate.join(', ')}`);
+
+      const { error: updateError } = await supabase
+        .from('program_assignments')
+        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .in('id', idsToActivate);
+
+      if (updateError) {
+        console.error('Erreur lors de l\'activation des programmes:', updateError);
+      } else {
+        // Mettre à jour le statut dans l'objet local pour la suite du traitement
+        assignmentsToActivate.forEach((a) => (a.status = 'active'));
+      }
+    }
+
     if (assignmentsError) {
       console.error('Erreur lors de la récupération des assignations:', assignmentsError);
       return [];
