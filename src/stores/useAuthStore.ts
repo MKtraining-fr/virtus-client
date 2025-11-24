@@ -28,13 +28,23 @@ const getClientProfile = async (userId: string): Promise<Client | null> => {
     if (client && client.role === 'client') {
       try {
         const assignedPrograms = await getClientAssignedPrograms(userId);
-        const activeProgram = assignedPrograms.find(p => p.status === 'active') || assignedPrograms[0] || null;
+        const activeProgram =
+          assignedPrograms.find((p) => p.status === 'active') || assignedPrograms[0] || null;
+
+        client.assignedPrograms = assignedPrograms;
         client.assignedProgram = activeProgram;
+
+        if (activeProgram) {
+          client.programWeek = activeProgram.currentWeek || 1;
+          client.sessionProgress = activeProgram.currentSession || 1;
+        }
+
         logger.info('Programme actif chargé', { name: activeProgram?.name || 'Aucun' });
       } catch (programError) {
         logger.error('Erreur lors du chargement des programmes assignés:', programError);
         // Ne pas bloquer la connexion si le chargement des programmes échoue
         client.assignedProgram = null;
+        client.assignedPrograms = [];
       }
     }
     

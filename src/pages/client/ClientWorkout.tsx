@@ -18,13 +18,13 @@ const ChevronRightIcon = (props: React.SVGProps<SVGSVGElement>) => (
 const ClientWorkout: React.FC = () => {
   const { user } = useAuth();
 
-  const program = user?.assignedProgram;
+  const program = user?.assignedProgram || user?.assignedPrograms?.[0];
   const hasAssignedProgram = !!program;
   const hasAccessToFormations = user?.grantedFormationIds && user.grantedFormationIds.length > 0;
 
-  const currentWeek = user?.programWeek || 1;
+  const currentWeek = program?.currentWeek || user?.programWeek || 1;
   const totalWeeks = program?.weekCount || 1;
-  const currentSession = user?.sessionProgress || 1;
+  const currentSession = program?.currentSession || user?.sessionProgress || 1;
   const totalSessions =
     (program?.sessionsByWeek?.[currentWeek] || program?.sessionsByWeek?.[1] || []).length || 1;
 

@@ -158,6 +158,7 @@ export interface Client {
   programName?: string;
   programWeek?: number;
   assignedProgram?: WorkoutProgram | null;
+  assignedPrograms?: WorkoutProgram[];
   savedPrograms?: WorkoutProgram[];
 }
 
