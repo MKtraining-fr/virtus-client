@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getClientAssignedPrograms } from '../../services/clientProgramService';
+import { WorkoutProgram } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
 const ChevronRightIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -17,8 +19,42 @@ const ChevronRightIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 const ClientWorkout: React.FC = () => {
   const { user } = useAuth();
+  const [assignedProgram, setAssignedProgram] = useState<WorkoutProgram | null>(
+    user?.assignedProgram || user?.assignedPrograms?.[0] || null
+  );
+  const [isLoadingProgram, setIsLoadingProgram] = useState(false);
+  const [programError, setProgramError] = useState<string | null>(null);
 
-  const program = user?.assignedProgram || user?.assignedPrograms?.[0];
+  useEffect(() => {
+    setAssignedProgram(user?.assignedProgram || user?.assignedPrograms?.[0] || null);
+  }, [user?.assignedProgram, user?.assignedPrograms]);
+
+  useEffect(() => {
+    const fetchAssignedPrograms = async () => {
+      if (!user?.id || assignedProgram || isLoadingProgram) return;
+
+      setIsLoadingProgram(true);
+      setProgramError(null);
+
+      try {
+        const programs = await getClientAssignedPrograms(user.id);
+        const activeProgram =
+          programs.find((p) => p.status === 'active') || programs[0] || null;
+        setAssignedProgram(activeProgram);
+      } catch (error) {
+        setProgramError(
+          "Impossible de charger votre programme pour le moment. Veuillez réessayer."
+        );
+        console.error('Erreur lors du chargement des programmes assignés :', error);
+      } finally {
+        setIsLoadingProgram(false);
+      }
+    };
+
+    void fetchAssignedPrograms();
+  }, [assignedProgram, isLoadingProgram, user?.id]);
+
+  const program = useMemo(() => assignedProgram, [assignedProgram]);
   const hasAssignedProgram = !!program;
   const hasAccessToFormations = user?.grantedFormationIds && user.grantedFormationIds.length > 0;
 
@@ -92,10 +128,16 @@ const ClientWorkout: React.FC = () => {
           <h3 className="font-bold text-gray-800 dark:text-client-light text-lg">
             Programme en cours
           </h3>
-          <p className="text-sm text-gray-500 dark:text-client-subtle mt-2">
-            Aucun programme ne vous a été assigné pour le moment. Contactez votre coach pour
-            commencer !
-          </p>
+          {programError ? (
+            <p className="text-sm text-red-600 dark:text-red-400 mt-2">{programError}</p>
+          ) : isLoadingProgram ? (
+            <p className="text-sm text-gray-500 dark:text-client-subtle mt-2">Chargement en cours...</p>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-client-subtle mt-2">
+              Aucun programme ne vous a été assigné pour le moment. Contactez votre coach pour
+              commencer !
+            </p>
+          )}
         </div>
       )}
 
