@@ -165,6 +165,7 @@ export const getClientAssignedPrograms = async (
         weekCount: program.week_count || 0,
         sessionsByWeek,
         assignmentId: assignment?.id,
+        status: assignment?.status,
         currentWeek: assignment?.current_week ?? 1,
         currentSession: assignment?.current_session_order ?? 1,
       } as WorkoutProgram;

@@ -14,7 +14,7 @@ import Modal from '../../../components/Modal';
 import Button from '../../../components/Button';
 import SessionRecapModal from '../../../components/client/SessionRecapModal';
 import { savePerformanceLog } from '../../../services/performanceLogService';
-import { getClientAssignedPrograms } from '../../../services/clientProgramService';
+// import { getClientAssignedPrograms } from '../../../services/clientProgramService'; // Plus nécessaire car chargé via useAuthStore
 import {
   ArrowLeftIcon,
   ClockIcon,
@@ -49,29 +49,13 @@ const ClientCurrentProgram: React.FC = () => {
   const optionsButtonRef = useRef<HTMLButtonElement>(null);
   const finishStatusRef = useRef({ wasProgramFinished: false, hasNextProgram: false });
 
-  // État pour le programme récupéré depuis la base de données
-  const [baseProgram, setBaseProgram] = useState<WorkoutProgram | undefined>(undefined);
-  const [isProgramLoading, setIsProgramLoading] = useState(true);
+  // Récupération du programme depuis l'état global
+  const baseProgram = user?.assignedProgram;
+  const isProgramLoading = !user || !baseProgram; // Le programme est chargé avec l'utilisateur
 
-  // Charger le programme actif au montage du composant
-  useEffect(() => {
-    const loadActiveProgram = async () => {
-      if (!user?.id) return;
-      setIsProgramLoading(true);
-      const programs = await getClientAssignedPrograms(user.id);
-      if (programs && programs.length > 0) {
-        setBaseProgram(programs[0]); // Premier programme actif
-      } else {
-        setBaseProgram(undefined);
-      }
-      setIsProgramLoading(false);
-    };
-
-    loadActiveProgram();
-  }, [user?.id]);
   const currentWeek = useMemo(() => user?.programWeek || 1, [user]);
 
-  const [localProgram, setLocalProgram] = useState<WorkoutProgram | undefined>(baseProgram);
+  const [localProgram, setLocalProgram] = useState<WorkoutProgram | undefined>(baseProgram || undefined);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [activeSetIndex, setActiveSetIndex] = useState(0);
   const [logData, setLogData] = useState<Record<string, PerformanceSet[]>>({});

@@ -157,7 +157,7 @@ export interface Client {
   updatedAt: string;
   programName?: string;
   programWeek?: number;
-  assignedPrograms?: WorkoutProgram[];
+  assignedProgram?: WorkoutProgram | null;
   savedPrograms?: WorkoutProgram[];
 }
 
@@ -218,6 +218,7 @@ export interface WorkoutProgram {
   weekCount: number;
   clientId?: string;
   sessionsByWeek: Record<number, WorkoutSession[]>;
+  status?: 'active' | 'completed' | 'archived';
 }
 
 // ---- PROGRAM TYPES (Supabase) ----
