@@ -435,30 +435,23 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
           setSessionsByWeek((prev) => {
             const prevWithTemplates = assignTemplateSessionIds(prev);
-            const newSessionsByWeek = { ...prevWithTemplates };
-            const week1Sessions = prevWithTemplates[1] || [];
+            const ensuredWeeks: SessionsByWeekState = { ...prevWithTemplates };
 
-            // Dupliquer la semaine 1 sur toutes les nouvelles semaines
-            for (let week = currentWeekCount + 1; week <= newWeekCount; week++) {
-              // Ne dupliquer que si la semaine n'existe pas déjà
-              if (!newSessionsByWeek[week]) {
-                // Créer des copies PROFONDES des séances de la semaine 1
-                let currentSessionId = getNextSessionId({ ...newSessionsByWeek, [week]: [] });
-                let currentExerciseId = getNextExerciseId({ ...newSessionsByWeek, [week]: [] });
-
-                newSessionsByWeek[week] = week1Sessions.map((session) => {
-                  const clonedSession = deepCloneSession(session, currentSessionId, currentExerciseId);
-                  clonedSession.templateSessionId = session.templateSessionId ?? session.id;
-                  currentSessionId++;
-                  currentExerciseId += session.exercises.length;
-                  return clonedSession;
-                });
-
-                console.log(`[handleWeekCountChange] Semaine ${week} créée avec ${week1Sessions.length} séance(s) - clonage profond`);
-              }
+            // S'assurer que toutes les semaines existent avant la duplication
+            for (let week = 1; week <= newWeekCount; week++) {
+              ensuredWeeks[week] = ensuredWeeks[week] || [];
             }
 
-            return newSessionsByWeek;
+            // Utiliser la logique de mirroring pour reproduire intégralement la semaine 1
+            const mirroredState = mirrorWeekOneStructure(ensuredWeeks);
+
+            // Ne conserver que les semaines nécessaires
+            const trimmedState: SessionsByWeekState = {};
+            for (let week = 1; week <= newWeekCount; week++) {
+              trimmedState[week] = mirroredState[week] || [];
+            }
+
+            return trimmedState;
           });
         }
         
