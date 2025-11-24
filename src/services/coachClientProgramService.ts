@@ -1,15 +1,38 @@
 import { supabase } from './supabase';
 import { WorkoutExercise, WorkoutProgram, WorkoutSession } from '../types';
 
-const mapSessionToWorkoutSession = (session: any): WorkoutSession => {
-  const exercises = Array.isArray(session.exercises)
-    ? (session.exercises as WorkoutExercise[])
+const mapClientSessionToWorkoutSession = (
+  session: any,
+  indexOffset = 0
+): WorkoutSession => {
+  const exercises = Array.isArray(session.client_session_exercises)
+    ? (session.client_session_exercises as any[])
     : [];
+
+  const mappedExercises: WorkoutExercise[] = exercises.map((exercise, idx) => ({
+    id: idx + 1 + indexOffset,
+    dbId: exercise.id,
+    exerciseId: exercise.exercise_id,
+    name: exercise.exercises?.name || 'Exercice',
+    illustrationUrl: exercise.exercises?.illustration_url || undefined,
+    sets: exercise.sets ?? '',
+    reps: exercise.reps ?? '',
+    load: exercise.load ?? '',
+    tempo: exercise.tempo ?? '',
+    restTime: exercise.rest_time ?? '',
+    intensification: Array.isArray(exercise.intensification)
+      ? exercise.intensification.map((value: any, i: number) => ({
+          id: i + 1,
+          value: String(value),
+        }))
+      : [],
+    notes: exercise.notes ?? undefined,
+  }));
 
   return {
     id: session.id,
     name: session.name,
-    exercises,
+    exercises: mappedExercises,
     weekNumber: session.week_number ?? 1,
     sessionOrder: session.session_order ?? 1,
   } as WorkoutSession;
@@ -28,7 +51,7 @@ export interface ClientAssignedProgramSummary {
   endDate?: string;
   currentWeek: number;
   currentSession: number;
-  status: 'active' | 'paused' | 'completed' | 'cancelled' | 'upcoming';
+  status: 'upcoming' | 'active' | 'completed' | 'paused' | 'archived';
   weekCount: number;
   assignmentId: string;
   clientProgramId: string;
@@ -44,24 +67,11 @@ export const getClientAssignedProgramsForCoach = async (
   clientId: string
 ): Promise<ClientAssignedProgramSummary[]> => {
   try {
-    // Récupérer les assignations
     const { data: assignments, error: assignmentsError } = await supabase
       .from('program_assignments')
-      .select(`
-        id,
-        program_id,
-        start_date,
-        end_date,
-        current_week,
-        current_session,
-        status,
-        programs (
-          id,
-          name,
-          objective,
-          week_count
-        )
-      `)
+      .select(
+        'id, start_date, end_date, current_week, current_session_order, status'
+      )
       .eq('client_id', clientId)
       .order('start_date', { ascending: false });
 
@@ -74,22 +84,36 @@ export const getClientAssignedProgramsForCoach = async (
       return [];
     }
 
-    return (assignments || []).map((assignment) => {
-      const program = assignment.programs;
+    const assignmentIds = assignments.map((a) => a.id);
+    const { data: clientPrograms, error: clientProgramsError } = await supabase
+      .from('client_programs')
+      .select('id, assignment_id, name, objective, week_count')
+      .in('assignment_id', assignmentIds);
+
+    if (clientProgramsError) {
+      console.error(
+        'Erreur lors de la récupération des programmes clients:',
+        clientProgramsError
+      );
+      return [];
+    }
+
+    return (clientPrograms || []).map((program) => {
+      const assignment = assignments.find((a) => a.id === program.assignment_id);
 
       return {
-        id: program?.id || assignment.program_id,
-        name: program?.name || 'Programme',
-        objective: program?.objective || '',
-        startDate: assignment.start_date,
-        endDate: assignment.end_date || undefined,
-        currentWeek: assignment.current_week || 1,
-        currentSession: assignment.current_session || 1,
+        id: program.id,
+        name: program.name || 'Programme',
+        objective: program.objective || '',
+        startDate: assignment?.start_date || '',
+        endDate: assignment?.end_date || undefined,
+        currentWeek: assignment?.current_week || 1,
+        currentSession: assignment?.current_session_order || 1,
         status:
-          (assignment.status as ClientAssignedProgramSummary['status']) || 'active',
-        weekCount: program?.week_count || 0,
-        assignmentId: assignment.id,
-        clientProgramId: program?.id || assignment.program_id,
+          (assignment?.status as ClientAssignedProgramSummary['status']) || 'active',
+        weekCount: program.week_count || 0,
+        assignmentId: assignment?.id || program.assignment_id,
+        clientProgramId: program.id,
       };
     });
   } catch (error) {
@@ -118,9 +142,31 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
     }
 
     const { data: sessions, error: sessionsError } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('program_id', clientProgramId)
+      .from('client_sessions')
+      .select(`
+        id,
+        client_program_id,
+        name,
+        week_number,
+        session_order,
+        client_session_exercises (
+          id,
+          exercise_id,
+          sets,
+          reps,
+          load,
+          tempo,
+          rest_time,
+          intensification,
+          notes,
+          exercises (
+            id,
+            name,
+            illustration_url
+          )
+        )
+      `)
+      .eq('client_program_id', clientProgramId)
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
 
@@ -138,7 +184,9 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
         sessionsByWeek[weekNumber] = [];
       }
 
-      sessionsByWeek[weekNumber].push(mapSessionToWorkoutSession(session));
+      sessionsByWeek[weekNumber].push(
+        mapClientSessionToWorkoutSession(session, sessionsByWeek[weekNumber].length)
+      );
     }
 
     return {
