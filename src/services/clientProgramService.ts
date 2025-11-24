@@ -90,7 +90,15 @@ export const getClientAssignedPrograms = async (
       return [];
     }
 
-    const programIds = (clientPrograms || []).map((p) => p.id);
+    if (!clientPrograms || clientPrograms.length === 0) {
+      return [];
+    }
+
+    const programIds = clientPrograms.map((p) => p.id);
+    if (programIds.length === 0) {
+      return [];
+    }
+
     const { data: clientSessions, error: clientSessionsError } = await supabase
       .from('client_sessions')
       .select(`
