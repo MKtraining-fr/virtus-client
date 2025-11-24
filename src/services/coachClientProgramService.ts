@@ -1,4 +1,19 @@
 import { supabase } from './supabase';
+import { WorkoutExercise, WorkoutProgram, WorkoutSession } from '../types';
+
+const mapSessionToWorkoutSession = (session: any): WorkoutSession => {
+  const exercises = Array.isArray(session.exercises)
+    ? (session.exercises as WorkoutExercise[])
+    : [];
+
+  return {
+    id: session.id,
+    name: session.name,
+    exercises,
+    weekNumber: session.week_number ?? 1,
+    sessionOrder: session.session_order ?? 1,
+  } as WorkoutSession;
+};
 
 /**
  * Service pour récupérer les programmes assignés à un client
@@ -32,7 +47,21 @@ export const getClientAssignedProgramsForCoach = async (
     // Récupérer les assignations
     const { data: assignments, error: assignmentsError } = await supabase
       .from('program_assignments')
-      .select('*')
+      .select(`
+        id,
+        program_id,
+        start_date,
+        end_date,
+        current_week,
+        current_session,
+        status,
+        programs (
+          id,
+          name,
+          objective,
+          week_count
+        )
+      `)
       .eq('client_id', clientId)
       .order('start_date', { ascending: false });
 
@@ -45,38 +74,24 @@ export const getClientAssignedProgramsForCoach = async (
       return [];
     }
 
-    // Pour chaque assignation, récupérer le programme client correspondant
-    const programs: ClientAssignedProgramSummary[] = [];
+    return (assignments || []).map((assignment) => {
+      const program = assignment.programs;
 
-    for (const assignment of assignments) {
-      // Récupérer le programme client via l'assignation
-      const { data: clientPrograms, error: programError } = await supabase
-        .from('client_programs')
-        .select('id, name, objective, week_count')
-        .eq('assignment_id', assignment.id)
-        .single();
-
-      if (programError || !clientPrograms) {
-        console.warn(`Programme client non trouvé pour l'assignation ${assignment.id}`);
-        continue;
-      }
-
-      programs.push({
-        id: clientPrograms.id,
-        name: clientPrograms.name,
-        objective: clientPrograms.objective || '',
+      return {
+        id: program?.id || assignment.program_id,
+        name: program?.name || 'Programme',
+        objective: program?.objective || '',
         startDate: assignment.start_date,
         endDate: assignment.end_date || undefined,
         currentWeek: assignment.current_week || 1,
-        currentSession: assignment.current_session_order || 1,
-        status: assignment.status as 'active' | 'paused' | 'completed' | 'cancelled' | 'upcoming',
-        weekCount: clientPrograms.week_count,
+        currentSession: assignment.current_session || 1,
+        status:
+          (assignment.status as ClientAssignedProgramSummary['status']) || 'active',
+        weekCount: program?.week_count || 0,
         assignmentId: assignment.id,
-        clientProgramId: clientPrograms.id,
-      });
-    }
-
-    return programs;
+        clientProgramId: program?.id || assignment.program_id,
+      };
+    });
   } catch (error) {
     console.error('Erreur globale lors de la récupération des programmes assignés:', error);
     return [];
@@ -91,9 +106,8 @@ export const getClientAssignedProgramsForCoach = async (
  */
 export const getClientProgramDetails = async (clientProgramId: string) => {
   try {
-    // Récupérer le programme
     const { data: program, error: programError } = await supabase
-      .from('client_programs')
+      .from('programs')
       .select('*')
       .eq('id', clientProgramId)
       .single();
@@ -103,11 +117,10 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
       return null;
     }
 
-    // Récupérer les séances
     const { data: sessions, error: sessionsError } = await supabase
-      .from('client_sessions')
+      .from('sessions')
       .select('*')
-      .eq('client_program_id', clientProgramId)
+      .eq('program_id', clientProgramId)
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
 
@@ -116,63 +129,16 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
       return null;
     }
 
-    // Récupérer les exercices
-    const sessionIds = sessions?.map((s) => s.id) || [];
-    
-    const { data: exercises, error: exercisesError } = await supabase
-      .from('client_session_exercises')
-      .select(`
-        *,
-        exercises (
-          id,
-          name,
-          image_url
-        )
-      `)
-      .in('session_id', sessionIds)
-      .order('exercise_order', { ascending: true });
-
-    if (exercisesError) {
-      console.error('Erreur lors de la récupération des exercices:', exercisesError);
-      return null;
-    }
-
-    // Construire la structure sessionsByWeek
-    const sessionsByWeek: { [week: number]: any[] } = {};
+    const sessionsByWeek: Record<number, WorkoutSession[]> = {};
 
     for (const session of sessions || []) {
-      const weekNumber = session.week_number || 1;
-      
+      const weekNumber = session.week_number ?? 1;
+
       if (!sessionsByWeek[weekNumber]) {
         sessionsByWeek[weekNumber] = [];
       }
 
-      const sessionExercises = exercises?.filter((ex) => ex.session_id === session.id) || [];
-
-      const workoutExercises = sessionExercises.map((ex) => {
-        const exerciseInfo = ex.exercises as any;
-        return {
-          id: ex.id,
-          exerciseId: ex.exercise_id,
-          name: exerciseInfo?.name || 'Exercice inconnu',
-          sets: ex.sets?.toString() || '3',
-          details: [{
-            reps: ex.reps || '10',
-            load: { value: ex.load || '0', unit: 'kg' },
-            tempo: ex.tempo || '2-0-2-0',
-            rest: ex.rest_time || '60s',
-          }],
-          intensification: ex.intensification || '',
-          notes: ex.notes || '',
-          illustrationUrl: exerciseInfo?.image_url || '',
-        };
-      });
-
-      sessionsByWeek[weekNumber].push({
-        id: session.id,
-        name: session.name,
-        exercises: workoutExercises,
-      });
+      sessionsByWeek[weekNumber].push(mapSessionToWorkoutSession(session));
     }
 
     return {
@@ -181,7 +147,7 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
       objective: program.objective || '',
       weekCount: program.week_count,
       sessionsByWeek,
-    };
+    } as WorkoutProgram;
   } catch (error) {
     console.error('Erreur globale lors de la récupération des détails du programme:', error);
     return null;
