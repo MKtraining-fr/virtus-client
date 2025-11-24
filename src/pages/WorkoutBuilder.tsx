@@ -284,22 +284,23 @@ const getNextExerciseId = (state: SessionsByWeekState): number => {
 };
 
 // Fonction de clonage profond pour les exercices
-const deepCloneExercise = (exercise: EditableWorkoutExercise, newId: number): EditableWorkoutExercise => {
-  return {
-    ...exercise,
-    id: newId,
-    dbId: undefined,
-    // Cloner profondément les détails
-    details: exercise.details ? exercise.details.map(detail => ({
-      ...detail,
-      load: detail.load ? { ...detail.load } : undefined,
-    })) : [],
-    // Cloner profondément les intensifications
-    intensification: exercise.intensification ? exercise.intensification.map(int => ({ ...int })) : [],
-    // Cloner profondément les alternatives
-    alternatives: exercise.alternatives ? exercise.alternatives.map(alt => ({ ...alt })) : [],
-  };
-};
+const deepCloneExercise = (exercise: EditableWorkoutExercise, newId: number): EditableWorkoutExercise => ({
+  ...exercise,
+  id: newId,
+  dbId: undefined,
+  sets: exercise.sets,
+  // Cloner profondément les détails en garantissant leur structure
+  details: ensureDetailsArray(exercise.details, exercise.sets).map((detail) => ({
+    reps: detail.reps,
+    tempo: detail.tempo,
+    rest: detail.rest,
+    load: detail.load ? { ...detail.load } : { ...DEFAULT_DETAIL_TEMPLATE.load },
+  })),
+  // Cloner profondément les intensifications
+  intensification: exercise.intensification ? exercise.intensification.map((int) => ({ ...int })) : [],
+  // Cloner profondément les alternatives
+  alternatives: exercise.alternatives ? exercise.alternatives.map((alt) => ({ ...alt })) : [],
+});
 
 // Fonction de clonage profond pour les séances
 const deepCloneSession = (session: EditableWorkoutSession, newSessionId: number, startExerciseId: number): EditableWorkoutSession => {
@@ -342,37 +343,24 @@ const mirrorWeekOneStructure = (state: SessionsByWeekState): SessionsByWeekState
     const weekNumber = Number(weekKey);
     if (weekNumber === 1) return;
 
-    const weekSessions = sessions ? [...sessions] : [];
-    const canonicalByTemplate = new Map<number, EditableWorkoutSession>();
-    const customSessions: EditableWorkoutSession[] = [];
+    const customSessions = (sessions || []).filter(
+      (session) => !session.templateSessionId || !templateOrder.includes(session.templateSessionId)
+    );
 
-    weekSessions.forEach((session) => {
-      if (session.templateSessionId && templateOrder.includes(session.templateSessionId)) {
-        canonicalByTemplate.set(session.templateSessionId, session);
-      } else {
-        customSessions.push(session);
-      }
-    });
-
-    const syncedWeekSessions: EditableWorkoutSession[] = [];
+    const mirroredTemplateSessions: EditableWorkoutSession[] = [];
 
     templateOrder.forEach((templateId) => {
-      const existing = canonicalByTemplate.get(templateId);
-      if (existing) {
-        syncedWeekSessions.push(existing);
-      } else {
-        const baseSession = baseTemplateMap.get(templateId);
-        if (!baseSession) return;
-        const clonedSession = deepCloneSession(baseSession, nextSessionId, nextExerciseId);
-        clonedSession.templateSessionId = templateId;
-        syncedWeekSessions.push(clonedSession);
-        nextSessionId++;
-        nextExerciseId += baseSession.exercises.length;
-      }
+      const baseSession = baseTemplateMap.get(templateId);
+      if (!baseSession) return;
+
+      const clonedSession = deepCloneSession(baseSession, nextSessionId, nextExerciseId);
+      clonedSession.templateSessionId = templateId;
+      mirroredTemplateSessions.push(clonedSession);
+      nextSessionId++;
+      nextExerciseId += baseSession.exercises.length;
     });
 
-    syncedWeekSessions.push(...customSessions);
-    updatedState[weekNumber] = syncedWeekSessions;
+    updatedState[weekNumber] = [...mirroredTemplateSessions, ...customSessions];
   });
 
   return updatedState;
