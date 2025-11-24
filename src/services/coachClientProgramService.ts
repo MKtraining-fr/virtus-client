@@ -14,7 +14,7 @@ const mapClientSessionToWorkoutSession = (
     dbId: exercise.id,
     exerciseId: exercise.exercise_id,
     name: exercise.exercises?.name || 'Exercice',
-    illustrationUrl: exercise.exercises?.illustration_url || undefined,
+    illustrationUrl: exercise.exercises?.image_url || undefined,
     sets: exercise.sets ?? '',
     reps: exercise.reps ?? '',
     load: exercise.load ?? '',
@@ -162,7 +162,7 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
           exercises (
             id,
             name,
-            illustration_url
+            image_url
           )
         )
       `)
