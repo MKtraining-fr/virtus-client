@@ -18,7 +18,7 @@ const ChevronRightIcon = (props: React.SVGProps<SVGSVGElement>) => (
 const ClientWorkout: React.FC = () => {
   const { user } = useAuth();
 
-  const program = user?.assignedPrograms?.[0];
+  const program = user?.assignedProgram;
   const hasAssignedProgram = !!program;
   const hasAccessToFormations = user?.grantedFormationIds && user.grantedFormationIds.length > 0;
 
