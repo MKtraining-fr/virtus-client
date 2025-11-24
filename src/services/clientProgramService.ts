@@ -99,8 +99,8 @@ export const getClientAssignedPrograms = async (
       return [];
     }
 
-    const { data: clientSessions, error: clientSessionsError } = await supabase
-      .from('client_sessions')
+    let sessionsQuery = supabase
+      .from("client_sessions")
       .select(`
         id,
         client_program_id,
@@ -123,10 +123,17 @@ export const getClientAssignedPrograms = async (
             illustration_url
           )
         )
-      `)
-      .in('client_program_id', programIds)
-      .order('week_number', { ascending: true })
-      .order('session_order', { ascending: true });
+      `);
+
+    if (programIds.length === 1) {
+      sessionsQuery = sessionsQuery.eq("client_program_id", programIds[0]);
+    } else {
+      sessionsQuery = sessionsQuery.in("client_program_id", programIds);
+    }
+
+    const { data: clientSessions, error: clientSessionsError } = await sessionsQuery
+      .order("week_number", { ascending: true })
+      .order("session_order", { ascending: true });
 
     if (clientSessionsError) {
       console.error(
