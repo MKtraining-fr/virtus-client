@@ -64,7 +64,7 @@ export const getClientAssignedPrograms = async (
       .order('start_date', { ascending: false });
 
     // ÉTAPE 1.5 : Vérifier et mettre à jour les programmes 'upcoming' qui devraient être 'active'
-    const assignmentsToActivate = assignments.filter(
+    const assignmentsToActivate = (assignments ?? []).filter(
       (a) => a.status === 'upcoming' && new Date(a.start_date) <= new Date()
     );
 
@@ -116,7 +116,7 @@ export const getClientAssignedPrograms = async (
       return [];
     }
 
-    const programIds = clientPrograms.map((p) => p.id);
+    const programIds = clientPrograms.map((p) => p.id).filter(Boolean);
     if (programIds.length === 0) {
       return [];
     }
