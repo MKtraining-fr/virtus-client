@@ -107,7 +107,7 @@ export const getClientAssignedPrograms = async (
         name,
         week_number,
         session_order,
-        client_session_exercises (
+        client_session_exercises!inner (
           id,
           exercise_id,
           sets,
@@ -117,7 +117,7 @@ export const getClientAssignedPrograms = async (
           rest_time,
           intensification,
           notes,
-          exercises (
+          exercises!inner (
             id,
             name,
             illustration_url
@@ -215,7 +215,7 @@ export const getAssignedProgramDetails = async (
         name,
         week_number,
         session_order,
-        client_session_exercises (
+        client_session_exercises!inner (
           id,
           exercise_id,
           sets,
@@ -225,7 +225,7 @@ export const getAssignedProgramDetails = async (
           rest_time,
           intensification,
           notes,
-          exercises (
+          exercises!inner (
             id,
             name,
             illustration_url
