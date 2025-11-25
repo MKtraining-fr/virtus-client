@@ -17,6 +17,7 @@ export interface SessionExerciseData {
   rest_time?: string;
   intensification?: string;
   notes?: string;
+  details?: string; // JSONB stringifié contenant les détails par série
 }
 
 /**

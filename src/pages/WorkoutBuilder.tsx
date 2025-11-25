@@ -1394,6 +1394,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   rest_time: mainDetail.rest || '',
                   intensification: JSON.stringify(normalized.intensification || []),
                   notes: normalized.notes || '',
+                  details: JSON.stringify(details), // Nouveau: sauvegarder tous les détails par série
                 };
               });
 

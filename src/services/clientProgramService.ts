@@ -17,20 +17,35 @@ const mapClientSessionToWorkoutSession = (
     : [];
 
   const mappedExercises: WorkoutExercise[] = exercises.map((exercise, idx) => {
-    // Parser le champ load pour extraire valeur et unité
-    const loadString = exercise.load ?? '';
-    const loadMatch = loadString.match(/^([\d.]+)\s*([a-zA-Z%]+)?$/);
-    const loadValue = loadMatch?.[1] ?? '';
-    const loadUnit = (loadMatch?.[2]?.toLowerCase() ?? 'kg') as 'kg' | 'lbs' | '%';
+    // Utiliser la colonne details si disponible (nouveau format)
+    let details: WorkoutExercise['details'];
+    
+    if (exercise.details) {
+      // Nouveau format: utiliser directement la colonne details
+      try {
+        const parsedDetails = typeof exercise.details === 'string' 
+          ? JSON.parse(exercise.details) 
+          : exercise.details;
+        details = Array.isArray(parsedDetails) ? parsedDetails : [];
+      } catch (e) {
+        console.error('Erreur lors du parsing de details:', e);
+        details = [];
+      }
+    } else {
+      // Ancien format: créer details à partir des colonnes individuelles
+      const loadString = exercise.load ?? '';
+      const loadMatch = loadString.match(/^([\d.]+)\s*([a-zA-Z%]+)?$/);
+      const loadValue = loadMatch?.[1] ?? '';
+      const loadUnit = (loadMatch?.[2]?.toLowerCase() ?? 'kg') as 'kg' | 'lbs' | '%';
 
-    // Créer le tableau details avec les données de la base
-    const setsCount = typeof exercise.sets === 'number' ? exercise.sets : parseInt(String(exercise.sets), 10) || 1;
-    const details = Array.from({ length: setsCount }, () => ({
-      reps: exercise.reps ?? '',
-      load: { value: loadValue, unit: loadUnit },
-      tempo: exercise.tempo ?? '',
-      rest: exercise.rest_time ?? '',
-    }));
+      const setsCount = typeof exercise.sets === 'number' ? exercise.sets : parseInt(String(exercise.sets), 10) || 1;
+      details = Array.from({ length: setsCount }, () => ({
+        reps: exercise.reps ?? '',
+        load: { value: loadValue, unit: loadUnit },
+        tempo: exercise.tempo ?? '',
+        rest: exercise.rest_time ?? '',
+      }));
+    }
 
     return {
       id: idx + 1 + indexOffset,
@@ -158,6 +173,7 @@ export const getClientAssignedPrograms = async (
           rest_time,
           intensification,
           notes,
+          details,
           exercises!inner (
             id,
             name,
@@ -266,6 +282,7 @@ export const getAssignedProgramDetails = async (
           rest_time,
           intensification,
           notes,
+          details,
           exercises!inner (
             id,
             name,
