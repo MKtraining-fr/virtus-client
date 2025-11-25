@@ -153,24 +153,53 @@ const ClientCurrentProgram: React.FC = () => {
     }
   }, [activeSession]);
 
+  // Fonction helper pour calculer la couleur de progression
+  const getProgressionColor = (currentValue: string, previousValue: string | undefined): string => {
+    if (!previousValue || !currentValue || currentValue === '' || previousValue === '') {
+      return 'text-gray-900 dark:text-client-light'; // Couleur par défaut
+    }
+
+    const current = parseFloat(currentValue);
+    const previous = parseFloat(previousValue);
+
+    if (isNaN(current) || isNaN(previous)) {
+      return 'text-gray-900 dark:text-client-light'; // Couleur par défaut
+    }
+
+    if (current > previous) {
+      return 'text-green-600 dark:text-green-400'; // Progression 🟢
+    } else if (current < previous) {
+      return 'text-red-600 dark:text-red-400'; // Régression 🔴
+    } else {
+      return 'text-gray-900 dark:text-client-light'; // Maintien ⚫
+    }
+  };
+
   const previousPerformancePlaceholders = useMemo(() => {
     if (!user || !user.performanceLog || !activeSession || (user.programWeek || 1) <= 1) {
       return null;
     }
 
-    const lastSessionLog = user.performanceLog
+    const currentWeek = user.programWeek || 1;
+    const previousWeek = currentWeek - 1;
+
+    // Récupérer le log de la même séance de la semaine précédente
+    const previousWeekSessionLog = user.performanceLog
       .slice()
       .filter(
-        (log) => log.programName === localProgram?.name && log.sessionName === activeSession.name
+        (log) => 
+          log.programName === localProgram?.name && 
+          log.sessionName === activeSession.name &&
+          log.week === previousWeek
       )
       .pop();
 
-    if (!lastSessionLog) {
+    if (!previousWeekSessionLog) {
       return null;
     }
 
     const placeholderMap = new Map<string, PerformanceSet[]>();
-    for (const exLog of lastSessionLog.exerciseLogs) {
+    for (const exLog of previousWeekSessionLog.exerciseLogs) {
       placeholderMap.set(exLog.exerciseName, exLog.loggedSets);
     }
     return placeholderMap;
@@ -750,6 +779,10 @@ const ClientCurrentProgram: React.FC = () => {
                 currentExercise.details?.[0]?.load?.value ||
                 '0';
 
+              // Calculer la couleur de progression
+              const repsProgressionColor = getProgressionColor(repValue, setPlaceholder?.reps);
+              const loadProgressionColor = getProgressionColor(loadValue, setPlaceholder?.load);
+
               return (
                 <div
                   key={setIndex}
@@ -764,26 +797,26 @@ const ClientCurrentProgram: React.FC = () => {
                   <div className="flex-1 px-1">
                     <input
                       type="number"
-                      placeholder={setPlaceholder?.reps || targetReps}
+                      placeholder={targetReps !== '0' ? targetReps : (setPlaceholder?.reps || '0')}
                       value={repValue}
                       onChange={(e) =>
                         handleLogChange(currentExercise.id, setIndex, 'reps', e.target.value)
                       }
                       onFocus={() => setActiveSetIndex(setIndex)}
-                      className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : 'bg-white dark:bg-client-card border-gray-300 dark:border-transparent text-gray-900 dark:text-client-light placeholder:text-gray-500 dark:placeholder:text-client-subtle'}`}
+                      className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : `bg-white dark:bg-client-card border-gray-300 dark:border-transparent ${repValue ? repsProgressionColor : 'text-gray-900 dark:text-client-light'} placeholder:text-gray-500 dark:placeholder:text-client-subtle`}`}
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
                   <div className="flex-1 px-1">
                     <input
                       type="number"
-                      placeholder={setPlaceholder?.load || targetLoad}
+                      placeholder={targetLoad !== '0' ? targetLoad : (setPlaceholder?.load || '0')}
                       value={loadValue}
                       onChange={(e) =>
                         handleLogChange(currentExercise.id, setIndex, 'load', e.target.value)
                       }
                       onFocus={() => setActiveSetIndex(setIndex)}
-                      className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : 'bg-white dark:bg-client-card border-gray-300 dark:border-transparent text-gray-900 dark:text-client-light placeholder:text-gray-500 dark:placeholder:text-client-subtle'}`}
+                      className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : `bg-white dark:bg-client-card border-gray-300 dark:border-transparent ${loadValue ? loadProgressionColor : 'text-gray-900 dark:text-client-light'} placeholder:text-gray-500 dark:placeholder:text-client-subtle`}`}
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
