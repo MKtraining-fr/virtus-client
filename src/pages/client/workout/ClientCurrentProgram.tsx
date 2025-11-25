@@ -190,7 +190,7 @@ const ClientCurrentProgram: React.FC = () => {
     if (!currentExercise || !currentExercise.details || currentExercise.details.length === 0) {
       return 'Charge';
     }
-    const firstUnit = currentExercise.details[0].load.unit;
+    const firstUnit = currentExercise.details[0]?.load?.unit || 'kg';
     const allSameUnit = currentExercise.details.every((d) => d.load.unit === firstUnit);
 
     if (allSameUnit) {
@@ -744,10 +744,10 @@ const ClientCurrentProgram: React.FC = () => {
               const setPlaceholder = placeholders?.[setIndex];
 
               const targetReps =
-                currentExercise.details[setIndex]?.reps || currentExercise.details[0]?.reps || '0';
+                currentExercise.details?.[setIndex]?.reps || currentExercise.details?.[0]?.reps || '0';
               const targetLoad =
-                currentExercise.details[setIndex]?.load.value ||
-                currentExercise.details[0]?.load.value ||
+                currentExercise.details?.[setIndex]?.load?.value ||
+                currentExercise.details?.[0]?.load?.value ||
                 '0';
 
               return (
