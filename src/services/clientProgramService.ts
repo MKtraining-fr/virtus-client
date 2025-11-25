@@ -16,25 +16,44 @@ const mapClientSessionToWorkoutSession = (
     ? (session.client_session_exercises as any[])
     : [];
 
-  const mappedExercises: WorkoutExercise[] = exercises.map((exercise, idx) => ({
-    id: idx + 1 + indexOffset,
-    dbId: exercise.id,
-    exerciseId: exercise.exercise_id,
-    name: exercise.exercises?.name || 'Exercice',
-    illustrationUrl: exercise.exercises?.image_url || undefined,
-    sets: exercise.sets ?? '',
-    reps: exercise.reps ?? '',
-    load: exercise.load ?? '',
-    tempo: exercise.tempo ?? '',
-    restTime: exercise.rest_time ?? '',
-    intensification: Array.isArray(exercise.intensification)
-      ? exercise.intensification.map((value: any, i: number) => ({
-          id: i + 1,
-          value: String(value),
-        }))
-      : [],
-    notes: exercise.notes ?? undefined,
-  }));
+  const mappedExercises: WorkoutExercise[] = exercises.map((exercise, idx) => {
+    // Parser le champ load pour extraire valeur et unité
+    const loadString = exercise.load ?? '';
+    const loadMatch = loadString.match(/^([\d.]+)\s*([a-zA-Z%]+)?$/);
+    const loadValue = loadMatch?.[1] ?? '';
+    const loadUnit = (loadMatch?.[2]?.toLowerCase() ?? 'kg') as 'kg' | 'lbs' | '%';
+
+    // Créer le tableau details avec les données de la base
+    const setsCount = typeof exercise.sets === 'number' ? exercise.sets : parseInt(String(exercise.sets), 10) || 1;
+    const details = Array.from({ length: setsCount }, () => ({
+      reps: exercise.reps ?? '',
+      load: { value: loadValue, unit: loadUnit },
+      tempo: exercise.tempo ?? '',
+      rest: exercise.rest_time ?? '',
+    }));
+
+    return {
+      id: idx + 1 + indexOffset,
+      dbId: exercise.id,
+      exerciseId: exercise.exercise_id,
+      name: exercise.exercises?.name || 'Exercice',
+      illustrationUrl: exercise.exercises?.image_url || undefined,
+      sets: exercise.sets ?? '',
+      reps: exercise.reps ?? '',
+      load: exercise.load ?? '',
+      tempo: exercise.tempo ?? '',
+      restTime: exercise.rest_time ?? '',
+      intensification: Array.isArray(exercise.intensification)
+        ? exercise.intensification.map((value: any, i: number) => ({
+            id: i + 1,
+            value: String(value),
+          }))
+        : [],
+      notes: exercise.notes ?? undefined,
+      isDetailed: true,
+      details,
+    };
+  });
 
   return {
     id: session.id,
