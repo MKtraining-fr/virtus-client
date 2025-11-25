@@ -507,8 +507,8 @@ const ClientCurrentProgram: React.FC = () => {
   const TimerDisplay = () => {
     const restTimeInSeconds = useMemo(() => {
       if (!currentExercise) return Infinity;
-      const specificRest = currentExercise.details[activeSetIndex]?.rest;
-      const generalRest = currentExercise.details[0]?.rest;
+      const specificRest = currentExercise.details?.[activeSetIndex]?.rest;
+      const generalRest = currentExercise.details?.[0]?.rest;
       const restString = specificRest || generalRest || '0s';
       const seconds = parseInt(restString.replace(/\D/g, ''), 10);
       return isNaN(seconds) ? Infinity : seconds;
