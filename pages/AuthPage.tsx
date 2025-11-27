@@ -26,6 +26,11 @@ const AuthPage: React.FC = () => {
   const { login, register, clients } = useAuth();
   const location = useLocation();
 
+  // Forcer le mode clair sur la page de connexion
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const roleFromQuery = params.get('role');
@@ -101,7 +106,7 @@ const AuthPage: React.FC = () => {
         </Link>
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">
-            {isLoginView ? 'Connexion à FitMaster' : 'Créer un compte'}
+            {isLoginView ? 'Connexion à Virtus' : 'Créer un compte'}
           </h1>
           <p className="mt-2 text-sm text-gray-600">
             {isLoginView ? 'Pas encore de compte ?' : 'Vous avez déjà un compte ?'}{' '}

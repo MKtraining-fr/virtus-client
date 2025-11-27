@@ -1,5 +1,5 @@
-import React, { ReactNode, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { ReactNode, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useDataStore, initializeMessagesRealtime } from '../stores/useDataStore';
 import { logger } from '../utils/logger';
@@ -8,7 +8,9 @@ import { logger } from '../utils/logger';
 // comme la navigation, mais ne fournit pas de contexte directement.
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
-  const { user, isAuthLoading, initializeAuth, currentViewRole, originalUser, theme } = useAuthStore(); // Déstructuration de tout l'état du store ici pour un accès direct
+  const location = useLocation();
+  const { user, isAuthLoading, initializeAuth, currentViewRole, originalUser, theme } = useAuthStore();
+  const lastNavigationRef = useRef<string>('');
 
   // Initialisation de l'écouteur d'authentification au montage du composant
   useEffect(() => {
@@ -56,23 +58,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [user, isAuthLoading, currentViewRole, originalUser]);
 
-  // Effet séparé pour gérer les redirections
+  // Effet séparé pour gérer les redirections avec protection contre les boucles
   useEffect(() => {
     if (isAuthLoading) return;
 
-    const currentPath = window.location.hash.substring(1) || '/'; // Utilise le hash pour HashRouter. Si vide, on considère la racine '/'
+    const currentPath = location.pathname;
     
-    logger.info('Navigation check', { currentPath, hasUser: !!user, currentViewRole });
+    logger.info('Navigation check', { currentPath, hasUser: !!user, currentViewRole, userRole: user?.role });
 
     if (user) {
+      // Déterminer le currentViewRole basé sur le rôle réel de l'utilisateur si non défini
+      let effectiveViewRole = currentViewRole;
+      
+      // Si currentViewRole est 'admin' mais que l'utilisateur n'est pas admin, corriger
+      if (currentViewRole === 'admin' && user.role !== 'admin') {
+        effectiveViewRole = user.role as 'coach' | 'client';
+        // Mettre à jour le store avec le bon rôle
+        useAuthStore.setState({ currentViewRole: effectiveViewRole });
+        logger.info('Correction du currentViewRole', { from: currentViewRole, to: effectiveViewRole });
+      }
+
       // Si l'utilisateur est déjà connecté, on le redirige vers son tableau de bord
       // uniquement s'il est sur une page publique (login, set-password, ou la page d'accueil '/')
       const targetPath =
-        currentViewRole === 'admin'
+        effectiveViewRole === 'admin'
           ? '/app/admin/dashboard'
-          : currentViewRole === 'coach'
+          : effectiveViewRole === 'coach'
             ? '/app/coach/dashboard'
             : '/app/client/dashboard';
+
+      // Protection contre les boucles de redirection
+      if (lastNavigationRef.current === targetPath) {
+        logger.info('Navigation déjà effectuée vers', { targetPath });
+        return;
+      }
 
       if (
         currentPath === '/' ||
@@ -80,16 +99,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         currentPath === '/set-password'
       ) {
         logger.info('Redirecting authenticated user', { from: currentPath, to: targetPath });
+        lastNavigationRef.current = targetPath;
         navigate(targetPath, { replace: true });
       }
     } else {
       const publicPaths = ['/', '/login', '/set-password'];
       if (!publicPaths.includes(currentPath)) {
         logger.info('Redirecting unauthenticated user to login', { from: currentPath });
+        lastNavigationRef.current = '/login';
         navigate('/login', { replace: true });
       }
     }
-  }, [user, isAuthLoading, navigate, currentViewRole]);
+  }, [user, isAuthLoading, navigate, currentViewRole, location.pathname]);
 
   return <>{children}</>;
 };
