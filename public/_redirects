@@ -1,3 +1,8 @@
 # Redirections pour SPA (Single Page Application)
-# Toutes les routes doivent pointer vers index.html pour React Router
-/*    /index.html   200
+# https://developers.cloudflare.com/pages/platform/redirects/
+
+# Exclure les assets des redirections SPA
+/assets/*  /assets/:splat  200
+
+# Toutes les autres routes doivent pointer vers index.html pour React Router
+/*  /index.html  200
