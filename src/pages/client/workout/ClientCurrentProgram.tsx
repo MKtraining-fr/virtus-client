@@ -567,7 +567,7 @@ const ClientCurrentProgram: React.FC = () => {
           </Button>
           <button
             onClick={toggleTimer}
-            className="w-24 h-24 bg-white text-client-dark rounded-full flex items-center justify-center text-2xl font-bold shadow-lg transform active:scale-95 transition-transform"
+            className="w-24 h-24 bg-white dark:bg-client-card text-client-dark dark:text-client-light rounded-full flex items-center justify-center text-2xl font-bold shadow-lg transform active:scale-95 transition-transform"
             aria-label={isTimerRunning ? 'Mettre en pause' : 'Démarrer'}
           >
             {isTimerRunning ? (
@@ -864,7 +864,7 @@ const ClientCurrentProgram: React.FC = () => {
         <div className="fixed bottom-20 right-4 z-20">
           <button
             onClick={handleStartTimer}
-            className="w-16 h-16 bg-white text-client-dark rounded-full shadow-lg flex items-center justify-center hover:bg-gray-200 transition-transform active:scale-95 border border-gray-300"
+            className="w-16 h-16 bg-white dark:bg-client-card text-client-dark dark:text-client-light rounded-full shadow-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-primary/20 transition-transform active:scale-95 border border-gray-300 dark:border-transparent"
             aria-label="Démarrer le chronomètre"
           >
             <ClockIcon className="w-8 h-8" />
@@ -966,7 +966,7 @@ const ClientCurrentProgram: React.FC = () => {
           <textarea
             value={currentComment}
             onChange={(e) => setCurrentComment(e.target.value)}
-            className="w-full h-32 p-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            className="w-full h-32 p-2 bg-white dark:bg-client-card border border-gray-300 dark:border-transparent text-gray-900 dark:text-client-light rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-gray-500 dark:placeholder:text-client-subtle"
             placeholder="Écrivez vos notes ici..."
             autoFocus
           />

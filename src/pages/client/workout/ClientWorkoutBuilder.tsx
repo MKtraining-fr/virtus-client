@@ -478,7 +478,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({
             <img
               src={exercise.illustrationUrl}
               alt={exercise.name}
-              className="w-12 h-12 object-contain bg-white rounded-md flex-shrink-0"
+              className="w-12 h-12 object-contain bg-white dark:bg-client-card rounded-md flex-shrink-0"
             />
           ) : (
             <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-md flex-shrink-0"></div>
@@ -729,7 +729,7 @@ const ExerciseSelectionModal: React.FC<ExerciseSelectionModalProps> = ({
                 <img
                   src={ex.illustrationUrl}
                   alt={ex.name}
-                  className="w-16 h-16 object-contain rounded-md bg-white flex-shrink-0"
+                  className="w-16 h-16 object-contain rounded-md bg-white dark:bg-client-card flex-shrink-0"
                 />
                 <p className="font-semibold">{ex.name}</p>
               </button>

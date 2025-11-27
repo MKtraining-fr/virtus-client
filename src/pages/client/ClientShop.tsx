@@ -7,7 +7,7 @@ const PartnerCard: React.FC<{ partner: Partner }> = ({ partner }) => (
     <img
       src={partner.logoUrl}
       alt={partner.name}
-      className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-contain bg-white p-1 flex-shrink-0"
+      className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-contain bg-white dark:bg-client-card p-1 flex-shrink-0"
     />
     <div className="flex-grow">
       <h3 className="text-xl sm:text-2xl font-bold text-client-light">{partner.name}</h3>

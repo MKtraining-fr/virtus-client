@@ -161,7 +161,7 @@ const ExerciseListPage: React.FC<ExerciseListPageProps> = ({ title, exercises, c
             <img
               src={exercise.illustrationUrl}
               alt={exercise.name}
-              className="w-16 h-16 object-contain rounded-md bg-white flex-shrink-0"
+              className="w-16 h-16 object-contain rounded-md bg-white dark:bg-client-card flex-shrink-0"
             />
             <div className="flex-grow">
               <p className="font-semibold text-gray-900 dark:text-client-light">{exercise.name}</p>
