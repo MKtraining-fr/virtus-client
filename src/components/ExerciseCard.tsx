@@ -238,7 +238,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             placeholder="Nom du mouvement"
             value={ex.name}
             onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-            className="w-full mb-3 px-0 py-1 border-none bg-transparent focus:outline-none text-sm font-semibold text-gray-800 placeholder-gray-400"
+            className="w-full mb-3 px-0 py-1 border-none bg-transparent focus:outline-none text-sm font-semibold text-gray-800 placeholder-gray-400 text-center"
           />
           
           {/* Mode Simple ou Détaillé */}
@@ -247,17 +247,17 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <div className="space-y-1.5">
               {/* Série */}
               <div className="relative flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
-                <span className="text-xs text-gray-600 mr-2">série</span>
+                <span className="text-xs text-gray-600 flex-1">série</span>
                 <input
                   type="number"
                   value={ex.sets}
                   onChange={(e) => onUpdateExercise(ex.id, 'sets', e.target.value)}
-                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-center"
+                  className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
                 />
                 <button
                   type="button"
                   onClick={toggleDetailedMode}
-                  className="ml-2 text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 flex-1 flex justify-end"
                   title="Mode détaillé"
                 >
                   <ChevronDownIcon className="w-4 h-4" />
@@ -266,30 +266,29 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
               {/* Répétitions */}
               <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
-                <span className="text-xs text-gray-600 mr-2">Répétitions</span>
+                <span className="text-xs text-gray-600 flex-1">Répétitions</span>
                 <input
                   type="text"
                   value={simpleValues.reps}
                   onChange={(e) => handleSimpleValueChange('reps', e.target.value)}
-                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-center"
+                  className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
                 />
+                <div className="flex-1"></div>
               </div>
 
               {/* Charge */}
-              <div className="flex items-center gap-1.5">
-                <div className="flex-1 flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
-                  <span className="text-xs text-gray-600 mr-2">Charge</span>
-                  <input
-                    type="text"
-                    value={simpleValues.load.value}
-                    onChange={(e) => handleSimpleValueChange('load.value', e.target.value)}
-                    className="flex-1 bg-transparent border-none focus:outline-none text-xs text-center"
-                  />
-                </div>
+              <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
+                <span className="text-xs text-gray-600 flex-1">Charge</span>
+                <input
+                  type="text"
+                  value={simpleValues.load.value}
+                  onChange={(e) => handleSimpleValueChange('load.value', e.target.value)}
+                  className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
+                />
                 <select
                   value={simpleValues.load.unit}
                   onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
-                  className="px-2 py-1.5 bg-white border-2 border-primary/20 rounded-xl text-xs font-medium focus:outline-none focus:border-primary/50"
+                  className="px-2 py-1 bg-transparent border-none text-xs font-medium focus:outline-none"
                 >
                   <option value="kg">kg</option>
                   <option value="lbs">lbs</option>
@@ -300,24 +299,26 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
               {/* Tempo */}
               <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
-                <span className="text-xs text-gray-600 mr-2">Tempo</span>
+                <span className="text-xs text-gray-600 flex-1">Tempo</span>
                 <input
                   type="text"
                   value={simpleValues.tempo}
                   onChange={(e) => handleSimpleValueChange('tempo', e.target.value)}
-                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-center"
+                  className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
                 />
+                <div className="flex-1"></div>
               </div>
 
               {/* Repos */}
               <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
-                <span className="text-xs text-gray-600 mr-2">Repos</span>
+                <span className="text-xs text-gray-600 flex-1">Repos</span>
                 <input
                   type="text"
                   value={simpleValues.rest}
                   onChange={(e) => handleSimpleValueChange('rest', e.target.value)}
-                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-center"
+                  className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
                 />
+                <div className="flex-1"></div>
               </div>
             </div>
           ) : (
