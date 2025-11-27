@@ -106,6 +106,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 }) => {
   const [isDetailedMode, setIsDetailedMode] = useState(false);
   const [showAlternativesModal, setShowAlternativesModal] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleDetailedMode = () => {
     if (!ex.sets || parseInt(ex.sets, 10) === 0) {
@@ -232,15 +233,28 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
         {/* PARTIE DROITE - Formulaire Vertical */}
         <div className="flex-1 p-3">
-          {/* Nom du mouvement - Titre */}
-          <input
-            type="text"
-            placeholder="Nom du mouvement"
-            value={ex.name}
-            onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-            className="w-full mb-3 px-0 py-1 border-none bg-transparent focus:outline-none text-sm font-semibold text-gray-800 placeholder-gray-400 text-center"
-          />
+          {/* Nom du mouvement - Titre avec flèche de réduction */}
+          <div className="flex items-center justify-center mb-3 gap-2">
+            <input
+              type="text"
+              placeholder="Nom du mouvement"
+              value={ex.name}
+              onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
+              className="flex-1 px-0 py-1 border-none bg-transparent focus:outline-none text-sm font-semibold text-gray-800 placeholder-gray-400 text-center"
+            />
+            <button
+              type="button"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="text-gray-400 hover:text-gray-600 transition-all"
+              title={isCollapsed ? "Étendre" : "Réduire"}
+            >
+              <ChevronDownIcon className={`w-4 h-4 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
           
+          {/* Formulaire (masqué si réduit) */}
+          {!isCollapsed && (
+          <>
           {/* Mode Simple ou Détaillé */}
           {!isDetailedMode ? (
             /* MODE SIMPLE */
@@ -270,8 +284,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 <input
                   type="text"
                   value={simpleValues.reps}
-                  onChange={(e) => handleSimpleValueChange('reps', e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Accepter uniquement les chiffres, tirets et espaces (ex: "8-12" ou "10 12")
+                    if (value === '' || /^[0-9\s-]*$/.test(value)) {
+                      handleSimpleValueChange('reps', value);
+                    }
+                  }}
                   className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
+                  placeholder="12"
                 />
                 <div className="flex-1"></div>
               </div>
@@ -282,19 +303,28 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 <input
                   type="text"
                   value={simpleValues.load.value}
-                  onChange={(e) => handleSimpleValueChange('load.value', e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Accepter uniquement les chiffres et points/virgules pour décimales
+                    if (value === '' || /^[0-9.,]*$/.test(value)) {
+                      handleSimpleValueChange('load.value', value);
+                    }
+                  }}
                   className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
+                  placeholder="80"
                 />
-                <select
-                  value={simpleValues.load.unit}
-                  onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
-                  className="px-2 py-1 bg-transparent border-none text-xs font-medium focus:outline-none"
-                >
-                  <option value="kg">kg</option>
-                  <option value="lbs">lbs</option>
-                  <option value="%">%</option>
-                  <option value="@">@</option>
-                </select>
+                <div className="flex items-center">
+                  <select
+                    value={simpleValues.load.unit}
+                    onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
+                    className="px-2 py-1 bg-transparent border-none text-xs font-medium focus:outline-none"
+                  >
+                    <option value="kg">kg</option>
+                    <option value="lbs">lbs</option>
+                    <option value="%">%</option>
+                    <option value="@">@</option>
+                  </select>
+                </div>
               </div>
 
               {/* Tempo */}
@@ -420,6 +450,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               <ChevronDownIcon className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
 
