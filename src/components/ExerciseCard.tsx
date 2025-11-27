@@ -246,18 +246,18 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             /* MODE SIMPLE */
             <div className="space-y-1.5">
               {/* Série */}
-              <div className="relative">
+              <div className="relative flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
+                <span className="text-xs text-gray-600 mr-2">série</span>
                 <input
                   type="number"
                   value={ex.sets}
                   onChange={(e) => onUpdateExercise(ex.id, 'sets', e.target.value)}
-                  placeholder="série"
-                  className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white focus:outline-none focus:ring-0 focus:border-primary/50 placeholder-gray-400 text-xs transition-all"
+                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-right"
                 />
                 <button
                   type="button"
                   onClick={toggleDetailedMode}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="ml-2 text-gray-400 hover:text-gray-600"
                   title="Mode détaillé"
                 >
                   <ChevronDownIcon className="w-4 h-4" />
@@ -265,23 +265,27 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               </div>
 
               {/* Répétitions */}
-              <Input
-                type="text"
-                value={simpleValues.reps}
-                onChange={(e) => handleSimpleValueChange('reps', e.target.value)}
-                placeholder="Répétitions"
-                className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
-              />
+              <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
+                <span className="text-xs text-gray-600 mr-2">Répétitions</span>
+                <input
+                  type="text"
+                  value={simpleValues.reps}
+                  onChange={(e) => handleSimpleValueChange('reps', e.target.value)}
+                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-right"
+                />
+              </div>
 
               {/* Charge */}
-              <div className="flex gap-1.5">
-                <Input
-                  type="text"
-                  value={simpleValues.load.value}
-                  onChange={(e) => handleSimpleValueChange('load.value', e.target.value)}
-                  placeholder="Charge"
-                  className="flex-1 px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
-                />
+              <div className="flex items-center gap-1.5">
+                <div className="flex-1 flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
+                  <span className="text-xs text-gray-600 mr-2">Charge</span>
+                  <input
+                    type="text"
+                    value={simpleValues.load.value}
+                    onChange={(e) => handleSimpleValueChange('load.value', e.target.value)}
+                    className="flex-1 bg-transparent border-none focus:outline-none text-xs text-right"
+                  />
+                </div>
                 <select
                   value={simpleValues.load.unit}
                   onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
@@ -295,22 +299,26 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               </div>
 
               {/* Tempo */}
-              <Input
-                type="text"
-                value={simpleValues.tempo}
-                onChange={(e) => handleSimpleValueChange('tempo', e.target.value)}
-                placeholder="Tempo"
-                className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
-              />
+              <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
+                <span className="text-xs text-gray-600 mr-2">Tempo</span>
+                <input
+                  type="text"
+                  value={simpleValues.tempo}
+                  onChange={(e) => handleSimpleValueChange('tempo', e.target.value)}
+                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-right"
+                />
+              </div>
 
               {/* Repos */}
-              <Input
-                type="text"
-                value={simpleValues.rest}
-                onChange={(e) => handleSimpleValueChange('rest', e.target.value)}
-                placeholder="Repos"
-                className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
-              />
+              <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
+                <span className="text-xs text-gray-600 mr-2">Repos</span>
+                <input
+                  type="text"
+                  value={simpleValues.rest}
+                  onChange={(e) => handleSimpleValueChange('rest', e.target.value)}
+                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-right"
+                />
+              </div>
             </div>
           ) : (
             /* MODE DÉTAILLÉ */
