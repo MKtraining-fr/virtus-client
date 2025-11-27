@@ -196,25 +196,25 @@ const ExerciseListPage: React.FC<ExerciseListPageProps> = ({ title, exercises, c
               <img
                 src={selectedExercise.illustrationUrl}
                 alt={selectedExercise.name}
-                className="w-full h-auto object-contain rounded-lg bg-gray-100"
+                className="w-full h-auto object-contain rounded-lg bg-gray-100 dark:bg-client-dark"
               />
             )}
 
             <div className="space-y-4">
               <div>
-                <h4 className="font-semibold text-lg mb-1 text-gray-800">Description</h4>
-                <p className="text-gray-600">
+                <h4 className="font-semibold text-lg mb-1 text-gray-800 dark:text-client-light">Description</h4>
+                <p className="text-gray-600 dark:text-client-subtle">
                   {selectedExercise.description || 'Aucune description.'}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-semibold text-lg mb-2 text-gray-800">Équipement</h4>
-                  <p className="text-gray-600">{selectedExercise.equipment}</p>
+                  <h4 className="font-semibold text-lg mb-2 text-gray-800 dark:text-client-light">Équipement</h4>
+                  <p className="text-gray-600 dark:text-client-subtle">{selectedExercise.equipment}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-lg mb-2 text-gray-800">Groupes Musculaires</h4>
+                  <h4 className="font-semibold text-lg mb-2 text-gray-800 dark:text-client-light">Groupes Musculaires</h4>
                   {selectedExercise.muscleGroups && selectedExercise.muscleGroups.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {selectedExercise.muscleGroups.map((group) => (
@@ -227,13 +227,13 @@ const ExerciseListPage: React.FC<ExerciseListPageProps> = ({ title, exercises, c
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500">Non spécifié.</p>
+                    <p className="text-gray-500 dark:text-client-subtle">Non spécifié.</p>
                   )}
                 </div>
               </div>
 
               <div>
-                <h4 className="font-semibold text-lg mb-2 text-gray-800">Mouvements Alternatifs</h4>
+                <h4 className="font-semibold text-lg mb-2 text-gray-800 dark:text-client-light">Mouvements Alternatifs</h4>
                 {alternativeExercisesForModal.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {alternativeExercisesForModal.map((alt) => (
@@ -245,16 +245,16 @@ const ExerciseListPage: React.FC<ExerciseListPageProps> = ({ title, exercises, c
                         <img
                           src={alt.illustrationUrl}
                           alt={alt.name}
-                          className="w-full h-24 object-contain bg-gray-50 rounded-t-lg"
+                          className="w-full h-24 object-contain bg-gray-50 dark:bg-client-dark rounded-t-lg"
                         />
-                        <p className="p-2 text-sm font-semibold text-center text-gray-800">
+                        <p className="p-2 text-sm font-semibold text-center text-gray-800 dark:text-client-light">
                           {alt.name}
                         </p>
                       </Card>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500">Aucun mouvement alternatif suggéré.</p>
+                  <p className="text-gray-500 dark:text-client-subtle">Aucun mouvement alternatif suggéré.</p>
                 )}
               </div>
             </div>
