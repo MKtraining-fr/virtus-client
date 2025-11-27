@@ -212,15 +212,6 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               <ArrowPathIcon className="w-4 h-4" />
             </button>
             </div>
-            
-            {/* Nom du mouvement */}
-            <input
-              type="text"
-              placeholder="Nom du mouvement"
-              value={ex.name}
-              onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-              className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white focus:outline-none focus:ring-0 focus:border-primary/50 placeholder-gray-400 text-xs font-medium transition-all"
-            />
           </div>
 
           {/* Image de l'exercice */}
@@ -241,6 +232,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
         {/* PARTIE DROITE - Formulaire Vertical */}
         <div className="flex-1 p-3">
+          {/* Nom du mouvement - Titre */}
+          <input
+            type="text"
+            placeholder="Nom du mouvement"
+            value={ex.name}
+            onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
+            className="w-full mb-3 px-0 py-1 border-none bg-transparent focus:outline-none text-sm font-semibold text-gray-800 placeholder-gray-400"
+          />
+          
           {/* Mode Simple ou Détaillé */}
           {!isDetailedMode ? (
             /* MODE SIMPLE */
@@ -252,7 +252,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   type="number"
                   value={ex.sets}
                   onChange={(e) => onUpdateExercise(ex.id, 'sets', e.target.value)}
-                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-right"
+                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-center"
                 />
                 <button
                   type="button"
@@ -271,7 +271,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   type="text"
                   value={simpleValues.reps}
                   onChange={(e) => handleSimpleValueChange('reps', e.target.value)}
-                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-right"
+                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-center"
                 />
               </div>
 
@@ -283,7 +283,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     type="text"
                     value={simpleValues.load.value}
                     onChange={(e) => handleSimpleValueChange('load.value', e.target.value)}
-                    className="flex-1 bg-transparent border-none focus:outline-none text-xs text-right"
+                    className="flex-1 bg-transparent border-none focus:outline-none text-xs text-center"
                   />
                 </div>
                 <select
@@ -305,7 +305,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   type="text"
                   value={simpleValues.tempo}
                   onChange={(e) => handleSimpleValueChange('tempo', e.target.value)}
-                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-right"
+                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-center"
                 />
               </div>
 
@@ -316,7 +316,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   type="text"
                   value={simpleValues.rest}
                   onChange={(e) => handleSimpleValueChange('rest', e.target.value)}
-                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-right"
+                  className="flex-1 bg-transparent border-none focus:outline-none text-xs text-center"
                 />
               </div>
             </div>
