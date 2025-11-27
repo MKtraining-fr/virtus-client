@@ -25,6 +25,7 @@ interface WorkoutExercise {
 
 interface ExerciseCardProps {
   exercise: WorkoutExercise;
+  exerciseNumber: number;
   availableExercises: Exercise[];
   isSelected: boolean;
   isDragInteractionLocked: boolean;
@@ -88,6 +89,7 @@ const ChevronDownIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 
 const ExerciseCard: React.FC<ExerciseCardProps> = ({
   exercise: ex,
+  exerciseNumber,
   availableExercises,
   isSelected,
   isDragInteractionLocked,
@@ -145,8 +147,13 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       <div className="flex">
         {/* PARTIE GAUCHE - Section Visuelle */}
         <div className="w-2/5 bg-gradient-to-br from-gray-50 to-gray-100 p-6 flex flex-col">
-          {/* Boutons d'action */}
-          <div className="flex items-center gap-2 mb-6">
+          {/* Numéro et Boutons d'action */}
+          <div className="flex items-center gap-3 mb-6">
+            {/* Numéro de l'exercice */}
+            <span className="text-sm font-semibold text-gray-700">
+              Exercice {exerciseNumber}
+            </span>
+            
             {/* Menu hamburger - Drag handle */}
             <button
               type="button"

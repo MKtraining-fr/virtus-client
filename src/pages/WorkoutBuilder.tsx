@@ -1734,10 +1734,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           <div className="flex-1 flex mt-4">
             <div className="w-full">
               <h2 className="text-lg font-semibold mb-4">{activeSession?.name}</h2>
-              {activeSession?.exercises?.map((ex) => (
+              {activeSession?.exercises?.map((ex, index) => (
                 <ExerciseCard
                   key={ex.id}
                   exercise={ex}
+                  exerciseNumber={index + 1}
                   availableExercises={availableExercises}
                   isSelected={selectedExerciseIds.includes(ex.id)}
                   isDragInteractionLocked={isDragInteractionLocked}
