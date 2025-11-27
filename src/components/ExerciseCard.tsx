@@ -146,7 +146,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       } ${exerciseDragItem.current === ex.id ? 'opacity-50' : ''}`}
     >
       <div className="flex">
-        {/* PARTIE GAUCHE - Section Visuelle */}
+        {/* PARTIE GAUCHE - Section Visuelle (masquée en mode réduit) */}
+        {!isCollapsed && (
         <div className="w-1/3 bg-gradient-to-br from-gray-50 to-gray-100 p-3 flex flex-col">
           {/* Numéro, Boutons d'action et Nom */}
           <div className="mb-3">
@@ -230,17 +231,87 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             )}
           </div>
         </div>
+        )}
 
         {/* PARTIE DROITE - Formulaire Vertical */}
         <div className="flex-1 p-3">
           {/* Nom du mouvement - Titre avec flèche de réduction */}
-          <div className="flex items-center justify-center mb-3 gap-2">
+          <div className="flex items-center mb-3 gap-2">
+            {/* Boutons d'action en mode réduit */}
+            {isCollapsed && (
+              <div className="flex items-center gap-1.5">
+                {/* Numéro de l'exercice */}
+                <span className="text-xs font-semibold text-gray-700">
+                  Exercice {exerciseNumber}
+                </span>
+                
+                {/* Menu hamburger - Drag handle */}
+                <button
+                  type="button"
+                  draggable={!isDragInteractionLocked}
+                  onDragStart={(e) => onDragStart(e, ex.id)}
+                  onDragEnd={onDragEnd}
+                  className={`p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all ${
+                    isDragInteractionLocked ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing'
+                  }`}
+                  onMouseDown={(e) => {
+                    if (isDragInteractionLocked) {
+                      e.preventDefault();
+                    }
+                  }}
+                  aria-label="Réordonner l'exercice"
+                  aria-disabled={isDragInteractionLocked}
+                  title="Maintenir pour réorganiser"
+                >
+                  <Bars3Icon className="w-4 h-4" />
+                </button>
+
+                {/* Corbeille - Supprimer */}
+                <button
+                  type="button"
+                  onClick={() => onDeleteExercise(ex.id)}
+                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                  title="Supprimer l'exercice"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </button>
+
+                {/* Historique */}
+                {ex.exerciseId && (
+                  <button
+                    type="button"
+                    onClick={onOpenHistory}
+                    className="p-1.5 text-gray-600 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                    title="Voir l'historique du client"
+                  >
+                    <FolderIcon className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* Cercle de chargement - Alternatives */}
+                <button
+                  type="button"
+                  onClick={() => setShowAlternativesModal(!showAlternativesModal)}
+                  className={`p-1.5 rounded-lg transition-all ${
+                    (ex.alternatives ?? []).length > 0
+                      ? 'text-primary bg-primary/15 hover:bg-primary/25'
+                      : 'text-gray-600 hover:text-primary hover:bg-primary/10'
+                  }`}
+                  title="Gérer les mouvements alternatifs"
+                >
+                  <ArrowPathIcon className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            
             <input
               type="text"
               placeholder="Nom du mouvement"
               value={ex.name}
               onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-              className="flex-1 px-0 py-1 border-none bg-transparent focus:outline-none text-sm font-semibold text-gray-800 placeholder-gray-400 text-center"
+              className={`flex-1 px-0 py-1 border-none bg-transparent focus:outline-none text-sm font-semibold text-gray-800 placeholder-gray-400 ${
+                isCollapsed ? 'text-left' : 'text-center'
+              }`}
             />
             <button
               type="button"
@@ -268,14 +339,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   onChange={(e) => onUpdateExercise(ex.id, 'sets', e.target.value)}
                   className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
                 />
-                <button
-                  type="button"
-                  onClick={toggleDetailedMode}
-                  className="text-gray-400 hover:text-gray-600 flex-1 flex justify-end"
-                  title="Mode détaillé"
-                >
-                  <ChevronDownIcon className="w-4 h-4" />
-                </button>
+                <div className="flex-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={toggleDetailedMode}
+                    className="text-gray-400 hover:text-gray-600"
+                    title="Mode détaillé"
+                  >
+                    <ChevronDownIcon className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Répétitions */}
@@ -313,7 +386,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
                   placeholder="80"
                 />
-                <div className="flex items-center">
+                <div className="flex-1 flex items-center">
                   <select
                     value={simpleValues.load.unit}
                     onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
