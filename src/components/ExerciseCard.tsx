@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bars3Icon, TrashIcon, FolderIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, TrashIcon, FolderIcon } from '@heroicons/react/24/outline';
 import Input from './Input.tsx';
 import Button from './Button.tsx';
 import Select from './Select.tsx';
@@ -59,7 +59,7 @@ const ArrowPathIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   </svg>
 );
 
-// Icône X pour fermer
+// Icône XMark
 const XMarkIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -73,7 +73,7 @@ const XMarkIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   </svg>
 );
 
-// Icône chevron bas pour les dropdowns
+// Icône ChevronDown
 const ChevronDownIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -130,9 +130,6 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       ex.details.forEach((_, index) => {
         onUpdateExercise(ex.id, field, value, index);
       });
-    } else {
-      // Créer la première série
-      onUpdateExercise(ex.id, field, value, 0);
     }
   };
 
@@ -141,51 +138,42 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       key={ex.id}
       onDragEnter={(e) => onDragEnter(e, ex.id)}
       onDragOver={onDragOver}
-      className={`mb-3 border-2 rounded-xl bg-white overflow-hidden transition-all ${
-        draggedOverExerciseId === ex.id ? 'border-primary shadow-lg' : 'border-primary/20'
-      } ${exerciseDragItem.current === ex.id ? 'opacity-50' : ''}`}
+      className="mb-4 flex gap-2"
     >
-      <div className="flex">
-        {/* PARTIE GAUCHE - Section Visuelle (masquée en mode réduit) */}
-        {!isCollapsed && (
-        <div className="w-1/3 bg-gradient-to-br from-gray-50 to-gray-100 p-3 flex flex-col">
-          {/* Numéro, Boutons d'action et Nom */}
-          <div className="mb-3">
-            <div className="flex items-center gap-1.5 mb-2">
-            {/* Numéro de l'exercice */}
-            <span className="text-xs font-semibold text-gray-700">
-              Exercice {exerciseNumber}
-            </span>
-            
-            {/* Menu hamburger - Drag handle */}
-            <button
-              type="button"
-              draggable={!isDragInteractionLocked}
-              onDragStart={(e) => onDragStart(e, ex.id)}
-              onDragEnd={onDragEnd}
-              className={`p-1.5 text-gray-600 hover:text-gray-800 hover:bg-white/50 rounded-lg transition-all ${
-                isDragInteractionLocked ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing'
-              }`}
-              onMouseDown={(e) => {
-                if (isDragInteractionLocked) {
-                  e.preventDefault();
-                }
-              }}
-              aria-label="Réordonner l'exercice"
-              aria-disabled={isDragInteractionLocked}
-              title="Maintenir pour réorganiser"
-            >
-              <Bars3Icon className="w-4 h-4" />
-            </button>
+      {/* BOUTONS D'ACTION À GAUCHE (EXTERNES) */}
+      <div className="flex flex-col gap-2">
+        {/* Menu hamburger - Drag handle (toujours visible) */}
+        <button
+          type="button"
+          draggable={!isDragInteractionLocked}
+          onDragStart={(e) => onDragStart(e, ex.id)}
+          onDragEnd={onDragEnd}
+          className={`p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all ${
+            isDragInteractionLocked ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing'
+          }`}
+          onMouseDown={(e) => {
+            if (isDragInteractionLocked) {
+              e.preventDefault();
+            }
+          }}
+          aria-label="Réordonner l'exercice"
+          aria-disabled={isDragInteractionLocked}
+          title="Maintenir pour réorganiser"
+        >
+          <Bars3Icon className="w-5 h-5" />
+        </button>
 
+        {/* Boutons visibles uniquement en mode étendu */}
+        {!isCollapsed && (
+          <>
             {/* Corbeille - Supprimer */}
             <button
               type="button"
               onClick={() => onDeleteExercise(ex.id)}
-              className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+              className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
               title="Supprimer l'exercice"
             >
-              <TrashIcon className="w-4 h-4" />
+              <TrashIcon className="w-5 h-5" />
             </button>
 
             {/* Historique */}
@@ -193,10 +181,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               <button
                 type="button"
                 onClick={onOpenHistory}
-                className="p-1.5 text-gray-600 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                className="p-2 text-gray-600 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
                 title="Voir l'historique du client"
               >
-                <FolderIcon className="w-4 h-4" />
+                <FolderIcon className="w-5 h-5" />
               </button>
             )}
 
@@ -211,357 +199,283 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               }`}
               title="Gérer les mouvements alternatifs"
             >
-              <ArrowPathIcon className="w-4 h-4" />
+              <ArrowPathIcon className="w-5 h-5" />
             </button>
-            </div>
-          </div>
-
-          {/* Image de l'exercice */}
-          <div className="flex-1 flex items-center justify-center">
-            {ex.illustrationUrl ? (
-              <img
-                src={ex.illustrationUrl}
-                alt={ex.name}
-                className="w-full h-auto rounded-2xl object-cover shadow-md"
-              />
-            ) : (
-              <div className="w-full aspect-[4/3] bg-white/50 rounded-2xl flex items-center justify-center border-2 border-dashed border-gray-300">
-                <span className="text-gray-400 text-sm font-medium">Aucune image</span>
-              </div>
-            )}
-          </div>
-        </div>
+          </>
         )}
+      </div>
 
-        {/* PARTIE DROITE - Formulaire Vertical */}
-        <div className="flex-1 p-3">
-          {/* Nom du mouvement - Titre avec flèche de réduction */}
-          <div className="flex items-center mb-3 gap-2">
-            {/* Boutons d'action en mode réduit */}
-            {isCollapsed && (
-              <div className="flex items-center gap-1.5">
-                {/* Numéro de l'exercice */}
-                <span className="text-xs font-semibold text-gray-700">
+      {/* BLOC PRINCIPAL */}
+      <div className={`flex-1 border-2 rounded-2xl overflow-hidden transition-all ${
+        draggedOverExerciseId === ex.id ? 'border-primary shadow-lg' : 'border-primary/30'
+      } ${exerciseDragItem.current === ex.id ? 'opacity-50' : ''}`}>
+        <div className="flex">
+          {/* PARTIE GAUCHE - Image (masquée en mode réduit) */}
+          {!isCollapsed && (
+            <div className="w-2/5 bg-white p-4 flex flex-col">
+              {/* Numéro de l'exercice */}
+              <div className="mb-3">
+                <span className="text-sm font-semibold text-gray-700">
                   Exercice {exerciseNumber}
                 </span>
-                
-                {/* Menu hamburger - Drag handle */}
-                <button
-                  type="button"
-                  draggable={!isDragInteractionLocked}
-                  onDragStart={(e) => onDragStart(e, ex.id)}
-                  onDragEnd={onDragEnd}
-                  className={`p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all ${
-                    isDragInteractionLocked ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing'
-                  }`}
-                  onMouseDown={(e) => {
-                    if (isDragInteractionLocked) {
-                      e.preventDefault();
-                    }
-                  }}
-                  aria-label="Réordonner l'exercice"
-                  aria-disabled={isDragInteractionLocked}
-                  title="Maintenir pour réorganiser"
-                >
-                  <Bars3Icon className="w-4 h-4" />
-                </button>
-
-                {/* Corbeille - Supprimer */}
-                <button
-                  type="button"
-                  onClick={() => onDeleteExercise(ex.id)}
-                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                  title="Supprimer l'exercice"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-
-                {/* Historique */}
-                {ex.exerciseId && (
-                  <button
-                    type="button"
-                    onClick={onOpenHistory}
-                    className="p-1.5 text-gray-600 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
-                    title="Voir l'historique du client"
-                  >
-                    <FolderIcon className="w-4 h-4" />
-                  </button>
-                )}
-
-                {/* Cercle de chargement - Alternatives */}
-                <button
-                  type="button"
-                  onClick={() => setShowAlternativesModal(!showAlternativesModal)}
-                  className={`p-1.5 rounded-lg transition-all ${
-                    (ex.alternatives ?? []).length > 0
-                      ? 'text-primary bg-primary/15 hover:bg-primary/25'
-                      : 'text-gray-600 hover:text-primary hover:bg-primary/10'
-                  }`}
-                  title="Gérer les mouvements alternatifs"
-                >
-                  <ArrowPathIcon className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-            
-            <input
-              type="text"
-              placeholder="Nom du mouvement"
-              value={ex.name}
-              onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-              className={`flex-1 px-0 py-1 border-none bg-transparent focus:outline-none text-sm font-semibold text-gray-800 placeholder-gray-400 ${
-                isCollapsed ? 'text-left' : 'text-center'
-              }`}
-            />
-            <button
-              type="button"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="text-gray-400 hover:text-gray-600 transition-all"
-              title={isCollapsed ? "Étendre" : "Réduire"}
-            >
-              <ChevronDownIcon className={`w-4 h-4 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
-          
-          {/* Formulaire (masqué si réduit) */}
-          {!isCollapsed && (
-          <>
-          {/* Mode Simple ou Détaillé */}
-          {!isDetailedMode ? (
-            /* MODE SIMPLE */
-            <div className="space-y-1.5">
-              {/* Série */}
-              <div className="relative flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
-                <span className="text-xs text-gray-600 flex-1">série</span>
-                <input
-                  type="number"
-                  value={ex.sets}
-                  onChange={(e) => onUpdateExercise(ex.id, 'sets', e.target.value)}
-                  className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
-                />
-                <div className="flex-1 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={toggleDetailedMode}
-                    className="text-gray-400 hover:text-gray-600"
-                    title="Mode détaillé"
-                  >
-                    <ChevronDownIcon className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
 
-              {/* Répétitions */}
-              <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
-                <span className="text-xs text-gray-600 flex-1">Répétitions</span>
-                <input
-                  type="text"
-                  value={simpleValues.reps}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Accepter uniquement les chiffres, tirets et espaces (ex: "8-12" ou "10 12")
-                    if (value === '' || /^[0-9\s-]*$/.test(value)) {
-                      handleSimpleValueChange('reps', value);
-                    }
-                  }}
-                  className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
-                  placeholder="12"
-                />
-                <div className="flex-1"></div>
-              </div>
-
-              {/* Charge */}
-              <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
-                <span className="text-xs text-gray-600 flex-1">Charge</span>
-                <input
-                  type="text"
-                  value={simpleValues.load.value}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Accepter uniquement les chiffres et points/virgules pour décimales
-                    if (value === '' || /^[0-9.,]*$/.test(value)) {
-                      handleSimpleValueChange('load.value', value);
-                    }
-                  }}
-                  className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
-                  placeholder="80"
-                />
-                <div className="flex-1 flex items-center">
-                  <select
-                    value={simpleValues.load.unit}
-                    onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
-                    className="px-2 py-1 bg-transparent border-none text-xs font-medium focus:outline-none"
-                  >
-                    <option value="kg">kg</option>
-                    <option value="lbs">lbs</option>
-                    <option value="%">%</option>
-                    <option value="@">@</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Tempo */}
-              <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
-                <span className="text-xs text-gray-600 flex-1">Tempo</span>
-                <input
-                  type="text"
-                  value={simpleValues.tempo}
-                  onChange={(e) => handleSimpleValueChange('tempo', e.target.value)}
-                  className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
-                />
-                <div className="flex-1"></div>
-              </div>
-
-              {/* Repos */}
-              <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-1.5 transition-all focus-within:border-primary/50">
-                <span className="text-xs text-gray-600 flex-1">Repos</span>
-                <input
-                  type="text"
-                  value={simpleValues.rest}
-                  onChange={(e) => handleSimpleValueChange('rest', e.target.value)}
-                  className="w-20 bg-transparent border-none focus:outline-none text-xs text-center"
-                />
-                <div className="flex-1"></div>
-              </div>
-            </div>
-          ) : (
-            /* MODE DÉTAILLÉ */
-            <div className="space-y-4">
-              <div className="border-2 border-primary/20 rounded-2xl p-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-                  <span>Série détaillée</span>
-                  <button
-                    type="button"
-                    onClick={toggleDetailedMode}
-                    className="p-1 rounded-full hover:bg-primary/10 text-primary"
-                    title="Revenir en mode simple"
-                  >
-                    <Bars3Icon className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-5 gap-2 text-sm font-medium text-gray-700 mb-3">
-                  <span>#</span>
-                  <span>Reps</span>
-                  <span>Charge</span>
-                  <span>Tempo</span>
-                  <span>Repos</span>
-                </div>
-                {(ex.details ?? []).map((detail, detailIndex) => (
-                  <div key={detailIndex} className="grid grid-cols-5 gap-2 mb-2">
-                    <div className="flex items-center font-semibold text-gray-800">
-                      #{detailIndex + 1}
-                    </div>
-                    <Input
-                      type="text"
-                      value={detail.reps}
-                      onChange={(e) => onUpdateExercise(ex.id, 'reps', e.target.value, detailIndex)}
-                      placeholder="12"
-                      className="border-2 border-primary/20 rounded-xl focus:border-primary/50"
-                    />
-                    <div className="flex gap-1">
-                      <Input
-                        type="text"
-                        value={detail.load.value}
-                        onChange={(e) =>
-                          onUpdateExercise(ex.id, 'load.value', e.target.value, detailIndex)
-                        }
-                        placeholder=""
-                        className="flex-1 border-2 border-primary/20 rounded-xl focus:border-primary/50"
-                      />
-                      <select
-                        value={detail.load.unit}
-                        onChange={(e) =>
-                          onUpdateExercise(ex.id, 'load.unit', e.target.value, detailIndex)
-                        }
-                        className="px-2 py-1 bg-white border-2 border-primary/20 rounded-xl text-sm focus:outline-none focus:border-primary/50"
-                      >
-                        <option value="kg">kg</option>
-                        <option value="lbs">lbs</option>
-                        <option value="%">%</option>
-                        <option value="@">@</option>
-                      </select>
-                    </div>
-                    <Input
-                      type="text"
-                      value={detail.tempo}
-                      onChange={(e) => onUpdateExercise(ex.id, 'tempo', e.target.value, detailIndex)}
-                      placeholder="2010"
-                      className="border-2 border-primary/20 rounded-xl focus:border-primary/50"
-                    />
-                    <Input
-                      type="text"
-                      value={detail.rest}
-                      onChange={(e) => onUpdateExercise(ex.id, 'rest', e.target.value, detailIndex)}
-                      placeholder="60s"
-                      className="border-2 border-primary/20 rounded-xl focus:border-primary/50"
-                    />
+              {/* Image de l'exercice */}
+              <div className="flex-1 flex items-center justify-center">
+                {ex.illustrationUrl ? (
+                  <img
+                    src={ex.illustrationUrl}
+                    alt={ex.name}
+                    className="w-full h-auto rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="w-full aspect-[4/3] bg-gray-50 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
+                    <span className="text-gray-400 text-sm font-medium">Aucune image</span>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
 
-          {/* Élément d'intensification */}
-          <div className="mt-1.5">
-            <div className="relative">
-              <select
-                value={ex.intensification.length > 0 ? ex.intensification[0].value : 'Aucune'}
-                onChange={(e) => onUpdateExercise(ex.id, 'intensification', e.target.value)}
-                className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white text-xs focus:outline-none focus:border-primary/50 appearance-none"
+          {/* PARTIE DROITE - Formulaire */}
+          <div className="flex-1 bg-primary/5 p-4">
+            {/* Nom du mouvement avec flèche */}
+            <div className="flex items-center justify-end mb-4 gap-2">
+              <input
+                type="text"
+                placeholder="Nom du mouvement"
+                value={ex.name}
+                onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
+                className="flex-1 px-0 py-1 border-none bg-transparent focus:outline-none text-sm font-semibold text-gray-800 placeholder-gray-400 text-right"
+              />
+              <button
+                type="button"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="text-gray-400 hover:text-gray-600 transition-all"
+                title={isCollapsed ? "Étendre" : "Réduire"}
               >
-                <option value="Aucune">Élément d'intensification</option>
-                <option value="Dégressif">Dégressif</option>
-                <option value="Superset">Superset</option>
-                <option value="Dropset">Dropset</option>
-                <option value="Rest-Pause">Rest-Pause</option>
-                <option value="Myo-reps">Myo-reps</option>
-                <option value="Cluster">Cluster</option>
-                <option value="Partielles">Partielles</option>
-                <option value="Tempo">Tempo</option>
-                <option value="Isometric">Isometric</option>
-              </select>
-              <ChevronDownIcon className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <ChevronDownIcon className={`w-5 h-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
+              </button>
             </div>
+
+            {/* Formulaire (masqué si réduit) */}
+            {!isCollapsed && (
+              <>
+                {/* Mode Simple ou Détaillé */}
+                {!isDetailedMode ? (
+                  /* MODE SIMPLE - Grille 2 colonnes */
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Colonne 1 */}
+                    <div className="space-y-3">
+                      {/* Série */}
+                      <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-2 transition-all focus-within:border-primary/50">
+                        <span className="text-sm text-gray-600 mr-auto">série</span>
+                        <input
+                          type="number"
+                          value={ex.sets}
+                          onChange={(e) => onUpdateExercise(ex.id, 'sets', e.target.value)}
+                          className="w-16 bg-transparent border-none focus:outline-none text-sm text-right"
+                        />
+                        <button
+                          type="button"
+                          onClick={toggleDetailedMode}
+                          className="ml-2 text-gray-400 hover:text-gray-600"
+                          title="Mode détaillé"
+                        >
+                          <ChevronDownIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Charge */}
+                      <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-2 transition-all focus-within:border-primary/50">
+                        <span className="text-sm text-gray-600 mr-auto">Charge</span>
+                        <input
+                          type="text"
+                          value={simpleValues.load.value}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || /^[0-9.,]*$/.test(value)) {
+                              handleSimpleValueChange('load.value', value);
+                            }
+                          }}
+                          className="w-16 bg-transparent border-none focus:outline-none text-sm text-right"
+                          placeholder="80"
+                        />
+                        <select
+                          value={simpleValues.load.unit}
+                          onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
+                          className="ml-2 px-2 py-1 bg-transparent border-none text-sm font-medium focus:outline-none"
+                        >
+                          <option value="kg">kg</option>
+                          <option value="lbs">lbs</option>
+                          <option value="%">%</option>
+                          <option value="@">@</option>
+                        </select>
+                      </div>
+
+                      {/* Tempo */}
+                      <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-2 transition-all focus-within:border-primary/50">
+                        <span className="text-sm text-gray-600 mr-auto">Tempo</span>
+                        <input
+                          type="text"
+                          value={simpleValues.tempo}
+                          onChange={(e) => handleSimpleValueChange('tempo', e.target.value)}
+                          className="w-16 bg-transparent border-none focus:outline-none text-sm text-right"
+                          placeholder="2010"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Colonne 2 */}
+                    <div className="space-y-3">
+                      {/* Répétitions */}
+                      <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-2 transition-all focus-within:border-primary/50">
+                        <span className="text-sm text-gray-600 mr-auto">Répétitions</span>
+                        <input
+                          type="text"
+                          value={simpleValues.reps}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || /^[0-9\s-]*$/.test(value)) {
+                              handleSimpleValueChange('reps', value);
+                            }
+                          }}
+                          className="w-16 bg-transparent border-none focus:outline-none text-sm text-right"
+                          placeholder="12"
+                        />
+                      </div>
+
+                      {/* Élément d'intensification */}
+                      <div className="relative">
+                        <select
+                          value={ex.intensification.length > 0 ? ex.intensification[0].value : 'Aucune'}
+                          onChange={(e) => onUpdateExercise(ex.id, 'intensification', e.target.value)}
+                          className="w-full px-3 py-2 border-2 border-primary/20 rounded-xl bg-white text-sm focus:outline-none focus:border-primary/50 appearance-none"
+                        >
+                          <option value="Aucune">Élément d'intensification</option>
+                          <option value="Dégressif">Dégressif</option>
+                          <option value="Superset">Superset</option>
+                          <option value="Dropset">Dropset</option>
+                          <option value="Rest-Pause">Rest-Pause</option>
+                          <option value="Myo-reps">Myo-reps</option>
+                          <option value="Cluster">Cluster</option>
+                          <option value="Partielles">Partielles</option>
+                          <option value="Tempo">Tempo</option>
+                          <option value="Isometric">Isometric</option>
+                        </select>
+                        <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                      </div>
+
+                      {/* Repos */}
+                      <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-2 transition-all focus-within:border-primary/50">
+                        <span className="text-sm text-gray-600 mr-auto">Repos</span>
+                        <input
+                          type="text"
+                          value={simpleValues.rest}
+                          onChange={(e) => handleSimpleValueChange('rest', e.target.value)}
+                          className="w-16 bg-transparent border-none focus:outline-none text-sm text-right"
+                          placeholder="60s"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* MODE DÉTAILLÉ */
+                  <div className="space-y-4">
+                    <div className="border-2 border-primary/20 rounded-2xl p-4 bg-white">
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+                        <span>Série détaillée</span>
+                        <button
+                          type="button"
+                          onClick={toggleDetailedMode}
+                          className="p-1 rounded-full hover:bg-primary/10 text-primary"
+                          title="Revenir en mode simple"
+                        >
+                          <Bars3Icon className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-5 gap-2 text-sm font-medium text-gray-700 mb-3">
+                        <span>#</span>
+                        <span>Reps</span>
+                        <span>Charge</span>
+                        <span>Tempo</span>
+                        <span>Repos</span>
+                      </div>
+                      {(ex.details ?? []).map((detail, detailIndex) => (
+                        <div key={detailIndex} className="grid grid-cols-5 gap-2 mb-2">
+                          <div className="flex items-center font-semibold text-gray-800">
+                            #{detailIndex + 1}
+                          </div>
+                          <Input
+                            type="text"
+                            value={detail.reps}
+                            onChange={(e) => onUpdateExercise(ex.id, 'reps', e.target.value, detailIndex)}
+                            placeholder="12"
+                            className="border-2 border-primary/20 rounded-xl focus:border-primary/50"
+                          />
+                          <div className="flex gap-1">
+                            <Input
+                              type="text"
+                              value={detail.load.value}
+                              onChange={(e) => onUpdateExercise(ex.id, 'load.value', e.target.value, detailIndex)}
+                              placeholder="80"
+                              className="w-16 border-2 border-primary/20 rounded-xl focus:border-primary/50"
+                            />
+                            <Select
+                              value={detail.load.unit}
+                              onChange={(e) => onUpdateExercise(ex.id, 'load.unit', e.target.value, detailIndex)}
+                              className="w-16 border-2 border-primary/20 rounded-xl focus:border-primary/50"
+                            >
+                              <option value="kg">kg</option>
+                              <option value="lbs">lbs</option>
+                              <option value="%">%</option>
+                              <option value="@">@</option>
+                            </Select>
+                          </div>
+                          <Input
+                            type="text"
+                            value={detail.tempo}
+                            onChange={(e) => onUpdateExercise(ex.id, 'tempo', e.target.value, detailIndex)}
+                            placeholder="2010"
+                            className="border-2 border-primary/20 rounded-xl focus:border-primary/50"
+                          />
+                          <Input
+                            type="text"
+                            value={detail.rest}
+                            onChange={(e) => onUpdateExercise(ex.id, 'rest', e.target.value, detailIndex)}
+                            placeholder="60s"
+                            className="border-2 border-primary/20 rounded-xl focus:border-primary/50"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          </>
-          )}
         </div>
       </div>
 
       {/* Modal des alternatives */}
       {showAlternativesModal && (
-        <div className="border-t-2 border-primary/20 p-6 bg-gray-50">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-base font-semibold text-gray-700">Mouvements alternatifs</h4>
-            <button
-              type="button"
-              onClick={() => setShowAlternativesModal(false)}
-              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-200 rounded-lg transition-all"
-            >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
-          </div>
-          <Select
-            options={availableExercises.map((e) => ({ value: e.id, label: e.name }))}
-            value={(ex.alternatives ?? []).map((a) => a.id)}
-            onChange={(values) => {
-              const selectedAlts = availableExercises.filter((ae) =>
-                values.includes(ae.id)
-              );
-              onUpdateExercise(
-                ex.id,
-                'alternatives',
-                selectedAlts.map((sa) => ({ id: sa.id, name: sa.name }))
-              );
-            }}
-            isMulti
-            className="border-2 border-primary/20 rounded-2xl"
-          />
-          {(ex.alternatives ?? []).length > 0 && (
-            <div className="mt-3 text-sm text-gray-600">
-              {ex.alternatives.length} alternative{ex.alternatives.length > 1 ? 's' : ''} sélectionnée{ex.alternatives.length > 1 ? 's' : ''}
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-semibold text-gray-700">Mouvements alternatifs</h4>
+              <button
+                type="button"
+                onClick={() => setShowAlternativesModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-200 rounded-lg transition-all"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
             </div>
-          )}
+            <p className="text-sm text-gray-600 mb-4">
+              Sélectionnez des exercices alternatifs pour ce mouvement.
+            </p>
+            {/* Liste des alternatives à implémenter */}
+          </div>
         </div>
       )}
     </div>
