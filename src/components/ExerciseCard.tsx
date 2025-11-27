@@ -147,8 +147,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       <div className="flex">
         {/* PARTIE GAUCHE - Section Visuelle */}
         <div className="w-1/3 bg-gradient-to-br from-gray-50 to-gray-100 p-3 flex flex-col">
-          {/* Numéro et Boutons d'action */}
-          <div className="flex items-center gap-1.5 mb-3">
+          {/* Numéro, Boutons d'action et Nom */}
+          <div className="mb-3">
+            <div className="flex items-center gap-1.5 mb-2">
             {/* Numéro de l'exercice */}
             <span className="text-xs font-semibold text-gray-700">
               Exercice {exerciseNumber}
@@ -210,6 +211,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             >
               <ArrowPathIcon className="w-4 h-4" />
             </button>
+            </div>
+            
+            {/* Nom du mouvement */}
+            <input
+              type="text"
+              placeholder="Nom du mouvement"
+              value={ex.name}
+              onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
+              className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white focus:outline-none focus:ring-0 focus:border-primary/50 placeholder-gray-400 text-xs font-medium transition-all"
+            />
           </div>
 
           {/* Image de l'exercice */}
@@ -230,142 +241,76 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
         {/* PARTIE DROITE - Formulaire Vertical */}
         <div className="flex-1 p-3">
-          {/* Nom du mouvement */}
-          <div className="mb-1.5">
-            <input
-              type="text"
-              placeholder="Nom du mouvement"
-              value={ex.name}
-              onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-              className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white focus:outline-none focus:ring-0 focus:border-primary/50 placeholder-gray-400 text-xs transition-all"
-            />
-          </div>
-
           {/* Mode Simple ou Détaillé */}
           {!isDetailedMode ? (
             /* MODE SIMPLE */
             <div className="space-y-1.5">
               {/* Série */}
-              <div className="grid grid-cols-2 gap-1.5">
-                <div>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="série"
-                      value={ex.sets ? `série` : ''}
-                      readOnly
-                      className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white text-xs cursor-pointer"
-                      onClick={toggleDetailedMode}
-                    />
-                    <ChevronDownIcon className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-                <div>
-                  <Input
-                    type="number"
-                    value={ex.sets}
-                    onChange={(e) => onUpdateExercise(ex.id, 'sets', e.target.value)}
-                    placeholder=""
-                    className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
-                  />
-                </div>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={ex.sets}
+                  onChange={(e) => onUpdateExercise(ex.id, 'sets', e.target.value)}
+                  placeholder="série"
+                  className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white focus:outline-none focus:ring-0 focus:border-primary/50 placeholder-gray-400 text-xs transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={toggleDetailedMode}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  title="Mode détaillé"
+                >
+                  <ChevronDownIcon className="w-4 h-4" />
+                </button>
               </div>
 
               {/* Répétitions */}
-              <div className="grid grid-cols-2 gap-1.5">
-                <div>
-                  <input
-                    type="text"
-                    value="Répétitions"
-                    readOnly
-                    className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white text-xs"
-                  />
-                </div>
-                <div>
-                  <Input
-                    type="text"
-                    value={simpleValues.reps}
-                    onChange={(e) => handleSimpleValueChange('reps', e.target.value)}
-                    placeholder=""
-                    className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
-                  />
-                </div>
-              </div>
+              <Input
+                type="text"
+                value={simpleValues.reps}
+                onChange={(e) => handleSimpleValueChange('reps', e.target.value)}
+                placeholder="Répétitions"
+                className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
+              />
 
               {/* Charge */}
-              <div className="grid grid-cols-2 gap-1.5">
-                <div>
-                  <input
-                    type="text"
-                    value="Charge"
-                    readOnly
-                    className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white text-xs"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    value={simpleValues.load.value}
-                    onChange={(e) => handleSimpleValueChange('load.value', e.target.value)}
-                    placeholder=""
-                    className="flex-1 px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
-                  />
-                  <div className="relative">
-                    <select
-                      value={simpleValues.load.unit}
-                      onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
-                      className="h-full px-2 py-1.5 bg-white border-2 border-primary/20 rounded-xl text-xs font-medium focus:outline-none focus:border-primary/50 appearance-none pr-6"
-                    >
-                      <option value="kg">kg</option>
-                      <option value="lbs">lbs</option>
-                      <option value="%">%</option>
-                      <option value="@">@</option>
-                    </select>
-                  </div>
-                </div>
+              <div className="flex gap-1.5">
+                <Input
+                  type="text"
+                  value={simpleValues.load.value}
+                  onChange={(e) => handleSimpleValueChange('load.value', e.target.value)}
+                  placeholder="Charge"
+                  className="flex-1 px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
+                />
+                <select
+                  value={simpleValues.load.unit}
+                  onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
+                  className="px-2 py-1.5 bg-white border-2 border-primary/20 rounded-xl text-xs font-medium focus:outline-none focus:border-primary/50"
+                >
+                  <option value="kg">kg</option>
+                  <option value="lbs">lbs</option>
+                  <option value="%">%</option>
+                  <option value="@">@</option>
+                </select>
               </div>
 
               {/* Tempo */}
-              <div className="grid grid-cols-2 gap-1.5">
-                <div>
-                  <input
-                    type="text"
-                    value="Tempo"
-                    readOnly
-                    className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white text-xs"
-                  />
-                </div>
-                <div>
-                  <Input
-                    type="text"
-                    value={simpleValues.tempo}
-                    onChange={(e) => handleSimpleValueChange('tempo', e.target.value)}
-                    placeholder=""
-                    className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
-                  />
-                </div>
-              </div>
+              <Input
+                type="text"
+                value={simpleValues.tempo}
+                onChange={(e) => handleSimpleValueChange('tempo', e.target.value)}
+                placeholder="Tempo"
+                className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
+              />
 
               {/* Repos */}
-              <div className="grid grid-cols-2 gap-1.5">
-                <div>
-                  <input
-                    type="text"
-                    value="Repos"
-                    readOnly
-                    className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white text-xs"
-                  />
-                </div>
-                <div>
-                  <Input
-                    type="text"
-                    value={simpleValues.rest}
-                    onChange={(e) => handleSimpleValueChange('rest', e.target.value)}
-                    placeholder=""
-                    className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
-                  />
-                </div>
-              </div>
+              <Input
+                type="text"
+                value={simpleValues.rest}
+                onChange={(e) => handleSimpleValueChange('rest', e.target.value)}
+                placeholder="Repos"
+                className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl focus:border-primary/50 text-xs"
+              />
             </div>
           ) : (
             /* MODE DÉTAILLÉ */
