@@ -140,15 +140,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       key={ex.id}
       onDragEnter={(e) => onDragEnter(e, ex.id)}
       onDragOver={onDragOver}
-      className={`mb-6 border-2 rounded-3xl bg-white overflow-hidden transition-all ${
+      className={`mb-4 border-2 rounded-2xl bg-white overflow-hidden transition-all ${
         draggedOverExerciseId === ex.id ? 'border-primary shadow-lg' : 'border-primary/20'
       } ${exerciseDragItem.current === ex.id ? 'opacity-50' : ''}`}
     >
       <div className="flex">
         {/* PARTIE GAUCHE - Section Visuelle */}
-        <div className="w-2/5 bg-gradient-to-br from-gray-50 to-gray-100 p-6 flex flex-col">
+        <div className="w-2/5 bg-gradient-to-br from-gray-50 to-gray-100 p-4 flex flex-col">
           {/* Numéro et Boutons d'action */}
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-2 mb-4">
             {/* Numéro de l'exercice */}
             <span className="text-sm font-semibold text-gray-700">
               Exercice {exerciseNumber}
@@ -172,7 +172,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               aria-disabled={isDragInteractionLocked}
               title="Maintenir pour réorganiser"
             >
-              <Bars3Icon className="w-6 h-6" />
+              <Bars3Icon className="w-5 h-5" />
             </button>
 
             {/* Corbeille - Supprimer */}
@@ -182,7 +182,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
               title="Supprimer l'exercice"
             >
-              <TrashIcon className="w-6 h-6" />
+              <TrashIcon className="w-5 h-5" />
             </button>
 
             {/* Historique */}
@@ -193,7 +193,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 className="p-2 text-gray-600 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
                 title="Voir l'historique du client"
               >
-                <FolderIcon className="w-6 h-6" />
+                <FolderIcon className="w-5 h-5" />
               </button>
             )}
 
@@ -208,7 +208,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               }`}
               title="Gérer les mouvements alternatifs"
             >
-              <ArrowPathIcon className="w-6 h-6" />
+              <ArrowPathIcon className="w-5 h-5" />
             </button>
           </div>
 
@@ -229,24 +229,24 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
         </div>
 
         {/* PARTIE DROITE - Formulaire Vertical */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-4">
           {/* Nom du mouvement */}
-          <div className="mb-3">
+          <div className="mb-2">
             <input
               type="text"
               placeholder="Nom du mouvement"
               value={ex.name}
               onChange={(e) => onUpdateExercise(ex.id, 'name', e.target.value)}
-              className="w-full px-5 py-3 border-2 border-primary/20 rounded-2xl bg-white focus:outline-none focus:ring-0 focus:border-primary/50 placeholder-gray-400 text-base transition-all"
+              className="w-full px-4 py-2 border-2 border-primary/20 rounded-2xl bg-white focus:outline-none focus:ring-0 focus:border-primary/50 placeholder-gray-400 text-sm transition-all"
             />
           </div>
 
           {/* Mode Simple ou Détaillé */}
           {!isDetailedMode ? (
             /* MODE SIMPLE */
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* Série */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <div className="relative">
                     <input
@@ -254,7 +254,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       placeholder="série"
                       value={ex.sets ? `série` : ''}
                       readOnly
-                      className="w-full px-5 py-3 border-2 border-primary/20 rounded-2xl bg-white text-base cursor-pointer"
+                      className="w-full px-4 py-2 border-2 border-primary/20 rounded-2xl bg-white text-sm cursor-pointer"
                       onClick={toggleDetailedMode}
                     />
                     <ChevronDownIcon className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -266,19 +266,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     value={ex.sets}
                     onChange={(e) => onUpdateExercise(ex.id, 'sets', e.target.value)}
                     placeholder=""
-                    className="w-full px-5 py-3 border-2 border-primary/20 rounded-2xl focus:border-primary/50"
+                    className="w-full px-4 py-2 border-2 border-primary/20 rounded-2xl focus:border-primary/50 text-sm"
                   />
                 </div>
               </div>
 
               {/* Répétitions */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <input
                     type="text"
                     value="Répétitions"
                     readOnly
-                    className="w-full px-5 py-3 border-2 border-primary/20 rounded-2xl bg-white text-base"
+                    className="w-full px-4 py-2 border-2 border-primary/20 rounded-2xl bg-white text-sm"
                   />
                 </div>
                 <div>
@@ -287,19 +287,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     value={simpleValues.reps}
                     onChange={(e) => handleSimpleValueChange('reps', e.target.value)}
                     placeholder=""
-                    className="w-full px-5 py-3 border-2 border-primary/20 rounded-2xl focus:border-primary/50"
+                    className="w-full px-4 py-2 border-2 border-primary/20 rounded-2xl focus:border-primary/50 text-sm"
                   />
                 </div>
               </div>
 
               {/* Charge */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <input
                     type="text"
                     value="Charge"
                     readOnly
-                    className="w-full px-5 py-3 border-2 border-primary/20 rounded-2xl bg-white text-base"
+                    className="w-full px-4 py-2 border-2 border-primary/20 rounded-2xl bg-white text-sm"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -308,13 +308,13 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     value={simpleValues.load.value}
                     onChange={(e) => handleSimpleValueChange('load.value', e.target.value)}
                     placeholder=""
-                    className="flex-1 px-5 py-3 border-2 border-primary/20 rounded-2xl focus:border-primary/50"
+                    className="flex-1 px-4 py-2 border-2 border-primary/20 rounded-2xl focus:border-primary/50 text-sm"
                   />
                   <div className="relative">
                     <select
                       value={simpleValues.load.unit}
                       onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
-                      className="h-full px-4 py-3 bg-white border-2 border-primary/20 rounded-2xl text-base font-medium focus:outline-none focus:border-primary/50 appearance-none pr-10"
+                      className="h-full px-3 py-2 bg-white border-2 border-primary/20 rounded-2xl text-sm font-medium focus:outline-none focus:border-primary/50 appearance-none pr-8"
                     >
                       <option value="kg">kg</option>
                       <option value="lbs">lbs</option>
@@ -326,13 +326,13 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               </div>
 
               {/* Tempo */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <input
                     type="text"
                     value="Tempo"
                     readOnly
-                    className="w-full px-5 py-3 border-2 border-primary/20 rounded-2xl bg-white text-base"
+                    className="w-full px-4 py-2 border-2 border-primary/20 rounded-2xl bg-white text-sm"
                   />
                 </div>
                 <div>
@@ -341,19 +341,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     value={simpleValues.tempo}
                     onChange={(e) => handleSimpleValueChange('tempo', e.target.value)}
                     placeholder=""
-                    className="w-full px-5 py-3 border-2 border-primary/20 rounded-2xl focus:border-primary/50"
+                    className="w-full px-4 py-2 border-2 border-primary/20 rounded-2xl focus:border-primary/50 text-sm"
                   />
                 </div>
               </div>
 
               {/* Repos */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <input
                     type="text"
                     value="Repos"
                     readOnly
-                    className="w-full px-5 py-3 border-2 border-primary/20 rounded-2xl bg-white text-base"
+                    className="w-full px-4 py-2 border-2 border-primary/20 rounded-2xl bg-white text-sm"
                   />
                 </div>
                 <div>
@@ -362,7 +362,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     value={simpleValues.rest}
                     onChange={(e) => handleSimpleValueChange('rest', e.target.value)}
                     placeholder=""
-                    className="w-full px-5 py-3 border-2 border-primary/20 rounded-2xl focus:border-primary/50"
+                    className="w-full px-4 py-2 border-2 border-primary/20 rounded-2xl focus:border-primary/50 text-sm"
                   />
                 </div>
               </div>
@@ -445,12 +445,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           )}
 
           {/* Élément d'intensification */}
-          <div className="mt-3">
+          <div className="mt-2">
             <div className="relative">
               <select
                 value={ex.intensification.length > 0 ? ex.intensification[0].value : 'Aucune'}
                 onChange={(e) => onUpdateExercise(ex.id, 'intensification', e.target.value)}
-                className="w-full px-5 py-3 border-2 border-primary/20 rounded-2xl bg-white text-base focus:outline-none focus:border-primary/50 appearance-none"
+                className="w-full px-4 py-2 border-2 border-primary/20 rounded-2xl bg-white text-sm focus:outline-none focus:border-primary/50 appearance-none"
               >
                 <option value="Aucune">Élément d'intensification</option>
                 <option value="Dégressif">Dégressif</option>
