@@ -8,12 +8,21 @@ import { logger } from '../utils/logger';
 // comme la navigation, mais ne fournit pas de contexte directement.
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
-  const { user, isAuthLoading, initializeAuth, currentViewRole, originalUser } = useAuthStore(); // Déstructuration de tout l'état du store ici pour un accès direct
+  const { user, isAuthLoading, initializeAuth, currentViewRole, originalUser, theme } = useAuthStore(); // Déstructuration de tout l'état du store ici pour un accès direct
 
   // Initialisation de l'écouteur d'authentification au montage du composant
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
+
+  // Synchroniser le thème avec le DOM
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   useEffect(() => {
     if (isAuthLoading) {

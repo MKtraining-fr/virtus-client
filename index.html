@@ -6,6 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Virtus</title>
 
+    <!-- Script pour initialiser le thème avant le chargement de React -->
+    <script>
+      (function() {
+        try {
+          const theme = localStorage.getItem('virtus_theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {
+          console.error('Erreur lors de l\'initialisation du thème:', e);
+        }
+      })();
+    </script>
+
     <!-- PWA Tags -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#6D5DD3" />
