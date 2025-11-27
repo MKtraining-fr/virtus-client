@@ -39,13 +39,13 @@ const Modal: React.FC<ModalProps> = ({
   const sizeClass = size === 'xl' ? 'max-w-7xl' : 'max-w-2xl';
 
   const themeClasses =
-    theme === 'dark' ? 'bg-client-card text-client-light' : 'bg-white text-dark-gray';
+    theme === 'dark' ? 'bg-client-card text-client-light' : 'bg-white dark:bg-client-card text-dark-gray dark:text-client-light';
 
-  const headerBorderClass = theme === 'dark' ? 'border-client-dark' : 'border-b';
+  const headerBorderClass = theme === 'dark' ? 'border-client-dark' : 'border-b dark:border-client-dark';
   const closeButtonClass =
     theme === 'dark'
       ? 'text-client-subtle hover:text-client-light'
-      : 'text-gray-500 hover:text-gray-800';
+      : 'text-gray-500 dark:text-client-subtle hover:text-gray-800 dark:hover:text-client-light';
 
   // Gérer le mousedown pour enregistrer où le clic a commencé
   const handleMouseDown = (e: React.MouseEvent) => {
