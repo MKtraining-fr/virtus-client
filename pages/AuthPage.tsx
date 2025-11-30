@@ -28,7 +28,23 @@ const AuthPage: React.FC = () => {
 
   // Forcer le mode clair sur la page de connexion
   useEffect(() => {
+    // Retirer immédiatement la classe dark
     document.documentElement.classList.remove('dark');
+    
+    // Observer les changements pour empêcher le mode sombre de revenir
+    const observer = new MutationObserver(() => {
+      if (document.documentElement.classList.contains('dark')) {
+        document.documentElement.classList.remove('dark');
+      }
+    });
+    
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    // Nettoyer l'observateur au démontage
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {

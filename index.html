@@ -20,7 +20,10 @@
                              window.location.hash.startsWith('#/login?') ||
                              window.location.hash.startsWith('#/auth?');
           
-          if (!isAuthPage) {
+          if (isAuthPage) {
+            // Forcer le mode clair sur les pages de connexion
+            document.documentElement.classList.remove('dark');
+          } else {
             const theme = localStorage.getItem('virtus_theme');
             if (theme === 'dark') {
               document.documentElement.classList.add('dark');
