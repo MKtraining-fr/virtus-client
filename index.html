@@ -10,9 +10,21 @@
     <script>
       (function() {
         try {
-          const theme = localStorage.getItem('virtus_theme');
-          if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
+          // Ne pas appliquer le mode sombre sur la page de connexion/inscription
+          const isAuthPage = window.location.pathname === '/login' || 
+                             window.location.pathname === '/login/' ||
+                             window.location.pathname === '/auth' || 
+                             window.location.pathname === '/auth/' ||
+                             window.location.hash === '#/login' ||
+                             window.location.hash === '#/auth' ||
+                             window.location.hash.startsWith('#/login?') ||
+                             window.location.hash.startsWith('#/auth?');
+          
+          if (!isAuthPage) {
+            const theme = localStorage.getItem('virtus_theme');
+            if (theme === 'dark') {
+              document.documentElement.classList.add('dark');
+            }
           }
         } catch (e) {
           console.error('Erreur lors de l\'initialisation du thème:', e);
