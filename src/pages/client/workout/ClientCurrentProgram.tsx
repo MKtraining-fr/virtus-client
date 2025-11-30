@@ -435,14 +435,14 @@ const ClientCurrentProgram: React.FC = () => {
       user.id,
       programAssignmentId,
       sessionId,
-      newLogEntry
+      newLogEntry,
+      user.coachId
     );
 
     if (!savedLogId) {
       console.error('Échec de la sauvegarde du log de performance');
       // ✅ AMÉLIORATION: Afficher une erreur à l'utilisateur
       addNotification({
-        title: 'Erreur de sauvegarde',
         message: 'Impossible d\'enregistrer vos performances. Veuillez réessayer.',
         type: 'error'
       });
@@ -451,8 +451,7 @@ const ClientCurrentProgram: React.FC = () => {
 
     // ✅ AJOUT: Notification de succès
     addNotification({
-      title: 'Séance terminée',
-      message: 'Vos performances ont été enregistrées avec succès !',
+      message: 'Séance terminée ! Vos performances ont été enregistrées avec succès.',
       type: 'success'
     });
 

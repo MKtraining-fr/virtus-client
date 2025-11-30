@@ -24,12 +24,14 @@ export interface PerformanceSet {
 export const bulkCreatePerformanceLogs = async (
   clientSessionExerciseId: string,
   clientId: string,
-  sets: PerformanceSet[]
+  sets: PerformanceSet[],
+  coachId?: string
 ): Promise<boolean> => {
   try {
     const logsToInsert = sets.map((set) => ({
       client_session_exercise_id: clientSessionExerciseId,
       client_id: clientId,
+      coach_id: coachId || null,
       set_number: set.set_number,
       reps_achieved: set.reps_achieved,
       load_achieved: set.load_achieved,
@@ -39,7 +41,7 @@ export const bulkCreatePerformanceLogs = async (
     }));
 
     const { error } = await supabase
-      .from('performance_logs')
+      .from('client_exercise_performance')
       .insert(logsToInsert);
 
     if (error) {
@@ -67,7 +69,7 @@ export const getPerformanceLogs = async (
 ): Promise<PerformanceSet[]> => {
   try {
     const { data, error } = await supabase
-      .from('performance_logs')
+      .from('client_exercise_performance')
       .select('*')
       .eq('client_session_exercise_id', clientSessionExerciseId)
       .eq('client_id', clientId)
@@ -95,7 +97,8 @@ export const savePerformanceLog = async (
   clientId: string,
   programAssignmentId: string | null,
   clientSessionId: string, // ✅ CORRECTION: Renommé pour clarifier qu'il s'agit du client_session_id
-  performanceLog: any
+  performanceLog: any,
+  coachId?: string
 ): Promise<string | null> => {
   try {
     // Extraire les exercices du performanceLog
@@ -141,7 +144,8 @@ export const savePerformanceLog = async (
         const success = await bulkCreatePerformanceLogs(
           clientSessionExerciseId,
           clientId,
-          sets
+          sets,
+          coachId
         );
         
         if (success) {
