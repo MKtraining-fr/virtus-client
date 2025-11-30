@@ -86,12 +86,18 @@ interface AuthState {
 const THEME_KEY = 'virtus_theme';
 const ORIGINAL_USER_SESSION_KEY = 'virtus_original_user';
 
-const getInitialTheme = (): 'light' | 'dark' => {
-  if (typeof window === 'undefined') {
+// Fonction pour récupérer le thème d'un utilisateur spécifique
+const getUserTheme = (userId: string | null): 'light' | 'dark' => {
+  if (typeof window === 'undefined' || !userId) {
     return 'light';
   }
-  const stored = window.localStorage.getItem(THEME_KEY);
+  const stored = window.localStorage.getItem(`${THEME_KEY}_${userId}`);
   return stored === 'dark' ? 'dark' : 'light';
+};
+
+// Toujours démarrer en mode clair (sera mis à jour après connexion)
+const getInitialTheme = (): 'light' | 'dark' => {
+  return 'light';
 };
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -127,16 +133,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (supabaseUser) {
           const clientProfile = await getClientProfile(supabaseUser.id);
           if (clientProfile) {
-            set({ user: clientProfile, isAuthLoading: false });
+            // Charger le thème de l'utilisateur
+            const userTheme = getUserTheme(clientProfile.id);
+            set({ user: clientProfile, theme: userTheme, isAuthLoading: false });
+            logger.info('Utilisateur connecté avec thème', { userId: clientProfile.id, theme: userTheme });
           } else {
-            set({ user: null, isAuthLoading: false });
+            set({ user: null, theme: 'light', isAuthLoading: false });
           }
         } else {
-          set({ user: null, isAuthLoading: false });
+          // Réinitialiser le thème en mode clair lors de la déconnexion
+          set({ user: null, theme: 'light', isAuthLoading: false });
         }
       } catch (error) {
         logger.error("Erreur lors de l'initialisation de l'auth", { error });
-        set({ user: null, isAuthLoading: false });
+        set({ user: null, theme: 'light', isAuthLoading: false });
       }
     };
 
@@ -176,10 +186,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   setTheme: (theme) => {
+    const { user } = get();
     set({ theme });
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && user?.id) {
       try {
-        window.localStorage.setItem(THEME_KEY, theme);
+        // Sauvegarder le thème avec l'ID de l'utilisateur
+        window.localStorage.setItem(`${THEME_KEY}_${user.id}`, theme);
       } catch (error) {
         logger.error('Échec de la persistance du thème', { error });
       }
@@ -234,17 +246,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         logger.info('Aucune session active à déconnecter');
       }
       
-      // Nettoyer l'état local dans tous les cas
-      set({ user: null, originalUser: null, currentViewRole: 'admin' });
+      // Nettoyer l'état local dans tous les cas et réinitialiser le thème
+      set({ user: null, originalUser: null, currentViewRole: 'admin', theme: 'light' });
       sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
       sessionStorage.removeItem('virtus_current_view_role');
       
-      logger.info('Déconnexion réussie et état nettoyé');
+      logger.info('Déconnexion réussie et état nettoyé (thème réinitialisé)');
     } catch (error) {
       logger.error('Erreur de déconnexion', { error });
       
-      // Forcer le nettoyage de l'état local même en cas d'erreur
-      set({ user: null, originalUser: null, currentViewRole: 'admin' });
+      // Forcer le nettoyage de l'état local même en cas d'erreur et réinitialiser le thème
+      set({ user: null, originalUser: null, currentViewRole: 'admin', theme: 'light' });
       sessionStorage.removeItem(ORIGINAL_USER_SESSION_KEY);
       sessionStorage.removeItem('virtus_current_view_role');
       
