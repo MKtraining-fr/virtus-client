@@ -397,7 +397,7 @@ const ClientCurrentProgram: React.FC = () => {
         }
 
         const newLog: ExerciseLog = {
-          exerciseId: exercise.id,
+          exerciseId: exercise.exerciseId, // ✅ CORRECTION: Utiliser exerciseId (ID dans exercises) au lieu de id (ID local)
           exerciseName: exercise.name,
           loggedSets: nonEmptySets.map((set) => ({
             ...set,
@@ -440,8 +440,21 @@ const ClientCurrentProgram: React.FC = () => {
 
     if (!savedLogId) {
       console.error('Échec de la sauvegarde du log de performance');
-      // On continue quand même pour ne pas bloquer l'utilisateur
+      // ✅ AMÉLIORATION: Afficher une erreur à l'utilisateur
+      addNotification({
+        title: 'Erreur de sauvegarde',
+        message: 'Impossible d\'enregistrer vos performances. Veuillez réessayer.',
+        type: 'error'
+      });
+      return; // Bloquer la navigation en cas d'échec
     }
+
+    // ✅ AJOUT: Notification de succès
+    addNotification({
+      title: 'Séance terminée',
+      message: 'Vos performances ont été enregistrées avec succès !',
+      type: 'success'
+    });
 
     const updatedClients = clients.map((c) => {
       if (c.id === user.id) {

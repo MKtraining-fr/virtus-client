@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getClientSessionExerciseId, updateSessionStatus } from './clientSessionService';
 
 /**
  * Service pour gérer les logs de performance des clients
@@ -93,7 +94,7 @@ export const getPerformanceLogs = async (
 export const savePerformanceLog = async (
   clientId: string,
   programAssignmentId: string | null,
-  sessionId: string,
+  clientSessionId: string, // ✅ CORRECTION: Renommé pour clarifier qu'il s'agit du client_session_id
   performanceLog: any
 ): Promise<string | null> => {
   try {
@@ -105,14 +106,27 @@ export const savePerformanceLog = async (
       return null;
     }
 
+    let hasErrors = false;
+    let successCount = 0;
+
     // Pour chaque exercice, enregistrer les performances
     for (const exerciseLog of exerciseLogs) {
-      const exerciseId = exerciseLog.exerciseId;
+      const exerciseId = exerciseLog.exerciseId; // ID de l'exercice dans la table exercises
       const loggedSets = exerciseLog.loggedSets || [];
 
-      // Trouver le client_session_exercise_id correspondant
-      // On suppose que exerciseId est déjà le client_session_exercise_id
-      // Sinon il faudrait faire une requête pour le trouver
+      // ✅ CORRECTION: Récupérer le client_session_exercise_id correspondant
+      const clientSessionExerciseId = await getClientSessionExerciseId(
+        clientSessionId,
+        exerciseId.toString()
+      );
+
+      if (!clientSessionExerciseId) {
+        console.error(
+          `Impossible de trouver client_session_exercise_id pour exercise_id: ${exerciseId}, session: ${clientSessionId}`
+        );
+        hasErrors = true;
+        continue;
+      }
       
       const sets: PerformanceSet[] = loggedSets.map((set: any, index: number) => ({
         set_number: index + 1,
@@ -123,12 +137,32 @@ export const savePerformanceLog = async (
       })).filter((set: PerformanceSet) => set.reps_achieved || set.load_achieved);
 
       if (sets.length > 0) {
-        await bulkCreatePerformanceLogs(exerciseId.toString(), clientId, sets);
+        // ✅ CORRECTION: Utiliser le bon ID
+        const success = await bulkCreatePerformanceLogs(
+          clientSessionExerciseId,
+          clientId,
+          sets
+        );
+        
+        if (success) {
+          successCount++;
+        } else {
+          console.error(`Échec de sauvegarde pour exercice: ${clientSessionExerciseId}`);
+          hasErrors = true;
+        }
       }
     }
 
-    // Retourner un ID fictif pour la compatibilité
-    return 'legacy-log-id';
+    // ✅ AJOUT: Mettre à jour le statut de la séance si au moins un exercice a été sauvegardé
+    if (successCount > 0) {
+      const statusUpdated = await updateSessionStatus(clientSessionId, 'completed');
+      if (!statusUpdated) {
+        console.warn('Performances enregistrées mais échec de mise à jour du statut de séance');
+      }
+    }
+
+    // Retourner un ID de succès ou null si tout a échoué
+    return successCount > 0 ? `success-${successCount}-exercises` : null;
   } catch (error) {
     console.error('Erreur lors de la sauvegarde du log de performance (legacy):', error);
     return null;
