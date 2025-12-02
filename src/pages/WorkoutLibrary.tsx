@@ -504,14 +504,16 @@ const useSupabaseWorkoutData = (
 
   const fetchProgramsAndSessions = useCallback(async () => {
     if (!coachId) {
-      console.warn('[WorkoutLibrary] ⚠️ Coach ID is missing!');
+      console.error('[WorkoutLibrary] ⚠️ Coach ID is missing!', { coachId });
       setIsLoading(false);
       return;
     }
+    console.error('[WorkoutLibrary] 🔍 Fetching programs for coach:', coachId);
     console.log('[WorkoutLibrary] 🔍 Fetching programs for coach:', coachId);
     setIsLoading(true);
     try {
       const supabasePrograms = await getProgramsByCoachId(coachId);
+      console.error('[WorkoutLibrary] 📊 Programs fetched:', supabasePrograms.length, 'programs');
       console.log('[WorkoutLibrary] 📊 Programs fetched:', supabasePrograms);
       const allWorkoutPrograms: WorkoutProgram[] = [];
       const allWorkoutSessions: WorkoutSession[] = [];
