@@ -14,6 +14,7 @@ import Modal from '../../../components/Modal';
 import Button from '../../../components/Button';
 import SessionRecapModal from '../../../components/client/SessionRecapModal';
 import { savePerformanceLog } from '../../../services/performanceLogService';
+import { updateClientProgress, markSessionAsCompleted } from '../../../services/clientProgramService';
 // import { getClientAssignedPrograms } from '../../../services/clientProgramService'; // Plus nécessaire car chargé via useAuthStore
 import {
   ArrowLeftIcon,
@@ -447,6 +448,42 @@ const ClientCurrentProgram: React.FC = () => {
         type: 'error'
       });
       return; // Bloquer la navigation en cas d'échec
+    }
+
+    // ✅ AJOUT: Marquer la séance comme complétée dans Supabase
+    const sessionMarked = await markSessionAsCompleted(sessionId);
+    if (!sessionMarked) {
+      console.error('Échec du marquage de la séance comme complétée');
+      // Ne pas bloquer, mais logger l'erreur
+    }
+
+    // ✅ AJOUT: Mettre à jour la progression dans program_assignments
+    if (programAssignmentId) {
+      const currentProgramWeek = user.programWeek || 1;
+      const sessionsForCurrentWeek =
+        localProgram.sessionsByWeek[currentProgramWeek] || localProgram.sessionsByWeek[1] || [];
+      const totalSessionsForCurrentWeek = sessionsForCurrentWeek.length;
+      const currentSessionProgress = user.sessionProgress || 1;
+      
+      // Calculer la prochaine séance
+      let nextSessionProgress = currentSessionProgress + 1;
+      let nextProgramWeek = currentProgramWeek;
+      
+      if (nextSessionProgress > totalSessionsForCurrentWeek) {
+        nextProgramWeek++;
+        nextSessionProgress = 1;
+      }
+      
+      const progressUpdated = await updateClientProgress(
+        programAssignmentId,
+        nextProgramWeek,
+        nextSessionProgress
+      );
+      
+      if (!progressUpdated) {
+        console.warn('Échec de la mise à jour de la progression');
+        // Ne pas bloquer, mais logger l'avertissement
+      }
     }
 
     // ✅ AJOUT: Notification de succès

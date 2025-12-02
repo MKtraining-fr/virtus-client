@@ -201,3 +201,386 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
     return null;
   }
 };
+
+/**
+ * Interface pour les séances complétées d'un client
+ */
+export interface ClientCompletedSession {
+  id: string;
+  name: string;
+  week_number: number;
+  session_order: number;
+  status: string;
+  completed_at: string;
+  client_id: string;
+  client_program_id: string;
+  client_programs?: {
+    id: string;
+    name: string;
+    coach_id: string;
+  };
+  client_session_exercises?: Array<{
+    id: string;
+    exercise_id: string;
+    sets: number | null;
+    reps: string | null;
+    load: string | null;
+    exercises?: {
+      id: string;
+      name: string;
+      image_url?: string;
+    };
+  }>;
+}
+
+/**
+ * Interface pour les détails de performance d'une séance
+ */
+export interface SessionPerformanceDetails {
+  id: string;
+  name: string;
+  completed_at: string;
+  client_session_exercises?: Array<{
+    id: string;
+    exercise_id: string;
+    sets: number | null;
+    reps: string | null;
+    load: string | null;
+    exercises?: {
+      id: string;
+      name: string;
+    };
+    client_exercise_performance?: Array<{
+      id: string;
+      set_number: number;
+      reps_achieved: number | null;
+      load_achieved: string | null;
+      rpe: number | null;
+      notes: string | null;
+      performed_at: string;
+    }>;
+  }>;
+}
+
+/**
+ * Récupère les séances complétées d'un ou plusieurs clients pour un coach
+ * 
+ * @param coachId - ID du coach
+ * @param clientId - ID du client (optionnel, pour filtrer par client)
+ * @returns Liste des séances complétées avec détails
+ */
+export const getClientCompletedSessions = async (
+  coachId: string,
+  clientId?: string
+): Promise<ClientCompletedSession[]> => {
+  try {
+    let query = supabase
+      .from('client_sessions')
+      .select(`
+        id,
+        name,
+        week_number,
+        session_order,
+        status,
+        completed_at,
+        client_id,
+        client_program_id,
+        client_programs!inner (
+          id,
+          name,
+          coach_id
+        ),
+        client_session_exercises (
+          id,
+          exercise_id,
+          sets,
+          reps,
+          load,
+          exercises (
+            id,
+            name,
+            image_url
+          )
+        )
+      `)
+      .eq('client_programs.coach_id', coachId)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false });
+
+    if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Erreur lors de la récupération des séances complétées:', error);
+      return [];
+    }
+
+    return (data || []) as ClientCompletedSession[];
+  } catch (error) {
+    console.error('Erreur globale lors de la récupération des séances:', error);
+    return [];
+  }
+};
+
+/**
+ * Récupère les détails de performance d'une séance spécifique
+ * 
+ * @param sessionId - ID de la séance
+ * @returns Détails de performance avec logs ou null
+ */
+export const getSessionPerformanceDetails = async (
+  sessionId: string
+): Promise<SessionPerformanceDetails | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_sessions')
+      .select(`
+        id,
+        name,
+        completed_at,
+        client_session_exercises (
+          id,
+          exercise_id,
+          sets,
+          reps,
+          load,
+          exercises (
+            id,
+            name
+          ),
+          client_exercise_performance (
+            id,
+            set_number,
+            reps_achieved,
+            load_achieved,
+            rpe,
+            notes,
+            performed_at
+          )
+        )
+      `)
+      .eq('id', sessionId)
+      .single();
+
+    if (error) {
+      console.error('Erreur lors de la récupération des détails de performance:', error);
+      return null;
+    }
+
+    return data as SessionPerformanceDetails;
+  } catch (error) {
+    console.error('Erreur globale lors de la récupération des détails:', error);
+    return null;
+  }
+};
+
+/**
+ * Récupère les statistiques d'entraînement d'un client
+ * 
+ * @param clientId - ID du client
+ * @param coachId - ID du coach (pour vérifier l'accès)
+ * @returns Statistiques d'entraînement
+ */
+export const getClientTrainingStats = async (
+  clientId: string,
+  coachId: string
+): Promise<{
+  totalSessions: number;
+  completedSessions: number;
+  skippedSessions: number;
+  pendingSessions: number;
+  lastSessionDate: string | null;
+} | null> => {
+  try {
+    // Vérifier que le client appartient bien au coach
+    const { data: client, error: clientError } = await supabase
+      .from('profiles')
+      .select('id, coach_id')
+      .eq('id', clientId)
+      .eq('coach_id', coachId)
+      .single();
+
+    if (clientError || !client) {
+      console.error('Client non trouvé ou non autorisé:', clientError);
+      return null;
+    }
+
+    // Récupérer toutes les séances du client
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('client_sessions')
+      .select('id, status, completed_at')
+      .eq('client_id', clientId);
+
+    if (sessionsError) {
+      console.error('Erreur lors de la récupération des séances:', sessionsError);
+      return null;
+    }
+
+    const totalSessions = sessions?.length || 0;
+    const completedSessions = sessions?.filter(s => s.status === 'completed').length || 0;
+    const skippedSessions = sessions?.filter(s => s.status === 'skipped').length || 0;
+    const pendingSessions = sessions?.filter(s => s.status === 'pending').length || 0;
+
+    // Trouver la date de la dernière séance complétée
+    const completedSessionsWithDate = sessions?.filter(s => s.status === 'completed' && s.completed_at);
+    const lastSessionDate = completedSessionsWithDate && completedSessionsWithDate.length > 0
+      ? completedSessionsWithDate.sort((a, b) => 
+          new Date(b.completed_at!).getTime() - new Date(a.completed_at!).getTime()
+        )[0].completed_at
+      : null;
+
+    return {
+      totalSessions,
+      completedSessions,
+      skippedSessions,
+      pendingSessions,
+      lastSessionDate,
+    };
+  } catch (error) {
+    console.error('Erreur globale lors de la récupération des statistiques:', error);
+    return null;
+  }
+};
+
+/**
+ * Interface pour les logs de performance avec détails
+ */
+export interface PerformanceLogDetail {
+  id: string;
+  session_date: string;
+  week_number: number;
+  session_number: number;
+  exercises_performed: any[];
+  total_tonnage: number;
+  total_duration_minutes: number;
+  notes: string;
+  created_at: string;
+  program_assignments?: {
+    id: string;
+    client_programs?: {
+      name: string;
+      objective: string;
+    };
+  };
+  client_sessions?: {
+    name: string;
+  };
+}
+
+/**
+ * Récupère les logs de performance d'un client avec détails complets
+ * Compatible avec l'ancienne interface mais utilise les nouvelles tables
+ * 
+ * @param clientId - ID du client
+ * @param limit - Nombre maximum de logs à récupérer
+ * @returns Liste des logs de performance avec détails
+ */
+export const getClientPerformanceLogsWithDetails = async (
+  clientId: string,
+  limit: number = 100
+): Promise<PerformanceLogDetail[]> => {
+  try {
+    // Récupérer les séances complétées du client
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('client_sessions')
+      .select(`
+        id,
+        name,
+        week_number,
+        session_order,
+        completed_at,
+        created_at,
+        client_program_id,
+        client_programs!inner (
+          id,
+          name,
+          objective,
+          assignment_id,
+          program_assignments!inner (
+            id
+          )
+        ),
+        client_session_exercises (
+          id,
+          exercise_id,
+          sets,
+          reps,
+          load,
+          exercises (
+            id,
+            name
+          ),
+          client_exercise_performance (
+            id,
+            set_number,
+            reps_achieved,
+            load_achieved,
+            rpe,
+            notes
+          )
+        )
+      `)
+      .eq('client_id', clientId)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false })
+      .limit(limit);
+
+    if (sessionsError) {
+      console.error('Erreur lors de la récupération des logs de performance:', sessionsError);
+      return [];
+    }
+
+    // Transformer les données pour correspondre à l'interface attendue
+    return (sessions || []).map((session: any) => {
+      const exercisesPerformed = (session.client_session_exercises || []).map((ex: any) => ({
+        exercise_id: ex.exercise_id,
+        exercise_name: ex.exercises?.name || 'Exercice',
+        sets: ex.sets,
+        reps: ex.reps,
+        load: ex.load,
+        performance: ex.client_exercise_performance || [],
+      }));
+
+      // Calculer le tonnage total
+      let totalTonnage = 0;
+      exercisesPerformed.forEach((ex: any) => {
+        ex.performance.forEach((perf: any) => {
+          if (perf.reps_achieved && perf.load_achieved) {
+            const loadValue = parseFloat(perf.load_achieved);
+            if (!isNaN(loadValue)) {
+              totalTonnage += loadValue * perf.reps_achieved;
+            }
+          }
+        });
+      });
+
+      return {
+        id: session.id,
+        session_date: session.completed_at || session.created_at,
+        week_number: session.week_number,
+        session_number: session.session_order,
+        exercises_performed: exercisesPerformed,
+        total_tonnage: totalTonnage,
+        total_duration_minutes: 0, // Non disponible pour l'instant
+        notes: '',
+        created_at: session.created_at,
+        program_assignments: {
+          id: session.client_programs?.program_assignments?.[0]?.id || '',
+          client_programs: {
+            name: session.client_programs?.name || 'Programme',
+            objective: session.client_programs?.objective || '',
+          },
+        },
+        client_sessions: {
+          name: session.name,
+        },
+      } as PerformanceLogDetail;
+    });
+  } catch (error) {
+    console.error('Erreur globale lors de la récupération des logs:', error);
+    return [];
+  }
+};

@@ -160,3 +160,31 @@ export const getClientSessionExerciseId = async (
     return null;
   }
 };
+
+/**
+ * Compte le nombre de séances complétées par un client
+ * 
+ * @param clientId - ID du client
+ * @returns Le nombre de séances complétées
+ */
+export const getCompletedSessionsCount = async (
+  clientId: string
+): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('client_sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .eq('status', 'completed');
+
+    if (error) {
+      console.error('Erreur lors du comptage des séances complétées:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (error) {
+    console.error('Erreur globale lors du comptage:', error);
+    return 0;
+  }
+};

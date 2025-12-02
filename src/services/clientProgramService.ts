@@ -344,7 +344,7 @@ export const updateClientProgress = async (
       .from('program_assignments')
       .update({
         current_week: currentWeek,
-        current_session: currentSessionOrder,
+        current_session_order: currentSessionOrder,
         updated_at: new Date().toISOString(),
       })
       .eq('id', assignmentId);
@@ -370,8 +370,10 @@ export const updateClientProgress = async (
 export const markSessionAsCompleted = async (sessionId: string): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('sessions')
+      .from('client_sessions')
       .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('id', sessionId);

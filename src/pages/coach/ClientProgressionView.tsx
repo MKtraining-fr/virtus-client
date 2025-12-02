@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getClientPerformanceLogsWithDetails } from '../../services/performanceLogService';
+import { getClientPerformanceLogsWithDetails } from '../../services/coachClientProgramService';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { ArrowLeftIcon } from '../../constants/icons';
