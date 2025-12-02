@@ -379,6 +379,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     // addProgram et updateProgram retirés - utilisation de createProgram et updateProgramService du service
     sessions: storedSessions,
     addNotification,
+    reloadAllData,
   } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -1420,10 +1421,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       setLastSavedAt(new Date().toISOString());
       setHasUnsavedChanges(false);
       console.log('[onSave] État local mis à jour');
-      
+
       addNotification({ message: 'Programme sauvegardé avec succès !', type: 'success' });
 
-      // Refresh auth context data is now handled by createProgram/updateProgramService in programService
+      // Rafraîchir les données pour que le template apparaisse immédiatement dans la bibliothèque
+      await reloadAllData();
 
       // Étape 8 : Assignement automatique si un client est sélectionné
       if (selectedClient !== '0' && savedProgram.id) {
@@ -1435,16 +1437,17 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
         try {
           // L'assignement est fait à partir du template (le programme que l'on vient de créer)
-          const assignmentId = await assignProgramToClient(templateId, clientId, coachId, startDate);
+          const assignmentResult = await assignProgramToClient(templateId, clientId, coachId, startDate);
 
-          if (assignmentId) {
+          if (assignmentResult?.success) {
             console.log('[onSave] Programme assigné avec succès au client');
             addNotification({
               message: `Programme sauvegardé et assigné automatiquement au client ${clientData?.firstName} !`,
               type: 'success',
             });
+            await reloadAllData();
           } else {
-            console.warn('[onSave] Échec de l\'assignement du programme au client');
+            console.warn('[onSave] Échec de l\'assignement du programme au client', assignmentResult?.error);
             addNotification({
               message: `Programme sauvegardé, mais l'assignement automatique au client ${clientData?.firstName} a échoué.`,
               type: 'warning',
