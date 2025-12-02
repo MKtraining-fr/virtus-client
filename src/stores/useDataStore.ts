@@ -240,7 +240,7 @@ export const useDataStore = create<DataState>((set, get) => {
         supabase.from('clients').select('*'),
         supabase.from('exercises').select('*'),
         supabase.from('program_templates').select('*'),
-        supabase.from('sessions').select('*'),
+        supabase.from('session_templates').select('*'),
         supabase.from('nutrition_plans').select('*'),
         supabase.from('messages').select('*'),
         supabase.from('notifications').select('*'),
