@@ -41,9 +41,9 @@ export const createProgramTemplate = async (
         const session = sessions[i];
 
         const { data: sessionTemplateData, error: sessionTemplateError } = await supabase
-          .from('sessions')
+          .from('session_templates')
           .insert({
-            program_id: programTemplateId,
+            program_template_id: programTemplateId,
             coach_id: creatorId,
             name: session.name,
             week_number: weekNumber,
@@ -101,7 +101,7 @@ const insertSessionExercise = async (
   const loadUnit = detail ? detail.load.unit : (exercise.details?.[0]?.load.unit || 'kg');
 
   const dataToInsert = {
-    session_id: sessionTemplateId,
+    session_template_id: sessionTemplateId,
     exercise_id: exercise.exerciseId,
     coach_id: creatorId,
     exercise_order: order,
@@ -116,7 +116,7 @@ const insertSessionExercise = async (
     ...(setNumber && { notes: `Série ${setNumber}${exercise.notes ? ` - ${exercise.notes}` : ''}` }),
   };
 
-  const { error } = await supabase.from('session_exercises').insert(dataToInsert);
+  const { error } = await supabase.from('session_exercise_templates').insert(dataToInsert);
 
   if (error) {
     console.error("Erreur lors de l'insertion de l'exercice de template:", error);

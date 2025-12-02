@@ -6,7 +6,7 @@ import { supabase } from './supabase';
  */
 
 export interface SessionExerciseData {
-  session_id: string;
+  session_template_id: string;
   exercise_id: string;
   coach_id: string;
   exercise_order: number;
@@ -28,9 +28,9 @@ export interface SessionExerciseData {
 export const getSessionExercises = async (sessionId: string) => {
   try {
     const { data, error } = await supabase
-      .from('session_exercises')
+      .from('session_exercise_templates')
       .select('*')
-      .eq('session_id', sessionId)
+      .eq('session_template_id', sessionId)
       .order('exercise_order', { ascending: true });
 
     if (error) {
@@ -55,7 +55,7 @@ export const createSessionExercise = async (
 ) => {
   try {
     const { data, error } = await supabase
-      .from('session_exercises')
+      .from('session_exercise_templates')
       .insert(exerciseData)
       .select()
       .single();
@@ -86,7 +86,7 @@ export const createSessionExercisesBatch = async (
     }
 
     const { data, error } = await supabase
-      .from('session_exercises')
+      .from('session_exercise_templates')
       .insert(exercises)
       .select();
 
@@ -114,7 +114,7 @@ export const updateSessionExercise = async (
 ) => {
   try {
     const { data, error } = await supabase
-      .from('session_exercises')
+      .from('session_exercise_templates')
       .update({
         ...updates,
         updated_at: new Date().toISOString(),
@@ -143,7 +143,7 @@ export const updateSessionExercise = async (
 export const deleteSessionExercise = async (exerciseId: string): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('session_exercises')
+      .from('session_exercise_templates')
       .delete()
       .eq('id', exerciseId);
 
@@ -167,9 +167,9 @@ export const deleteSessionExercise = async (exerciseId: string): Promise<boolean
 export const deleteAllSessionExercises = async (sessionId: string): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('session_exercises')
+      .from('session_exercise_templates')
       .delete()
-      .eq('session_id', sessionId);
+      .eq('session_template_id', sessionId);
 
     if (error) {
       console.error('Erreur lors de la suppression des exercices de la séance:', error);

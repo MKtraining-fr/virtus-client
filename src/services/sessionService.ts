@@ -4,7 +4,7 @@ import type { Json } from '../types/database';
 // Types pour les séances (matrices)
 export interface Session {
   id: string;
-  program_id?: string | null;
+  program_template_id?: string | null;
   coach_id?: string | null;
   name: string;
   week_number: number;
@@ -17,7 +17,7 @@ export interface Session {
 }
 
 export interface SessionInput {
-  program_id?: string;
+  program_template_id?: string;
   name: string;
   week_number: number;
   session_order: number;
@@ -35,7 +35,7 @@ export const createSession = async (sessionData: SessionInput): Promise<Session 
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('sessions')
+      .from('session_templates')
       .insert({
         coach_id: user.id,
         ...sessionData,
@@ -60,7 +60,7 @@ export const getCoachSessions = async (): Promise<Session[]> => {
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('sessions')
+      .from('session_templates')
       .select('*')
       .eq('coach_id', user.id)
       .order('created_at', { ascending: false });
@@ -77,9 +77,9 @@ export const getCoachSessions = async (): Promise<Session[]> => {
 export const getProgramSessions = async (programId: string): Promise<Session[]> => {
   try {
     const { data, error } = await supabase
-      .from('sessions')
+      .from('session_templates')
       .select('*')
-      .eq('program_id', programId)
+      .eq('program_template_id', programId)
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
 
@@ -95,7 +95,7 @@ export const getProgramSessions = async (programId: string): Promise<Session[]> 
 export const getSessionById = async (sessionId: string): Promise<Session | null> => {
   try {
     const { data, error } = await supabase
-      .from('sessions')
+      .from('session_templates')
       .select('*')
       .eq('id', sessionId)
       .single();
@@ -120,7 +120,7 @@ export const updateSession = async (
     };
 
     const { data, error } = await supabase
-      .from('sessions')
+      .from('session_templates')
       .update(payload)
       .eq('id', sessionId)
       .select()
@@ -137,7 +137,7 @@ export const updateSession = async (
 // Supprimer une séance
 export const deleteSession = async (sessionId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase.from('sessions').delete().eq('id', sessionId);
+    const { error } = await supabase.from('session_templates').delete().eq('id', sessionId);
 
     if (error) throw error;
     return true;

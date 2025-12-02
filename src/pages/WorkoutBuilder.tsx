@@ -1328,7 +1328,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
       // Étape 5 : Suppression des sessions obsolètes
       const existingSessionIds = (storedSessions || [])
-        .filter((s) => s.program_id === savedProgram.id)
+        .filter((s) => s.program_template_id === savedProgram.id)
         .map((s) => s.id);
       const sessionsToDelete = existingSessionIds.filter(
         (id) => !currentProgramSessions.some((s) => s.session.dbId === id)
@@ -1347,7 +1347,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           
           // Étape 6a : Sauvegarder la session (SANS les exercices)
           const sessionData = {
-            program_id: savedProgram.id,
+            program_template_id: savedProgram.id,
             name: session.name,
             week_number: weekNumber,
             session_order: session.id,
@@ -1381,7 +1381,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 const sets = Number.isNaN(parsedSets) ? details.length : parsedSets;
 
                 return {
-                  session_id: savedSession.id,
+                  session_template_id: savedSession.id,
                   exercise_id: normalized.exerciseId,
                   coach_id: user.id,
                   exercise_order: index + 1,
