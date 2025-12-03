@@ -505,7 +505,7 @@ const useSupabaseWorkoutData = (
   const fetchProgramsAndSessions = useCallback(async () => {
     if (!coachId) {
       console.error('[WorkoutLibrary] ⚠️ Coach ID is missing!', { coachId });
-      setIsLoading(false);
+      // Ne pas définir isLoading à false ici, car user peut être en cours de chargement
       return;
     }
     console.error('[WorkoutLibrary] 🔍 Fetching programs for coach:', coachId);
@@ -569,8 +569,24 @@ const useSupabaseWorkoutData = (
   }, [coachId, addNotification]);
 
   useEffect(() => {
+    if (!coachId) {
+      // Si coachId est undefined, on reste en loading
+      setIsLoading(true);
+      return;
+    }
     fetchProgramsAndSessions();
-  }, [fetchProgramsAndSessions]);
+  }, [coachId, fetchProgramsAndSessions]);
+
+  // Effet pour définir isLoading à false si coachId reste undefined après 5 secondes
+  useEffect(() => {
+    if (!coachId) {
+      const timeout = setTimeout(() => {
+        console.error('[WorkoutLibrary] ⚠️ Coach ID still missing after 5s, stopping loading');
+        setIsLoading(false);
+      }, 5000);
+      return () => clearTimeout(timeout);
+    }
+  }, [coachId]);
 
   const removeProgramFromState = useCallback((programId: string) => {
     setPrograms((prev) => prev.filter((program) => program.id !== programId));
