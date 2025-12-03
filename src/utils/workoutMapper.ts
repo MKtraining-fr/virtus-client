@@ -1,9 +1,30 @@
 import { WorkoutSession, WorkoutProgram, WorkoutExercise } from '../types';
-import type { Database } from '../types/database';
 
-type Program = Database['public']['Tables']['programs']['Row'];
-type Session = Database['public']['Tables']['sessions']['Row'];
-type SessionExercise = any; // La table `session_exercises` n'est pas dans `database.ts`
+// Types pour les tables Supabase (sans utiliser database.ts obsolète)
+type Program = {
+  id: string;
+  coach_id: string;
+  name: string;
+  objective: string | null;
+  week_count: number;
+  sessions_per_week: number | null;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type Session = {
+  id: string;
+  program_template_id: string | null;
+  coach_id: string | null;
+  name: string;
+  week_number: number;
+  session_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type SessionExercise = any; // Type flexible pour les exercices de séance
 
 /**
  * Mapper pour convertir les données entre les structures frontend et Supabase
@@ -14,7 +35,7 @@ type SessionExercise = any; // La table `session_exercises` n'est pas dans `data
 export const mapWorkoutProgramToProgram = (
   workoutProgram: Partial<WorkoutProgram>,
   coachId: string
-): Omit<Program, 'id' | 'created_at' | 'updated_at'> => {
+): Omit<Program, 'id' | 'created_at' | 'updated_at' | 'is_public'> => {
   return {
     coach_id: coachId,
     name: workoutProgram.name || 'Nouveau programme',
@@ -31,7 +52,7 @@ export const mapWorkoutSessionToSession = (
   coachId: string | null
 ): Omit<Session, 'id' | 'created_at' | 'updated_at'> => {
   return {
-    program_id: programId,
+    program_template_id: programId,
     coach_id: coachId,
     name: workoutSession.name,
     week_number: weekNumber,
@@ -83,7 +104,7 @@ export const mapSessionToWorkoutSession = (session: Session): WorkoutSession => 
     name: session.name,
     exercises: [],
     dbId: session.id,
-    programId: session.program_id || undefined,
+    programId: session.program_template_id || undefined,
   };
 };
 
@@ -99,7 +120,7 @@ export const mapSessionExerciseToWorkoutExercise = (
   const sets = sessionExercise.sets || 0;
   const details =
     sessionExercise.details && sessionExercise.details.length > 0
-      ? sessionExercise.details.map((d) => ({
+      ? sessionExercise.details.map((d: any) => ({
           reps: d.reps || '12',
           load: d.load || { value: '', unit: 'kg' },
           tempo: d.tempo || '2010',
