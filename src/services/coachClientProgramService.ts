@@ -131,7 +131,7 @@ export const getClientAssignedProgramsForCoach = async (
 export const getClientProgramDetails = async (clientProgramId: string) => {
   try {
     const { data: program, error: programError } = await supabase
-      .from('programs')
+      .from('client_programs')
       .select('*')
       .eq('id', clientProgramId)
       .single();
