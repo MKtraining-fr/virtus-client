@@ -24,14 +24,16 @@ const ClientWorkout: React.FC = () => {
   );
   const [isLoadingProgram, setIsLoadingProgram] = useState(false);
   const [programError, setProgramError] = useState<string | null>(null);
+  const [hasFetchedPrograms, setHasFetchedPrograms] = useState(false);
 
   useEffect(() => {
     setAssignedProgram(user?.assignedProgram || user?.assignedPrograms?.[0] || null);
+    setHasFetchedPrograms(false);
   }, [user?.assignedProgram, user?.assignedPrograms]);
 
   useEffect(() => {
     const fetchAssignedPrograms = async () => {
-      if (!user?.id || assignedProgram || isLoadingProgram) return;
+      if (!user?.id || assignedProgram || isLoadingProgram || hasFetchedPrograms) return;
 
       setIsLoadingProgram(true);
       setProgramError(null);
@@ -47,12 +49,13 @@ const ClientWorkout: React.FC = () => {
         );
         console.error('Erreur lors du chargement des programmes assignés :', error);
       } finally {
+        setHasFetchedPrograms(true);
         setIsLoadingProgram(false);
       }
     };
 
     void fetchAssignedPrograms();
-  }, [assignedProgram, isLoadingProgram, user?.id]);
+  }, [assignedProgram, hasFetchedPrograms, isLoadingProgram, user?.id]);
 
   const program = useMemo(() => assignedProgram, [assignedProgram]);
   const hasAssignedProgram = !!program;
