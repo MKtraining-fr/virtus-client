@@ -65,9 +65,9 @@ export const getProgramsByCoachId = async (coachId: string): Promise<Program[]> 
 export const getSessionsByProgramId = async (programId: string) => {
   try {
     const { data, error } = await supabase
-      .from('session_templates')
+      .from('sessions')
       .select('*')
-      .eq('program_template_id', programId)
+      .eq('program_id', programId)
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
 
@@ -91,9 +91,9 @@ export const getSessionsByProgramId = async (programId: string) => {
 export const getSessionExercisesBySessionId = async (sessionId: string) => {
   try {
     const { data, error } = await supabase
-      .from('session_exercise_templates')
+      .from('session_exercises')
       .select('*')
-      .eq('session_template_id', sessionId)
+      .eq('session_id', sessionId)
       .order('exercise_order', { ascending: true });
 
     if (error) {
