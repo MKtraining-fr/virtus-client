@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         realtimeChannel.unsubscribe();
       }
     };
-  }, [user, isAuthLoading, currentViewRole, originalUser]);
+  }, [user?.id, isAuthLoading, currentViewRole, originalUser?.id]);
 
   // Effet séparé pour gérer les redirections avec protection contre les boucles
   useEffect(() => {
@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         navigate('/login', { replace: true });
       }
     }
-  }, [user, isAuthLoading, navigate, currentViewRole, location.pathname]);
+  }, [user?.id, user?.role, isAuthLoading, navigate, currentViewRole, location.pathname]);
 
   return <>{children}</>;
 };
