@@ -193,8 +193,24 @@ interface DataState {
 
 // Création du store Zustand
 export const useDataStore = create<DataState>((set, get) => {
+  // Variable pour éviter les appels multiples simultanés
+  let isLoadingData = false;
+  let lastLoadedUserId: string | null = null;
+
   // Fonction de chargement des données (migrée de AuthContext.tsx)
   const loadData = async (userId: string | null) => {
+    // Protection contre les appels multiples
+    if (isLoadingData) {
+      console.log('[useDataStore] loadData déjà en cours, appel ignoré');
+      return;
+    }
+
+    // Si les données ont déjà été chargées pour cet utilisateur, ne pas recharger
+    if (userId === lastLoadedUserId && get().programs.length > 0) {
+      console.log('[useDataStore] Données déjà chargées pour cet utilisateur, appel ignoré');
+      return;
+    }
+
     if (!userId) {
       set({
         clients: [],
@@ -221,6 +237,8 @@ export const useDataStore = create<DataState>((set, get) => {
     }
 
     try {
+      isLoadingData = true;
+      lastLoadedUserId = userId;
       set({ isDataLoading: true, dataError: null });
 
       // Charger toutes les données en parallèle
@@ -364,6 +382,7 @@ export const useDataStore = create<DataState>((set, get) => {
       logger.error('Erreur lors du chargement des données', error as Error);
       set({ dataError: error instanceof Error ? error.message : 'Une erreur est survenue' });
     } finally {
+      isLoadingData = false;
       set({ isDataLoading: false });
     }
   };
