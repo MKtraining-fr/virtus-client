@@ -67,7 +67,7 @@ export const getSessionsByProgramId = async (programId: string) => {
     const { data, error } = await supabase
       .from('sessions')
       .select('*')
-      .eq('program_id', programId)
+      .eq('program_template_id', programId)
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
 
