@@ -202,7 +202,7 @@ const SessionStatsModal: React.FC<SessionStatsModalProps> = ({
       onClose={onClose}
       title="Statistiques de Séance"
       theme={theme}
-      size="2xl"
+      size="xl"
     >
       {/* Bouton de fermeture en haut à droite */}
       <button
