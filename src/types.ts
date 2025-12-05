@@ -98,22 +98,25 @@ export interface NutritionLogEntry {
 }
 
 export interface PerformanceSet {
-  reps: number;
-  weight: number;
-  completed: boolean;
+  reps: string;
+  load: string;
+  comment?: string;
+  restTime?: string;
+  viewedByCoach?: boolean;
 }
 
 export interface ExerciseLog {
-  exerciseId: string;
-  sets: PerformanceSet[];
+  exerciseId: number;
+  exerciseName: string;
+  loggedSets: PerformanceSet[];
 }
 
 export interface PerformanceLog {
-  id: string;
-  clientId: string;
-  sessionId: string;
   date: string;
-  exercises: ExerciseLog[];
+  week: number;
+  programName: string;
+  sessionName: string;
+  exerciseLogs: ExerciseLog[];
 }
 
 export interface SharedFile {

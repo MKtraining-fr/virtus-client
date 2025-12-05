@@ -73,6 +73,21 @@ const ClientCurrentProgram: React.FC = () => {
     sessionName: string;
     sessionId: string;
     performanceLogId?: string;
+    activeSession: {
+      name: string;
+      exercises: Array<{
+        id: number;
+        exerciseId: number;
+        name: string;
+        sets: string;
+        details?: Array<{
+          load: { value: string; unit: string };
+          reps: string;
+          rest: string;
+          tempo: string;
+        }>;
+      }>;
+    };
   } | null>(null);
 
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
@@ -569,7 +584,11 @@ const ClientCurrentProgram: React.FC = () => {
       exerciseLogs: exerciseLogsForSession, 
       sessionName: activeSession.name,
       sessionId: activeSession.id,
-      performanceLogId: savedLogId || undefined
+      performanceLogId: savedLogId || undefined,
+      activeSession: {
+        name: activeSession.name,
+        exercises: activeSession.exercises
+      }
     });
     setIsRecapModalOpen(true);
   };
@@ -950,17 +969,17 @@ const ClientCurrentProgram: React.FC = () => {
           </button>
         </div>
       </Modal>
-      {recapData && user && activeSession && (
+      {recapData && user && (
         <SessionStatsModal
           isOpen={isRecapModalOpen}
           onClose={handleCloseRecapModal}
           sessionName={recapData.sessionName}
           sessionId={recapData.sessionId}
           exerciseLogs={recapData.exerciseLogs}
-          activeSession={activeSession}
+          activeSession={recapData.activeSession}
           previousWeekLog={previousPerformancePlaceholders ? user.performanceLog.find(
             log => log.programName === localProgram?.name && 
-                   log.sessionName === activeSession.name &&
+                   log.sessionName === recapData.activeSession.name &&
                    log.week === (user.programWeek || 1) - 1
           ) : undefined}
           clientId={user.id}
