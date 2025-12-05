@@ -19,6 +19,9 @@ import {
 } from '../services/programService';
 import { deleteSession } from '../services/sessionService';
 
+// DEBUG: Log au niveau du module
+console.error('[WorkoutLibrary] 📦 Module loaded!');
+
 const WorkoutLibrary: React.FC = () => {
   const { user, clients, setClients, addNotification } = useAuth();
   
