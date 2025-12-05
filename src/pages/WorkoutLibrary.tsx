@@ -21,6 +21,9 @@ import { deleteSession } from '../services/sessionService';
 
 const WorkoutLibrary: React.FC = () => {
   const { user, clients, setClients, addNotification } = useAuth();
+  
+  // DEBUG: Log pour vérifier le user ID
+  console.error('[WorkoutLibrary] 🚀 Component mounted, user ID:', user?.id);
   const {
     programs,
     sessions,
