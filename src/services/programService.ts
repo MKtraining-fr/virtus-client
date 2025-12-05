@@ -41,8 +41,7 @@ export const getProgramsByCoachId = async (coachId: string): Promise<Program[]> 
     const { data, error } = await supabase
       .from('program_templates')
       .select('*')
-      // Inclure les programmes créés par le coach ainsi que les modèles globaux (sans coach associé)
-      .or(`coach_id.eq.${coachId},coach_id.is.null`)
+      .eq('coach_id', coachId)
       .order('created_at', { ascending: false });
 
     if (error) {
