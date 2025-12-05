@@ -93,7 +93,7 @@ export const getSessionExercisesBySessionId = async (sessionId: string) => {
     const { data, error } = await supabase
       .from('session_exercises')
       .select('*')
-      .eq('session_id', sessionId)
+      .eq('session_template_id', sessionId)
       .order('exercise_order', { ascending: true });
 
     if (error) {
