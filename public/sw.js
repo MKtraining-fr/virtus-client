@@ -1,7 +1,7 @@
 // Service Worker pour Virtus PWA
-// Version: 2.0.1 - Correction PWA Cloudflare avec support Cloudinary
+// Version: 2.0.2 - Correction CORS pour requêtes externes
 
-const CACHE_NAME = 'virtus-v2.0.1';
+const CACHE_NAME = 'virtus-v2.0.2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -10,7 +10,7 @@ const urlsToCache = [
 
 // Installation du Service Worker
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installation v2.0.1 en cours...');
+  console.log('[Service Worker] Installation v2.0.2 en cours...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -26,7 +26,7 @@ self.addEventListener('install', (event) => {
 
 // Activation du Service Worker
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activation v2.0.1 en cours...');
+  console.log('[Service Worker] Activation v2.0.2 en cours...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -46,46 +46,18 @@ self.addEventListener('activate', (event) => {
 
 // Stratégie de cache: Network First, fallback to Cache
 self.addEventListener('fetch', (event) => {
-  // Ne mettre en cache que les requêtes GET
-  if (event.request.method !== 'GET') {
-    event.respondWith(fetch(event.request));
-    return;
-  }
-
   const url = new URL(event.request.url);
   
-  // Ne JAMAIS mettre en cache les requêtes vers Supabase (authentification, données)
-  if (url.hostname.includes('supabase.co') || 
-      url.hostname.includes('supabase.in')) {
-    console.log('[Service Worker] Bypass cache pour Supabase:', url.pathname);
-    event.respondWith(
-      fetch(event.request)
-        .catch((error) => {
-          console.error('[Service Worker] Erreur réseau Supabase:', error);
-          throw error;
-        })
-    );
+  // NE PAS intercepter les requêtes vers des domaines externes
+  // Laisser le navigateur gérer directement ces requêtes pour éviter les problèmes CORS
+  if (url.origin !== self.location.origin) {
+    console.log('[Service Worker] Requête externe ignorée:', url.hostname);
+    // Ne pas appeler event.respondWith() - laisser le navigateur gérer la requête normalement
     return;
   }
-
-  // Autoriser Cloudinary mais ne PAS le mettre en cache (pour avoir toujours les dernières icônes)
-  if (url.hostname.includes('cloudinary.com') || 
-      url.hostname.includes('res.cloudinary.com')) {
-    console.log('[Service Worker] Bypass cache pour Cloudinary:', url.pathname);
-    event.respondWith(
-      fetch(event.request)
-        .catch((error) => {
-          console.error('[Service Worker] Erreur réseau Cloudinary:', error);
-          throw error;
-        })
-    );
-    return;
-  }
-
-  // Ne pas mettre en cache les requêtes vers des CDN externes
-  if (url.hostname.includes('cdn.') ||
-      url.hostname.includes('flaticon.com')) {
-    event.respondWith(fetch(event.request));
+  
+  // Ne mettre en cache que les requêtes GET pour les ressources locales
+  if (event.request.method !== 'GET') {
     return;
   }
 
