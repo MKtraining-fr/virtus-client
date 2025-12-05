@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
   getClientCreatedProgramsForCoach,
+  markProgramAsViewedByCoach,
   ClientCreatedProgramView,
 } from '../../services/coachProgramViewService';
 import Card from '../Card';
 import Button from '../Button';
-import { markProgramAsViewedByCoach } from '../../services/programModificationService';
 
 interface ClientCreatedProgramsListProps {
   coachId: string;
@@ -68,14 +68,12 @@ const ClientCreatedProgramsList: React.FC<ClientCreatedProgramsListProps> = ({
                   <span className="font-medium">Statut :</span>{' '}
                   <span
                     className={`px-2 py-1 rounded text-xs ${
-                      program.status === 'active'
+                      program.status === 'assigned'
                         ? 'bg-green-100 text-green-800'
-                        : program.status === 'completed'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
+                        : 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    {program.status}
+                    {program.status === 'assigned' ? 'Assigné' : 'Brouillon'}
                   </span>
                 </p>
               </div>
