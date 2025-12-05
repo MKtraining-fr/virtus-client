@@ -12,7 +12,7 @@ import {
 } from '../../../types';
 import Modal from '../../../components/Modal';
 import Button from '../../../components/Button';
-import SessionRecapModal from '../../../components/client/SessionRecapModal';
+import SessionStatsModal from '../../../components/client/SessionStatsModal';
 import { savePerformanceLog } from '../../../services/performanceLogService';
 import { updateClientProgress, markSessionAsCompleted } from '../../../services/clientProgramService';
 // import { getClientAssignedPrograms } from '../../../services/clientProgramService'; // Plus nécessaire car chargé via useAuthStore
@@ -71,6 +71,8 @@ const ClientCurrentProgram: React.FC = () => {
   const [recapData, setRecapData] = useState<{
     exerciseLogs: ExerciseLog[];
     sessionName: string;
+    sessionId: string;
+    performanceLogId?: string;
   } | null>(null);
 
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
@@ -563,7 +565,12 @@ const ClientCurrentProgram: React.FC = () => {
     });
 
     setClients(updatedClients);
-    setRecapData({ exerciseLogs: exerciseLogsForSession, sessionName: activeSession.name });
+    setRecapData({ 
+      exerciseLogs: exerciseLogsForSession, 
+      sessionName: activeSession.name,
+      sessionId: activeSession.id,
+      performanceLogId: savedLogId || undefined
+    });
     setIsRecapModalOpen(true);
   };
 
@@ -943,13 +950,21 @@ const ClientCurrentProgram: React.FC = () => {
           </button>
         </div>
       </Modal>
-      {recapData && user && (
-        <SessionRecapModal
+      {recapData && user && activeSession && (
+        <SessionStatsModal
           isOpen={isRecapModalOpen}
           onClose={handleCloseRecapModal}
           sessionName={recapData.sessionName}
+          sessionId={recapData.sessionId}
           exerciseLogs={recapData.exerciseLogs}
-          clientName={user.firstName}
+          activeSession={activeSession}
+          previousWeekLog={previousPerformancePlaceholders ? user.performanceLog.find(
+            log => log.programName === localProgram?.name && 
+                   log.sessionName === activeSession.name &&
+                   log.week === (user.programWeek || 1) - 1
+          ) : undefined}
+          clientId={user.id}
+          performanceLogId={recapData.performanceLogId}
         />
       )}
 
