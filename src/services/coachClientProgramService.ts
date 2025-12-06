@@ -584,3 +584,146 @@ export const getClientPerformanceLogsWithDetails = async (
     return [];
   }
 };
+
+/**
+ * Récupère les détails complets d'un template de programme (pour le coach)
+ * 
+ * @param templateId - ID du template de programme
+ * @returns Détails complets du template ou null
+ */
+export const getTemplateDetails = async (templateId: string) => {
+  try {
+    const { data: template, error: templateError } = await supabase
+      .from('program_templates')
+      .select('*')
+      .eq('id', templateId)
+      .single();
+
+    if (templateError || !template) {
+      console.error('Erreur lors de la récupération du template:', templateError);
+      return null;
+    }
+
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('session_templates')
+      .select(`
+        id,
+        program_template_id,
+        name,
+        week_number,
+        session_order,
+        session_exercise_templates (
+          id,
+          exercise_id,
+          sets,
+          reps,
+          load,
+          tempo,
+          rest_time,
+          intensification,
+          notes,
+          details,
+          exercises (
+            id,
+            name,
+            image_url
+          )
+        )
+      `)
+      .eq('program_template_id', templateId)
+      .order('week_number', { ascending: true })
+      .order('session_order', { ascending: true });
+
+    if (sessionsError) {
+      console.error('Erreur lors de la récupération des séances template:', sessionsError);
+      return null;
+    }
+
+    const sessionsByWeek: Record<number, WorkoutSession[]> = {};
+
+    for (const session of sessions || []) {
+      const weekNumber = session.week_number ?? 1;
+
+      if (!sessionsByWeek[weekNumber]) {
+        sessionsByWeek[weekNumber] = [];
+      }
+
+      // Mapper les exercices du template
+      const exercises = Array.isArray(session.session_exercise_templates)
+        ? (session.session_exercise_templates as any[])
+        : [];
+
+      const mappedExercises: WorkoutExercise[] = exercises.map((exercise, idx) => {
+        // Utiliser la colonne details si disponible
+        let details: WorkoutExercise['details'];
+        
+        if (exercise.details) {
+          try {
+            const parsedDetails = typeof exercise.details === 'string' 
+              ? JSON.parse(exercise.details) 
+              : exercise.details;
+            details = Array.isArray(parsedDetails) ? parsedDetails : [];
+          } catch (e) {
+            console.error('Erreur lors du parsing de details:', e);
+            details = [];
+          }
+        } else {
+          // Créer details à partir des colonnes individuelles
+          const loadString = exercise.load ?? '';
+          const loadMatch = loadString.match(/^([\d.]+)\s*([a-zA-Z%]+)?$/);
+          const loadValue = loadMatch?.[1] ?? '';
+          const loadUnit = (loadMatch?.[2]?.toLowerCase() ?? 'kg') as 'kg' | 'lbs' | '%';
+
+          const setsCount = typeof exercise.sets === 'number' ? exercise.sets : parseInt(String(exercise.sets), 10) || 1;
+          details = Array.from({ length: setsCount }, () => ({
+            reps: exercise.reps ?? '',
+            load: { value: loadValue, unit: loadUnit },
+            tempo: exercise.tempo ?? '',
+            rest: exercise.rest_time ?? '',
+          }));
+        }
+
+        return {
+          id: idx + 1,
+          dbId: exercise.id,
+          exerciseId: exercise.exercise_id,
+          name: exercise.exercises?.name || 'Exercice',
+          illustrationUrl: exercise.exercises?.image_url || undefined,
+          sets: exercise.sets ?? '',
+          reps: exercise.reps ?? '',
+          load: exercise.load ?? '',
+          tempo: exercise.tempo ?? '',
+          restTime: exercise.rest_time ?? '',
+          intensification: Array.isArray(exercise.intensification)
+            ? exercise.intensification.map((value: any, i: number) => ({
+                id: i + 1,
+                value: String(value),
+              }))
+            : [],
+          notes: exercise.notes ?? undefined,
+          isDetailed: true,
+          details,
+        };
+      });
+
+      sessionsByWeek[weekNumber].push({
+        id: session.id,
+        name: session.name,
+        exercises: mappedExercises,
+        weekNumber: session.week_number ?? 1,
+        sessionOrder: session.session_order ?? 1,
+      } as WorkoutSession);
+    }
+
+    return {
+      id: template.id,
+      name: template.name,
+      objective: template.objective || '',
+      weekCount: template.week_count,
+      sessionsByWeek,
+    } as WorkoutProgram;
+  } catch (error) {
+    console.error('Erreur globale lors de la récupération des détails du template:', error);
+    return null;
+  }
+};

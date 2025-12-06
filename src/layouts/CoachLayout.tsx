@@ -23,6 +23,7 @@ import BilanTemplates from '../pages/coach/BilanTemplates.tsx';
 import CoachShop from '../pages/coach/CoachShop.tsx';
 import ClientCreatedPrograms from '../pages/coach/ClientCreatedPrograms.tsx';
 import ProgramDetail from '../pages/coach/ProgramDetail.tsx';
+import TemplateDetail from '../pages/coach/TemplateDetail.tsx';
 import ScrollToTop from '../components/ScrollToTop.tsx';
 
 const CoachLayout: React.FC = () => {
@@ -58,6 +59,7 @@ const CoachLayout: React.FC = () => {
             <Route path="musculation/database" element={<WorkoutDatabase />} />
             <Route path="programs" element={<ClientCreatedPrograms />} />
             <Route path="programs/:programId" element={<ProgramDetail />} />
+            <Route path="programs/template/:templateId" element={<TemplateDetail />} />
             <Route path="nutrition/createur" element={<Nutrition />} />
             <Route path="nutrition/bibliotheque" element={<NutritionLibrary />} />
             <Route path="nutrition/ciqual" element={<NutritionDatabase />} />

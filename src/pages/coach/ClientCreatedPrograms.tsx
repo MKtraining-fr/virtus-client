@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import ClientCreatedProgramsList from '../../components/coach/ClientCreatedProgramsList';
-import { ClientCreatedProgramView } from '../../services/coachProgramViewService';
+import { ClientCreatedProgramView, CoachProgramTemplate } from '../../services/coachProgramViewService';
 
 const ClientCreatedPrograms: React.FC = () => {
   const { user } = useAuth();
@@ -16,6 +16,10 @@ const ClientCreatedPrograms: React.FC = () => {
     navigate(`/coach/programs/${program.id}`);
   };
 
+  const handleTemplateClick = (template: CoachProgramTemplate) => {
+    navigate(`/coach/programs/template/${template.id}`);
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-4 sm:px-6 lg:px-8">
       <div className="mb-6">
@@ -26,7 +30,11 @@ const ClientCreatedPrograms: React.FC = () => {
           Consultez et gérez les programmes d'entraînement de vos clients.
         </p>
       </div>
-      <ClientCreatedProgramsList coachId={user.id} onProgramClick={handleProgramClick} />
+      <ClientCreatedProgramsList 
+        coachId={user.id} 
+        onProgramClick={handleProgramClick}
+        onTemplateClick={handleTemplateClick}
+      />
     </div>
   );
 };

@@ -1,6 +1,20 @@
 import { supabase } from './supabase';
 
 /**
+ * Interface pour un template de programme créé par le coach
+ */
+export interface CoachProgramTemplate {
+  id: string;
+  name: string;
+  objective: string;
+  week_count: number;
+  sessions_per_week: number | null;
+  is_public: boolean;
+  created_at: string;
+  type: 'template'; // Pour distinguer des autres types
+}
+
+/**
  * Interface pour un programme créé par un client, vu par le coach
  * Version complète avec toutes les métadonnées
  */
@@ -19,6 +33,50 @@ export interface ClientCreatedProgramView {
   status: string;
   created_at: string;
 }
+
+/**
+ * Récupère tous les templates de programmes créés par le coach
+ * @param coachId - L'ID du coach
+ * @returns Liste des templates de programmes
+ */
+export const getCoachProgramTemplates = async (
+  coachId: string
+): Promise<CoachProgramTemplate[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('program_templates')
+      .select(`
+        id,
+        name,
+        objective,
+        week_count,
+        sessions_per_week,
+        is_public,
+        created_at
+      `)
+      .eq('coach_id', coachId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erreur lors de la récupération des templates:', error);
+      throw error;
+    }
+
+    return (data || []).map((template: any) => ({
+      id: template.id,
+      name: template.name,
+      objective: template.objective || '',
+      week_count: template.week_count,
+      sessions_per_week: template.sessions_per_week,
+      is_public: template.is_public ?? true,
+      created_at: template.created_at,
+      type: 'template' as const,
+    }));
+  } catch (error) {
+    console.error('Erreur globale lors de la récupération des templates:', error);
+    return [];
+  }
+};
 
 /**
  * Récupère tous les programmes créés par les clients d'un coach
@@ -162,5 +220,94 @@ export const markProgramAsViewedByCoach = async (
   } catch (error) {
     console.error('Erreur globale lors de la mise à jour:', error);
     return false;
+  }
+};
+
+/**
+ * Récupère tous les programmes assignés par le coach à ses clients
+ * @param coachId - L'ID du coach
+ * @returns Liste des programmes assignés avec informations client
+ */
+export const getCoachAssignedPrograms = async (
+  coachId: string
+): Promise<ClientCreatedProgramView[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_programs')
+      .select(`
+        id,
+        assignment_id,
+        program_template_id,
+        client_id,
+        name,
+        objective,
+        week_count,
+        source_type,
+        modified_by_client,
+        viewed_by_coach,
+        created_at,
+        clients!client_programs_client_id_fkey (
+          first_name,
+          last_name
+        )
+      `)
+      .eq('coach_id', coachId)
+      .eq('source_type', 'coach_assigned')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erreur lors de la récupération des programmes assignés:', error);
+      throw error;
+    }
+
+    // Transformer les données pour inclure le nom complet du client
+    const programs: ClientCreatedProgramView[] = (data || []).map((prog: any) => ({
+      id: prog.id,
+      assignment_id: prog.assignment_id,
+      program_template_id: prog.program_template_id,
+      client_id: prog.client_id,
+      client_name: `${prog.clients.first_name} ${prog.clients.last_name}`,
+      name: prog.name,
+      objective: prog.objective,
+      week_count: prog.week_count,
+      source_type: prog.source_type,
+      modified_by_client: prog.modified_by_client,
+      viewed_by_coach: prog.viewed_by_coach,
+      status: prog.assignment_id ? 'assigned' : 'draft',
+      created_at: prog.created_at,
+    }));
+
+    return programs;
+  } catch (error) {
+    console.error('Erreur globale lors de la récupération des programmes assignés:', error);
+    return [];
+  }
+};
+
+/**
+ * Récupère tous les programmes visibles par le coach (templates + assignés + créés par clients)
+ * @param coachId - L'ID du coach
+ * @returns Objet contenant les 3 catégories de programmes
+ */
+export const getAllCoachPrograms = async (coachId: string) => {
+  try {
+    const [templates, assignedPrograms, clientCreatedPrograms] = await Promise.all([
+      getCoachProgramTemplates(coachId),
+      getCoachAssignedPrograms(coachId),
+      getClientCreatedProgramsForCoach(coachId),
+    ]);
+
+    return {
+      templates,
+      assignedPrograms,
+      clientCreatedPrograms,
+    };
+  } catch (error) {
+    console.error('Erreur lors de la récupération de tous les programmes:', error);
+    return {
+      templates: [],
+      assignedPrograms: [],
+      clientCreatedPrograms: [],
+    };
   }
 };
