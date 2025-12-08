@@ -761,3 +761,171 @@ export const getTemplateDetails = async (templateId: string) => {
     return null;
   }
 };
+
+/**
+ * Récupère les logs de performance d'un client pour afficher l'historique
+ * @param clientId - ID du client
+ * @returns Promise<{ program: WorkoutProgram; performanceLogs: PerformanceLog[] } | null>
+ */
+export const getClientPerformanceLogs = async (
+  clientId: string
+): Promise<{ program: WorkoutProgram; performanceLogs: any[] } | null> => {
+  console.log('[getClientPerformanceLogs] 🔍 Début du chargement pour clientId:', clientId);
+
+  try {
+    // 1. Récupérer le programme actif du client
+    const { data: programAssignments, error: assignmentError } = await supabase
+      .from('program_assignments')
+      .select('*')
+      .eq('client_id', clientId)
+      .eq('status', 'active')
+      .order('start_date', { ascending: false })
+      .limit(1);
+
+    if (assignmentError) {
+      console.error('[getClientPerformanceLogs] ❌ Erreur lors du chargement des assignations:', assignmentError);
+      return null;
+    }
+
+    if (!programAssignments || programAssignments.length === 0) {
+      console.log('[getClientPerformanceLogs] ℹ️ Aucun programme actif trouvé pour ce client');
+      return null;
+    }
+
+    const assignment = programAssignments[0];
+    console.log('[getClientPerformanceLogs] ✅ Programme actif trouvé:', assignment.program_name);
+
+    // 2. Récupérer le client_program_id
+    const { data: clientPrograms, error: clientProgramError } = await supabase
+      .from('client_programs')
+      .select('id')
+      .eq('assignment_id', assignment.id)
+      .limit(1);
+
+    if (clientProgramError || !clientPrograms || clientPrograms.length === 0) {
+      console.error('[getClientPerformanceLogs] ❌ Erreur lors du chargement du client_program:', clientProgramError);
+      return null;
+    }
+
+    const clientProgramId = clientPrograms[0].id;
+    console.log('[getClientPerformanceLogs] ✅ client_program_id:', clientProgramId);
+
+    // 3. Charger les séances complétées avec les exercices
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('client_sessions')
+      .select(`
+        id,
+        name,
+        week_number,
+        session_order,
+        completed_at,
+        status,
+        viewed_by_coach,
+        client_session_exercises (
+          id,
+          exercise_id,
+          sets,
+          reps,
+          load,
+          tempo,
+          rest_time,
+          notes,
+          details,
+          exercises (
+            id,
+            name,
+            image_url
+          )
+        )
+      `)
+      .eq('client_program_id', clientProgramId)
+      .eq('status', 'completed')
+      .order('week_number', { ascending: true })
+      .order('session_order', { ascending: true });
+
+    if (sessionsError) {
+      console.error('[getClientPerformanceLogs] ❌ Erreur lors du chargement des séances:', sessionsError);
+      return null;
+    }
+
+    console.log('[getClientPerformanceLogs] ✅ Séances chargées:', sessions?.length || 0);
+
+    if (!sessions || sessions.length === 0) {
+      console.log('[getClientPerformanceLogs] ℹ️ Aucune séance complétée trouvée');
+      return null;
+    }
+
+    // 4. Construire le programme WorkoutProgram
+    const sessionsByWeek: { [key: number]: WorkoutSession[] } = {};
+    let maxWeek = 0;
+
+    sessions.forEach((session: any) => {
+      const weekNumber = session.week_number || 1;
+      maxWeek = Math.max(maxWeek, weekNumber);
+
+      if (!sessionsByWeek[weekNumber]) {
+        sessionsByWeek[weekNumber] = [];
+      }
+
+      const workoutSession = mapClientSessionToWorkoutSession(session);
+      sessionsByWeek[weekNumber].push(workoutSession);
+    });
+
+    const program: WorkoutProgram = {
+      id: clientProgramId,
+      name: assignment.program_name,
+      objective: '',
+      weekCount: assignment.duration_weeks || maxWeek,
+      sessionsByWeek,
+    };
+
+    console.log('[getClientPerformanceLogs] ✅ Programme construit avec', maxWeek, 'semaines');
+
+    // 5. Construire les PerformanceLogs
+    const performanceLogs: any[] = sessions.map((session: any) => {
+      const exerciseLogs = (session.client_session_exercises || []).map((exercise: any) => {
+        // Parse details si c'est une string JSON
+        let parsedDetails = exercise.details;
+        if (typeof exercise.details === 'string') {
+          try {
+            parsedDetails = JSON.parse(exercise.details);
+          } catch (e) {
+            console.error('[getClientPerformanceLogs] Erreur parsing details:', e);
+            parsedDetails = [];
+          }
+        }
+
+        // Construire les loggedSets depuis details
+        const loggedSets = Array.isArray(parsedDetails) ? parsedDetails.map((detail: any) => ({
+          reps: detail.reps || '0',
+          load: detail.load?.value || '0',
+          tempo: detail.tempo || '',
+          rest: detail.rest || '',
+          comment: detail.comment || undefined,
+          viewedByCoach: session.viewed_by_coach || false,
+        })) : [];
+
+        return {
+          exerciseId: exercise.exercise_id,
+          exerciseName: exercise.exercises?.name || 'Exercice',
+          loggedSets,
+        };
+      });
+
+      return {
+        date: session.completed_at ? new Date(session.completed_at).toLocaleDateString('fr-FR') : '',
+        week: session.week_number || 1,
+        programName: assignment.program_name,
+        sessionName: session.name,
+        exerciseLogs,
+      };
+    });
+
+    console.log('[getClientPerformanceLogs] ✅ PerformanceLogs construits:', performanceLogs.length);
+
+    return { program, performanceLogs };
+  } catch (error) {
+    console.error('[getClientPerformanceLogs] ❌ Erreur inattendue:', error);
+    return null;
+  }
+};

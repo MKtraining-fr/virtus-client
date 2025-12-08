@@ -1,8 +1,7 @@
-import React, { useMemo } from 'react';
-import { useAuth } from '../context/AuthContext.tsx';
+import React, { useState, useEffect } from 'react';
 import Modal from './Modal.tsx';
 import ProgramPerformanceDetail from './ProgramPerformanceDetail.tsx';
-import { WorkoutProgram } from '../types.ts';
+import { getClientPerformanceLogs } from '../services/coachClientProgramService.ts';
 
 interface PerformanceHistoryModalProps {
   isOpen: boolean;
@@ -15,47 +14,51 @@ const PerformanceHistoryModal: React.FC<PerformanceHistoryModalProps> = ({
   onClose,
   clientId,
 }) => {
-  const { clients, programs } = useAuth();
+  const [programData, setProgramData] = useState<{
+    program: any;
+    performanceLogs: any[];
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const client = useMemo(() => clients.find((c) => c.id === clientId), [clients, clientId]);
-
-  const programToShowData = useMemo(() => {
-    if (!client) return null;
-
-    if (!client.performanceLog || client.performanceLog.length === 0) {
-      const program = client.assignedPrograms?.[0];
-      return program ? { program, logs: [] } : null;
+  useEffect(() => {
+    if (!isOpen || !clientId) {
+      setProgramData(null);
+      return;
     }
 
-    const sortedLogs = [...client.performanceLog].sort(
-      (a, b) =>
-        new Date(b.date.split('/').reverse().join('-')).getTime() -
-        new Date(a.date.split('/').reverse().join('-')).getTime()
-    );
-    const latestLog = sortedLogs[0];
-    const programName = latestLog.programName;
+    const loadPerformanceData = async () => {
+      setIsLoading(true);
+      console.log('[PerformanceHistoryModal] 🔄 Chargement des données pour clientId:', clientId);
 
-    const programFromAssigned = client.assignedPrograms?.find((p) => p.name === programName);
-    const programFromLibrary = programs.find((p) => p.name === programName);
-    const program = programFromAssigned || programFromLibrary;
+      try {
+        const data = await getClientPerformanceLogs(clientId);
+        console.log('[PerformanceHistoryModal] ✅ Données chargées:', data);
+        setProgramData(data);
+      } catch (error) {
+        console.error('[PerformanceHistoryModal] ❌ Erreur lors du chargement:', error);
+        setProgramData(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    if (!program) return null;
+    loadPerformanceData();
+  }, [isOpen, clientId]);
 
-    const logsForProgram = client.performanceLog.filter((log) => log.programName === program.name);
-
-    return { program, logs: logsForProgram };
-  }, [client, programs]);
-
-  const modalTitle = programToShowData
-    ? `Historique de performance pour : ${programToShowData.program.name}`
+  const modalTitle = programData
+    ? `Historique de performance pour : ${programData.program.name}`
     : 'Historique de performance';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="xl">
-      {programToShowData ? (
+      {isLoading ? (
+        <div className="text-center py-10">
+          <p className="text-gray-500">Chargement de l'historique...</p>
+        </div>
+      ) : programData ? (
         <ProgramPerformanceDetail
-          program={programToShowData.program}
-          performanceLogs={programToShowData.logs}
+          program={programData.program}
+          performanceLogs={programData.performanceLogs}
         />
       ) : (
         <div className="text-center py-10">
