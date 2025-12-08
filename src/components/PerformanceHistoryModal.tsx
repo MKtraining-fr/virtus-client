@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal.tsx';
 import ProgramPerformanceDetail from './ProgramPerformanceDetail.tsx';
-import { getClientPerformanceLogs } from '../services/coachClientProgramService.ts';
+import { getClientPerformanceLogs, markSessionsAsViewed } from '../services/coachClientProgramService.ts';
 
 interface PerformanceHistoryModalProps {
   isOpen: boolean;
@@ -19,6 +19,7 @@ const PerformanceHistoryModal: React.FC<PerformanceHistoryModalProps> = ({
     performanceLogs: any[];
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionIds, setSessionIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isOpen || !clientId) {
@@ -33,6 +34,12 @@ const PerformanceHistoryModal: React.FC<PerformanceHistoryModalProps> = ({
       try {
         const data = await getClientPerformanceLogs(clientId);
         console.log('[PerformanceHistoryModal] ✅ Données chargées:', data);
+        
+        // Collecter les IDs de toutes les séances chargées
+        const ids = data?.performanceLogs.map((log: any) => log.sessionId).filter(Boolean) || [];
+        setSessionIds(ids);
+        console.log('[PerformanceHistoryModal] 📋 IDs de séances collectés:', ids);
+        
         setProgramData(data);
       } catch (error) {
         console.error('[PerformanceHistoryModal] ❌ Erreur lors du chargement:', error);
@@ -45,12 +52,21 @@ const PerformanceHistoryModal: React.FC<PerformanceHistoryModalProps> = ({
     loadPerformanceData();
   }, [isOpen, clientId]);
 
+  const handleClose = async () => {
+    // Marquer les séances comme vues avant de fermer
+    if (sessionIds.length > 0) {
+      console.log('[PerformanceHistoryModal] 🔄 Marquage des séances comme vues avant fermeture');
+      await markSessionsAsViewed(sessionIds);
+    }
+    onClose();
+  };
+
   const modalTitle = programData
     ? `Historique de performance pour : ${programData.program.name}`
     : 'Historique de performance';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="xl">
+    <Modal isOpen={isOpen} onClose={handleClose} title={modalTitle} size="xl">
       {isLoading ? (
         <div className="text-center py-10">
           <p className="text-gray-500">Chargement de l'historique...</p>

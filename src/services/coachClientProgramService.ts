@@ -820,6 +820,7 @@ export const getClientPerformanceLogs = async (
         session_order,
         completed_at,
         status,
+        viewed_by_coach,
         client_session_exercises (
           id,
           exercise_id,
@@ -912,11 +913,13 @@ export const getClientPerformanceLogs = async (
       });
 
       return {
+        sessionId: session.id,
         date: session.completed_at ? new Date(session.completed_at).toLocaleDateString('fr-FR') : '',
         week: session.week_number || 1,
         programName: assignment.program_name,
         sessionName: session.name,
         exerciseLogs,
+        viewedByCoach: session.viewed_by_coach ?? false,
       };
     });
 
@@ -926,5 +929,34 @@ export const getClientPerformanceLogs = async (
   } catch (error) {
     console.error('[getClientPerformanceLogs] ❌ Erreur inattendue:', error);
     return null;
+  }
+};
+
+/**
+ * Marque les séances comme visualisées par le coach
+ * @param sessionIds - Liste des IDs de séances à marquer comme vues
+ * @returns Promise<boolean> - true si succès, false sinon
+ */
+export const markSessionsAsViewed = async (
+  sessionIds: string[]
+): Promise<boolean> => {
+  console.log('[markSessionsAsViewed] 🔄 Marquage de', sessionIds.length, 'séances comme vues');
+
+  try {
+    const { error } = await supabase
+      .from('client_sessions')
+      .update({ viewed_by_coach: true })
+      .in('id', sessionIds);
+
+    if (error) {
+      console.error('[markSessionsAsViewed] ❌ Erreur lors du marquage:', error);
+      return false;
+    }
+
+    console.log('[markSessionsAsViewed] ✅ Séances marquées comme vues avec succès');
+    return true;
+  } catch (error) {
+    console.error('[markSessionsAsViewed] ❌ Erreur inattendue:', error);
+    return false;
   }
 };
