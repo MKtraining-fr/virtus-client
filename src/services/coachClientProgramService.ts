@@ -820,7 +820,6 @@ export const getClientPerformanceLogs = async (
         session_order,
         completed_at,
         status,
-        viewed_by_coach,
         client_session_exercises (
           id,
           exercise_id,
@@ -902,7 +901,7 @@ export const getClientPerformanceLogs = async (
           tempo: detail.tempo || '',
           rest: detail.rest || '',
           comment: detail.comment || undefined,
-          viewedByCoach: session.viewed_by_coach || false,
+          viewedByCoach: false, // TODO: Ajouter cette colonne si nécessaire
         })) : [];
 
         return {
