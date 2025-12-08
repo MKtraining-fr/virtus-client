@@ -9,25 +9,39 @@ const mapClientSessionToWorkoutSession = (
     ? (session.client_session_exercises as any[])
     : [];
 
-  const mappedExercises: WorkoutExercise[] = exercises.map((exercise, idx) => ({
-    id: idx + 1 + indexOffset,
-    dbId: exercise.id,
-    exerciseId: exercise.exercise_id,
-    name: exercise.exercises?.name || 'Exercice',
-    illustrationUrl: exercise.exercises?.image_url || undefined,
-    sets: exercise.sets ?? '',
-    reps: exercise.reps ?? '',
-    load: exercise.load ?? '',
-    tempo: exercise.tempo ?? '',
-    restTime: exercise.rest_time ?? '',
-    intensification: Array.isArray(exercise.intensification)
-      ? exercise.intensification.map((value: any, i: number) => ({
-          id: i + 1,
-          value: String(value),
-        }))
-      : [],
-    notes: exercise.notes ?? undefined,
-  }));
+  const mappedExercises: WorkoutExercise[] = exercises.map((exercise, idx) => {
+    // Parse details if it's a JSON string
+    let parsedDetails = exercise.details;
+    if (typeof exercise.details === 'string') {
+      try {
+        parsedDetails = JSON.parse(exercise.details);
+      } catch (e) {
+        console.error('Failed to parse exercise details:', e);
+        parsedDetails = null;
+      }
+    }
+
+    return {
+      id: idx + 1 + indexOffset,
+      dbId: exercise.id,
+      exerciseId: exercise.exercise_id,
+      name: exercise.exercises?.name || 'Exercice',
+      illustrationUrl: exercise.exercises?.image_url || undefined,
+      sets: exercise.sets ?? '',
+      reps: exercise.reps ?? '',
+      load: exercise.load ?? '',
+      tempo: exercise.tempo ?? '',
+      restTime: exercise.rest_time ?? '',
+      intensification: Array.isArray(exercise.intensification)
+        ? exercise.intensification.map((value: any, i: number) => ({
+            id: i + 1,
+            value: String(value),
+          }))
+        : [],
+      notes: exercise.notes ?? undefined,
+      details: Array.isArray(parsedDetails) && parsedDetails.length > 0 ? parsedDetails : undefined,
+    };
+  });
 
   return {
     id: session.id,
@@ -159,6 +173,7 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
           rest_time,
           intensification,
           notes,
+          details,
           exercises (
             id,
             name,
