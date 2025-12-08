@@ -97,9 +97,21 @@ export const mapSessionExerciseToWorkoutExercise = (
   const loadUnit = loadMatch ? loadMatch[2] || 'kg' : 'kg';
 
   const sets = sessionExercise.sets || 0;
+  
+  // Parse details if it's a JSON string (from Supabase)
+  let parsedDetails = sessionExercise.details;
+  if (typeof parsedDetails === 'string') {
+    try {
+      parsedDetails = JSON.parse(parsedDetails);
+    } catch (e) {
+      console.error('[workoutMapper] Failed to parse details JSON:', e);
+      parsedDetails = null;
+    }
+  }
+  
   const details =
-    sessionExercise.details && sessionExercise.details.length > 0
-      ? sessionExercise.details.map((d) => ({
+    parsedDetails && Array.isArray(parsedDetails) && parsedDetails.length > 0
+      ? parsedDetails.map((d) => ({
           reps: d.reps || '12',
           load: d.load || { value: '', unit: 'kg' },
           tempo: d.tempo || '2010',
@@ -118,7 +130,7 @@ export const mapSessionExerciseToWorkoutExercise = (
     exerciseId: sessionExercise.exercise_id || '',
     illustrationUrl: illustrationUrl || '',
     sets: String(sets),
-    isDetailed: sessionExercise.details?.length > 0,
+    isDetailed: parsedDetails && Array.isArray(parsedDetails) && parsedDetails.length > 0,
     details,
     intensification: sessionExercise.intensification || [],
     notes: sessionExercise.notes || null,
