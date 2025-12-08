@@ -143,6 +143,7 @@ export const getClientAssignedProgramsForCoach = async (
  * @returns Détails complets du programme ou null
  */
 export const getClientProgramDetails = async (clientProgramId: string) => {
+  console.log('[getClientProgramDetails] 🔍 Début du chargement pour clientProgramId:', clientProgramId);
   try {
     const { data: program, error: programError } = await supabase
       .from('client_programs')
@@ -151,9 +152,10 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
       .single();
 
     if (programError || !program) {
-      console.error('Erreur lors de la récupération du programme:', programError);
+      console.error('[getClientProgramDetails] ❌ Erreur lors de la récupération du programme:', programError);
       return null;
     }
+    console.log('[getClientProgramDetails] ✅ Programme récupéré:', program.name, 'ID:', program.id);
 
     const { data: sessions, error: sessionsError } = await supabase
       .from('client_sessions')
@@ -199,18 +201,21 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
         sessionsByWeek[weekNumber] = [];
       }
 
-      sessionsByWeek[weekNumber].push(
-        mapClientSessionToWorkoutSession(session, sessionsByWeek[weekNumber].length)
-      );
+      const mappedSession = mapClientSessionToWorkoutSession(session, sessionsByWeek[weekNumber].length);
+      console.log('[getClientProgramDetails] 📝 Session mappée:', session.name, 'Semaine:', weekNumber, 'Exercices:', mappedSession.exercises.length);
+      sessionsByWeek[weekNumber].push(mappedSession);
     }
+    console.log('[getClientProgramDetails] ✅ sessionsByWeek final:', Object.keys(sessionsByWeek).length, 'semaines', sessionsByWeek);
 
-    return {
+    const result = {
       id: program.id,
       name: program.name,
       objective: program.objective || '',
       weekCount: program.week_count,
       sessionsByWeek,
     } as WorkoutProgram;
+    console.log('[getClientProgramDetails] 🎉 Retour du résultat:', result);
+    return result;
   } catch (error) {
     console.error('Erreur globale lors de la récupération des détails du programme:', error);
     return null;
