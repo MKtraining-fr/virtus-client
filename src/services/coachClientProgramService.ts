@@ -187,9 +187,16 @@ export const getClientProgramDetails = async (clientProgramId: string) => {
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
 
+    console.log('[getClientProgramDetails] 📊 Résultat brut de la requête sessions:', { sessions, sessionsError });
+    
     if (sessionsError) {
-      console.error('Erreur lors de la récupération des séances:', sessionsError);
+      console.error('[getClientProgramDetails] ❌ Erreur lors de la récupération des séances:', sessionsError);
       return null;
+    }
+    
+    console.log('[getClientProgramDetails] 📋 Séances récupérées:', sessions?.length || 0, 'séances');
+    if (sessions && sessions.length > 0) {
+      console.log('[getClientProgramDetails] 📝 Première séance:', sessions[0]);
     }
 
     const sessionsByWeek: Record<number, WorkoutSession[]> = {};
@@ -434,9 +441,16 @@ export const getClientTrainingStats = async (
       .select('id, status, completed_at')
       .eq('client_id', clientId);
 
+    console.log('[getClientProgramDetails] 📊 Résultat brut de la requête sessions:', { sessions, sessionsError });
+    
     if (sessionsError) {
-      console.error('Erreur lors de la récupération des séances:', sessionsError);
+      console.error('[getClientProgramDetails] ❌ Erreur lors de la récupération des séances:', sessionsError);
       return null;
+    }
+    
+    console.log('[getClientProgramDetails] 📋 Séances récupérées:', sessions?.length || 0, 'séances');
+    if (sessions && sessions.length > 0) {
+      console.log('[getClientProgramDetails] 📝 Première séance:', sessions[0]);
     }
 
     const totalSessions = sessions?.length || 0;
