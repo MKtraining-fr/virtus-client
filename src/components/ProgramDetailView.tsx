@@ -118,18 +118,16 @@ const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
     .sort((a, b) => a - b);
   const firstWeekSessions = program.sessionsByWeek[1] || [];
 
-  const customizationStatus = useMemo(() => {
-    const status = { allIdentical: true, customizedWeeks: new Set<number>() };
-    if (weeks.length <= 1) return status;
+  const allWeeksIdentical = useMemo(() => {
+    if (weeks.length <= 1) return true;
 
     for (let i = 1; i < weeks.length; i++) {
       const weekNumber = weeks[i];
       if (!areSessionsIdentical(firstWeekSessions, program.sessionsByWeek[weekNumber] || [])) {
-        status.allIdentical = false;
-        status.customizedWeeks.add(weekNumber);
+        return false;
       }
     }
-    return status;
+    return true;
   }, [program.sessionsByWeek, weeks, firstWeekSessions]);
 
   if (weeks.length === 0) {
@@ -146,7 +144,7 @@ const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
   return (
     <div className="space-y-2">
       <h3 className="p-3 text-lg font-bold bg-gray-50 border rounded-t-lg -mb-2">{program.name}</h3>
-      {customizationStatus.allIdentical ? (
+      {allWeeksIdentical ? (
         <Accordion
           title={weeks.length > 1 ? `Semaines 1 à ${weeks.length} (identiques)` : 'Semaine 1'}
           isOpenDefault={true}
@@ -155,21 +153,8 @@ const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
         </Accordion>
       ) : (
         weeks.map((weekNumber) => {
-          const isCustomized = customizationStatus.customizedWeeks.has(weekNumber);
-          const titleNode = (
-            <div className="flex items-center gap-2">
-              <span>Semaine {weekNumber}</span>
-              {isCustomized && (
-                <span
-                  className="w-2.5 h-2.5 bg-primary rounded-full"
-                  title="Cette semaine est personnalisée"
-                ></span>
-              )}
-            </div>
-          );
-
           return (
-            <Accordion key={weekNumber} title={titleNode} isOpenDefault={weekNumber === 1}>
+            <Accordion key={weekNumber} title={`Semaine ${weekNumber}`} isOpenDefault={weekNumber === 1}>
               <WeekContent sessions={program.sessionsByWeek[weekNumber]} />
             </Accordion>
           );
