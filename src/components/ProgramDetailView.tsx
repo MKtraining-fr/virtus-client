@@ -119,14 +119,27 @@ const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
   const firstWeekSessions = program.sessionsByWeek[1] || [];
 
   const allWeeksIdentical = useMemo(() => {
-    if (weeks.length <= 1) return true;
+    console.log('[ProgramDetailView] Checking if weeks are identical for program:', program.name);
+    console.log('[ProgramDetailView] Weeks:', weeks);
+    console.log('[ProgramDetailView] First week sessions:', firstWeekSessions);
+    
+    if (weeks.length <= 1) {
+      console.log('[ProgramDetailView] Only one week, returning true');
+      return true;
+    }
 
     for (let i = 1; i < weeks.length; i++) {
       const weekNumber = weeks[i];
-      if (!areSessionsIdentical(firstWeekSessions, program.sessionsByWeek[weekNumber] || [])) {
+      const currentWeekSessions = program.sessionsByWeek[weekNumber] || [];
+      const identical = areSessionsIdentical(firstWeekSessions, currentWeekSessions);
+      console.log(`[ProgramDetailView] Week ${weekNumber} identical to week 1?`, identical);
+      
+      if (!identical) {
+        console.log('[ProgramDetailView] Found difference, returning false');
         return false;
       }
     }
+    console.log('[ProgramDetailView] All weeks identical, returning true');
     return true;
   }, [program.sessionsByWeek, weeks, firstWeekSessions]);
 
