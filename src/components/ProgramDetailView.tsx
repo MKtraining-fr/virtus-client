@@ -9,18 +9,44 @@ const areSessionsIdentical = (
 ): boolean => {
   if (sessionsA.length !== sessionsB.length) return false;
   try {
-    // Normalise les séances pour la comparaison : ignore les identifiants internes
+    // Normalise les séances pour la comparaison : ignore les identifiants internes et autres champs techniques
     const normalizeSession = (session: WorkoutSession) => {
-      const { id: _ignoredId, dbId: _ignoredDbId, templateSessionId: _ignoredTemplateId, ...restSession } = session;
+      const { 
+        id: _ignoredId, 
+        dbId: _ignoredDbId, 
+        templateSessionId: _ignoredTemplateId,
+        weekNumber: _ignoredWeekNumber,
+        sessionOrder: _ignoredSessionOrder,
+        ...restSession 
+      } = session as any;
+      
       return {
-        ...restSession,
-        exercises: session.exercises.map(({ id: _exId, dbId: _exDbId, ...exercise }) => exercise),
+        name: session.name,
+        exercises: session.exercises.map((exercise) => {
+          const { 
+            id: _exId, 
+            dbId: _exDbId,
+            ...restExercise 
+          } = exercise as any;
+          return restExercise;
+        }),
       };
     };
 
     const comparableA = sessionsA.map(normalizeSession);
     const comparableB = sessionsB.map(normalizeSession);
-    return JSON.stringify(comparableA) === JSON.stringify(comparableB);
+    
+    const stringA = JSON.stringify(comparableA);
+    const stringB = JSON.stringify(comparableB);
+    
+    console.log('[areSessionsIdentical] Comparing:', stringA === stringB);
+    if (stringA !== stringB) {
+      console.log('[areSessionsIdentical] Diff detected');
+      console.log('[areSessionsIdentical] A:', stringA.substring(0, 200));
+      console.log('[areSessionsIdentical] B:', stringB.substring(0, 200));
+    }
+    
+    return stringA === stringB;
   } catch (e) {
     console.error('Could not compare sessions:', e);
     return false;
@@ -116,6 +142,8 @@ const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
   const weeks = Object.keys(program.sessionsByWeek)
     .map(Number)
     .sort((a, b) => a - b);
+  
+  // La semaine de référence est toujours la semaine 1
   const firstWeekSessions = program.sessionsByWeek[1] || [];
 
   const allWeeksIdentical = useMemo(() => {
@@ -128,6 +156,7 @@ const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
       return true;
     }
 
+    // Comparer toutes les semaines avec la semaine 1
     for (let i = 1; i < weeks.length; i++) {
       const weekNumber = weeks[i];
       const currentWeekSessions = program.sessionsByWeek[weekNumber] || [];
