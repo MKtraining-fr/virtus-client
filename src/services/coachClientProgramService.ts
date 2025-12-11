@@ -843,6 +843,13 @@ export const getClientPerformanceLogs = async (
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
 
+    // Afficher les détails de toutes les séances pour diagnostic
+    console.log('[getClientPerformanceLogs] 📊 Détails des séances:');
+    allSessions?.forEach((s, i) => {
+      console.log(`  [${i + 1}] ${s.name} (Semaine ${s.week_number})`);
+      console.log(`      status: "${s.status}", completed_at: ${s.completed_at}`);
+    });
+    
     // Filtrer les séances complétées (status='completed' OU completed_at non null)
     const sessions = allSessions?.filter(s => 
       s.status === 'completed' || s.completed_at !== null
