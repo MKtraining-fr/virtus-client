@@ -811,7 +811,8 @@ export const getClientPerformanceLogs = async (
     console.log('[getClientPerformanceLogs] ✅ client_program_id:', clientProgramId);
 
     // 3. Charger les séances complétées avec les exercices
-    const { data: sessions, error: sessionsError } = await supabase
+    // On accepte les séances avec status='completed' OU avec un completed_at non null
+    const { data: allSessions, error: sessionsError } = await supabase
       .from('client_sessions')
       .select(`
         id,
@@ -839,16 +840,21 @@ export const getClientPerformanceLogs = async (
         )
       `)
       .eq('client_program_id', clientProgramId)
-      .eq('status', 'completed')
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
+
+    // Filtrer les séances complétées (status='completed' OU completed_at non null)
+    const sessions = allSessions?.filter(s => 
+      s.status === 'completed' || s.completed_at !== null
+    ) || [];
 
     if (sessionsError) {
       console.error('[getClientPerformanceLogs] ❌ Erreur lors du chargement des séances:', sessionsError);
       return null;
     }
 
-    console.log('[getClientPerformanceLogs] ✅ Séances chargées:', sessions?.length || 0);
+    console.log('[getClientPerformanceLogs] ✅ Toutes les séances:', allSessions?.length || 0);
+    console.log('[getClientPerformanceLogs] ✅ Séances complétées (filtrées):', sessions?.length || 0);
 
     if (!sessions || sessions.length === 0) {
       console.log('[getClientPerformanceLogs] ℹ️ Aucune séance complétée trouvée');
