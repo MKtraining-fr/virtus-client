@@ -383,7 +383,13 @@ const ClientCurrentProgram: React.FC = () => {
   };
 
   const handleFinishSession = async () => {
+    console.log('[handleFinishSession] 🚀 Début de la validation de séance');
+    console.log('[handleFinishSession] localProgram:', localProgram?.name);
+    console.log('[handleFinishSession] activeSession:', activeSession?.name);
+    console.log('[handleFinishSession] user:', user?.id);
+    
     if (!localProgram || !activeSession || !user) {
+      console.error('[handleFinishSession] ❌ Données manquantes, redirection');
       navigate('/app/workout');
       return;
     }
@@ -394,13 +400,16 @@ const ClientCurrentProgram: React.FC = () => {
     });
 
     if (hasUnloggedExercises) {
+      console.log('[handleFinishSession] ⚠️  Exercices non complétés détectés');
       if (
         !window.confirm(
           'Certains exercices ne sont pas complétés. Voulez-vous vraiment terminer la séance ? Les données non saisies ne seront pas enregistrées.'
         )
       ) {
+        console.log('[handleFinishSession] ❌ Validation annulée par l\'utilisateur');
         return;
       }
+      console.log('[handleFinishSession] ✅ Utilisateur a confirmé malgré les exercices non complétés');
     }
 
     const exerciseLogsForSession: ExerciseLog[] = activeSession.exercises
@@ -449,6 +458,10 @@ const ClientCurrentProgram: React.FC = () => {
     const programAssignmentId = (localProgram as any).assignmentId || null;
     const sessionId = activeSession.id;
     
+    console.log('[handleFinishSession] 💾 Sauvegarde des performances...');
+    console.log('[handleFinishSession] sessionId:', sessionId);
+    console.log('[handleFinishSession] exerciseLogs count:', exerciseLogsForSession.length);
+    
     const savedLogId = await savePerformanceLog(
       user.id,
       programAssignmentId,
@@ -456,9 +469,11 @@ const ClientCurrentProgram: React.FC = () => {
       newLogEntry,
       user.coachId
     );
+    
+    console.log('[handleFinishSession] savedLogId:', savedLogId);
 
     if (!savedLogId) {
-      console.error('Échec de la sauvegarde du log de performance');
+      console.error('[handleFinishSession] ❌ Échec de la sauvegarde du log de performance');
       // ✅ AMÉLIORATION: Afficher une erreur à l'utilisateur
       addNotification({
         message: 'Impossible d\'enregistrer vos performances. Veuillez réessayer.',
@@ -468,7 +483,9 @@ const ClientCurrentProgram: React.FC = () => {
     }
 
     // ✅ AJOUT: Marquer la séance comme complétée dans Supabase
+    console.log('[handleFinishSession] 🏷️ Marquage de la séance comme complétée...');
     const sessionMarked = await markSessionAsCompleted(sessionId);
+    console.log('[handleFinishSession] sessionMarked:', sessionMarked);
     if (!sessionMarked) {
       console.error('Échec du marquage de la séance comme complétée');
       // Ne pas bloquer, mais logger l'erreur
@@ -580,6 +597,7 @@ const ClientCurrentProgram: React.FC = () => {
     });
 
     setClients(updatedClients);
+    console.log('[handleFinishSession] 🎉 Ouverture du modal de récapitulatif');
     setRecapData({ 
       exerciseLogs: exerciseLogsForSession, 
       sessionName: activeSession.name,
@@ -591,6 +609,7 @@ const ClientCurrentProgram: React.FC = () => {
       }
     });
     setIsRecapModalOpen(true);
+    console.log('[handleFinishSession] ✅ Fin de la validation de séance');
   };
 
   const handleCloseRecapModal = () => {
