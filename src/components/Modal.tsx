@@ -19,6 +19,10 @@ const Modal: React.FC<ModalProps> = ({
   size = 'md',
   theme = 'light',
 }) => {
+  console.log('[Modal] Rendu du composant');
+  console.log('[Modal] isOpen:', isOpen);
+  console.log('[Modal] title:', title);
+  
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
@@ -32,9 +36,14 @@ const Modal: React.FC<ModalProps> = ({
     setContainer(modalRoot);
   }, []); // The empty dependency array ensures this effect runs only once on mount.
 
+  console.log('[Modal] container:', container);
+  
   if (!isOpen || !container) {
+    console.log('[Modal] Modal ne s\'affiche pas - isOpen:', isOpen, 'container:', !!container);
     return null;
   }
+  
+  console.log('[Modal] ✅ Modal va s\'afficher');
 
   const sizeClass = size === 'xl' ? 'max-w-7xl' : 'max-w-2xl';
 

@@ -49,6 +49,11 @@ const SessionStatsModal: React.FC<SessionStatsModalProps> = ({
   clientId,
   performanceLogId,
 }) => {
+  console.log('[SessionStatsModal] Rendu du composant');
+  console.log('[SessionStatsModal] isOpen:', isOpen);
+  console.log('[SessionStatsModal] sessionName:', sessionName);
+  console.log('[SessionStatsModal] exerciseLogs count:', exerciseLogs?.length);
+  
   const { theme, addNotification } = useAuth();
   
   // État pour le questionnaire
