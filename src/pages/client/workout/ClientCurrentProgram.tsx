@@ -137,9 +137,15 @@ const ClientCurrentProgram: React.FC = () => {
   }, [localProgram, currentWeek, user]);
 
   useEffect(() => {
+    // ⚠️ NE PAS réinitialiser si on est en train d'afficher le modal de récapitulatif
+    if (recapData || isRecapModalOpen) {
+      console.log('[useEffect] Ignorer la réinitialisation car recapData/modal est actif');
+      return;
+    }
+    console.log('[useEffect] Réinitialisation de localProgram et selectedSessionIndex');
     setSelectedSessionIndex(defaultSessionIndex);
     setLocalProgram(baseProgram ? JSON.parse(JSON.stringify(baseProgram)) : undefined);
-  }, [defaultSessionIndex, baseProgram]);
+  }, [defaultSessionIndex, baseProgram, recapData, isRecapModalOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
