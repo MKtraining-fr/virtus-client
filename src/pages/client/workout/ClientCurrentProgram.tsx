@@ -273,12 +273,13 @@ const ClientCurrentProgram: React.FC = () => {
 
   // Effect pour ouvrir le modal quand recapData est défini
   useEffect(() => {
+    console.log('[useEffect recapData] Déclenché - recapData:', !!recapData, 'isRecapModalOpen:', isRecapModalOpen);
     if (recapData && !isRecapModalOpen) {
-      console.log('[useEffect] recapData défini, ouverture du modal');
-      console.log('[useEffect] recapData.sessionName:', recapData.sessionName);
+      console.log('[useEffect recapData] Ouverture du modal');
+      console.log('[useEffect recapData] recapData.sessionName:', recapData.sessionName);
       setIsRecapModalOpen(true);
     }
-  }, [recapData]);
+  }, [recapData, isRecapModalOpen]);
 
   // Timer Effect
   useEffect(() => {
@@ -643,9 +644,10 @@ const ClientCurrentProgram: React.FC = () => {
     console.log('[handleFinishSession] newRecapData:', newRecapData);
     console.log('[handleFinishSession] user avant setRecapData:', user);
     console.log('[handleFinishSession] user.id:', user?.id);
+    console.log('[handleFinishSession] Appel de setRecapData ET setIsRecapModalOpen');
     setRecapData(newRecapData);
     setIsRecapModalOpen(true);
-    console.log('[handleFinishSession] setRecapData appelé avec:', {
+    console.log('[handleFinishSession] setRecapData et setIsRecapModalOpen appelés avec:', {
       sessionName: newRecapData.sessionName,
       exerciseLogsCount: newRecapData.exerciseLogs.length,
       isRecapModalOpen: true
@@ -1039,7 +1041,15 @@ const ClientCurrentProgram: React.FC = () => {
           </button>
         </div>
       </Modal>
-      {recapData && (
+      {(() => {
+        console.log('[ClientCurrentProgram RENDER] recapData:', !!recapData);
+        console.log('[ClientCurrentProgram RENDER] isRecapModalOpen:', isRecapModalOpen);
+        if (recapData) {
+          console.log('[ClientCurrentProgram RENDER] recapData.sessionName:', recapData.sessionName);
+          console.log('[ClientCurrentProgram RENDER] SessionStatsModal sera rendu');
+        }
+        return recapData;
+      })() && (
         <SessionStatsModal
           isOpen={isRecapModalOpen}
           onClose={handleCloseRecapModal}
