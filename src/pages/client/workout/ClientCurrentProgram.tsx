@@ -43,15 +43,18 @@ const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tem
 };
 
 const ClientCurrentProgram: React.FC = () => {
-  // AJOUT : Log pour vérifier que la nouvelle version est chargée
   useEffect(() => {
-    console.log('[DEBUG] 🚀 Version chargée: v2.1 (Avec logs de debug)');
+    console.log('[DEBUG] 🚀 Version chargée: v2.2 (Verrouillage du rendu)');
   }, []);
 
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
   const navigate = useNavigate();
   const optionsButtonRef = useRef<HTMLButtonElement>(null);
   
+  // VERROUILLAGE : Si true, on ignore les mises à jour externes (loading, changement user)
+  const [isLocked, setIsLocked] = useState(false);
+
+  // Ref pour stocker les mises à jour en attente
   const pendingUpdatesRef = useRef<{
     assignmentId: string;
     sessionId: string;
@@ -63,7 +66,9 @@ const ClientCurrentProgram: React.FC = () => {
   } | null>(null);
 
   const baseProgram = user?.assignedProgram;
-  const isProgramLoading = !user || !baseProgram;
+  
+  // Si on est verrouillé, on considère que le programme est chargé (on garde l'ancien affichage)
+  const isProgramLoading = !isLocked && (!user || !baseProgram);
 
   const currentWeek = useMemo(() => user?.programWeek || 1, [user]);
 
@@ -131,26 +136,27 @@ const ClientCurrentProgram: React.FC = () => {
     if (!localProgram) return [];
     const sessionsForWeek =
       localProgram.sessionsByWeek[currentWeek] || localProgram.sessionsByWeek[1] || [];
-    if (!user)
-      return sessionsForWeek.map((session, index) => ({ ...session, originalIndex: index }));
-
-    const currentSessionProgressIndex = (user.sessionProgress || 1) - 1;
-
-    if (pendingUpdatesRef.current) {
+    
+    // Si on est verrouillé (validation en cours), on ne filtre pas les séances pour garder le contexte
+    if (isLocked || pendingUpdatesRef.current) {
         return sessionsForWeek.map((session, index) => ({ ...session, originalIndex: index }));
     }
 
+    if (!user) return sessionsForWeek.map((session, index) => ({ ...session, originalIndex: index }));
+
+    const currentSessionProgressIndex = (user.sessionProgress || 1) - 1;
     return sessionsForWeek
       .map((session, index) => ({ ...session, originalIndex: index }))
       .filter((_, index) => index >= currentSessionProgressIndex);
-  }, [localProgram, currentWeek, user]);
+  }, [localProgram, currentWeek, user, isLocked]);
 
   useEffect(() => {
-    if (isRecapModalOpen || isCongratsModalOpen) return;
+    // Si une modale est ouverte ou si on a des données de récap, ON NE TOUCHE À RIEN
+    if (isRecapModalOpen || isCongratsModalOpen || recapData || isLocked) return;
 
     setSelectedSessionIndex(defaultSessionIndex);
     setLocalProgram(baseProgram ? JSON.parse(JSON.stringify(baseProgram)) : undefined);
-  }, [defaultSessionIndex, baseProgram, isRecapModalOpen, isCongratsModalOpen]);
+  }, [defaultSessionIndex, baseProgram, isRecapModalOpen, isCongratsModalOpen, recapData, isLocked]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -173,7 +179,8 @@ const ClientCurrentProgram: React.FC = () => {
   }, [localProgram, selectedSessionIndex, currentWeek]);
 
   useEffect(() => {
-    if (activeSession && !pendingUpdatesRef.current) {
+    // Ne pas reset les logs si on est verrouillé (fin de séance)
+    if (activeSession && !isLocked && !pendingUpdatesRef.current) {
       const initialLogData: Record<string, PerformanceSet[]> = {};
       for (const exercise of activeSession.exercises) {
         const totalSets = Math.max(0, parseInt(exercise.sets, 10) || 0);
@@ -183,10 +190,10 @@ const ClientCurrentProgram: React.FC = () => {
         );
       }
       setLogData(initialLogData);
-    } else if (!activeSession) {
+    } else if (!activeSession && !isLocked) {
       setLogData({});
     }
-  }, [activeSession]);
+  }, [activeSession]); // isLocked retiré des dépendances pour ne pas déclencher au lock
 
   const getProgressionColor = (currentValue: string, previousValue: string | undefined): string => {
     if (!previousValue || !currentValue || currentValue === '' || previousValue === '') {
@@ -248,18 +255,6 @@ const ClientCurrentProgram: React.FC = () => {
       .map((id) => exerciseDB.find((ex) => ex.id === id))
       .filter((ex): ex is Exercise => !!ex);
   }, [fullExerciseDetails, exerciseDB]);
-
-  // Ouverture automatique de la modale quand recapData est prêt
-  useEffect(() => {
-    if (recapData && !isRecapModalOpen) {
-      console.log('[DEBUG] recapData détecté, ouverture modale...');
-      const timer = setTimeout(() => {
-        console.log('[DEBUG] Exécution setRecapModalOpen(true)');
-        setIsRecapModalOpen(true);
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [recapData]);
 
   // Timer
   useEffect(() => {
@@ -351,8 +346,13 @@ const ClientCurrentProgram: React.FC = () => {
 
   const handleFinishSession = async () => {
     console.log('[DEBUG] Début handleFinishSession');
+    
+    // VERROUILLAGE IMMEDIAT
+    setIsLocked(true);
+
     if (!localProgram || !activeSession || !user) {
       console.error('[DEBUG] Données manquantes', { hasProgram: !!localProgram, hasSession: !!activeSession, hasUser: !!user });
+      setIsLocked(false);
       navigate('/app/workout');
       return;
     }
@@ -365,6 +365,7 @@ const ClientCurrentProgram: React.FC = () => {
     if (hasUnloggedExercises) {
       if (!window.confirm('Certains exercices ne sont pas complétés. Voulez-vous vraiment terminer la séance ?')) {
         console.log('[DEBUG] Annulation utilisateur');
+        setIsLocked(false);
         return;
       }
     }
@@ -423,6 +424,7 @@ const ClientCurrentProgram: React.FC = () => {
 
     if (!savedLogId) {
       addNotification({ message: 'Erreur lors de la sauvegarde.', type: 'error' });
+      setIsLocked(false);
       return;
     }
 
@@ -471,7 +473,9 @@ const ClientCurrentProgram: React.FC = () => {
         hasNextProgram
     };
 
-    console.log('[DEBUG] Appel setRecapData');
+    console.log('[DEBUG] Ouverture DIRECTE de la modale');
+    
+    // ACTION GROUPÉE : Données + Ouverture (Pas de useEffect)
     setRecapData({
       exerciseLogs: exerciseLogsForSession,
       sessionName: activeSession.name,
@@ -479,6 +483,8 @@ const ClientCurrentProgram: React.FC = () => {
       performanceLogId: savedLogId,
       activeSession: { name: activeSession.name, exercises: activeSession.exercises }
     });
+    
+    setIsRecapModalOpen(true);
   };
 
   const handleCloseRecapModal = async () => {
@@ -504,9 +510,12 @@ const ClientCurrentProgram: React.FC = () => {
         if (pending.wasProgramFinished && !pending.hasNextProgram) {
             setIsCongratsModalOpen(true);
         } else {
+            // Déverrouillage juste avant de naviguer
+            setIsLocked(false);
             navigate('/app/workout');
         }
     } else {
+        setIsLocked(false);
         navigate('/app/workout');
     }
     
@@ -515,6 +524,7 @@ const ClientCurrentProgram: React.FC = () => {
 
   const handleCloseCongratsModal = () => {
     setIsCongratsModalOpen(false);
+    setIsLocked(false);
     navigate('/app/workout');
   };
 
