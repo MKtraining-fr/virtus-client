@@ -61,7 +61,22 @@ const ClientCurrentProgram: React.FC = () => {
   const baseProgram = user?.assignedProgram;
   const isProgramLoading = !user || !baseProgram; // Le programme est chargé avec l'utilisateur
 
-  const currentWeek = useMemo(() => user?.programWeek || 1, [user]);
+  // ✅ CORRECTION : Utiliser un state pour figer la semaine affichée pendant la validation
+  const [displayWeek, setDisplayWeek] = useState(user?.programWeek || 1);
+
+  // Synchroniser displayWeek avec user.programWeek SAUF si on est en train de valider
+  useEffect(() => {
+    if (!finishStatusRef.current.isValidatingSession && !user?.programWeek) return;
+    
+    // Si on ne valide pas ET que la modale n'est pas ouverte, on met à jour la semaine
+    // (Cela permet de suivre la progression normale si on navigue sans valider)
+    if (!finishStatusRef.current.isValidatingSession && user?.programWeek) {
+        setDisplayWeek(user.programWeek);
+    }
+  }, [user?.programWeek]);
+
+  // Utiliser displayWeek au lieu de user.programWeek pour tout le reste du rendu
+  const currentWeek = displayWeek;
 
   const [localProgram, setLocalProgram] = useState<WorkoutProgram | undefined>(baseProgram || undefined);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
@@ -130,7 +145,14 @@ const ClientCurrentProgram: React.FC = () => {
     if (!user)
       return sessionsForWeek.map((session, index) => ({ ...session, originalIndex: index }));
 
+    // ✅ Utiliser displayWeek ici aussi indirectement via currentWeek
     const currentSessionProgressIndex = (user.sessionProgress || 1) - 1;
+    
+    // Si on valide, on veut quand même voir la séance qu'on vient de faire dans la liste
+    // Donc on ignore le filtre de progression si isValidatingSession est true
+    if (finishStatusRef.current.isValidatingSession) {
+        return sessionsForWeek.map((session, index) => ({ ...session, originalIndex: index }));
+    }
 
     return sessionsForWeek
       .map((session, index) => ({ ...session, originalIndex: index }))
@@ -147,7 +169,7 @@ const ClientCurrentProgram: React.FC = () => {
     console.log('[useEffect localProgram] Réinitialisation de localProgram et selectedSessionIndex');
     setSelectedSessionIndex(defaultSessionIndex);
     setLocalProgram(baseProgram ? JSON.parse(JSON.stringify(baseProgram)) : undefined);
-  }, [defaultSessionIndex, baseProgram, isRecapModalOpen]); // ✅ Ajouter isRecapModalOpen aux dépendances
+  }, [defaultSessionIndex, baseProgram, isRecapModalOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -170,7 +192,8 @@ const ClientCurrentProgram: React.FC = () => {
   }, [localProgram, selectedSessionIndex, currentWeek]);
 
   useEffect(() => {
-    if (activeSession) {
+    // Ne pas reset les logs si on est en train de valider (pour éviter les clignotements ou pertes de données visuelles)
+    if (activeSession && !finishStatusRef.current.isValidatingSession) {
       const initialLogData: Record<string, PerformanceSet[]> = {};
       for (const exercise of activeSession.exercises) {
         const totalSets = Math.max(0, parseInt(exercise.sets, 10) || 0);
@@ -180,7 +203,7 @@ const ClientCurrentProgram: React.FC = () => {
         );
       }
       setLogData(initialLogData);
-    } else {
+    } else if (!activeSession) {
       setLogData({});
     }
   }, [activeSession]);
@@ -208,12 +231,11 @@ const ClientCurrentProgram: React.FC = () => {
   };
 
   const previousPerformancePlaceholders = useMemo(() => {
-    if (!user || !user.performanceLog || !activeSession || (user.programWeek || 1) <= 1) {
+    if (!user || !user.performanceLog || !activeSession || (currentWeek) <= 1) {
       return null;
     }
 
-    const currentWeek = user.programWeek || 1;
-    const previousWeek = currentWeek - 1;
+    const prevWeek = currentWeek - 1;
 
     // Récupérer le log de la même séance de la semaine précédente
     const previousWeekSessionLog = user.performanceLog
@@ -222,7 +244,7 @@ const ClientCurrentProgram: React.FC = () => {
         (log) => 
           log.programName === localProgram?.name && 
           log.sessionName === activeSession.name &&
-          log.week === previousWeek
+          log.week === prevWeek
       )
       .pop();
 
@@ -235,7 +257,7 @@ const ClientCurrentProgram: React.FC = () => {
       placeholderMap.set(exLog.exerciseName, exLog.loggedSets);
     }
     return placeholderMap;
-  }, [user, activeSession, localProgram]);
+  }, [user, activeSession, localProgram, currentWeek]);
 
   const currentExercise = useMemo(() => {
     if (
@@ -288,7 +310,7 @@ const ClientCurrentProgram: React.FC = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [recapData]); // ⚠️ NE PAS inclure isRecapModalOpen dans les dépendances pour éviter les boucles
+  }, [recapData]);
 
   // Timer Effect
   useEffect(() => {
@@ -420,10 +442,6 @@ const ClientCurrentProgram: React.FC = () => {
     finishStatusRef.current.isValidatingSession = true;
     console.log('[handleFinishSession] isValidatingSession = true');
     
-    console.log('[handleFinishSession] localProgram:', localProgram?.name);
-    console.log('[handleFinishSession] activeSession:', activeSession?.name);
-    console.log('[handleFinishSession] user:', user?.id);
-    
     if (!localProgram || !activeSession || !user) {
       console.error('[handleFinishSession] ❌ Données manquantes, redirection');
       finishStatusRef.current.isValidatingSession = false;
@@ -447,7 +465,6 @@ const ClientCurrentProgram: React.FC = () => {
         finishStatusRef.current.isValidatingSession = false;
         return;
       }
-      console.log('[handleFinishSession] ✅ Utilisateur a confirmé malgré les exercices non complétés');
     }
 
     const exerciseLogsForSession: ExerciseLog[] = activeSession.exercises
@@ -462,7 +479,7 @@ const ClientCurrentProgram: React.FC = () => {
         }
 
         const newLog: ExerciseLog = {
-          exerciseId: exercise.exerciseId, // ✅ CORRECTION: Utiliser exerciseId (ID dans exercises) au lieu de id (ID local)
+          exerciseId: exercise.exerciseId,
           exerciseName: exercise.name,
           loggedSets: nonEmptySets.map((set) => ({
             ...set,
@@ -496,10 +513,6 @@ const ClientCurrentProgram: React.FC = () => {
     const programAssignmentId = (localProgram as any).assignmentId || null;
     const sessionId = activeSession.id;
     
-    console.log('[handleFinishSession] 💾 Sauvegarde des performances...');
-    console.log('[handleFinishSession] sessionId:', sessionId);
-    console.log('[handleFinishSession] exerciseLogs count:', exerciseLogsForSession.length);
-    
     const savedLogId = await savePerformanceLog(
       user.id,
       programAssignmentId,
@@ -507,29 +520,19 @@ const ClientCurrentProgram: React.FC = () => {
       newLogEntry,
       user.coachId
     );
-    
-    console.log('[handleFinishSession] savedLogId:', savedLogId);
 
     if (!savedLogId) {
       console.error('[handleFinishSession] ❌ Échec de la sauvegarde du log de performance');
-      // ✅ AMÉLIORATION: Afficher une erreur à l'utilisateur
       addNotification({
         message: 'Impossible d\'enregistrer vos performances. Veuillez réessayer.',
         type: 'error'
       });
       finishStatusRef.current.isValidatingSession = false;
-      return; // Bloquer la navigation en cas d'échec
+      return;
     }
 
-    // ✅ AJOUT: Marquer la séance comme complétée dans Supabase
-    console.log('[handleFinishSession] 🏷️ Marquage de la séance comme complétée...');
     const sessionMarked = await markSessionAsCompleted(sessionId);
-    console.log('[handleFinishSession] sessionMarked:', sessionMarked);
-    if (!sessionMarked) {
-      console.error('Échec du marquage de la séance comme complétée');
-      // Ne pas bloquer, mais logger l'erreur
-    }
-
+    
     // ✅ AJOUT: Mettre à jour la progression dans program_assignments
     if (programAssignmentId) {
       const currentProgramWeek = user.programWeek || 1;
@@ -538,7 +541,6 @@ const ClientCurrentProgram: React.FC = () => {
       const totalSessionsForCurrentWeek = sessionsForCurrentWeek.length;
       const currentSessionProgress = user.sessionProgress || 1;
       
-      // Calculer la prochaine séance
       let nextSessionProgress = currentSessionProgress + 1;
       let nextProgramWeek = currentProgramWeek;
       
@@ -547,19 +549,13 @@ const ClientCurrentProgram: React.FC = () => {
         nextSessionProgress = 1;
       }
       
-      const progressUpdated = await updateClientProgress(
+      await updateClientProgress(
         programAssignmentId,
         nextProgramWeek,
         nextSessionProgress
       );
-      
-      if (!progressUpdated) {
-        console.warn('Échec de la mise à jour de la progression');
-        // Ne pas bloquer, mais logger l'avertissement
-      }
     }
 
-    // ✅ AJOUT: Notification de succès
     addNotification({
       message: 'Séance terminée ! Vos performances ont été enregistrées avec succès.',
       type: 'success'
@@ -599,7 +595,6 @@ const ClientCurrentProgram: React.FC = () => {
               viewed: false,
             };
           } else {
-            // Programme terminé, pas de programme suivant
             return {
               ...c,
               performanceLog: newPerformanceLog,
@@ -635,11 +630,9 @@ const ClientCurrentProgram: React.FC = () => {
       return c;
     });
 
-    // ⚠️ NE PAS appeler setClients() ici car cela démonte le composant et réinitialise les états locaux
-    // On le stocke dans une ref pour l'appeler plus tard
     finishStatusRef.current.updatedClients = updatedClients;
     
-    console.log('[handleFinishSession] 🎉 Définition de recapData (le modal s\'ouvrira automatiquement via useEffect)');
+    console.log('[handleFinishSession] 🎉 Définition de recapData');
     const newRecapData = {
       exerciseLogs: exerciseLogsForSession,
       sessionName: activeSession.name,
@@ -650,17 +643,8 @@ const ClientCurrentProgram: React.FC = () => {
         exercises: activeSession.exercises
       }
     };
-    console.log('[handleFinishSession] newRecapData:', newRecapData);
-    console.log('[handleFinishSession] user avant setRecapData:', user);
-    console.log('[handleFinishSession] user.id:', user?.id);
-    console.log('[handleFinishSession] Appel de setRecapData (la modale s\'ouvrira automatiquement via useEffect)');
+    
     setRecapData(newRecapData);
-    // ⚠️ NE PAS appeler setIsRecapModalOpen(true) ici - laissons le useEffect le gérer
-    console.log('[handleFinishSession] setRecapData appelé avec:', {
-      sessionName: newRecapData.sessionName,
-      exerciseLogsCount: newRecapData.exerciseLogs.length
-    });
-    console.log('[handleFinishSession] ✅ Fin de la validation de séance');
   };
 
   const handleCloseRecapModal = () => {
@@ -736,7 +720,6 @@ const ClientCurrentProgram: React.FC = () => {
     );
   };
 
-  // Afficher un indicateur de chargement pendant la récupération du programme
   if (isProgramLoading) {
     return (
       <div className="text-center py-10">
@@ -934,7 +917,6 @@ const ClientCurrentProgram: React.FC = () => {
                 currentExercise.details?.[0]?.load?.value ||
                 '0';
 
-              // Calculer la couleur de progression
               const repsProgressionColor = getProgressionColor(repValue, setPlaceholder?.reps);
               const loadProgressionColor = getProgressionColor(loadValue, setPlaceholder?.load);
 
@@ -1012,7 +994,6 @@ const ClientCurrentProgram: React.FC = () => {
         </button>
       </div>
 
-      {/* Timer Area */}
       {isTimerFullscreen ? (
         <TimerDisplay />
       ) : (
@@ -1049,7 +1030,7 @@ const ClientCurrentProgram: React.FC = () => {
           </button>
         </div>
       </Modal>
-      {/* ✅ CORRECTION: Condition de rendu simplifiée - suppression de la fonction anonyme qui retournait un objet */}
+      
       {recapData && (
         <SessionStatsModal
           isOpen={isRecapModalOpen}
@@ -1061,7 +1042,7 @@ const ClientCurrentProgram: React.FC = () => {
           previousWeekLog={previousPerformancePlaceholders && user ? user.performanceLog.find(
             log => log.programName === localProgram?.name && 
                    log.sessionName === recapData.activeSession.name &&
-                   log.week === (user.programWeek || 1) - 1
+                   log.week === (currentWeek) - 1
           ) : undefined}
           clientId={user?.id || ''}
           performanceLogId={recapData.performanceLogId}
