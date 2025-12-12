@@ -43,11 +43,15 @@ const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tem
 };
 
 const ClientCurrentProgram: React.FC = () => {
+  // AJOUT : Log pour vérifier que la nouvelle version est chargée
+  useEffect(() => {
+    console.log('[DEBUG] 🚀 Version chargée: v2.1 (Avec logs de debug)');
+  }, []);
+
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
   const navigate = useNavigate();
   const optionsButtonRef = useRef<HTMLButtonElement>(null);
   
-  // Ref pour stocker les mises à jour en attente (progression)
   const pendingUpdatesRef = useRef<{
     assignmentId: string;
     sessionId: string;
@@ -132,8 +136,6 @@ const ClientCurrentProgram: React.FC = () => {
 
     const currentSessionProgressIndex = (user.sessionProgress || 1) - 1;
 
-    // Si on a des mises à jour en attente, cela signifie qu'on vient de finir la séance.
-    // On veut donc toujours l'afficher dans la liste pour le contexte.
     if (pendingUpdatesRef.current) {
         return sessionsForWeek.map((session, index) => ({ ...session, originalIndex: index }));
     }
@@ -144,8 +146,6 @@ const ClientCurrentProgram: React.FC = () => {
   }, [localProgram, currentWeek, user]);
 
   useEffect(() => {
-    // Si une modale de fin est ouverte, on ne réinitialise PAS le programme
-    // Cela évite le saut visuel ou la perte de contexte
     if (isRecapModalOpen || isCongratsModalOpen) return;
 
     setSelectedSessionIndex(defaultSessionIndex);
@@ -173,7 +173,6 @@ const ClientCurrentProgram: React.FC = () => {
   }, [localProgram, selectedSessionIndex, currentWeek]);
 
   useEffect(() => {
-    // Ne pas reset les logs si on a des mises à jour en attente (la séance vient d'être finie)
     if (activeSession && !pendingUpdatesRef.current) {
       const initialLogData: Record<string, PerformanceSet[]> = {};
       for (const exercise of activeSession.exercises) {
@@ -253,8 +252,11 @@ const ClientCurrentProgram: React.FC = () => {
   // Ouverture automatique de la modale quand recapData est prêt
   useEffect(() => {
     if (recapData && !isRecapModalOpen) {
-      // Petit délai pour assurer la stabilité du rendu
-      const timer = setTimeout(() => setIsRecapModalOpen(true), 50);
+      console.log('[DEBUG] recapData détecté, ouverture modale...');
+      const timer = setTimeout(() => {
+        console.log('[DEBUG] Exécution setRecapModalOpen(true)');
+        setIsRecapModalOpen(true);
+      }, 50);
       return () => clearTimeout(timer);
     }
   }, [recapData]);
@@ -348,7 +350,9 @@ const ClientCurrentProgram: React.FC = () => {
   };
 
   const handleFinishSession = async () => {
+    console.log('[DEBUG] Début handleFinishSession');
     if (!localProgram || !activeSession || !user) {
+      console.error('[DEBUG] Données manquantes', { hasProgram: !!localProgram, hasSession: !!activeSession, hasUser: !!user });
       navigate('/app/workout');
       return;
     }
@@ -360,6 +364,7 @@ const ClientCurrentProgram: React.FC = () => {
 
     if (hasUnloggedExercises) {
       if (!window.confirm('Certains exercices ne sont pas complétés. Voulez-vous vraiment terminer la séance ?')) {
+        console.log('[DEBUG] Annulation utilisateur');
         return;
       }
     }
@@ -401,9 +406,10 @@ const ClientCurrentProgram: React.FC = () => {
       exerciseLogs: exerciseLogsForSession,
     };
 
-    // 1. Sauvegarder les logs immédiatement (nécessaire pour la modale stats)
     const programAssignmentId = (localProgram as any).assignmentId || null;
     const sessionId = activeSession.id;
+    
+    console.log('[DEBUG] Tentative sauvegarde logs...', { programAssignmentId, sessionId });
     
     const savedLogId = await savePerformanceLog(
       user.id,
@@ -413,13 +419,14 @@ const ClientCurrentProgram: React.FC = () => {
       user.coachId
     );
 
+    console.log('[DEBUG] Résultat sauvegarde:', savedLogId);
+
     if (!savedLogId) {
       addNotification({ message: 'Erreur lors de la sauvegarde.', type: 'error' });
       return;
     }
 
-    // 2. PRÉPARER la mise à jour de la progression SANS l'exécuter
-    // On calcule tout maintenant, mais on stocke dans une Ref pour plus tard
+    // Préparation progression
     let nextSessionProgress = (user.sessionProgress || 1) + 1;
     let nextProgramWeek = user.programWeek || 1;
     
@@ -429,7 +436,7 @@ const ClientCurrentProgram: React.FC = () => {
       nextSessionProgress = 1;
     }
 
-    // Préparation de la mise à jour locale du client (optimistic update)
+    // Optimistic update
     const updatedClients = clients.map((c) => {
         if (c.id === user.id) {
           const newPerformanceLog = [...(c.performanceLog || []), newLogEntry];
@@ -437,8 +444,7 @@ const ClientCurrentProgram: React.FC = () => {
           const isLastSessionOfProgram = nextProgramWeek > totalWeeks;
           
           if (isLastSessionOfProgram) {
-             // ... logique fin de programme
-             return { ...c, performanceLog: newPerformanceLog /* ... reset program fields */ };
+             return { ...c, performanceLog: newPerformanceLog };
           }
           return {
             ...c,
@@ -454,7 +460,7 @@ const ClientCurrentProgram: React.FC = () => {
     const wasProgramFinished = nextProgramWeek > totalWeeks;
     const hasNextProgram = (user.assignedPrograms?.length || 0) > 1;
 
-    // 3. Stocker tout ça dans la ref
+    console.log('[DEBUG] Configuration pendingUpdatesRef');
     pendingUpdatesRef.current = {
         assignmentId: programAssignmentId,
         sessionId,
@@ -465,7 +471,7 @@ const ClientCurrentProgram: React.FC = () => {
         hasNextProgram
     };
 
-    // 4. Ouvrir la modale (SANS avoir touché à la progression en BDD)
+    console.log('[DEBUG] Appel setRecapData');
     setRecapData({
       exerciseLogs: exerciseLogsForSession,
       sessionName: activeSession.name,
@@ -476,9 +482,9 @@ const ClientCurrentProgram: React.FC = () => {
   };
 
   const handleCloseRecapModal = async () => {
+    console.log('[DEBUG] Fermeture modale, application des changements');
     setIsRecapModalOpen(false);
     
-    // C'est MAINTENANT qu'on applique les changements en BDD
     const pending = pendingUpdatesRef.current;
     if (pending) {
         // Mettre à jour le statut de la séance
@@ -493,7 +499,6 @@ const ClientCurrentProgram: React.FC = () => {
             );
         }
 
-        // Mettre à jour le store local (ce qui va provoquer le re-render et le changement de séance)
         setClients(pending.updatedClients);
 
         if (pending.wasProgramFinished && !pending.hasNextProgram) {
@@ -505,7 +510,6 @@ const ClientCurrentProgram: React.FC = () => {
         navigate('/app/workout');
     }
     
-    // Nettoyage
     pendingUpdatesRef.current = null;
   };
 
