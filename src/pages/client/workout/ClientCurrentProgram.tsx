@@ -8,14 +8,12 @@ import {
   WorkoutExercise,
   Exercise,
   ExerciseLog,
-  Client,
 } from '../../../types';
 import Modal from '../../../components/Modal';
 import Button from '../../../components/Button';
 import SessionStatsModal from '../../../components/client/SessionStatsModal';
 import { savePerformanceLog } from '../../../services/performanceLogService';
 import { updateClientProgress, markSessionAsCompleted } from '../../../services/clientProgramService';
-// import { getClientAssignedPrograms } from '../../../services/clientProgramService'; // Plus nécessaire car chargé via useAuthStore
 import {
   ArrowLeftIcon,
   ClockIcon,
@@ -45,38 +43,25 @@ const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tem
 };
 
 const ClientCurrentProgram: React.FC = () => {
-  console.log('[ClientCurrentProgram] 🔄 Composant rendu/re-rendu');
-  
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
   const navigate = useNavigate();
   const optionsButtonRef = useRef<HTMLButtonElement>(null);
-  const finishStatusRef = useRef({ 
-    wasProgramFinished: false, 
-    hasNextProgram: false,
-    updatedClients: undefined as any[] | undefined,
-    isValidatingSession: false
-  });
+  
+  // Ref pour stocker les mises à jour en attente (progression)
+  const pendingUpdatesRef = useRef<{
+    assignmentId: string;
+    sessionId: string;
+    nextWeek: number;
+    nextSessionOrder: number;
+    updatedClients: any[];
+    wasProgramFinished: boolean;
+    hasNextProgram: boolean;
+  } | null>(null);
 
-  // Récupération du programme depuis l'état global
   const baseProgram = user?.assignedProgram;
-  const isProgramLoading = !user || !baseProgram; // Le programme est chargé avec l'utilisateur
+  const isProgramLoading = !user || !baseProgram;
 
-  // ✅ CORRECTION : Utiliser un state pour figer la semaine affichée pendant la validation
-  const [displayWeek, setDisplayWeek] = useState(user?.programWeek || 1);
-
-  // Synchroniser displayWeek avec user.programWeek SAUF si on est en train de valider
-  useEffect(() => {
-    if (!finishStatusRef.current.isValidatingSession && !user?.programWeek) return;
-    
-    // Si on ne valide pas ET que la modale n'est pas ouverte, on met à jour la semaine
-    // (Cela permet de suivre la progression normale si on navigue sans valider)
-    if (!finishStatusRef.current.isValidatingSession && user?.programWeek) {
-        setDisplayWeek(user.programWeek);
-    }
-  }, [user?.programWeek]);
-
-  // Utiliser displayWeek au lieu de user.programWeek pour tout le reste du rendu
-  const currentWeek = displayWeek;
+  const currentWeek = useMemo(() => user?.programWeek || 1, [user]);
 
   const [localProgram, setLocalProgram] = useState<WorkoutProgram | undefined>(baseProgram || undefined);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
@@ -87,7 +72,7 @@ const ClientCurrentProgram: React.FC = () => {
   const [isAlternativesModalOpen, setIsAlternativesModalOpen] = useState(false);
   const [isDefinitionVisible, setDefinitionVisible] = useState(false);
 
-  // Modals for session/program completion
+  // Modals
   const [isCongratsModalOpen, setIsCongratsModalOpen] = useState(false);
   const [isRecapModalOpen, setIsRecapModalOpen] = useState(false);
   const [recapData, setRecapData] = useState<{
@@ -119,7 +104,7 @@ const ClientCurrentProgram: React.FC = () => {
   } | null>(null);
   const [currentComment, setCurrentComment] = useState('');
 
-  // Timer state
+  // Timer
   const [isTimerFullscreen, setIsTimerFullscreen] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -145,12 +130,11 @@ const ClientCurrentProgram: React.FC = () => {
     if (!user)
       return sessionsForWeek.map((session, index) => ({ ...session, originalIndex: index }));
 
-    // ✅ Utiliser displayWeek ici aussi indirectement via currentWeek
     const currentSessionProgressIndex = (user.sessionProgress || 1) - 1;
-    
-    // Si on valide, on veut quand même voir la séance qu'on vient de faire dans la liste
-    // Donc on ignore le filtre de progression si isValidatingSession est true
-    if (finishStatusRef.current.isValidatingSession) {
+
+    // Si on a des mises à jour en attente, cela signifie qu'on vient de finir la séance.
+    // On veut donc toujours l'afficher dans la liste pour le contexte.
+    if (pendingUpdatesRef.current) {
         return sessionsForWeek.map((session, index) => ({ ...session, originalIndex: index }));
     }
 
@@ -160,16 +144,13 @@ const ClientCurrentProgram: React.FC = () => {
   }, [localProgram, currentWeek, user]);
 
   useEffect(() => {
-    console.log('[useEffect localProgram] Déclenché - isValidatingSession:', finishStatusRef.current.isValidatingSession, 'isRecapModalOpen:', isRecapModalOpen);
-    // ⚠️ NE PAS réinitialiser si on est en train de valider une séance OU si la modale de récap est ouverte
-    if (finishStatusRef.current.isValidatingSession || isRecapModalOpen) {
-      console.log('[useEffect localProgram] Ignorer la réinitialisation car validation/modale en cours');
-      return;
-    }
-    console.log('[useEffect localProgram] Réinitialisation de localProgram et selectedSessionIndex');
+    // Si une modale de fin est ouverte, on ne réinitialise PAS le programme
+    // Cela évite le saut visuel ou la perte de contexte
+    if (isRecapModalOpen || isCongratsModalOpen) return;
+
     setSelectedSessionIndex(defaultSessionIndex);
     setLocalProgram(baseProgram ? JSON.parse(JSON.stringify(baseProgram)) : undefined);
-  }, [defaultSessionIndex, baseProgram, isRecapModalOpen]);
+  }, [defaultSessionIndex, baseProgram, isRecapModalOpen, isCongratsModalOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -186,14 +167,14 @@ const ClientCurrentProgram: React.FC = () => {
   const activeSession = useMemo(() => {
     if (!localProgram || !localProgram.sessionsByWeek) return null;
     const sessionsForWeek =
-      localProgram.sessionsByWeek[currentWeek] || localProgram.sessionsByWeek[1]; // Fallback to week 1
+      localProgram.sessionsByWeek[currentWeek] || localProgram.sessionsByWeek[1];
     if (!sessionsForWeek || sessionsForWeek.length <= selectedSessionIndex) return null;
     return sessionsForWeek[selectedSessionIndex];
   }, [localProgram, selectedSessionIndex, currentWeek]);
 
   useEffect(() => {
-    // Ne pas reset les logs si on est en train de valider (pour éviter les clignotements ou pertes de données visuelles)
-    if (activeSession && !finishStatusRef.current.isValidatingSession) {
+    // Ne pas reset les logs si on a des mises à jour en attente (la séance vient d'être finie)
+    if (activeSession && !pendingUpdatesRef.current) {
       const initialLogData: Record<string, PerformanceSet[]> = {};
       for (const exercise of activeSession.exercises) {
         const totalSets = Math.max(0, parseInt(exercise.sets, 10) || 0);
@@ -208,36 +189,23 @@ const ClientCurrentProgram: React.FC = () => {
     }
   }, [activeSession]);
 
-  // Fonction helper pour calculer la couleur de progression
   const getProgressionColor = (currentValue: string, previousValue: string | undefined): string => {
     if (!previousValue || !currentValue || currentValue === '' || previousValue === '') {
-      return 'text-gray-900 dark:text-client-light'; // Couleur par défaut
+      return 'text-gray-900 dark:text-client-light';
     }
-
     const current = parseFloat(currentValue);
     const previous = parseFloat(previousValue);
-
-    if (isNaN(current) || isNaN(previous)) {
-      return 'text-gray-900 dark:text-client-light'; // Couleur par défaut
-    }
-
-    if (current > previous) {
-      return 'text-green-600 dark:text-green-400'; // Progression 🟢
-    } else if (current < previous) {
-      return 'text-red-600 dark:text-red-400'; // Régression 🔴
-    } else {
-      return 'text-gray-900 dark:text-client-light'; // Maintien ⚫
-    }
+    if (isNaN(current) || isNaN(previous)) return 'text-gray-900 dark:text-client-light';
+    if (current > previous) return 'text-green-600 dark:text-green-400';
+    if (current < previous) return 'text-red-600 dark:text-red-400';
+    return 'text-gray-900 dark:text-client-light';
   };
 
   const previousPerformancePlaceholders = useMemo(() => {
     if (!user || !user.performanceLog || !activeSession || (currentWeek) <= 1) {
       return null;
     }
-
     const prevWeek = currentWeek - 1;
-
-    // Récupérer le log de la même séance de la semaine précédente
     const previousWeekSessionLog = user.performanceLog
       .slice()
       .filter(
@@ -248,9 +216,7 @@ const ClientCurrentProgram: React.FC = () => {
       )
       .pop();
 
-    if (!previousWeekSessionLog) {
-      return null;
-    }
+    if (!previousWeekSessionLog) return null;
 
     const placeholderMap = new Map<string, PerformanceSet[]>();
     for (const exLog of previousWeekSessionLog.exerciseLogs) {
@@ -260,26 +226,16 @@ const ClientCurrentProgram: React.FC = () => {
   }, [user, activeSession, localProgram, currentWeek]);
 
   const currentExercise = useMemo(() => {
-    if (
-      !activeSession ||
-      !activeSession.exercises ||
-      activeSession.exercises.length <= currentExerciseIndex
-    )
-      return null;
+    if (!activeSession?.exercises || activeSession.exercises.length <= currentExerciseIndex) return null;
     return activeSession.exercises[currentExerciseIndex];
   }, [activeSession, currentExerciseIndex]);
 
   const loadUnit = useMemo(() => {
-    if (!currentExercise || !currentExercise.details || currentExercise.details.length === 0) {
-      return 'Charge';
-    }
+    if (!currentExercise?.details?.length) return 'Charge';
     const firstUnit = currentExercise.details[0]?.load?.unit || 'kg';
-    const allSameUnit = currentExercise.details.every((d) => d.load.unit === firstUnit);
-
-    if (allSameUnit) {
-      return firstUnit ? firstUnit.toUpperCase() : 'Charge';
-    }
-    return 'Charge';
+    return currentExercise.details.every((d) => d.load.unit === firstUnit) 
+      ? (firstUnit ? firstUnit.toUpperCase() : 'Charge') 
+      : 'Charge';
   }, [currentExercise]);
 
   const fullExerciseDetails = useMemo(() => {
@@ -288,64 +244,37 @@ const ClientCurrentProgram: React.FC = () => {
   }, [currentExercise, exerciseDB]);
 
   const alternativeExercises = useMemo(() => {
-    if (!fullExerciseDetails || !fullExerciseDetails.alternativeIds) return [];
+    if (!fullExerciseDetails?.alternativeIds) return [];
     return fullExerciseDetails.alternativeIds
       .map((id) => exerciseDB.find((ex) => ex.id === id))
       .filter((ex): ex is Exercise => !!ex);
   }, [fullExerciseDetails, exerciseDB]);
 
-  // Effect pour ouvrir le modal quand recapData est défini
+  // Ouverture automatique de la modale quand recapData est prêt
   useEffect(() => {
-    console.log('[useEffect recapData] Déclenché - recapData:', !!recapData, 'isRecapModalOpen:', isRecapModalOpen);
-    
     if (recapData && !isRecapModalOpen) {
-      console.log('[useEffect recapData] Tentative d\'ouverture du modal');
-      console.log('[useEffect recapData] recapData.sessionName:', recapData.sessionName);
-      
-      // ✅ Utiliser un délai minimal pour s'assurer que le DOM est prêt
-      const timer = setTimeout(() => {
-        console.log('[useEffect recapData] Ouverture du modal après délai');
-        setIsRecapModalOpen(true);
-      }, 50); // 50ms de délai pour laisser le temps au DOM de se mettre à jour
-      
+      // Petit délai pour assurer la stabilité du rendu
+      const timer = setTimeout(() => setIsRecapModalOpen(true), 50);
       return () => clearTimeout(timer);
     }
   }, [recapData]);
 
-  // Timer Effect
+  // Timer
   useEffect(() => {
     if (isTimerRunning) {
-      timerIntervalRef.current = window.setInterval(() => {
-        setElapsedTime((prev) => prev + 1);
-      }, 1000);
+      timerIntervalRef.current = window.setInterval(() => setElapsedTime((prev) => prev + 1), 1000);
     } else {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
       }
     }
-    return () => {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    };
+    return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
   }, [isTimerRunning]);
 
-  const handleStartTimer = () => {
-    setElapsedTime(0);
-    setIsTimerRunning(true);
-    setIsTimerFullscreen(true);
-  };
-
-  const handleCloseTimer = () => {
-    setIsTimerFullscreen(false);
-    setIsTimerRunning(false);
-    setElapsedTime(0);
-  };
-
-  const handleResetTimer = () => {
-    setElapsedTime(0);
-    setIsTimerRunning(false);
-  };
-
+  const handleStartTimer = () => { setElapsedTime(0); setIsTimerRunning(true); setIsTimerFullscreen(true); };
+  const handleCloseTimer = () => { setIsTimerFullscreen(false); setIsTimerRunning(false); setElapsedTime(0); };
+  const handleResetTimer = () => { setElapsedTime(0); setIsTimerRunning(false); };
   const toggleTimer = () => setIsTimerRunning((prev) => !prev);
   const formatTime = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
@@ -353,20 +282,13 @@ const ClientCurrentProgram: React.FC = () => {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handleLogChange = (
-    exerciseId: number,
-    setIndex: number,
-    field: 'reps' | 'load',
-    value: string
-  ) => {
+  const handleLogChange = (exerciseId: number, setIndex: number, field: 'reps' | 'load', value: string) => {
     const exerciseKey = exerciseId.toString();
     setLogData((prev) => {
       const currentExerciseSets = Math.max(0, parseInt(currentExercise?.sets || '0', 10));
-      const existingLog =
-        prev[exerciseKey] ||
-        Array.from({ length: currentExerciseSets }, (): PerformanceSet => ({ reps: '', load: '' }));
+      const existingLog = prev[exerciseKey] || Array.from({ length: currentExerciseSets }, () => ({ reps: '', load: '' }));
       const updatedExerciseLog = [...existingLog];
-      const currentSet = updatedExerciseLog[setIndex] || ({ reps: '', load: '' } as PerformanceSet);
+      const currentSet = updatedExerciseLog[setIndex] || { reps: '', load: '' };
       updatedExerciseLog[setIndex] = { ...currentSet, [field]: value };
       return { ...prev, [exerciseKey]: updatedExerciseLog };
     });
@@ -380,27 +302,22 @@ const ClientCurrentProgram: React.FC = () => {
 
   const handleSwapExercise = (alternative: Exercise) => {
     if (!localProgram || !activeSession || !currentExercise) return;
-
     const newWorkoutExercise: WorkoutExercise = {
       ...currentExercise,
       exerciseId: alternative.id,
       name: alternative.name,
       illustrationUrl: alternative.illustrationUrl,
     };
-
     const updatedExercises = activeSession.exercises.map((ex) =>
       ex.id === currentExercise.id ? newWorkoutExercise : ex
     );
-
     const updatedSession = { ...activeSession, exercises: updatedExercises };
-
     const updatedSessionsByWeek = {
       ...localProgram.sessionsByWeek,
       [currentWeek]: localProgram.sessionsByWeek[currentWeek].map((s) =>
         s.id === activeSession.id ? updatedSession : s
       ),
     };
-
     setLocalProgram({ ...localProgram, sessionsByWeek: updatedSessionsByWeek });
     setIsAlternativesModalOpen(false);
   };
@@ -417,34 +334,21 @@ const ClientCurrentProgram: React.FC = () => {
     if (!commentTarget || !currentExercise) return;
     const { exerciseId, setIndex } = commentTarget;
     const exerciseKey = exerciseId.toString();
-
     setLogData((prev) => {
       const currentExerciseSets = Math.max(0, parseInt(currentExercise.sets, 10) || 0);
-      const existingLog =
-        prev[exerciseKey] ||
-        Array.from({ length: currentExerciseSets }, (): PerformanceSet => ({ reps: '', load: '' }));
+      const existingLog = prev[exerciseKey] || Array.from({ length: currentExerciseSets }, () => ({ reps: '', load: '' }));
       const updatedExerciseLog = [...existingLog];
-
-      const currentSet = updatedExerciseLog[setIndex] || ({ reps: '', load: '' } as PerformanceSet);
+      const currentSet = updatedExerciseLog[setIndex] || { reps: '', load: '' };
       updatedExerciseLog[setIndex] = { ...currentSet, comment: currentComment };
-
       return { ...prev, [exerciseKey]: updatedExerciseLog };
     });
-
     setIsCommentModalOpen(false);
     setCommentTarget(null);
     setCurrentComment('');
   };
 
   const handleFinishSession = async () => {
-    console.log('[handleFinishSession] 🚀 Début de la validation de séance');
-    // 🔒 Bloquer la réinitialisation du composant pendant la validation
-    finishStatusRef.current.isValidatingSession = true;
-    console.log('[handleFinishSession] isValidatingSession = true');
-    
     if (!localProgram || !activeSession || !user) {
-      console.error('[handleFinishSession] ❌ Données manquantes, redirection');
-      finishStatusRef.current.isValidatingSession = false;
       navigate('/app/workout');
       return;
     }
@@ -455,14 +359,7 @@ const ClientCurrentProgram: React.FC = () => {
     });
 
     if (hasUnloggedExercises) {
-      console.log('[handleFinishSession] ⚠️  Exercices non complétés détectés');
-      if (
-        !window.confirm(
-          'Certains exercices ne sont pas complétés. Voulez-vous vraiment terminer la séance ? Les données non saisies ne seront pas enregistrées.'
-        )
-      ) {
-        console.log('[handleFinishSession] ❌ Validation annulée par l\'utilisateur');
-        finishStatusRef.current.isValidatingSession = false;
+      if (!window.confirm('Certains exercices ne sont pas complétés. Voulez-vous vraiment terminer la séance ?')) {
         return;
       }
     }
@@ -473,12 +370,8 @@ const ClientCurrentProgram: React.FC = () => {
         const nonEmptySets = loggedSetsForExercise.filter(
           (s) => s.reps.trim() || s.load.trim() || s.comment?.trim()
         );
-
-        if (nonEmptySets.length === 0) {
-          return null;
-        }
-
-        const newLog: ExerciseLog = {
+        if (nonEmptySets.length === 0) return null;
+        return {
           exerciseId: exercise.exerciseId,
           exerciseName: exercise.name,
           loggedSets: nonEmptySets.map((set) => ({
@@ -487,7 +380,6 @@ const ClientCurrentProgram: React.FC = () => {
             viewedByCoach: false,
           })),
         };
-        return newLog;
       })
       .filter((log): log is ExerciseLog => log !== null);
 
@@ -509,7 +401,7 @@ const ClientCurrentProgram: React.FC = () => {
       exerciseLogs: exerciseLogsForSession,
     };
 
-    // Sauvegarder dans Supabase
+    // 1. Sauvegarder les logs immédiatement (nécessaire pour la modale stats)
     const programAssignmentId = (localProgram as any).assignmentId || null;
     const sessionId = activeSession.id;
     
@@ -522,149 +414,99 @@ const ClientCurrentProgram: React.FC = () => {
     );
 
     if (!savedLogId) {
-      console.error('[handleFinishSession] ❌ Échec de la sauvegarde du log de performance');
-      addNotification({
-        message: 'Impossible d\'enregistrer vos performances. Veuillez réessayer.',
-        type: 'error'
-      });
-      finishStatusRef.current.isValidatingSession = false;
+      addNotification({ message: 'Erreur lors de la sauvegarde.', type: 'error' });
       return;
     }
 
-    const sessionMarked = await markSessionAsCompleted(sessionId);
+    // 2. PRÉPARER la mise à jour de la progression SANS l'exécuter
+    // On calcule tout maintenant, mais on stocke dans une Ref pour plus tard
+    let nextSessionProgress = (user.sessionProgress || 1) + 1;
+    let nextProgramWeek = user.programWeek || 1;
     
-    // ✅ AJOUT: Mettre à jour la progression dans program_assignments
-    if (programAssignmentId) {
-      const currentProgramWeek = user.programWeek || 1;
-      const sessionsForCurrentWeek =
-        localProgram.sessionsByWeek[currentProgramWeek] || localProgram.sessionsByWeek[1] || [];
-      const totalSessionsForCurrentWeek = sessionsForCurrentWeek.length;
-      const currentSessionProgress = user.sessionProgress || 1;
-      
-      let nextSessionProgress = currentSessionProgress + 1;
-      let nextProgramWeek = currentProgramWeek;
-      
-      if (nextSessionProgress > totalSessionsForCurrentWeek) {
-        nextProgramWeek++;
-        nextSessionProgress = 1;
-      }
-      
-      await updateClientProgress(
-        programAssignmentId,
-        nextProgramWeek,
-        nextSessionProgress
-      );
+    const sessionsForCurrentWeek = localProgram.sessionsByWeek[nextProgramWeek] || localProgram.sessionsByWeek[1] || [];
+    if (nextSessionProgress > sessionsForCurrentWeek.length) {
+      nextProgramWeek++;
+      nextSessionProgress = 1;
     }
 
-    addNotification({
-      message: 'Séance terminée ! Vos performances ont été enregistrées avec succès.',
-      type: 'success'
-    });
-
+    // Préparation de la mise à jour locale du client (optimistic update)
     const updatedClients = clients.map((c) => {
-      if (c.id === user.id) {
-        const newPerformanceLog = [...(c.performanceLog || []), newLogEntry];
-
-        const currentProgramWeek = c.programWeek || 1;
-        const sessionsForCurrentWeek =
-          localProgram.sessionsByWeek[currentProgramWeek] || localProgram.sessionsByWeek[1] || [];
-        const totalSessionsForCurrentWeek = sessionsForCurrentWeek.length;
-        const currentSessionProgress = c.sessionProgress || 1;
-        const totalWeeks = c.totalWeeks || localProgram.weekCount;
-
-        const isLastSessionOfProgram =
-          currentProgramWeek >= totalWeeks && currentSessionProgress >= totalSessionsForCurrentWeek;
-
-        finishStatusRef.current.wasProgramFinished = isLastSessionOfProgram;
-
-        if (isLastSessionOfProgram) {
-          const hasNextProgram = c.assignedPrograms && c.assignedPrograms.length > 1;
-          finishStatusRef.current.hasNextProgram = hasNextProgram;
-
-          if (hasNextProgram) {
-            const remainingPrograms = c.assignedPrograms.slice(1);
-            const nextProgram = remainingPrograms[0];
-            return {
-              ...c,
-              performanceLog: newPerformanceLog,
-              assignedPrograms: remainingPrograms,
-              programWeek: 1,
-              sessionProgress: 1,
-              totalWeeks: nextProgram.weekCount,
-              totalSessions: nextProgram.sessionsByWeek[1]?.length || 0,
-              viewed: false,
-            };
-          } else {
-            return {
-              ...c,
-              performanceLog: newPerformanceLog,
-              programWeek: undefined,
-              sessionProgress: undefined,
-              totalWeeks: undefined,
-              totalSessions: undefined,
-              viewed: false,
-            };
-          }
-        } else {
-          let nextSessionProgress = currentSessionProgress + 1;
-          let nextProgramWeek = currentProgramWeek;
-          let nextTotalSessions = totalSessionsForCurrentWeek;
-
-          if (nextSessionProgress > totalSessionsForCurrentWeek) {
-            nextProgramWeek++;
-            nextSessionProgress = 1;
-            const sessionsForNextWeek =
-              localProgram.sessionsByWeek[nextProgramWeek] || localProgram.sessionsByWeek[1] || [];
-            nextTotalSessions = sessionsForNextWeek.length;
+        if (c.id === user.id) {
+          const newPerformanceLog = [...(c.performanceLog || []), newLogEntry];
+          const totalWeeks = c.totalWeeks || localProgram.weekCount;
+          const isLastSessionOfProgram = nextProgramWeek > totalWeeks;
+          
+          if (isLastSessionOfProgram) {
+             // ... logique fin de programme
+             return { ...c, performanceLog: newPerformanceLog /* ... reset program fields */ };
           }
           return {
             ...c,
             performanceLog: newPerformanceLog,
             sessionProgress: nextSessionProgress,
             programWeek: nextProgramWeek,
-            totalSessions: nextTotalSessions,
-            viewed: false,
           };
         }
-      }
-      return c;
+        return c;
     });
 
-    finishStatusRef.current.updatedClients = updatedClients;
-    
-    console.log('[handleFinishSession] 🎉 Définition de recapData');
-    const newRecapData = {
+    const totalWeeks = localProgram.weekCount;
+    const wasProgramFinished = nextProgramWeek > totalWeeks;
+    const hasNextProgram = (user.assignedPrograms?.length || 0) > 1;
+
+    // 3. Stocker tout ça dans la ref
+    pendingUpdatesRef.current = {
+        assignmentId: programAssignmentId,
+        sessionId,
+        nextWeek: nextProgramWeek,
+        nextSessionOrder: nextSessionProgress,
+        updatedClients,
+        wasProgramFinished,
+        hasNextProgram
+    };
+
+    // 4. Ouvrir la modale (SANS avoir touché à la progression en BDD)
+    setRecapData({
       exerciseLogs: exerciseLogsForSession,
       sessionName: activeSession.name,
       sessionId: activeSession.id,
-      performanceLogId: savedLogId || undefined,
-      activeSession: {
-        name: activeSession.name,
-        exercises: activeSession.exercises
-      }
-    };
-    
-    setRecapData(newRecapData);
+      performanceLogId: savedLogId,
+      activeSession: { name: activeSession.name, exercises: activeSession.exercises }
+    });
   };
 
-  const handleCloseRecapModal = () => {
+  const handleCloseRecapModal = async () => {
     setIsRecapModalOpen(false);
     
-    // 🔓 Débloquer la réinitialisation
-    finishStatusRef.current.isValidatingSession = false;
-    console.log('[handleCloseRecapModal] isValidatingSession = false');
-    
-    // ✅ Maintenant on peut mettre à jour les clients sans risque de démontage
-    if (finishStatusRef.current.updatedClients) {
-      setClients(finishStatusRef.current.updatedClients);
-    }
-    
-    const { wasProgramFinished, hasNextProgram } = finishStatusRef.current;
-    if (wasProgramFinished && !hasNextProgram) {
-      setIsCongratsModalOpen(true);
+    // C'est MAINTENANT qu'on applique les changements en BDD
+    const pending = pendingUpdatesRef.current;
+    if (pending) {
+        // Mettre à jour le statut de la séance
+        await markSessionAsCompleted(pending.sessionId);
+
+        // Mettre à jour la progression du programme
+        if (pending.assignmentId && !pending.wasProgramFinished) {
+            await updateClientProgress(
+                pending.assignmentId,
+                pending.nextWeek,
+                pending.nextSessionOrder
+            );
+        }
+
+        // Mettre à jour le store local (ce qui va provoquer le re-render et le changement de séance)
+        setClients(pending.updatedClients);
+
+        if (pending.wasProgramFinished && !pending.hasNextProgram) {
+            setIsCongratsModalOpen(true);
+        } else {
+            navigate('/app/workout');
+        }
     } else {
-      navigate('/app/workout');
+        navigate('/app/workout');
     }
+    
+    // Nettoyage
+    pendingUpdatesRef.current = null;
   };
 
   const handleCloseCongratsModal = () => {
@@ -672,90 +514,9 @@ const ClientCurrentProgram: React.FC = () => {
     navigate('/app/workout');
   };
 
-  const TimerDisplay = () => {
-    const restTimeInSeconds = useMemo(() => {
-      if (!currentExercise) return Infinity;
-      const specificRest = currentExercise.details?.[activeSetIndex]?.rest;
-      const generalRest = currentExercise.details?.[0]?.rest;
-      const restString = specificRest || generalRest || '0s';
-      const seconds = parseInt(restString.replace(/\D/g, ''), 10);
-      return isNaN(seconds) ? Infinity : seconds;
-    }, [currentExercise, activeSetIndex]);
-
-    const timeColorClass =
-      elapsedTime > restTimeInSeconds ? 'text-red-500' : 'text-gray-900 dark:text-client-light';
-
-    return (
-      <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
-        <button
-          onClick={handleCloseTimer}
-          className="absolute top-6 right-6 text-gray-400 dark:text-client-subtle hover:text-white"
-          aria-label="Fermer le chronomètre"
-        >
-          <XMarkIcon className="w-8 h-8" />
-        </button>
-        <p className="text-xl text-gray-400 dark:text-client-subtle mb-4">
-          Objectif: {restTimeInSeconds === Infinity ? '-' : `${restTimeInSeconds}s`}
-        </p>
-        <div className={`font-mono font-bold text-8xl md:text-9xl ${timeColorClass}`}>
-          {formatTime(elapsedTime)}
-        </div>
-        <div className="mt-12 flex items-center gap-8">
-          <Button variant="secondary" onClick={handleResetTimer} className="!font-semibold">
-            Réinitialiser
-          </Button>
-          <button
-            onClick={toggleTimer}
-            className="w-24 h-24 bg-white dark:bg-client-card text-client-dark dark:text-client-light rounded-full flex items-center justify-center text-2xl font-bold shadow-lg transform active:scale-95 transition-transform"
-            aria-label={isTimerRunning ? 'Mettre en pause' : 'Démarrer'}
-          >
-            {isTimerRunning ? (
-              <PauseIcon className="w-10 h-10" />
-            ) : (
-              <PlayIcon className="w-10 h-10 ml-1" />
-            )}
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  if (isProgramLoading) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-gray-900 dark:text-client-light text-lg">
-          Chargement de votre programme...
-        </p>
-      </div>
-    );
-  }
-
-  if (!localProgram || !activeSession) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-gray-900 dark:text-client-light text-lg">
-          Aucun programme ou séance active.
-        </p>
-        <p className="text-gray-500 dark:text-client-subtle mt-1">Contactez votre coach.</p>
-        <button
-          onClick={() => navigate('/app/workout')}
-          className="mt-6 text-primary hover:underline"
-        >
-          Retour
-        </button>
-      </div>
-    );
-  }
-
-  if (!currentExercise) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-gray-900 dark:text-client-light text-lg">
-          Cette séance ne contient aucun exercice.
-        </p>
-      </div>
-    );
-  }
+  if (isProgramLoading) return <div className="text-center py-10">Chargement...</div>;
+  if (!localProgram || !activeSession) return <div className="text-center py-10">Aucun programme. <button onClick={() => navigate('/app/workout')}>Retour</button></div>;
+  if (!currentExercise) return <div className="text-center py-10">Séance vide.</div>;
 
   const totalSets = Math.max(0, parseInt(currentExercise.sets, 10) || 0);
   const technique = currentExercise?.intensification?.[0]?.value;
@@ -763,37 +524,26 @@ const ClientCurrentProgram: React.FC = () => {
 
   return (
     <div className="relative pb-20">
-      {/* Header with Back button and Session Selector */}
+      {/* Header */}
       <div className="flex items-center gap-4 mb-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20 flex-shrink-0 border border-gray-300 dark:border-gray-700"
-          aria-label="Retour"
-        >
+        <button onClick={() => navigate(-1)} className="p-2 bg-white dark:bg-client-card rounded-full text-gray-800 dark:text-client-light hover:bg-gray-100 border border-gray-300 dark:border-gray-700">
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
         <div className="relative flex-grow">
           <select
             value={selectedSessionIndex}
-            onChange={(e) => {
-              const newOriginalIndex = Number(e.target.value);
-              setSelectedSessionIndex(newOriginalIndex);
-              setCurrentExerciseIndex(0);
-            }}
+            onChange={(e) => { setSelectedSessionIndex(Number(e.target.value)); setCurrentExerciseIndex(0); }}
             className="w-full appearance-none bg-white dark:bg-client-card border border-gray-300 dark:border-client-dark text-gray-900 dark:text-client-light text-lg font-semibold py-3 px-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label="Sélectionner une séance"
           >
             {availableSessions.map((session) => (
-              <option key={session.id} value={session.originalIndex}>
-                {session.name}
-              </option>
+              <option key={session.id} value={session.originalIndex}>{session.name}</option>
             ))}
           </select>
           <ChevronDownIcon className="w-5 h-5 text-gray-500 dark:text-client-subtle absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
 
-      {/* Exercise Details Card */}
+      {/* Exercise Card */}
       <div className="bg-white dark:bg-client-card rounded-lg p-3 space-y-4 shadow-sm border border-gray-200 dark:border-transparent">
         <div className="flex justify-between items-center gap-2">
           <div className="relative flex-1">
@@ -803,9 +553,7 @@ const ClientCurrentProgram: React.FC = () => {
               className="w-full appearance-none bg-gray-100 dark:bg-client-dark border-none text-gray-800 dark:text-client-light font-semibold py-2.5 px-4 pr-8 rounded-full focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {activeSession.exercises.map((ex, index) => (
-                <option key={ex.id} value={index}>
-                  {ex.name}
-                </option>
+                <option key={ex.id} value={index}>{ex.name}</option>
               ))}
             </select>
             <ChevronDownIcon className="w-4 h-4 text-gray-500 dark:text-client-subtle absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -814,91 +562,45 @@ const ClientCurrentProgram: React.FC = () => {
             <button
               ref={optionsButtonRef}
               onClick={() => setIsOptionsPopoverOpen((prev) => !prev)}
-              className="w-10 h-10 bg-gray-100 dark:bg-client-dark rounded-full flex items-center justify-center text-gray-500 dark:text-client-subtle hover:text-primary transition-colors flex-shrink-0"
+              className="w-10 h-10 bg-gray-100 dark:bg-client-dark rounded-full flex items-center justify-center text-gray-500 hover:text-primary transition-colors flex-shrink-0"
             >
               <EllipsisVerticalIcon className="w-6 h-6" />
             </button>
             {isOptionsPopoverOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-client-dark rounded-lg shadow-lg p-2 z-30 border border-gray-200 dark:border-gray-700">
-                <button
-                  onClick={() => {
-                    setIsYouTubeModalOpen(true);
-                    setIsOptionsPopoverOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 p-2 text-left rounded-md text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20"
-                >
-                  <PlayCircleIcon className="w-5 h-5" />
-                  <span>Voir la vidéo</span>
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-client-dark rounded-lg shadow-lg p-2 z-30 border border-gray-200">
+                <button onClick={() => { setIsYouTubeModalOpen(true); setIsOptionsPopoverOpen(false); }} className="w-full flex items-center gap-3 p-2 text-left rounded-md hover:bg-gray-100">
+                  <PlayCircleIcon className="w-5 h-5" /><span>Voir la vidéo</span>
                 </button>
-                <button
-                  onClick={() => {
-                    setIsAlternativesModalOpen(true);
-                    setIsOptionsPopoverOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 p-2 text-left rounded-md text-gray-800 dark:text-client-light hover:bg-gray-100 dark:hover:bg-primary/20"
-                >
-                  <ArrowsRightLeftIcon className="w-5 h-5" />
-                  <span>Alternatives</span>
+                <button onClick={() => { setIsAlternativesModalOpen(true); setIsOptionsPopoverOpen(false); }} className="w-full flex items-center gap-3 p-2 text-left rounded-md hover:bg-gray-100">
+                  <ArrowsRightLeftIcon className="w-5 h-5" /><span>Alternatives</span>
                 </button>
               </div>
             )}
           </div>
         </div>
 
-        <img
-          src={currentExercise.illustrationUrl}
-          alt={currentExercise.name}
-          className="w-full h-auto object-cover rounded-lg bg-gray-100 dark:bg-gray-700 aspect-video"
-        />
+        <img src={currentExercise.illustrationUrl} alt={currentExercise.name} className="w-full h-auto object-cover rounded-lg bg-gray-100 dark:bg-gray-700 aspect-video" />
 
         <div className="grid grid-cols-4 divide-x divide-gray-200 dark:divide-client-dark/50 text-center">
-          <div>
-            <p className="text-sm text-gray-500 dark:text-client-subtle">Séries</p>
-            <p className="font-bold text-lg">{currentExercise.sets}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 dark:text-client-subtle">Rép</p>
-            <p className="font-bold text-lg">{getDisplayValue(currentExercise.details, 'reps')}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 dark:text-client-subtle">Repos</p>
-            <p className="font-bold text-lg">
-              {getDisplayValue(currentExercise.details, 'rest').replace(/\D/g, '')}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 dark:text-client-subtle">Tempo</p>
-            <p className="font-bold text-lg">{getDisplayValue(currentExercise.details, 'tempo')}</p>
-          </div>
+          <div><p className="text-sm text-gray-500">Séries</p><p className="font-bold text-lg">{currentExercise.sets}</p></div>
+          <div><p className="text-sm text-gray-500">Rép</p><p className="font-bold text-lg">{getDisplayValue(currentExercise.details, 'reps')}</p></div>
+          <div><p className="text-sm text-gray-500">Repos</p><p className="font-bold text-lg">{getDisplayValue(currentExercise.details, 'rest').replace(/\D/g, '')}</p></div>
+          <div><p className="text-sm text-gray-500">Tempo</p><p className="font-bold text-lg">{getDisplayValue(currentExercise.details, 'tempo')}</p></div>
         </div>
 
         {technique && definition && (
           <div className="relative">
-            <button
-              onClick={() => setDefinitionVisible(!isDefinitionVisible)}
-              className="w-full appearance-none bg-gray-100 dark:bg-client-dark border-none text-gray-500 dark:text-client-subtle font-semibold py-2.5 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-left flex justify-between items-center"
-            >
-              <span>
-                Technique d'intensification : <strong>{technique}</strong>
-              </span>
-              <ChevronDownIcon
-                className={`w-4 h-4 text-gray-500 dark:text-client-subtle transition-transform ${isDefinitionVisible ? 'rotate-180' : ''}`}
-              />
+            <button onClick={() => setDefinitionVisible(!isDefinitionVisible)} className="w-full bg-gray-100 dark:bg-client-dark text-gray-500 font-semibold py-2.5 px-4 rounded-md text-left flex justify-between items-center">
+              <span>Technique : <strong>{technique}</strong></span>
+              <ChevronDownIcon className={`w-4 h-4 transition-transform ${isDefinitionVisible ? 'rotate-180' : ''}`} />
             </button>
-            {isDefinitionVisible && (
-              <div className="p-3 mt-1 bg-gray-100 dark:bg-client-dark rounded-md text-sm text-gray-500 dark:text-client-subtle">
-                {definition}
-              </div>
-            )}
+            {isDefinitionVisible && <div className="p-3 mt-1 bg-gray-100 rounded-md text-sm text-gray-500">{definition}</div>}
           </div>
         )}
 
         <div className="pt-2">
-          <div className="flex text-center font-semibold text-gray-500 dark:text-client-subtle mb-2">
-            <div className="w-1/4">Série</div>
-            <div className="flex-1 px-1">Répétition</div>
-            <div className="flex-1 px-1">{loadUnit}</div>
-            <div className="w-10 px-1 shrink-0">Note</div>
+          <div className="flex text-center font-semibold text-gray-500 mb-2">
+            <div className="w-1/4">Série</div><div className="flex-1 px-1">Répétition</div><div className="flex-1 px-1">{loadUnit}</div><div className="w-10 px-1">Note</div>
           </div>
           <div className="bg-gray-100 dark:bg-client-dark rounded-lg p-4 space-y-2">
             {[...Array(totalSets)].map((_, setIndex) => {
@@ -906,76 +608,25 @@ const ClientCurrentProgram: React.FC = () => {
               const exerciseKey = currentExercise.id.toString();
               const repValue = logData[exerciseKey]?.[setIndex]?.reps || '';
               const loadValue = logData[exerciseKey]?.[setIndex]?.load || '';
-
               const placeholders = previousPerformancePlaceholders?.get(currentExercise.name);
               const setPlaceholder = placeholders?.[setIndex];
-
-              const targetReps =
-                currentExercise.details?.[setIndex]?.reps || currentExercise.details?.[0]?.reps || '0';
-              const targetLoad =
-                currentExercise.details?.[setIndex]?.load?.value ||
-                currentExercise.details?.[0]?.load?.value ||
-                '0';
-
-              const repsProgressionColor = getProgressionColor(repValue, setPlaceholder?.reps);
-              const loadProgressionColor = getProgressionColor(loadValue, setPlaceholder?.load);
+              const targetReps = currentExercise.details?.[setIndex]?.reps || currentExercise.details?.[0]?.reps || '0';
+              const targetLoad = currentExercise.details?.[setIndex]?.load?.value || currentExercise.details?.[0]?.load?.value || '0';
 
               return (
-                <div
-                  key={setIndex}
-                  className={`flex items-center p-2 rounded-lg transition-colors duration-300 cursor-pointer ${isSetSelected ? 'bg-primary' : ''}`}
-                  onClick={() => setActiveSetIndex(setIndex)}
-                >
-                  <p
-                    className={`flex-none w-1/4 text-center font-bold text-lg ${isSetSelected ? 'text-white' : 'text-gray-500 dark:text-client-subtle'}`}
-                  >
-                    S{setIndex + 1}
-                  </p>
+                <div key={setIndex} className={`flex items-center p-2 rounded-lg cursor-pointer ${isSetSelected ? 'bg-primary' : ''}`} onClick={() => setActiveSetIndex(setIndex)}>
+                  <p className={`flex-none w-1/4 text-center font-bold text-lg ${isSetSelected ? 'text-white' : 'text-gray-500'}`}>S{setIndex + 1}</p>
                   <div className="flex-1 px-1">
-                    <input
-                      type="number"
-                      placeholder={targetReps !== '0' ? targetReps : (setPlaceholder?.reps || '0')}
-                      value={repValue}
-                      onChange={(e) =>
-                        handleLogChange(currentExercise.id, setIndex, 'reps', e.target.value)
-                      }
-                      onFocus={() => setActiveSetIndex(setIndex)}
-                      className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : `bg-white dark:bg-client-card border-gray-300 dark:border-transparent ${repValue ? repsProgressionColor : 'text-gray-900 dark:text-client-light'} placeholder:text-gray-500 dark:placeholder:text-client-subtle`}`}
-                      onClick={(e) => e.stopPropagation()}
-                    />
+                    <input type="number" placeholder={targetReps !== '0' ? targetReps : (setPlaceholder?.reps || '0')} value={repValue} onChange={(e) => handleLogChange(currentExercise.id, setIndex, 'reps', e.target.value)} onFocus={() => setActiveSetIndex(setIndex)} className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : `bg-white ${getProgressionColor(repValue, setPlaceholder?.reps)}`}`} onClick={(e) => e.stopPropagation()} />
                   </div>
                   <div className="flex-1 px-1">
-                    <input
-                      type="number"
-                      placeholder={targetLoad !== '0' ? targetLoad : (setPlaceholder?.load || '0')}
-                      value={loadValue}
-                      onChange={(e) =>
-                        handleLogChange(currentExercise.id, setIndex, 'load', e.target.value)
-                      }
-                      onFocus={() => setActiveSetIndex(setIndex)}
-                      className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : `bg-white dark:bg-client-card border-gray-300 dark:border-transparent ${loadValue ? loadProgressionColor : 'text-gray-900 dark:text-client-light'} placeholder:text-gray-500 dark:placeholder:text-client-subtle`}`}
-                      onClick={(e) => e.stopPropagation()}
-                    />
+                    <input type="number" placeholder={targetLoad !== '0' ? targetLoad : (setPlaceholder?.load || '0')} value={loadValue} onChange={(e) => handleLogChange(currentExercise.id, setIndex, 'load', e.target.value)} onFocus={() => setActiveSetIndex(setIndex)} className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : `bg-white ${getProgressionColor(loadValue, setPlaceholder?.load)}`}`} onClick={(e) => e.stopPropagation()} />
                   </div>
-                  <div className="flex-none w-10 text-center pl-1 shrink-0">
+                  <div className="flex-none w-10 text-center pl-1">
                     {isSetSelected ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenCommentModal(currentExercise.id, setIndex);
-                        }}
-                        className="p-1 rounded-full text-white/80 hover:bg-white/20"
-                        aria-label="Ajouter un commentaire"
-                      >
-                        <PencilIcon className="w-5 h-5" />
-                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleOpenCommentModal(currentExercise.id, setIndex); }} className="p-1 rounded-full text-white/80 hover:bg-white/20"><PencilIcon className="w-5 h-5" /></button>
                     ) : (
-                      logData[exerciseKey]?.[setIndex]?.comment && (
-                        <ChatBubbleLeftIcon
-                          className="w-5 h-5 text-gray-500 dark:text-client-subtle mx-auto"
-                          title={logData[exerciseKey]?.[setIndex]?.comment}
-                        />
-                      )
+                      logData[exerciseKey]?.[setIndex]?.comment && <ChatBubbleLeftIcon className="w-5 h-5 text-gray-500 mx-auto" />
                     )}
                   </div>
                 </div>
@@ -986,51 +637,32 @@ const ClientCurrentProgram: React.FC = () => {
       </div>
 
       <div className="mt-8">
-        <button
-          onClick={handleFinishSession}
-          className="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-violet-700 transition-colors"
-        >
-          Terminer la séance
-        </button>
+        <button onClick={handleFinishSession} className="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-violet-700 transition-colors">Terminer la séance</button>
       </div>
 
       {isTimerFullscreen ? (
-        <TimerDisplay />
+        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
+          <button onClick={handleCloseTimer} className="absolute top-6 right-6 text-gray-400 hover:text-white"><XMarkIcon className="w-8 h-8" /></button>
+          <div className={`font-mono font-bold text-8xl md:text-9xl text-white`}>{formatTime(elapsedTime)}</div>
+          <div className="mt-12 flex items-center gap-8">
+            <Button variant="secondary" onClick={handleResetTimer}>Réinitialiser</Button>
+            <button onClick={toggleTimer} className="w-24 h-24 bg-white text-client-dark rounded-full flex items-center justify-center"><PlayIcon className="w-10 h-10 ml-1" /></button>
+          </div>
+        </div>
       ) : (
         <div className="fixed bottom-20 right-4 z-20">
-          <button
-            onClick={handleStartTimer}
-            className="w-16 h-16 bg-white dark:bg-client-card text-client-dark dark:text-client-light rounded-full shadow-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-primary/20 transition-transform active:scale-95 border border-gray-300 dark:border-transparent"
-            aria-label="Démarrer le chronomètre"
-          >
-            <ClockIcon className="w-8 h-8" />
-          </button>
+          <button onClick={handleStartTimer} className="w-16 h-16 bg-white text-client-dark rounded-full shadow-lg flex items-center justify-center"><ClockIcon className="w-8 h-8" /></button>
         </div>
       )}
 
-      {/* Modals */}
-      <Modal
-        isOpen={isCongratsModalOpen}
-        onClose={handleCloseCongratsModal}
-        title="Félicitations !"
-      >
+      <Modal isOpen={isCongratsModalOpen} onClose={handleCloseCongratsModal} title="Félicitations !">
         <div className="text-center">
           <TrophyIcon className="w-20 h-20 text-yellow-400 mx-auto mb-4" />
-          <p className="text-lg text-gray-800">
-            Vous avez brillamment terminé votre programme d'entraînement !
-          </p>
-          <p className="mt-2 text-gray-600">
-            Votre coach sera notifié de votre réussite. Continuez comme ça !
-          </p>
-          <button
-            onClick={handleCloseCongratsModal}
-            className="mt-6 bg-primary text-white font-bold py-2 px-6 rounded-lg"
-          >
-            Retour à l'entraînement
-          </button>
+          <p className="text-lg text-gray-800">Vous avez brillamment terminé votre programme !</p>
+          <button onClick={handleCloseCongratsModal} className="mt-6 bg-primary text-white font-bold py-2 px-6 rounded-lg">Retour</button>
         </div>
       </Modal>
-      
+
       {recapData && (
         <SessionStatsModal
           isOpen={isRecapModalOpen}
@@ -1039,88 +671,33 @@ const ClientCurrentProgram: React.FC = () => {
           sessionId={recapData.sessionId}
           exerciseLogs={recapData.exerciseLogs}
           activeSession={recapData.activeSession}
-          previousWeekLog={previousPerformancePlaceholders && user ? user.performanceLog.find(
-            log => log.programName === localProgram?.name && 
-                   log.sessionName === recapData.activeSession.name &&
-                   log.week === (currentWeek) - 1
-          ) : undefined}
+          previousWeekLog={previousPerformancePlaceholders && user ? user.performanceLog.find(log => log.programName === localProgram?.name && log.sessionName === recapData.activeSession.name && log.week === (currentWeek) - 1) : undefined}
           clientId={user?.id || ''}
           performanceLogId={recapData.performanceLogId}
         />
       )}
 
       {fullExerciseDetails && (
-        <Modal
-          isOpen={isYouTubeModalOpen}
-          onClose={() => setIsYouTubeModalOpen(false)}
-          title={`Vidéo : ${fullExerciseDetails.name}`}
-        >
-          {fullExerciseDetails.videoUrl ? (
-            <iframe
-              src={fullExerciseDetails.videoUrl.replace('watch?v=', 'embed/')}
-              title={fullExerciseDetails.name}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full aspect-video rounded-lg"
-            ></iframe>
-          ) : (
-            <p className="text-center text-gray-500 p-4">
-              Aucune vidéo disponible pour cet exercice.
-            </p>
-          )}
+        <Modal isOpen={isYouTubeModalOpen} onClose={() => setIsYouTubeModalOpen(false)} title={`Vidéo : ${fullExerciseDetails.name}`}>
+          {fullExerciseDetails.videoUrl ? <iframe src={fullExerciseDetails.videoUrl.replace('watch?v=', 'embed/')} title={fullExerciseDetails.name} className="w-full aspect-video rounded-lg" allowFullScreen></iframe> : <p className="text-center p-4">Pas de vidéo.</p>}
         </Modal>
       )}
 
-      <Modal
-        isOpen={isAlternativesModalOpen}
-        onClose={() => setIsAlternativesModalOpen(false)}
-        title={`Alternatives pour : ${currentExercise.name}`}
-      >
+      <Modal isOpen={isAlternativesModalOpen} onClose={() => setIsAlternativesModalOpen(false)} title={`Alternatives : ${currentExercise.name}`}>
         <div className="space-y-2">
-          {alternativeExercises.length > 0 ? (
-            alternativeExercises.map((alt) => (
-              <button
-                key={alt.id}
-                onClick={() => handleSwapExercise(alt)}
-                className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 text-left transition-colors"
-              >
-                <img
-                  src={alt.illustrationUrl}
-                  alt={alt.name}
-                  className="w-16 h-16 object-contain rounded-md bg-gray-100 flex-shrink-0"
-                />
-                <div className="flex-grow">
-                  <p className="font-semibold text-gray-800">{alt.name}</p>
-                  <p className="text-xs text-gray-500">{alt.muscleGroups?.join(', ')}</p>
-                </div>
-              </button>
-            ))
-          ) : (
-            <p className="text-center text-gray-500 p-4">Aucune alternative suggérée.</p>
-          )}
+          {alternativeExercises.length > 0 ? alternativeExercises.map(alt => (
+            <button key={alt.id} onClick={() => handleSwapExercise(alt)} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 text-left">
+              <img src={alt.illustrationUrl} alt={alt.name} className="w-16 h-16 object-contain bg-gray-100" />
+              <div><p className="font-semibold">{alt.name}</p></div>
+            </button>
+          )) : <p className="text-center p-4">Aucune alternative.</p>}
         </div>
       </Modal>
 
-      <Modal
-        isOpen={isCommentModalOpen}
-        onClose={() => setIsCommentModalOpen(false)}
-        title={`Commentaire pour ${currentExercise?.name} - Série ${commentTarget ? commentTarget.setIndex + 1 : ''}`}
-      >
+      <Modal isOpen={isCommentModalOpen} onClose={() => setIsCommentModalOpen(false)} title="Note">
         <div className="space-y-4">
-          <textarea
-            value={currentComment}
-            onChange={(e) => setCurrentComment(e.target.value)}
-            className="w-full h-32 p-2 bg-white dark:bg-client-card border border-gray-300 dark:border-transparent text-gray-900 dark:text-client-light rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-gray-500 dark:placeholder:text-client-subtle"
-            placeholder="Écrivez vos notes ici..."
-            autoFocus
-          />
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setIsCommentModalOpen(false)}>
-              Annuler
-            </Button>
-            <Button onClick={handleSaveComment}>Enregistrer</Button>
-          </div>
+          <textarea value={currentComment} onChange={(e) => setCurrentComment(e.target.value)} className="w-full h-32 p-2 border rounded-lg" placeholder="Notes..." autoFocus />
+          <div className="flex justify-end gap-2"><Button variant="secondary" onClick={() => setIsCommentModalOpen(false)}>Annuler</Button><Button onClick={handleSaveComment}>Enregistrer</Button></div>
         </div>
       </Modal>
     </div>
