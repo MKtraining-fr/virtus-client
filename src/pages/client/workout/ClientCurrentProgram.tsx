@@ -48,7 +48,11 @@ const ClientCurrentProgram: React.FC = () => {
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
   const navigate = useNavigate();
   const optionsButtonRef = useRef<HTMLButtonElement>(null);
-  const finishStatusRef = useRef({ wasProgramFinished: false, hasNextProgram: false });
+  const finishStatusRef = useRef<{ 
+    wasProgramFinished: boolean; 
+    hasNextProgram: boolean;
+    updatedClients?: any[];
+  }>({ wasProgramFinished: false, hasNextProgram: false });
 
   // Récupération du programme depuis l'état global
   const baseProgram = user?.assignedProgram;
@@ -596,7 +600,10 @@ const ClientCurrentProgram: React.FC = () => {
       return c;
     });
 
-    setClients(updatedClients);
+    // ⚠️ NE PAS appeler setClients() ici car cela démonte le composant et réinitialise les états locaux
+    // On le stocke dans une ref pour l'appeler plus tard
+    finishStatusRef.current.updatedClients = updatedClients;
+    
     console.log('[handleFinishSession] 🎉 Ouverture du modal de récapitulatif');
     setRecapData({ 
       exerciseLogs: exerciseLogsForSession, 
@@ -614,6 +621,12 @@ const ClientCurrentProgram: React.FC = () => {
 
   const handleCloseRecapModal = () => {
     setIsRecapModalOpen(false);
+    
+    // ✅ Maintenant on peut mettre à jour les clients sans risque de démontage
+    if (finishStatusRef.current.updatedClients) {
+      setClients(finishStatusRef.current.updatedClients);
+    }
+    
     const { wasProgramFinished, hasNextProgram } = finishStatusRef.current;
     if (wasProgramFinished && !hasNextProgram) {
       setIsCongratsModalOpen(true);
