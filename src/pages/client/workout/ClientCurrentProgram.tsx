@@ -54,7 +54,8 @@ const ClientCurrentProgram: React.FC = () => {
     wasProgramFinished: boolean; 
     hasNextProgram: boolean;
     updatedClients?: any[];
-  }>({ wasProgramFinished: false, hasNextProgram: false });
+    isValidatingSession?: boolean;
+  }>({ wasProgramFinished: false, hasNextProgram: false, isValidatingSession: false });
 
   // Récupération du programme depuis l'état global
   const baseProgram = user?.assignedProgram;
@@ -137,15 +138,15 @@ const ClientCurrentProgram: React.FC = () => {
   }, [localProgram, currentWeek, user]);
 
   useEffect(() => {
-    // ⚠️ NE PAS réinitialiser si on est en train d'afficher le modal de récapitulatif
-    if (recapData || isRecapModalOpen) {
-      console.log('[useEffect] Ignorer la réinitialisation car recapData/modal est actif');
+    // ⚠️ NE PAS réinitialiser si on est en train de valider une séance
+    if (finishStatusRef.current.isValidatingSession) {
+      console.log('[useEffect] Ignorer la réinitialisation car validation de séance en cours');
       return;
     }
     console.log('[useEffect] Réinitialisation de localProgram et selectedSessionIndex');
     setSelectedSessionIndex(defaultSessionIndex);
     setLocalProgram(baseProgram ? JSON.parse(JSON.stringify(baseProgram)) : undefined);
-  }, [defaultSessionIndex, baseProgram, recapData, isRecapModalOpen]);
+  }, [defaultSessionIndex, baseProgram]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -405,6 +406,10 @@ const ClientCurrentProgram: React.FC = () => {
 
   const handleFinishSession = async () => {
     console.log('[handleFinishSession] 🚀 Début de la validation de séance');
+    // 🔒 Bloquer la réinitialisation du composant pendant la validation
+    finishStatusRef.current.isValidatingSession = true;
+    console.log('[handleFinishSession] isValidatingSession = true');
+    
     console.log('[handleFinishSession] localProgram:', localProgram?.name);
     console.log('[handleFinishSession] activeSession:', activeSession?.name);
     console.log('[handleFinishSession] user:', user?.id);
@@ -640,6 +645,10 @@ const ClientCurrentProgram: React.FC = () => {
 
   const handleCloseRecapModal = () => {
     setIsRecapModalOpen(false);
+    
+    // 🔓 Débloquer la réinitialisation
+    finishStatusRef.current.isValidatingSession = false;
+    console.log('[handleCloseRecapModal] isValidatingSession = false');
     
     // ✅ Maintenant on peut mettre à jour les clients sans risque de démontage
     if (finishStatusRef.current.updatedClients) {
