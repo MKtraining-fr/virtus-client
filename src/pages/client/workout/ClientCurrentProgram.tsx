@@ -641,9 +641,15 @@ const ClientCurrentProgram: React.FC = () => {
       }
     };
     console.log('[handleFinishSession] newRecapData:', newRecapData);
+    console.log('[handleFinishSession] user avant setRecapData:', user);
+    console.log('[handleFinishSession] user.id:', user?.id);
     setRecapData(newRecapData);
     setIsRecapModalOpen(true);
-    console.log('[handleFinishSession] setRecapData appelé');
+    console.log('[handleFinishSession] setRecapData appelé avec:', {
+      sessionName: newRecapData.sessionName,
+      exerciseLogsCount: newRecapData.exerciseLogs.length,
+      isRecapModalOpen: true
+    });
     console.log('[handleFinishSession] ✅ Fin de la validation de séance');
   };
 
@@ -1033,14 +1039,7 @@ const ClientCurrentProgram: React.FC = () => {
           </button>
         </div>
       </Modal>
-      {(() => {
-        console.log('[ClientCurrentProgram] Condition modal - recapData:', !!recapData, 'user:', !!user, 'isRecapModalOpen:', isRecapModalOpen);
-        if (recapData) {
-          console.log('[ClientCurrentProgram] recapData.sessionName:', recapData.sessionName);
-          console.log('[ClientCurrentProgram] recapData.exerciseLogs:', recapData.exerciseLogs?.length);
-        }
-        return recapData && user;
-      })() && (
+      {recapData && (
         <SessionStatsModal
           isOpen={isRecapModalOpen}
           onClose={handleCloseRecapModal}
@@ -1048,12 +1047,12 @@ const ClientCurrentProgram: React.FC = () => {
           sessionId={recapData.sessionId}
           exerciseLogs={recapData.exerciseLogs}
           activeSession={recapData.activeSession}
-          previousWeekLog={previousPerformancePlaceholders ? user.performanceLog.find(
+          previousWeekLog={previousPerformancePlaceholders && user ? user.performanceLog.find(
             log => log.programName === localProgram?.name && 
                    log.sessionName === recapData.activeSession.name &&
                    log.week === (user.programWeek || 1) - 1
           ) : undefined}
-          clientId={user.id}
+          clientId={user?.id || ''}
           performanceLogId={recapData.performanceLogId}
         />
       )}
