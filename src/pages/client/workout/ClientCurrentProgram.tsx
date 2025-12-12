@@ -138,16 +138,16 @@ const ClientCurrentProgram: React.FC = () => {
   }, [localProgram, currentWeek, user]);
 
   useEffect(() => {
-    console.log('[useEffect localProgram] Déclenché - isValidatingSession:', finishStatusRef.current.isValidatingSession);
-    // ⚠️ NE PAS réinitialiser si on est en train de valider une séance
-    if (finishStatusRef.current.isValidatingSession) {
-      console.log('[useEffect localProgram] Ignorer la réinitialisation car validation de séance en cours');
+    console.log('[useEffect localProgram] Déclenché - isValidatingSession:', finishStatusRef.current.isValidatingSession, 'isRecapModalOpen:', isRecapModalOpen);
+    // ⚠️ NE PAS réinitialiser si on est en train de valider une séance OU si la modale de récap est ouverte
+    if (finishStatusRef.current.isValidatingSession || isRecapModalOpen) {
+      console.log('[useEffect localProgram] Ignorer la réinitialisation car validation/modale en cours');
       return;
     }
     console.log('[useEffect localProgram] Réinitialisation de localProgram et selectedSessionIndex');
     setSelectedSessionIndex(defaultSessionIndex);
     setLocalProgram(baseProgram ? JSON.parse(JSON.stringify(baseProgram)) : undefined);
-  }, [defaultSessionIndex, baseProgram]);
+  }, [defaultSessionIndex, baseProgram, isRecapModalOpen]); // ✅ Ajouter isRecapModalOpen aux dépendances
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -273,7 +273,22 @@ const ClientCurrentProgram: React.FC = () => {
   }, [fullExerciseDetails, exerciseDB]);
 
   // Effect pour ouvrir le modal quand recapData est défini
-  // ✅ CORRECTION: useEffect redondant supprimé - l'ouverture de la modale est gérée directement dans handleFinishSession (ligne 649)
+  useEffect(() => {
+    console.log('[useEffect recapData] Déclenché - recapData:', !!recapData, 'isRecapModalOpen:', isRecapModalOpen);
+    
+    if (recapData && !isRecapModalOpen) {
+      console.log('[useEffect recapData] Tentative d\'ouverture du modal');
+      console.log('[useEffect recapData] recapData.sessionName:', recapData.sessionName);
+      
+      // ✅ Utiliser un délai minimal pour s'assurer que le DOM est prêt
+      const timer = setTimeout(() => {
+        console.log('[useEffect recapData] Ouverture du modal après délai');
+        setIsRecapModalOpen(true);
+      }, 50); // 50ms de délai pour laisser le temps au DOM de se mettre à jour
+      
+      return () => clearTimeout(timer);
+    }
+  }, [recapData]); // ⚠️ NE PAS inclure isRecapModalOpen dans les dépendances pour éviter les boucles
 
   // Timer Effect
   useEffect(() => {
@@ -638,13 +653,12 @@ const ClientCurrentProgram: React.FC = () => {
     console.log('[handleFinishSession] newRecapData:', newRecapData);
     console.log('[handleFinishSession] user avant setRecapData:', user);
     console.log('[handleFinishSession] user.id:', user?.id);
-    console.log('[handleFinishSession] Appel de setRecapData ET setIsRecapModalOpen');
+    console.log('[handleFinishSession] Appel de setRecapData (la modale s\'ouvrira automatiquement via useEffect)');
     setRecapData(newRecapData);
-    setIsRecapModalOpen(true);
-    console.log('[handleFinishSession] setRecapData et setIsRecapModalOpen appelés avec:', {
+    // ⚠️ NE PAS appeler setIsRecapModalOpen(true) ici - laissons le useEffect le gérer
+    console.log('[handleFinishSession] setRecapData appelé avec:', {
       sessionName: newRecapData.sessionName,
-      exerciseLogsCount: newRecapData.exerciseLogs.length,
-      isRecapModalOpen: true
+      exerciseLogsCount: newRecapData.exerciseLogs.length
     });
     console.log('[handleFinishSession] ✅ Fin de la validation de séance');
   };

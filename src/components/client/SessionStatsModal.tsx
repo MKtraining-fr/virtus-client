@@ -56,6 +56,14 @@ const SessionStatsModal: React.FC<SessionStatsModalProps> = ({
   
   const { theme, addNotification } = useAuth();
   
+  // ✅ useEffect de debug pour tracer les changements d'isOpen
+  useEffect(() => {
+    console.log('[SessionStatsModal useEffect] isOpen changé:', isOpen);
+    if (isOpen) {
+      console.log('[SessionStatsModal useEffect] La modale DEVRAIT s\'afficher maintenant');
+    }
+  }, [isOpen]);
+  
   // État pour le questionnaire
   const [feedback, setFeedback] = useState<{
     preFatigue: number | null;
