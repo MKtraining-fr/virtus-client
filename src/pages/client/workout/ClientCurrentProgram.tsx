@@ -988,7 +988,14 @@ const ClientCurrentProgram: React.FC = () => {
           </button>
         </div>
       </Modal>
-      {recapData && user && (
+      {(() => {
+        console.log('[ClientCurrentProgram] Condition modal - recapData:', !!recapData, 'user:', !!user, 'isRecapModalOpen:', isRecapModalOpen);
+        if (recapData) {
+          console.log('[ClientCurrentProgram] recapData.sessionName:', recapData.sessionName);
+          console.log('[ClientCurrentProgram] recapData.exerciseLogs:', recapData.exerciseLogs?.length);
+        }
+        return recapData && user;
+      })() && (
         <SessionStatsModal
           isOpen={isRecapModalOpen}
           onClose={handleCloseRecapModal}
