@@ -272,14 +272,7 @@ const ClientCurrentProgram: React.FC = () => {
   }, [fullExerciseDetails, exerciseDB]);
 
   // Effect pour ouvrir le modal quand recapData est défini
-  useEffect(() => {
-    console.log('[useEffect recapData] Déclenché - recapData:', !!recapData, 'isRecapModalOpen:', isRecapModalOpen);
-    if (recapData && !isRecapModalOpen) {
-      console.log('[useEffect recapData] Ouverture du modal');
-      console.log('[useEffect recapData] recapData.sessionName:', recapData.sessionName);
-      setIsRecapModalOpen(true);
-    }
-  }, [recapData, isRecapModalOpen]);
+  // ✅ CORRECTION: useEffect redondant supprimé - l'ouverture de la modale est gérée directement dans handleFinishSession (ligne 649)
 
   // Timer Effect
   useEffect(() => {
@@ -1041,15 +1034,8 @@ const ClientCurrentProgram: React.FC = () => {
           </button>
         </div>
       </Modal>
-      {(() => {
-        console.log('[ClientCurrentProgram RENDER] recapData:', !!recapData);
-        console.log('[ClientCurrentProgram RENDER] isRecapModalOpen:', isRecapModalOpen);
-        if (recapData) {
-          console.log('[ClientCurrentProgram RENDER] recapData.sessionName:', recapData.sessionName);
-          console.log('[ClientCurrentProgram RENDER] SessionStatsModal sera rendu');
-        }
-        return recapData;
-      })() && (
+      {/* ✅ CORRECTION: Condition de rendu simplifiée - suppression de la fonction anonyme qui retournait un objet */}
+      {recapData && (
         <SessionStatsModal
           isOpen={isRecapModalOpen}
           onClose={handleCloseRecapModal}
