@@ -45,6 +45,8 @@ const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tem
 };
 
 const ClientCurrentProgram: React.FC = () => {
+  console.log('[ClientCurrentProgram] 🔄 Composant rendu/re-rendu');
+  
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
   const navigate = useNavigate();
   const optionsButtonRef = useRef<HTMLButtonElement>(null);
@@ -614,7 +616,7 @@ const ClientCurrentProgram: React.FC = () => {
     finishStatusRef.current.updatedClients = updatedClients;
     
     console.log('[handleFinishSession] 🎉 Définition de recapData (le modal s\'ouvrira automatiquement via useEffect)');
-    setRecapData({ 
+    const newRecapData = { 
       exerciseLogs: exerciseLogsForSession, 
       sessionName: activeSession.name,
       sessionId: activeSession.id,
@@ -623,7 +625,10 @@ const ClientCurrentProgram: React.FC = () => {
         name: activeSession.name,
         exercises: activeSession.exercises
       }
-    });
+    };
+    console.log('[handleFinishSession] newRecapData:', newRecapData);
+    setRecapData(newRecapData);
+    console.log('[handleFinishSession] setRecapData appelé');
     console.log('[handleFinishSession] ✅ Fin de la validation de séance');
   };
 
