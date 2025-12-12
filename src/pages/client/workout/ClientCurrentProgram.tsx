@@ -50,12 +50,12 @@ const ClientCurrentProgram: React.FC = () => {
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
   const navigate = useNavigate();
   const optionsButtonRef = useRef<HTMLButtonElement>(null);
-  const finishStatusRef = useRef<{ 
-    wasProgramFinished: boolean; 
-    hasNextProgram: boolean;
-    updatedClients?: any[];
-    isValidatingSession?: boolean;
-  }>({ wasProgramFinished: false, hasNextProgram: false, isValidatingSession: false });
+  const finishStatusRef = useRef({ 
+    wasProgramFinished: false, 
+    hasNextProgram: false,
+    updatedClients: undefined as any[] | undefined,
+    isValidatingSession: false
+  });
 
   // Récupération du programme depuis l'état global
   const baseProgram = user?.assignedProgram;
@@ -138,12 +138,13 @@ const ClientCurrentProgram: React.FC = () => {
   }, [localProgram, currentWeek, user]);
 
   useEffect(() => {
+    console.log('[useEffect localProgram] Déclenché - isValidatingSession:', finishStatusRef.current.isValidatingSession);
     // ⚠️ NE PAS réinitialiser si on est en train de valider une séance
     if (finishStatusRef.current.isValidatingSession) {
-      console.log('[useEffect] Ignorer la réinitialisation car validation de séance en cours');
+      console.log('[useEffect localProgram] Ignorer la réinitialisation car validation de séance en cours');
       return;
     }
-    console.log('[useEffect] Réinitialisation de localProgram et selectedSessionIndex');
+    console.log('[useEffect localProgram] Réinitialisation de localProgram et selectedSessionIndex');
     setSelectedSessionIndex(defaultSessionIndex);
     setLocalProgram(baseProgram ? JSON.parse(JSON.stringify(baseProgram)) : undefined);
   }, [defaultSessionIndex, baseProgram]);
