@@ -416,6 +416,7 @@ const ClientCurrentProgram: React.FC = () => {
     
     if (!localProgram || !activeSession || !user) {
       console.error('[handleFinishSession] ❌ Données manquantes, redirection');
+      finishStatusRef.current.isValidatingSession = false;
       navigate('/app/workout');
       return;
     }
@@ -433,6 +434,7 @@ const ClientCurrentProgram: React.FC = () => {
         )
       ) {
         console.log('[handleFinishSession] ❌ Validation annulée par l\'utilisateur');
+        finishStatusRef.current.isValidatingSession = false;
         return;
       }
       console.log('[handleFinishSession] ✅ Utilisateur a confirmé malgré les exercices non complétés');
@@ -505,6 +507,7 @@ const ClientCurrentProgram: React.FC = () => {
         message: 'Impossible d\'enregistrer vos performances. Veuillez réessayer.',
         type: 'error'
       });
+      finishStatusRef.current.isValidatingSession = false;
       return; // Bloquer la navigation en cas d'échec
     }
 
@@ -627,8 +630,8 @@ const ClientCurrentProgram: React.FC = () => {
     finishStatusRef.current.updatedClients = updatedClients;
     
     console.log('[handleFinishSession] 🎉 Définition de recapData (le modal s\'ouvrira automatiquement via useEffect)');
-    const newRecapData = { 
-      exerciseLogs: exerciseLogsForSession, 
+    const newRecapData = {
+      exerciseLogs: exerciseLogsForSession,
       sessionName: activeSession.name,
       sessionId: activeSession.id,
       performanceLogId: savedLogId || undefined,
@@ -639,6 +642,7 @@ const ClientCurrentProgram: React.FC = () => {
     };
     console.log('[handleFinishSession] newRecapData:', newRecapData);
     setRecapData(newRecapData);
+    setIsRecapModalOpen(true);
     console.log('[handleFinishSession] setRecapData appelé');
     console.log('[handleFinishSession] ✅ Fin de la validation de séance');
   };
