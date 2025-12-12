@@ -604,7 +604,8 @@ const ClientCurrentProgram: React.FC = () => {
     // On le stocke dans une ref pour l'appeler plus tard
     finishStatusRef.current.updatedClients = updatedClients;
     
-    console.log('[handleFinishSession] 🎉 Ouverture du modal de récapitulatif');
+    console.log('[handleFinishSession] 🎉 Préparation du modal de récapitulatif');
+    // D'abord définir recapData
     setRecapData({ 
       exerciseLogs: exerciseLogsForSession, 
       sessionName: activeSession.name,
@@ -615,7 +616,11 @@ const ClientCurrentProgram: React.FC = () => {
         exercises: activeSession.exercises
       }
     });
-    setIsRecapModalOpen(true);
+    // Puis ouvrir le modal dans un setTimeout pour s'assurer que recapData est défini
+    setTimeout(() => {
+      console.log('[handleFinishSession] 🎉 Ouverture du modal de récapitulatif');
+      setIsRecapModalOpen(true);
+    }, 0);
     console.log('[handleFinishSession] ✅ Fin de la validation de séance');
   };
 
