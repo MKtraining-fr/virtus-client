@@ -262,6 +262,15 @@ const ClientCurrentProgram: React.FC = () => {
       .filter((ex): ex is Exercise => !!ex);
   }, [fullExerciseDetails, exerciseDB]);
 
+  // Effect pour ouvrir le modal quand recapData est défini
+  useEffect(() => {
+    if (recapData && !isRecapModalOpen) {
+      console.log('[useEffect] recapData défini, ouverture du modal');
+      console.log('[useEffect] recapData.sessionName:', recapData.sessionName);
+      setIsRecapModalOpen(true);
+    }
+  }, [recapData]);
+
   // Timer Effect
   useEffect(() => {
     if (isTimerRunning) {
@@ -604,8 +613,7 @@ const ClientCurrentProgram: React.FC = () => {
     // On le stocke dans une ref pour l'appeler plus tard
     finishStatusRef.current.updatedClients = updatedClients;
     
-    console.log('[handleFinishSession] 🎉 Préparation du modal de récapitulatif');
-    // D'abord définir recapData
+    console.log('[handleFinishSession] 🎉 Définition de recapData (le modal s\'ouvrira automatiquement via useEffect)');
     setRecapData({ 
       exerciseLogs: exerciseLogsForSession, 
       sessionName: activeSession.name,
@@ -616,11 +624,6 @@ const ClientCurrentProgram: React.FC = () => {
         exercises: activeSession.exercises
       }
     });
-    // Puis ouvrir le modal dans un setTimeout pour s'assurer que recapData est défini
-    setTimeout(() => {
-      console.log('[handleFinishSession] 🎉 Ouverture du modal de récapitulatif');
-      setIsRecapModalOpen(true);
-    }, 0);
     console.log('[handleFinishSession] ✅ Fin de la validation de séance');
   };
 
