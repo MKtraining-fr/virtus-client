@@ -11,7 +11,6 @@ import {
 } from '../../../types';
 import Modal from '../../../components/Modal';
 import Button from '../../../components/Button';
-import SessionStatsModal from '../../../components/client/SessionStatsModal';
 import { savePerformanceLog } from '../../../services/performanceLogService';
 import { updateClientProgress, markSessionAsCompleted } from '../../../services/clientProgramService';
 import {
@@ -44,7 +43,7 @@ const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tem
 
 const ClientCurrentProgram: React.FC = () => {
   useEffect(() => {
-    console.log('[DEBUG] 🚀 Version chargée: v3.0 (Flux simplifié - un seul état)');
+    console.log('[DEBUG] 🚀 Version chargée: v4.0 TEST (Modale minimaliste)');
   }, []);
 
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
@@ -684,17 +683,20 @@ const ClientCurrentProgram: React.FC = () => {
       </Modal>
 
       {recapData && (
-        <SessionStatsModal
+        <Modal
           isOpen={true}
           onClose={handleCloseRecapModal}
-          sessionName={recapData.sessionName}
-          sessionId={recapData.sessionId}
-          exerciseLogs={recapData.exerciseLogs}
-          activeSession={recapData.activeSession}
-          previousWeekLog={previousPerformancePlaceholders && user ? user.performanceLog.find(log => log.programName === localProgram?.name && log.sessionName === recapData.activeSession.name && log.week === (currentWeek) - 1) : undefined}
-          clientId={user?.id || ''}
-          performanceLogId={recapData.performanceLogId}
-        />
+          title="Séance Validée"
+          size="md"
+        >
+          <div className="text-center py-8">
+            <div className="text-6xl mb-4">✅</div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-client-light">Validé !</p>
+            <p className="text-sm text-gray-600 dark:text-client-subtle mt-2">
+              {recapData.sessionName}
+            </p>
+          </div>
+        </Modal>
       )}
 
       {fullExerciseDetails && (
