@@ -373,21 +373,11 @@ export const getSessionPerformanceDetails = async (
           exercise_id,
           sets,
           reps,
-          load,
-          exercises (
+             exercises (
             id,
-            name
-          ),
-          client_exercise_performance (
-            id,
-            set_number,
-            reps_achieved,
-            load_achieved,
-            rpe,
-            notes,
-            performed_at
+            name,
+            image_url
           )
-        )
       `)
       .eq('id', sessionId)
       .single();
@@ -842,15 +832,6 @@ export const getClientPerformanceLogs = async (
             id,
             name,
             image_url
-          ),
-          client_exercise_performance (
-            id,
-            set_number,
-            reps_achieved,
-            load_achieved,
-            rpe,
-            notes,
-            performed_at
           )
         )
       `)
@@ -862,6 +843,39 @@ export const getClientPerformanceLogs = async (
       console.error('[getClientPerformanceLogs] ❌ Erreur lors du chargement des séances:', sessionsError);
       return null;
     }
+
+    // Charger toutes les performances pour ce client_program
+    const sessionExerciseIds = allSessions?.flatMap((s: any) => 
+      (s.client_session_exercises || []).map((e: any) => e.id)
+    ) || [];
+
+    const { data: allPerformances, error: performancesError } = await supabase
+      .from('client_exercise_performance')
+      .select('*')
+      .in('client_session_exercise_id', sessionExerciseIds);
+
+    if (performancesError) {
+      console.error('[getClientPerformanceLogs] ⚠️ Erreur lors du chargement des performances:', performancesError);
+    }
+
+    console.log('[getClientPerformanceLogs] ✅ Performances chargées:', allPerformances?.length || 0);
+
+    // Créer un map des performances par client_session_exercise_id
+    const performancesByExerciseId = new Map<string, any[]>();
+    (allPerformances || []).forEach((perf: any) => {
+      const exerciseId = perf.client_session_exercise_id;
+      if (!performancesByExerciseId.has(exerciseId)) {
+        performancesByExerciseId.set(exerciseId, []);
+      }
+      performancesByExerciseId.get(exerciseId)!.push(perf);
+    });
+
+    // Associer les performances aux exercices
+    allSessions?.forEach((session: any) => {
+      (session.client_session_exercises || []).forEach((exercise: any) => {
+        exercise.client_exercise_performance = performancesByExerciseId.get(exercise.id) || [];
+      });
+    });
 
     // Afficher les détails de toutes les séances pour diagnostic
     console.log('[getClientPerformanceLogs] 📊 Détails des séances:');
