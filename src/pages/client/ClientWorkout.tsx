@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getClientAssignedPrograms } from '../../services/clientProgramService';
+import { getClientAssignedPrograms, getCompletedSessionsCountForWeek } from '../../services/clientProgramService';
 import { WorkoutProgram } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
@@ -25,6 +25,7 @@ const ClientWorkout: React.FC = () => {
   const [isLoadingProgram, setIsLoadingProgram] = useState(false);
   const [programError, setProgramError] = useState<string | null>(null);
   const [hasFetchedPrograms, setHasFetchedPrograms] = useState(false);
+  const [completedSessionsThisWeek, setCompletedSessionsThisWeek] = useState<number>(0);
 
   useEffect(() => {
     setAssignedProgram(user?.assignedProgram || user?.assignedPrograms?.[0] || null);
@@ -63,9 +64,28 @@ const ClientWorkout: React.FC = () => {
 
   const currentWeek = program?.currentWeek || user?.programWeek || 1;
   const totalWeeks = program?.weekCount || 1;
-  const currentSession = program?.currentSession || user?.sessionProgress || 1;
   const totalSessions =
     (program?.sessionsByWeek?.[currentWeek] || program?.sessionsByWeek?.[1] || []).length || 1;
+
+  // Charger le nombre de séances complétées pour la semaine actuelle
+  useEffect(() => {
+    const fetchCompletedSessions = async () => {
+      if (!program?.id) {
+        setCompletedSessionsThisWeek(0);
+        return;
+      }
+
+      try {
+        const count = await getCompletedSessionsCountForWeek(program.id, currentWeek);
+        setCompletedSessionsThisWeek(count);
+      } catch (error) {
+        console.error('Erreur lors du chargement des séances complétées:', error);
+        setCompletedSessionsThisWeek(0);
+      }
+    };
+
+    void fetchCompletedSessions();
+  }, [program?.id, currentWeek]);
 
   const ActionButton: React.FC<{
     title: string;
@@ -118,7 +138,7 @@ const ClientWorkout: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500 dark:text-client-subtle">Séance</p>
               <p className="text-4xl font-bold text-gray-900 dark:text-client-light">
-                {currentSession}
+                {completedSessionsThisWeek}
                 <span className="text-xl text-gray-400 dark:text-client-subtle">
                   /{totalSessions}
                 </span>

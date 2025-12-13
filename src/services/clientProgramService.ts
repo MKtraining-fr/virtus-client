@@ -389,3 +389,34 @@ export const markSessionAsCompleted = async (sessionId: string): Promise<boolean
     return false;
   }
 };
+
+/**
+ * Compte le nombre de séances complétées pour une semaine spécifique d'un programme
+ * 
+ * @param clientProgramId - ID du programme client
+ * @param weekNumber - Numéro de la semaine
+ * @returns Le nombre de séances complétées cette semaine
+ */
+export const getCompletedSessionsCountForWeek = async (
+  clientProgramId: string,
+  weekNumber: number
+): Promise<number> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_sessions')
+      .select('id, status')
+      .eq('client_program_id', clientProgramId)
+      .eq('week_number', weekNumber)
+      .eq('status', 'completed');
+
+    if (error) {
+      console.error('Erreur lors du comptage des séances complétées:', error);
+      return 0;
+    }
+
+    return data?.length || 0;
+  } catch (error) {
+    console.error('Erreur globale lors du comptage:', error);
+    return 0;
+  }
+};
