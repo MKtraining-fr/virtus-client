@@ -74,16 +74,18 @@ export const getClientSession = async (
 export const findExistingClientSession = async (
   clientProgramId: string,
   weekNumber: number,
-  sessionOrder: number
+  sessionOrder: number // Paramètre ignoré, gardé pour compatibilité
 ): Promise<ClientSession | null> => {
   try {
+    // Chercher la première séance pending de la semaine
+    // (au lieu de chercher par session_order qui est non consécutif)
     const { data, error } = await supabase
       .from('client_sessions')
       .select('*')
       .eq('client_program_id', clientProgramId)
       .eq('week_number', weekNumber)
-      .eq('session_order', sessionOrder)
-      .order('created_at', { ascending: true })
+      .eq('status', 'pending')
+      .order('session_order', { ascending: true })
       .limit(1)
       .maybeSingle();
 
@@ -92,6 +94,7 @@ export const findExistingClientSession = async (
       return null;
     }
 
+    console.log('[findExistingClientSession] Séance pending trouvée:', data ? `ID: ${data.id}, session_order: ${data.session_order}` : 'aucune');
     return data;
   } catch (error) {
     console.error('Erreur globale:', error);
