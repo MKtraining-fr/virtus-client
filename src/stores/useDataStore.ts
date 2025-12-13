@@ -206,9 +206,10 @@ export const useDataStore = create<DataState>((set, get) => {
     }
 
     // Si les données ont déjà été chargées pour cet utilisateur, ne pas recharger
+    // SAUF si c'est un rechargement explicite (force = true)
     if (userId === lastLoadedUserId && get().programs.length > 0) {
-      console.log('[useDataStore] Données déjà chargées pour cet utilisateur, appel ignoré');
-      return;
+      console.log('[useDataStore] Données déjà chargées pour cet utilisateur, rechargement...');
+      // Ne pas return, continuer le chargement pour rafraîchir les données
     }
 
     if (!userId) {
