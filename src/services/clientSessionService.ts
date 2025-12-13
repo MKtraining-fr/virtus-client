@@ -64,6 +64,42 @@ export const getClientSession = async (
 };
 
 /**
+ * Récupère une séance client existante par client_program_id, week_number et session_order
+ * 
+ * @param clientProgramId - ID du programme client
+ * @param weekNumber - Numéro de la semaine
+ * @param sessionOrder - Ordre de la séance
+ * @returns La séance client ou null
+ */
+export const findExistingClientSession = async (
+  clientProgramId: string,
+  weekNumber: number,
+  sessionOrder: number
+): Promise<ClientSession | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_sessions')
+      .select('*')
+      .eq('client_program_id', clientProgramId)
+      .eq('week_number', weekNumber)
+      .eq('session_order', sessionOrder)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Erreur lors de la recherche de la séance existante:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Erreur globale:', error);
+    return null;
+  }
+};
+
+/**
  * Récupère les exercices d'une séance client
  * 
  * @param clientSessionId - ID de la séance client

@@ -76,6 +76,7 @@ const mapClientSessionToWorkoutSession = (
     exercises: mappedExercises,
     weekNumber: session.week_number ?? 1,
     sessionOrder: session.session_order ?? 1,
+    status: session.status ?? 'pending',
   } as WorkoutSession;
 };
 
@@ -163,6 +164,7 @@ export const getClientAssignedPrograms = async (
         name,
         week_number,
         session_order,
+        status,
         client_session_exercises (
           id,
           exercise_id,
@@ -272,6 +274,7 @@ export const getAssignedProgramDetails = async (
         name,
         week_number,
         session_order,
+        status,
         client_session_exercises!inner (
           id,
           exercise_id,

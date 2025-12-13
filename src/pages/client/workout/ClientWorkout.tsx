@@ -24,9 +24,14 @@ const ClientWorkout: React.FC = () => {
 
   const currentWeek = user?.programWeek || 1;
   const totalWeeks = program?.weekCount || 1;
-  const currentSession = user?.sessionProgress || 1;
-  const totalSessions =
-    (program?.sessionsByWeek?.[currentWeek] || program?.sessionsByWeek?.[1] || []).length || 1;
+  
+  // Calculer le nombre de séances complétées et totales pour la semaine actuelle
+  const sessionsThisWeek = program?.sessionsByWeek?.[currentWeek] || program?.sessionsByWeek?.[1] || [];
+  const completedSessionsThisWeek = sessionsThisWeek.filter((s: any) => s.status === 'completed').length;
+  const totalSessionsThisWeek = sessionsThisWeek.length || 1;
+  
+  const currentSession = completedSessionsThisWeek;
+  const totalSessions = totalSessionsThisWeek;
 
   const ActionButton: React.FC<{
     title: string;

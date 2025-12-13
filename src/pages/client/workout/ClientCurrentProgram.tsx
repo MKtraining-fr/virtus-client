@@ -14,7 +14,7 @@ import SessionStatsModal from '../../../components/client/SessionStatsModal';
 import Button from '../../../components/Button';
 import { savePerformanceLog } from '../../../services/performanceLogService';
 import { updateClientProgress, markSessionAsCompleted } from '../../../services/clientProgramService';
-import { createClientSession, createClientSessionExercise, getClientProgramIdFromAssignment } from '../../../services/clientSessionService';
+import { createClientSession, createClientSessionExercise, getClientProgramIdFromAssignment, findExistingClientSession, updateSessionStatus } from '../../../services/clientSessionService';
 import {
   ArrowLeftIcon,
   ClockIcon,
@@ -425,44 +425,66 @@ const ClientCurrentProgram: React.FC = () => {
     }
     
     console.log('[DEBUG] client_program_id récupéré:', clientProgramId);
-    console.log('[DEBUG] Étape 1: Création du client_session');
+    console.log('[DEBUG] Étape 1: Recherche de la client_session existante');
     
-    // ✅ NOUVELLE ARCHITECTURE: Créer un client_session
-    const clientSessionId = await createClientSession({
-      client_program_id: clientProgramId,
-      client_id: user.id,
-      name: activeSession.name,
-      week_number: currentWeek,
-      session_order: user.sessionProgress || 1,
-      status: 'pending'
-    });
+    // ✅ CORRECTION: Chercher la séance existante au lieu d'en créer une nouvelle
+    const existingSession = await findExistingClientSession(
+      clientProgramId,
+      currentWeek,
+      user.sessionProgress || 1
+    );
     
-    if (!clientSessionId) {
-      console.error('[DEBUG] Échec création client_session');
-      addNotification({ message: 'Erreur lors de la création de la séance.', type: 'error' });
-      return;
-    }
+    let clientSessionId: string | null = null;
     
-    console.log('[DEBUG] client_session créé:', clientSessionId);
-    console.log('[DEBUG] Étape 2: Création des client_session_exercises');
-    
-    // ✅ Créer les exercices de la séance
-    for (const exercise of activeSession.exercises) {
-      const success = await createClientSessionExercise({
-        client_session_id: clientSessionId,
-        exercise_id: exercise.exerciseId.toString(),
+    if (existingSession) {
+      console.log('[DEBUG] Séance existante trouvée:', existingSession.id);
+      clientSessionId = existingSession.id;
+      
+      // Marquer la séance comme complétée
+      const updated = await updateSessionStatus(clientSessionId, 'completed');
+      if (!updated) {
+        console.warn('[DEBUG] Échec mise à jour statut séance');
+      }
+    } else {
+      console.log('[DEBUG] Aucune séance existante, création d\'une nouvelle');
+      
+      // Créer une nouvelle séance uniquement si elle n'existe pas
+      clientSessionId = await createClientSession({
+        client_program_id: clientProgramId,
         client_id: user.id,
-        exercise_order: exercise.id,
-        sets: parseInt(exercise.sets) || undefined,
-        reps: exercise.details?.[0]?.reps || undefined,
-        load: exercise.details?.[0]?.load?.value || undefined,
-        tempo: exercise.details?.[0]?.tempo || undefined,
-        rest_time: exercise.details?.[0]?.rest || undefined,
-        details: exercise.details || undefined
+        name: activeSession.name,
+        week_number: currentWeek,
+        session_order: user.sessionProgress || 1,
+        status: 'completed'
       });
       
-      if (!success) {
-        console.warn(`[DEBUG] Échec création exercice ${exercise.name}`);
+      if (!clientSessionId) {
+        console.error('[DEBUG] Échec création client_session');
+        addNotification({ message: 'Erreur lors de la création de la séance.', type: 'error' });
+        return;
+      }
+      
+      console.log('[DEBUG] client_session créé:', clientSessionId);
+      console.log('[DEBUG] Étape 2: Création des client_session_exercises');
+      
+      // Créer les exercices de la séance uniquement pour les nouvelles séances
+      for (const exercise of activeSession.exercises) {
+        const success = await createClientSessionExercise({
+          client_session_id: clientSessionId,
+          exercise_id: exercise.exerciseId.toString(),
+          client_id: user.id,
+          exercise_order: exercise.id,
+          sets: parseInt(exercise.sets) || undefined,
+          reps: exercise.details?.[0]?.reps || undefined,
+          load: exercise.details?.[0]?.load?.value || undefined,
+          tempo: exercise.details?.[0]?.tempo || undefined,
+          rest_time: exercise.details?.[0]?.rest || undefined,
+          details: exercise.details || undefined
+        });
+        
+        if (!success) {
+          console.warn(`[DEBUG] Échec création exercice ${exercise.name}`);
+        }
       }
     }
     

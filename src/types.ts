@@ -213,6 +213,9 @@ export interface WorkoutSession {
   exercises: WorkoutExercise[];
   dbId?: string;
   programId?: string;
+  status?: 'pending' | 'completed' | 'skipped';
+  weekNumber?: number;
+  sessionOrder?: number;
 }
 
 export interface WorkoutProgram {
