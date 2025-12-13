@@ -188,3 +188,82 @@ export const getCompletedSessionsCount = async (
     return 0;
   }
 };
+
+/**
+ * Crée une nouvelle séance client
+ * 
+ * @param data - Données de la séance à créer
+ * @returns L'ID de la séance créée ou null
+ */
+export const createClientSession = async (data: {
+  client_program_id: string;
+  client_id: string;
+  name: string;
+  week_number: number;
+  session_order: number;
+  status?: 'pending' | 'completed' | 'skipped';
+}): Promise<string | null> => {
+  try {
+    const { data: session, error } = await supabase
+      .from('client_sessions')
+      .insert({
+        ...data,
+        status: data.status || 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Erreur lors de la création de la séance client:', error);
+      return null;
+    }
+
+    return session?.id || null;
+  } catch (error) {
+    console.error('Erreur globale lors de la création de la séance:', error);
+    return null;
+  }
+};
+
+/**
+ * Crée un nouvel exercice pour une séance client
+ * 
+ * @param data - Données de l'exercice à créer
+ * @returns true si succès, false sinon
+ */
+export const createClientSessionExercise = async (data: {
+  client_session_id: string;
+  exercise_id: string;
+  client_id: string;
+  exercise_order: number;
+  sets?: number;
+  reps?: string;
+  load?: string;
+  tempo?: string;
+  rest_time?: string;
+  intensification?: any;
+  notes?: string;
+  details?: any;
+}): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('client_session_exercises')
+      .insert({
+        ...data,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error('Erreur lors de la création de l\'exercice de séance:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erreur globale lors de la création de l\'exercice:', error);
+    return false;
+  }
+};

@@ -13,6 +13,7 @@ import Modal from '../../../components/Modal';
 import Button from '../../../components/Button';
 import { savePerformanceLog } from '../../../services/performanceLogService';
 import { updateClientProgress, markSessionAsCompleted } from '../../../services/clientProgramService';
+import { createClientSession, createClientSessionExercise } from '../../../services/clientSessionService';
 import {
   ArrowLeftIcon,
   ClockIcon,
@@ -43,7 +44,7 @@ const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tem
 
 const ClientCurrentProgram: React.FC = () => {
   useEffect(() => {
-    console.log('[DEBUG] 🚀 Version chargée: v5.0 FINAL (Sans verrouillage)');
+    console.log('[DEBUG] 🚀 Version chargée: v6.0 FINAL (Architecture correcte)');
   }, []);
 
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
@@ -382,14 +383,57 @@ const ClientCurrentProgram: React.FC = () => {
     };
 
     const programAssignmentId = (localProgram as any).assignmentId || null;
-    const sessionId = activeSession.id;
+    const sessionTemplateId = activeSession.id;
     
-    console.log('[DEBUG] Tentative sauvegarde logs...', { programAssignmentId, sessionId });
+    console.log('[DEBUG] Étape 1: Création du client_session');
     
+    // ✅ NOUVELLE ARCHITECTURE: Créer un client_session
+    const clientSessionId = await createClientSession({
+      client_program_id: programAssignmentId,
+      client_id: user.id,
+      name: activeSession.name,
+      week_number: currentWeek,
+      session_order: user.sessionProgress || 1,
+      status: 'pending'
+    });
+    
+    if (!clientSessionId) {
+      console.error('[DEBUG] Échec création client_session');
+      addNotification({ message: 'Erreur lors de la création de la séance.', type: 'error' });
+      return;
+    }
+    
+    console.log('[DEBUG] client_session créé:', clientSessionId);
+    console.log('[DEBUG] Étape 2: Création des client_session_exercises');
+    
+    // ✅ Créer les exercices de la séance
+    for (const exercise of activeSession.exercises) {
+      const success = await createClientSessionExercise({
+        client_session_id: clientSessionId,
+        exercise_id: exercise.exerciseId.toString(),
+        client_id: user.id,
+        exercise_order: exercise.id,
+        sets: parseInt(exercise.sets) || undefined,
+        reps: exercise.details?.[0]?.reps || undefined,
+        load: exercise.details?.[0]?.load?.value || undefined,
+        tempo: exercise.details?.[0]?.tempo || undefined,
+        rest_time: exercise.details?.[0]?.rest || undefined,
+        details: exercise.details || undefined
+      });
+      
+      if (!success) {
+        console.warn(`[DEBUG] Échec création exercice ${exercise.name}`);
+      }
+    }
+    
+    console.log('[DEBUG] Étape 3: Sauvegarde des performances');
+    console.log('[DEBUG] Tentative sauvegarde logs...', { programAssignmentId, clientSessionId });
+    
+    // ✅ Maintenant on peut sauvegarder avec le bon client_session_id
     const savedLogId = await savePerformanceLog(
       user.id,
       programAssignmentId,
-      sessionId,
+      clientSessionId, // ← Maintenant c'est le bon ID
       newLogEntry,
       user.coachId
     );
@@ -435,10 +479,10 @@ const ClientCurrentProgram: React.FC = () => {
     const wasProgramFinished = nextProgramWeek > totalWeeks;
     const hasNextProgram = (user.assignedPrograms?.length || 0) > 1;
 
-    console.log('[DEBUG] Application immédiate des mises à jour');
+    console.log('[DEBUG] Étape 4: Application des mises à jour');
     
     // ✅ APPLIQUER LES MISES À JOUR IMMÉDIATEMENT
-    await markSessionAsCompleted(sessionId);
+    // Note: markSessionAsCompleted est pour l'ancienne architecture, on utilise updateSessionStatus via savePerformanceLog
 
     if (!wasProgramFinished) {
       await updateClientProgress(
