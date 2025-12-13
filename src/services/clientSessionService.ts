@@ -267,3 +267,31 @@ export const createClientSessionExercise = async (data: {
     return false;
   }
 };
+
+/**
+ * Récupère le client_program_id à partir de l'assignment_id
+ * 
+ * @param assignmentId - ID d'assignation du programme
+ * @returns L'ID du client_program ou null
+ */
+export const getClientProgramIdFromAssignment = async (
+  assignmentId: string
+): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_programs')
+      .select('id')
+      .eq('assignment_id', assignmentId)
+      .single();
+
+    if (error) {
+      console.error('Erreur lors de la récupération du client_program_id:', error);
+      return null;
+    }
+
+    return data?.id || null;
+  } catch (error) {
+    console.error('Erreur globale:', error);
+    return null;
+  }
+};

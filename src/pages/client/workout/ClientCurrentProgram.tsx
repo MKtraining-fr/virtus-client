@@ -13,7 +13,7 @@ import Modal from '../../../components/Modal';
 import Button from '../../../components/Button';
 import { savePerformanceLog } from '../../../services/performanceLogService';
 import { updateClientProgress, markSessionAsCompleted } from '../../../services/clientProgramService';
-import { createClientSession, createClientSessionExercise } from '../../../services/clientSessionService';
+import { createClientSession, createClientSessionExercise, getClientProgramIdFromAssignment } from '../../../services/clientSessionService';
 import {
   ArrowLeftIcon,
   ClockIcon,
@@ -44,7 +44,7 @@ const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tem
 
 const ClientCurrentProgram: React.FC = () => {
   useEffect(() => {
-    console.log('[DEBUG] 🚀 Version chargée: v6.0 FINAL (Architecture correcte)');
+    console.log('[DEBUG] 🚀 Version chargée: v6.1 FINAL (Correction client_program_id)');
   }, []);
 
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
@@ -385,11 +385,23 @@ const ClientCurrentProgram: React.FC = () => {
     const programAssignmentId = (localProgram as any).assignmentId || null;
     const sessionTemplateId = activeSession.id;
     
+    console.log('[DEBUG] Étape 0: Récupération du client_program_id');
+    
+    // ✅ Récupérer le client_program_id à partir de l'assignment_id
+    const clientProgramId = await getClientProgramIdFromAssignment(programAssignmentId);
+    
+    if (!clientProgramId) {
+      console.error('[DEBUG] Échec récupération client_program_id');
+      addNotification({ message: 'Erreur lors de la récupération du programme.', type: 'error' });
+      return;
+    }
+    
+    console.log('[DEBUG] client_program_id récupéré:', clientProgramId);
     console.log('[DEBUG] Étape 1: Création du client_session');
     
     // ✅ NOUVELLE ARCHITECTURE: Créer un client_session
     const clientSessionId = await createClientSession({
-      client_program_id: programAssignmentId,
+      client_program_id: clientProgramId,
       client_id: user.id,
       name: activeSession.name,
       week_number: currentWeek,
