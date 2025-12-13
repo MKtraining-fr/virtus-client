@@ -288,12 +288,27 @@ export const useDataStore = create<DataState>((set, get) => {
                 const assignedPrograms = await getClientAssignedPrograms(client.id);
                 const activeProgram = assignedPrograms.find((p) => p.status === 'active') || assignedPrograms[0] || null;
                 
+                // Vérifier si le client a des séances complétées non vues
+                let hasUnviewedSessions = false;
+                if (activeProgram) {
+                  const { data: unviewedSessions } = await supabase
+                    .from('client_sessions')
+                    .select('id')
+                    .eq('client_program_id', activeProgram.id)
+                    .eq('status', 'completed')
+                    .eq('viewed_by_coach', false)
+                    .limit(1);
+                  
+                  hasUnviewedSessions = (unviewedSessions && unviewedSessions.length > 0) || false;
+                }
+                
                 return {
                   ...client,
                   assignedPrograms,
                   assignedProgram: activeProgram,
                   programWeek: activeProgram?.currentWeek || undefined,
                   totalWeeks: activeProgram?.weekCount || undefined,
+                  viewed: !hasUnviewedSessions,
                 };
               } catch (error) {
                 console.error(`Erreur lors du chargement des programmes pour le client ${client.id}:`, error);

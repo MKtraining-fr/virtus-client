@@ -919,7 +919,7 @@ export const getClientPerformanceLogs = async (
           tempo: detail.tempo || '',
           rest: detail.rest || '',
           comment: detail.comment || undefined,
-          viewedByCoach: false, // TODO: Ajouter cette colonne si nécessaire
+          viewedByCoach: session.viewed_by_coach ?? false,
         })) : [];
 
         return {

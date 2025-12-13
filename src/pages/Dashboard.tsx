@@ -101,7 +101,7 @@ const getLatestNote = (notes?: string): { display: string; full: string | null }
 };
 
 const Dashboard: React.FC = () => {
-  const { user, clients: allClients, messages, setClients, currentViewRole } = useAuth();
+  const { user, clients: allClients, messages, setClients, currentViewRole, loadData } = useAuth();
   const navigate = useNavigate();
   const [filter, setFilter] = useState('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -177,27 +177,10 @@ const Dashboard: React.FC = () => {
     setSelectedClientForHistory(clientId);
   };
 
-  const closeHistoryModal = () => {
-    if (selectedClientForHistory) {
-      const updatedClients = allClients.map((c) => {
-        if (c.id === selectedClientForHistory) {
-          // Mark all performance log sets as viewed
-          const updatedPerformanceLog = c.performanceLog?.map((log) => ({
-            ...log,
-            exerciseLogs: log.exerciseLogs.map((exLog) => ({
-              ...exLog,
-              loggedSets: exLog.loggedSets.map((set) => ({
-                ...set,
-                viewedByCoach: true,
-              })),
-            })),
-          }));
-          // Set the global viewed flag to true
-          return { ...c, performanceLog: updatedPerformanceLog, viewed: true };
-        }
-        return c;
-      });
-      setClients(updatedClients);
+  const closeHistoryModal = async () => {
+    // Recharger les clients depuis useDataStore pour recalculer client.viewed
+    if (user?.role === 'coach') {
+      await loadData(user.id);
     }
     setSelectedClientForHistory(null);
   };
