@@ -132,9 +132,6 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
             <td key={week} className="p-2 text-left border-l min-w-[192px]">
               {exerciseLogInLog ? (
                 <div className="flex items-center w-full">
-                  <div className="w-5 shrink-0 flex items-center justify-center">
-                    {hasUnviewedSets && <UnviewedDot />}
-                  </div>
                   <span className={`w-10 text-right pr-1 font-mono ${repsClass}`}>
                     {formatValue(avgReps)}
                   </span>
@@ -142,16 +139,17 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
                   <span className={`w-12 text-right pr-1 font-mono ${loadClass}`}>
                     {formatValue(avgLoad)}
                   </span>
-                  <span className="text-gray-700 shrink-0">
+                  <span className="text-gray-700 mr-2 shrink-0">
                     {exercise.details[0]?.load.unit || 'kg'}
                   </span>
-                  <div className="flex-grow flex justify-end pl-2">
+                  <div className="flex-grow flex justify-end items-center gap-2">
                     {hasCommentsInLog && (
                       <ChatBubbleLeftIcon
                         className="w-4 h-4 text-gray-400 shrink-0"
                         title="Des commentaires sont présents dans cette séance"
                       />
                     )}
+                    {hasUnviewedSets && <UnviewedDot />}
                   </div>
                 </div>
               ) : (

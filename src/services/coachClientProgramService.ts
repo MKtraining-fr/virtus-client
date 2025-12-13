@@ -842,6 +842,15 @@ export const getClientPerformanceLogs = async (
             id,
             name,
             image_url
+          ),
+          client_exercise_performance (
+            id,
+            set_number,
+            reps_achieved,
+            load_achieved,
+            rpe,
+            notes,
+            performed_at
           )
         )
       `)
@@ -901,26 +910,41 @@ export const getClientPerformanceLogs = async (
     const completedSessions = sessions.filter((s: any) => s.status === 'completed' || s.completed_at !== null);
     const performanceLogs: any[] = completedSessions.map((session: any) => {
       const exerciseLogs = (session.client_session_exercises || []).map((exercise: any) => {
-        // Parse details si c'est une string JSON
-        let parsedDetails = exercise.details;
-        if (typeof exercise.details === 'string') {
-          try {
-            parsedDetails = JSON.parse(exercise.details);
-          } catch (e) {
-            console.error('[getClientPerformanceLogs] Erreur parsing details:', e);
-            parsedDetails = [];
+        // Utiliser client_exercise_performance si disponible, sinon details
+        const performances = exercise.client_exercise_performance || [];
+        
+        let loggedSets = [];
+        if (performances.length > 0) {
+          // Utiliser les performances réelles du client
+          loggedSets = performances.map((perf: any) => ({
+            reps: String(perf.reps_achieved || '0'),
+            load: perf.load_achieved || '0',
+            tempo: '',  // Pas disponible dans client_exercise_performance
+            rest: '',   // Pas disponible dans client_exercise_performance
+            comment: perf.notes || undefined,
+            viewedByCoach: session.viewed_by_coach ?? false,
+          }));
+        } else {
+          // Fallback sur details (valeurs du template)
+          let parsedDetails = exercise.details;
+          if (typeof exercise.details === 'string') {
+            try {
+              parsedDetails = JSON.parse(exercise.details);
+            } catch (e) {
+              console.error('[getClientPerformanceLogs] Erreur parsing details:', e);
+              parsedDetails = [];
+            }
           }
+          
+          loggedSets = Array.isArray(parsedDetails) ? parsedDetails.map((detail: any) => ({
+            reps: detail.reps || '0',
+            load: detail.load?.value || '0',
+            tempo: detail.tempo || '',
+            rest: detail.rest || '',
+            comment: detail.comment || undefined,
+            viewedByCoach: session.viewed_by_coach ?? false,
+          })) : [];
         }
-
-        // Construire les loggedSets depuis details
-        const loggedSets = Array.isArray(parsedDetails) ? parsedDetails.map((detail: any) => ({
-          reps: detail.reps || '0',
-          load: detail.load?.value || '0',
-          tempo: detail.tempo || '',
-          rest: detail.rest || '',
-          comment: detail.comment || undefined,
-          viewedByCoach: session.viewed_by_coach ?? false,
-        })) : [];
 
         return {
           exerciseId: exercise.exercise_id,
