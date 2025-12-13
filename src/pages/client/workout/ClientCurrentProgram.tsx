@@ -44,7 +44,7 @@ const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tem
 
 const ClientCurrentProgram: React.FC = () => {
   useEffect(() => {
-    console.log('[DEBUG] 🚀 Version chargée: v2.2 (Verrouillage du rendu)');
+    console.log('[DEBUG] 🚀 Version chargée: v3.0 (Flux simplifié - un seul état)');
   }, []);
 
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
@@ -83,7 +83,6 @@ const ClientCurrentProgram: React.FC = () => {
 
   // Modals
   const [isCongratsModalOpen, setIsCongratsModalOpen] = useState(false);
-  const [isRecapModalOpen, setIsRecapModalOpen] = useState(false);
   const [recapData, setRecapData] = useState<{
     exerciseLogs: ExerciseLog[];
     sessionName: string;
@@ -152,11 +151,11 @@ const ClientCurrentProgram: React.FC = () => {
 
   useEffect(() => {
     // Si une modale est ouverte ou si on a des données de récap, ON NE TOUCHE À RIEN
-    if (isRecapModalOpen || isCongratsModalOpen || recapData || isLocked) return;
+    if (isCongratsModalOpen || recapData || isLocked) return;
 
     setSelectedSessionIndex(defaultSessionIndex);
     setLocalProgram(baseProgram ? JSON.parse(JSON.stringify(baseProgram)) : undefined);
-  }, [defaultSessionIndex, baseProgram, isRecapModalOpen, isCongratsModalOpen, recapData, isLocked]);
+  }, [defaultSessionIndex, baseProgram, isCongratsModalOpen, recapData, isLocked]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -475,21 +474,26 @@ const ClientCurrentProgram: React.FC = () => {
 
     console.log('[DEBUG] Ouverture DIRECTE de la modale');
     
-    // ACTION GROUPÉE : Données + Ouverture (Pas de useEffect)
-    setRecapData({
+    // Définir recapData pour afficher la modale
+    const newRecapData = {
       exerciseLogs: exerciseLogsForSession,
       sessionName: activeSession.name,
       sessionId: activeSession.id,
       performanceLogId: savedLogId,
       activeSession: { name: activeSession.name, exercises: activeSession.exercises }
-    });
+    };
     
-    setIsRecapModalOpen(true);
+    setRecapData(newRecapData);
+    
+    console.log('[DEBUG] recapData défini:', {
+      sessionName: newRecapData.sessionName,
+      exerciseLogsCount: newRecapData.exerciseLogs.length,
+      sessionId: newRecapData.sessionId
+    });
   };
 
   const handleCloseRecapModal = async () => {
     console.log('[DEBUG] Fermeture modale, application des changements');
-    setIsRecapModalOpen(false);
     
     const pending = pendingUpdatesRef.current;
     if (pending) {
@@ -519,6 +523,8 @@ const ClientCurrentProgram: React.FC = () => {
         navigate('/app/workout');
     }
     
+    // Réinitialiser recapData pour fermer la modale
+    setRecapData(null);
     pendingUpdatesRef.current = null;
   };
 
@@ -679,7 +685,7 @@ const ClientCurrentProgram: React.FC = () => {
 
       {recapData && (
         <SessionStatsModal
-          isOpen={isRecapModalOpen}
+          isOpen={true}
           onClose={handleCloseRecapModal}
           sessionName={recapData.sessionName}
           sessionId={recapData.sessionId}
