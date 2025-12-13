@@ -44,7 +44,7 @@ const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tem
 
 const ClientCurrentProgram: React.FC = () => {
   useEffect(() => {
-    console.log('[DEBUG] 🚀 Version chargée: v6.1 FINAL (Correction client_program_id)');
+    console.log('[DEBUG] 🚀 Version chargée: v6.2 DEBUG (Tracer recapData)');
   }, []);
 
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
@@ -90,6 +90,17 @@ const ClientCurrentProgram: React.FC = () => {
     wasProgramFinished?: boolean;
     hasNextProgram?: boolean;
   } | null>(null);
+
+  // 🐞 DEBUG: Tracer les changements de recapData
+  useEffect(() => {
+    console.log('[DEBUG] recapData a changé:', recapData);
+    if (recapData) {
+      console.log('[DEBUG] recapData existe - la modale devrait s\'afficher');
+      console.log('[DEBUG] recapData.sessionName:', recapData.sessionName);
+    } else {
+      console.log('[DEBUG] recapData est null - la modale ne devrait PAS s\'afficher');
+    }
+  }, [recapData]);
 
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [commentTarget, setCommentTarget] = useState<{
