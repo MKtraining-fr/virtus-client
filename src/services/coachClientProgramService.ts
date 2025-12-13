@@ -773,10 +773,15 @@ export const getClientPerformanceLogs = async (
   console.log('[getClientPerformanceLogs] 🔍 Début du chargement pour clientId:', clientId);
 
   try {
-    // 1. Récupérer le programme actif du client
+    // 1. Récupérer le programme actif du client avec le nom du template
     const { data: programAssignments, error: assignmentError } = await supabase
       .from('program_assignments')
-      .select('*')
+      .select(`
+        *,
+        program_templates (
+          name
+        )
+      `)
       .eq('client_id', clientId)
       .eq('status', 'active')
       .order('start_date', { ascending: false })
@@ -793,7 +798,8 @@ export const getClientPerformanceLogs = async (
     }
 
     const assignment = programAssignments[0];
-    console.log('[getClientPerformanceLogs] ✅ Programme actif trouvé:', assignment.program_name);
+    const programName = assignment.program_templates?.name || 'Programme';
+    console.log('[getClientPerformanceLogs] ✅ Programme actif trouvé:', programName);
 
     // 2. Récupérer le client_program_id
     const { data: clientPrograms, error: clientProgramError } = await supabase
@@ -883,7 +889,7 @@ export const getClientPerformanceLogs = async (
 
     const program: WorkoutProgram = {
       id: clientProgramId,
-      name: assignment.program_name,
+      name: programName,
       objective: '',
       weekCount: assignment.duration_weeks || maxWeek,
       sessionsByWeek,
@@ -891,8 +897,9 @@ export const getClientPerformanceLogs = async (
 
     console.log('[getClientPerformanceLogs] ✅ Programme construit avec', maxWeek, 'semaines');
 
-    // 5. Construire les PerformanceLogs
-    const performanceLogs: any[] = sessions.map((session: any) => {
+    // 5. Construire les PerformanceLogs (uniquement pour les séances complétées)
+    const completedSessions = sessions.filter((s: any) => s.status === 'completed' || s.completed_at !== null);
+    const performanceLogs: any[] = completedSessions.map((session: any) => {
       const exerciseLogs = (session.client_session_exercises || []).map((exercise: any) => {
         // Parse details si c'est une string JSON
         let parsedDetails = exercise.details;
@@ -926,7 +933,7 @@ export const getClientPerformanceLogs = async (
         sessionId: session.id,
         date: session.completed_at ? new Date(session.completed_at).toLocaleDateString('fr-FR') : '',
         week: session.week_number || 1,
-        programName: assignment.program_name,
+        programName: programName,
         sessionName: session.name,
         exerciseLogs,
         viewedByCoach: session.viewed_by_coach ?? false,
