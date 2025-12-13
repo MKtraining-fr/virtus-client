@@ -238,6 +238,13 @@ const Dashboard: React.FC = () => {
               {clientsWithStatus.map((client) => {
                 const latestNote = getLatestNote(client.notes);
                 const currentProgram = client.assignedPrograms?.[0];
+                
+                // Calculer le nombre de séances complétées et totales pour la semaine actuelle
+                const currentWeek = client.programWeek || 1;
+                const sessionsThisWeek = currentProgram?.sessionsByWeek?.[currentWeek] || [];
+                const completedSessionsThisWeek = sessionsThisWeek.filter((s: any) => s.status === 'completed').length;
+                const totalSessionsThisWeek = sessionsThisWeek.length;
+                
                 return (
                   <tr
                     key={client.id}
@@ -256,8 +263,8 @@ const Dashboard: React.FC = () => {
                         : ''}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {client.sessionProgress !== undefined && client.totalSessions !== undefined
-                        ? `${client.sessionProgress}/${client.totalSessions}`
+                      {totalSessionsThisWeek > 0
+                        ? `${completedSessionsThisWeek}/${totalSessionsThisWeek}`
                         : ''}
                     </td>
                     <td
