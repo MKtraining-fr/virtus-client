@@ -325,13 +325,9 @@ const ClientCurrentProgram: React.FC = () => {
 
   const handleFinishSession = async () => {
     console.log('[DEBUG] Début handleFinishSession');
-    
-    // VERROUILLAGE IMMEDIAT
-    setIsLocked(true);
 
     if (!localProgram || !activeSession || !user) {
       console.error('[DEBUG] Données manquantes', { hasProgram: !!localProgram, hasSession: !!activeSession, hasUser: !!user });
-      setIsLocked(false);
       navigate('/app/workout');
       return;
     }
@@ -344,7 +340,6 @@ const ClientCurrentProgram: React.FC = () => {
     if (hasUnloggedExercises) {
       if (!window.confirm('Certains exercices ne sont pas complétés. Voulez-vous vraiment terminer la séance ?')) {
         console.log('[DEBUG] Annulation utilisateur');
-        setIsLocked(false);
         return;
       }
     }
