@@ -10,6 +10,7 @@ import {
   ExerciseLog,
 } from '../../../types';
 import Modal from '../../../components/Modal';
+import SessionStatsModal from '../../../components/client/SessionStatsModal';
 import Button from '../../../components/Button';
 import { savePerformanceLog } from '../../../services/performanceLogService';
 import { updateClientProgress, markSessionAsCompleted } from '../../../services/clientProgramService';
@@ -47,7 +48,7 @@ let mountCount = 0;
 const ClientCurrentProgram: React.FC = () => {
   useEffect(() => {
     mountCount++;
-    console.log('[DEBUG] 🚀 Version chargée: v7.0 FINAL (Persistence sessionStorage)');
+    console.log('[DEBUG] 🚀 Version chargée: v8.0 (SessionStatsModal complet)');
     
     return () => {
       console.log('[DEBUG] 💀 Composant démonté');
@@ -725,20 +726,14 @@ const ClientCurrentProgram: React.FC = () => {
       </Modal>
 
       {recapData && (
-        <Modal
+        <SessionStatsModal
           isOpen={true}
           onClose={handleCloseRecapModal}
-          title="Séance Validée"
-          size="md"
-        >
-          <div className="text-center py-8">
-            <div className="text-6xl mb-4">✅</div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-client-light">Validé !</p>
-            <p className="text-sm text-gray-600 dark:text-client-subtle mt-2">
-              {recapData.sessionName}
-            </p>
-          </div>
-        </Modal>
+          exerciseLogs={recapData.exerciseLogs}
+          sessionName={recapData.sessionName}
+          performanceLogId={recapData.performanceLogId}
+          activeSession={recapData.activeSession}
+        />
       )}
 
       {fullExerciseDetails && (
