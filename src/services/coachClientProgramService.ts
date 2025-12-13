@@ -843,6 +843,11 @@ export const getClientPerformanceLogs = async (
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
 
+    if (sessionsError) {
+      console.error('[getClientPerformanceLogs] ❌ Erreur lors du chargement des séances:', sessionsError);
+      return null;
+    }
+
     // Afficher les détails de toutes les séances pour diagnostic
     console.log('[getClientPerformanceLogs] 📊 Détails des séances:');
     allSessions?.forEach((s, i) => {
@@ -850,21 +855,13 @@ export const getClientPerformanceLogs = async (
       console.log(`      status: "${s.status}", completed_at: ${s.completed_at}`);
     });
     
-    // Filtrer les séances complétées (status='completed' OU completed_at non null)
-    const sessions = allSessions?.filter(s => 
-      s.status === 'completed' || s.completed_at !== null
-    ) || [];
+    // Utiliser TOUTES les séances (complétées ET futures)
+    const sessions = allSessions || [];
 
-    if (sessionsError) {
-      console.error('[getClientPerformanceLogs] ❌ Erreur lors du chargement des séances:', sessionsError);
-      return null;
-    }
-
-    console.log('[getClientPerformanceLogs] ✅ Toutes les séances:', allSessions?.length || 0);
-    console.log('[getClientPerformanceLogs] ✅ Séances complétées (filtrées):', sessions?.length || 0);
+    console.log('[getClientPerformanceLogs] ✅ Toutes les séances chargées:', sessions.length);
 
     if (!sessions || sessions.length === 0) {
-      console.log('[getClientPerformanceLogs] ℹ️ Aucune séance complétée trouvée');
+      console.log('[getClientPerformanceLogs] ℹ️ Aucune séance trouvée');
       return null;
     }
 
