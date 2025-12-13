@@ -47,7 +47,7 @@ let mountCount = 0;
 const ClientCurrentProgram: React.FC = () => {
   useEffect(() => {
     mountCount++;
-    console.log('[DEBUG] 🚀 Version chargée: v6.3 DEBUG (Compteur montage:', mountCount, ')');
+    console.log('[DEBUG] 🚀 Version chargée: v7.0 FINAL (Persistence sessionStorage)');
     
     return () => {
       console.log('[DEBUG] 💀 Composant démonté');
@@ -96,7 +96,16 @@ const ClientCurrentProgram: React.FC = () => {
     };
     wasProgramFinished?: boolean;
     hasNextProgram?: boolean;
-  } | null>(null);
+  } | null>(() => {
+    // 🔑 Charger recapData depuis sessionStorage au montage
+    const stored = sessionStorage.getItem('pendingRecapData');
+    if (stored) {
+      console.log('[DEBUG] recapData chargé depuis sessionStorage');
+      sessionStorage.removeItem('pendingRecapData');
+      return JSON.parse(stored);
+    }
+    return null;
+  });
 
   // 🐞 DEBUG: Tracer les changements de recapData
   useEffect(() => {
@@ -526,8 +535,8 @@ const ClientCurrentProgram: React.FC = () => {
 
     console.log('[DEBUG] Ouverture de la modale');
     
-    // Définir recapData pour afficher la modale
-    setRecapData({
+    // 🔑 Sauvegarder dans sessionStorage AVANT setRecapData
+    const recapDataToSave = {
       exerciseLogs: exerciseLogsForSession,
       sessionName: activeSession.name,
       sessionId: activeSession.id,
@@ -535,13 +544,22 @@ const ClientCurrentProgram: React.FC = () => {
       activeSession: { name: activeSession.name, exercises: activeSession.exercises },
       wasProgramFinished,
       hasNextProgram,
-    });
+    };
+    
+    sessionStorage.setItem('pendingRecapData', JSON.stringify(recapDataToSave));
+    console.log('[DEBUG] recapData sauvegardé dans sessionStorage');
+    
+    // Définir recapData pour afficher la modale
+    setRecapData(recapDataToSave);
     
     console.log('[DEBUG] recapData défini - modale devrait s\'afficher');
   };
 
   const handleCloseRecapModal = () => {
     console.log('[DEBUG] Fermeture modale');
+    
+    // 🧹 Nettoyer sessionStorage
+    sessionStorage.removeItem('pendingRecapData');
     
     if (recapData?.wasProgramFinished && !recapData?.hasNextProgram) {
       setIsCongratsModalOpen(true);
