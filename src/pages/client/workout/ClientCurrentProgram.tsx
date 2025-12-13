@@ -42,9 +42,16 @@ const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tem
   return details.map((d) => d[key]).join(' / ');
 };
 
+let mountCount = 0;
+
 const ClientCurrentProgram: React.FC = () => {
   useEffect(() => {
-    console.log('[DEBUG] 🚀 Version chargée: v6.2 DEBUG (Tracer recapData)');
+    mountCount++;
+    console.log('[DEBUG] 🚀 Version chargée: v6.3 DEBUG (Compteur montage:', mountCount, ')');
+    
+    return () => {
+      console.log('[DEBUG] 💀 Composant démonté');
+    };
   }, []);
 
   const { user, setClients, clients, exercises: exerciseDB, addNotification } = useAuth();
