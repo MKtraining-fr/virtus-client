@@ -2,7 +2,7 @@
 
 **Auteur:** Manus AI  
 **Dernière mise à jour:** 14 décembre 2025  
-**Version:** 1.0
+**Version:** 1.1
 
 ---
 
@@ -13,6 +13,399 @@ Ce document constitue le **journal technique central** du projet Virtus. Il sert
 ---
 
 # HISTORIQUE DES INTERVENTIONS
+
+## Intervention #2 - Implémentation Complète du Système de Bilans (Décembre 2025)
+
+**Date:** 14 décembre 2025  
+**Pull Request:**
+- [PR #294](https://github.com/MKtraining-fr/virtus/pull/294) - `feat/bilan-system-complete` ✅ Mergée
+
+**Statut:** Déployé en production avec succès.
+
+### Contexte
+
+L'application Virtus nécessitait un système de bilans permettant aux coachs de créer des questionnaires personnalisés, de les assigner aux clients avec des fréquences récurrentes, et de collecter les réponses de manière structurée. Ce système devait s'intégrer harmonieusement avec l'architecture existante tout en respectant les principes de transaction atomique et de source de vérité unique établis lors de l'Intervention #1.
+
+### Fonctionnalité Implémentée
+
+Le système de Bilans est une **mécanique complète de questionnaires dynamiques** permettant :
+
+1. **Création de templates de bilans** par les coachs avec support de 8 types de champs :
+   - Texte court (`text`)
+   - Texte long (`textarea`)
+   - Nombre (`number`)
+   - Date (`date`)
+   - Liste déroulante (`select`)
+   - Cases à cocher multiples (`checkbox`)
+   - Oui/Non (`yesno`)
+   - Échelle de 1 à 10 (`scale`)
+
+2. **Assignation récurrente** aux clients avec 4 fréquences possibles :
+   - Envoi unique (`once`)
+   - Hebdomadaire (`weekly`)
+   - Toutes les 2 semaines (`biweekly`)
+   - Mensuel (`monthly`)
+
+3. **Complétion côté client** avec interface intuitive et validation des réponses
+
+4. **Visualisation des réponses** côté coach avec historique complet
+
+5. **Gestion avancée** :
+   - Badge "X clients assignés" sur chaque template
+   - Suppression de templates avec cascade automatique
+   - Snapshot des templates pour préserver l'historique
+   - Thème clair/sombre adaptatif
+
+### Problèmes Rencontrés
+
+#### Problème 1: Incohérence des Noms de Tables
+
+**Description:** Les fonctions RPC créées utilisaient `FROM profiles` pour récupérer les noms d'utilisateurs, mais la table `profiles` dans la base de données ne contient pas les colonnes `first_name`, `last_name`, `role`. Ces informations sont stockées dans la table `clients`.
+
+**Impact:** Les assignations de bilans échouaient systématiquement avec l'erreur "column first_name does not exist".
+
+**Solution:** Correction des fonctions RPC `assign_bilan_atomic` et `complete_bilan_atomic` pour utiliser `FROM clients` au lieu de `FROM profiles`. Mise à jour du fichier de migration pour éviter ce problème à l'avenir.
+
+#### Problème 2: Types TypeScript Manquants
+
+**Description:** Les types `yesno`, `scale` et `checkbox` n'étaient pas définis dans le type TypeScript `BilanFieldType`, bien que le code de rendu de ces champs soit présent.
+
+**Impact:** Les champs Oui/Non et Échelle ne s'affichaient pas dans les formulaires de bilans.
+
+**Solution:** Ajout des types manquants dans `src/types.ts` :
+```typescript
+export type BilanFieldType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'date'
+  | 'select'
+  | 'checkbox'
+  | 'yesno'
+  | 'scale'
+  | 'multiselect'
+  | 'file'
+```
+
+#### Problème 3: Badge d'Assignation Non Réactif
+
+**Description:** Le badge "X clients assignés" ne se mettait à jour qu'après un rafraîchissement complet de la page.
+
+**Impact:** Expérience utilisateur dégradée, impression que l'assignation n'a pas fonctionné.
+
+**Solution:** Ajout d'un rechargement automatique des compteurs d'assignations après une assignation réussie dans `BilanTemplates.tsx`.
+
+#### Problème 4: Comptage Incorrect des Assignations
+
+**Description:** Le code utilisait `const { data } = await supabase.from('bilan_assignments').select('id', { count: 'exact', head: true })` puis `data?.length`, mais avec `head: true`, Supabase ne retourne pas de tableau `data` mais un `count` directement.
+
+**Impact:** Le badge affichait toujours "0 clients assignés" même avec des assignations actives.
+
+**Solution:** Correction pour utiliser `const { count }` au lieu de `const { data }` et `count || 0` au lieu de `data?.length || 0`.
+
+#### Problème 5: Contrainte de Clé Étrangère Trop Restrictive
+
+**Description:** La contrainte FK sur `bilan_assignments.bilan_template_id` empêchait la suppression de templates même avec des assignations actives.
+
+**Impact:** Impossibilité de supprimer un template une fois assigné.
+
+**Solution:** Modification de la contrainte FK pour utiliser `ON DELETE CASCADE` via la migration `20251214_fix_bilan_template_deletion.sql`.
+
+#### Problème 6: Squash Merge et Perte de Commits
+
+**Description:** Lors du merge de la PR #294, GitHub a effectué un squash merge qui a regroupé tous les commits en un seul, mais avec le code de la branche au moment du merge initial, sans les corrections ultérieures.
+
+**Impact:** Les corrections de bugs n'étaient pas présentes en production après le merge.
+
+**Solution:** Application manuelle des migrations et corrections directement en base de données Supabase, puis mise à jour du code dans le dépôt pour synchronisation.
+
+### Solutions Implémentées
+
+#### Solution 1: Architecture de Base de Données
+
+**Création de deux tables principales:**
+
+1. **`bilan_templates`** - Stockage des modèles de bilans
+   - `id` (UUID, PK)
+   - `coach_id` (UUID, FK vers clients)
+   - `name` (TEXT)
+   - `sections` (JSONB) - Structure des sections et champs
+   - `created_at`, `updated_at` (TIMESTAMP)
+
+2. **`bilan_assignments`** - Gestion des assignations
+   - `id` (UUID, PK)
+   - `coach_id` (UUID, FK vers clients)
+   - `client_id` (UUID, FK vers clients)
+   - `bilan_template_id` (UUID, FK vers bilan_templates avec ON DELETE CASCADE)
+   - `status` (TEXT) - 'assigned', 'completed', 'archived'
+   - `frequency` (TEXT) - 'once', 'weekly', 'biweekly', 'monthly'
+   - `scheduled_date` (DATE)
+   - `assigned_at`, `completed_at` (TIMESTAMP)
+   - `parent_assignment_id` (UUID, FK vers bilan_assignments) - Pour tracer les récurrences
+   - `data` (JSONB) - Snapshot du template + réponses
+
+**Fichiers:**
+- `supabase/migrations/20251214_enhance_bilan_system.sql` (482 lignes)
+- `supabase/migrations/20251214_fix_bilan_template_deletion.sql` (27 lignes)
+- `supabase/migrations/20251214_fix_rls_policies.sql` (65 lignes)
+
+#### Solution 2: Fonctions RPC Atomiques
+
+**Trois fonctions PostgreSQL pour garantir l'atomicité:**
+
+1. **`assign_bilan_atomic`** - Assignation atomique d'un bilan
+   - Vérifie l'existence du template
+   - Crée un snapshot du template dans `data`
+   - Insère l'assignation
+   - Crée une notification pour le client
+   - Rollback automatique en cas d'erreur
+
+2. **`complete_bilan_atomic`** - Complétion atomique d'un bilan
+   - Vérifie l'existence de l'assignation
+   - Enregistre les réponses dans `data.answers`
+   - Marque le statut comme 'completed'
+   - Crée une notification pour le coach
+   - Gère la récurrence (crée une nouvelle assignation si nécessaire)
+   - Rollback automatique en cas d'erreur
+
+3. **`validate_initial_bilan`** - Validation du bilan initial
+   - Extrait les données du bilan initial
+   - Met à jour le profil client avec les informations collectées
+   - Marque le client comme 'active'
+   - Crée une notification de validation
+
+**Bénéfices:**
+- ✅ Cohérence garantie des données
+- ✅ Réduction du nombre d'appels réseau
+- ✅ Gestion automatique des erreurs avec rollback
+- ✅ Traçabilité complète des opérations
+
+#### Solution 3: Services TypeScript
+
+**Deux services pour encapsuler la logique métier:**
+
+1. **`bilanTemplateService.ts`** (282 lignes)
+   - `createBilanTemplate()` - Création de template
+   - `updateBilanTemplate()` - Mise à jour de template
+   - `deleteBilanTemplate()` - Suppression de template
+   - `getBilanTemplatesByCoach()` - Liste des templates d'un coach
+   - `getBilanTemplateById()` - Récupération d'un template spécifique
+
+2. **`bilanAssignmentService.ts`** (340 lignes)
+   - `assignBilanToClient()` - Appelle la RPC `assign_bilan_atomic`
+   - `completeBilan()` - Appelle la RPC `complete_bilan_atomic`
+   - `validateInitialBilan()` - Appelle la RPC `validate_initial_bilan`
+   - `getBilanAssignmentsByClient()` - Liste des bilans d'un client
+   - `getBilanAssignmentsByCoach()` - Liste des bilans d'un coach
+
+**Bénéfices:**
+- ✅ Séparation claire des responsabilités
+- ✅ Réutilisabilité du code
+- ✅ Gestion centralisée des erreurs
+- ✅ Logging détaillé pour le debugging
+
+#### Solution 4: Hooks React Custom
+
+**Deux hooks pour la gestion d'état:**
+
+1. **`useBilanTemplates.ts`** (153 lignes)
+   - Chargement automatique des templates
+   - Méthodes CRUD (`create`, `update`, `remove`)
+   - Gestion du loading et des erreurs
+   - Rafraîchissement automatique après modification
+
+2. **`useBilanAssignments.ts`** (181 lignes)
+   - Chargement des assignations par client ou coach
+   - Méthodes `assign`, `complete`, `validate`
+   - Filtrage par statut
+   - Gestion du loading et des erreurs
+
+**Bénéfices:**
+- ✅ Logique réutilisable entre composants
+- ✅ État synchronisé automatiquement
+- ✅ Code des composants simplifié
+
+#### Solution 5: Composants React
+
+**Quatre composants principaux:**
+
+1. **`BilanSection.tsx`** (441 lignes) - Interface client
+   - Affichage des bilans en attente
+   - Formulaire de complétion avec tous les types de champs
+   - Historique des bilans complétés
+   - Thème clair/sombre adaptatif
+
+2. **`ClientBilanHistory.tsx`** (225 lignes) - Historique coach
+   - Liste des bilans complétés par un client
+   - Visualisation des réponses
+   - Filtrage par template
+
+3. **`BilanTemplates.tsx`** (629 lignes) - Gestion des templates
+   - Création et édition de templates
+   - Ajout dynamique de sections et champs
+   - Assignation aux clients avec fréquence
+   - Badge "X clients assignés"
+   - Suppression avec confirmation
+
+4. **`BilanTemplatesRefactored.tsx`** (629 lignes) - Version refactorisée
+   - Même fonctionnalité que BilanTemplates.tsx
+   - Code optimisé et mieux structuré
+
+**Bénéfices:**
+- ✅ Interface utilisateur intuitive
+- ✅ Expérience cohérente entre coach et client
+- ✅ Support complet de tous les types de champs
+
+#### Solution 6: Tests Automatisés
+
+**Suite de tests pour la logique métier:**
+
+**Fichier:** `src/test/logic/bilanLogic.test.ts` (376 lignes)
+
+**13 tests implémentés:**
+1. Création d'un template de bilan
+2. Validation de la structure des sections
+3. Assignation d'un bilan à un client
+4. Assignation récurrente (weekly, biweekly, monthly)
+5. Complétion d'un bilan
+6. Validation des réponses
+7. Gestion du snapshot de template
+8. Création d'assignation récurrente après complétion
+9. Archivage de bilans
+10. Suppression de template avec cascade
+11. Validation du bilan initial
+12. Mise à jour du profil client
+13. Gestion des erreurs
+
+**Commande pour lancer les tests:**
+```bash
+pnpm test src/test/logic/bilanLogic.test.ts
+```
+
+**Bénéfices:**
+- ✅ Validation automatique de la logique métier
+- ✅ Détection précoce des régressions
+- ✅ Documentation vivante du comportement attendu
+
+### Modifications Globales du Projet
+
+#### Nouveaux Fichiers Créés (18 fichiers)
+
+**Migrations SQL (3):**
+- `supabase/migrations/20251214_enhance_bilan_system.sql`
+- `supabase/migrations/20251214_fix_bilan_template_deletion.sql`
+- `supabase/migrations/20251214_fix_rls_policies.sql`
+
+**Services (2):**
+- `src/services/bilanTemplateService.ts`
+- `src/services/bilanAssignmentService.ts`
+
+**Hooks (2):**
+- `src/hooks/useBilanTemplates.ts`
+- `src/hooks/useBilanAssignments.ts`
+
+**Composants (4):**
+- `src/components/BilanSection.tsx`
+- `src/components/BilanSection.old.tsx` (backup)
+- `src/components/BilanSectionFixed.tsx` (version corrigée)
+- `src/components/ClientBilanHistory.tsx`
+
+**Pages (3):**
+- `src/pages/coach/BilanTemplates.tsx` (refactorisé)
+- `src/pages/coach/BilanTemplates.old.tsx` (backup)
+- `src/pages/coach/BilanTemplatesRefactored.tsx`
+
+**Tests (1):**
+- `src/test/logic/bilanLogic.test.ts`
+
+**Types (1):**
+- Modifications dans `src/types.ts`
+
+**Intégrations (2):**
+- `src/pages/ClientProfile.tsx` (ajout de BilanSection)
+- `src/pages/client/ClientProfile.tsx` (ajout de BilanSection)
+
+#### Statistiques
+
+- **+4,634 lignes** ajoutées
+- **-146 lignes** supprimées
+- **18 fichiers** modifiés
+
+### Impact sur l'Architecture
+
+#### Base de Données
+
+**Nouvelles tables:**
+- `bilan_templates` - Stockage des modèles
+- `bilan_assignments` - Gestion des assignations
+
+**Nouvelles fonctions RPC:**
+- `assign_bilan_atomic`
+- `complete_bilan_atomic`
+- `validate_initial_bilan`
+
+**Nouvelles politiques RLS:**
+- Coachs peuvent créer/modifier/supprimer leurs templates
+- Coachs peuvent assigner des bilans à leurs clients
+- Clients peuvent voir et compléter leurs bilans assignés
+- Coachs peuvent voir les bilans complétés de leurs clients
+
+#### Front-end
+
+**Nouveaux services:**
+- `bilanTemplateService` - Gestion des templates
+- `bilanAssignmentService` - Gestion des assignations
+
+**Nouveaux hooks:**
+- `useBilanTemplates` - État des templates
+- `useBilanAssignments` - État des assignations
+
+**Nouveaux composants:**
+- `BilanSection` - Interface client
+- `ClientBilanHistory` - Historique coach
+- `BilanTemplates` - Gestion des templates
+
+**Nouveaux types:**
+- `BilanFieldType` - Types de champs
+- `BilanField` - Structure d'un champ
+- `BilanSection` - Structure d'une section
+- `BilanTemplate` - Structure d'un template
+- `BilanAssignment` - Structure d'une assignation
+
+### Principes Architecturaux Respectés
+
+1. **Transaction Atomique** - Toutes les opérations critiques utilisent des fonctions RPC avec rollback automatique
+2. **Source de Vérité Unique** - Les données sont stockées dans PostgreSQL, le front-end ne fait que les afficher
+3. **Snapshot pour l'Historique** - Les templates sont copiés dans `data.template_snapshot` pour préserver l'historique
+4. **Cascade pour la Cohérence** - Suppression automatique des assignations lors de la suppression d'un template
+5. **Séparation des Responsabilités** - Services, hooks et composants ont des rôles bien définis
+6. **Tests Automatisés** - 13 tests couvrent la logique métier critique
+
+### Bénéfices pour les Utilisateurs
+
+**Pour les Coachs:**
+- ✅ Création rapide de questionnaires personnalisés
+- ✅ Assignation en masse avec récurrence automatique
+- ✅ Visualisation claire des réponses clients
+- ✅ Badge indiquant le nombre de clients assignés
+- ✅ Historique complet des bilans complétés
+
+**Pour les Clients:**
+- ✅ Interface intuitive pour remplir les bilans
+- ✅ Support de tous les types de champs (texte, nombre, date, échelle, etc.)
+- ✅ Notifications lors de nouveaux bilans assignés
+- ✅ Historique de leurs bilans complétés
+- ✅ Thème clair/sombre adaptatif
+
+### Leçons Apprises
+
+1. **Vérifier la structure réelle de la base** - Ne pas supposer que les noms de tables correspondent aux conventions (profiles vs clients)
+2. **Tester en production tôt** - Les environnements de preview et production peuvent avoir des différences subtiles
+3. **Squash merge avec prudence** - Les squash merges peuvent perdre des commits de correction si la branche n'est pas à jour
+4. **Appliquer les migrations manuellement** - Cloudflare Pages ne déploie que le front-end, les migrations SQL doivent être appliquées séparément
+5. **Recharger l'état après mutation** - Les compteurs et badges doivent être rechargés après une modification pour une UX réactive
+
+---
 
 ## Intervention #1 - Refactoring Architectural Majeur (Décembre 2025)
 
@@ -257,11 +650,22 @@ Cette vue est interrogée par le front-end via le service `clientProgramProgress
 
 ### Fonction RPC PostgreSQL
 
+**Avant (Intervention #1 - PR #289):**
+
 | Fonction | Description | Paramètres | Retour |
 |:---|:---|:---|:---|
 | `complete_client_session_atomic` | Valide une séance client de manière atomique (transaction). Marque la séance comme complétée, enregistre les performances, et met à jour la progression. | `p_client_session_id`, `p_performances` (JSON) | `success` (boolean), `message` (text) |
 
-Cette fonction est appelée par le front-end via le hook `useSessionCompletion`.
+**Après (Intervention #2 - PR #294 - Décembre 2025):**
+
+| Fonction | Description | Paramètres | Retour |
+|:---|:---|:---|:---|
+| `complete_client_session_atomic` | Valide une séance client de manière atomique (transaction). Marque la séance comme complétée, enregistre les performances, et met à jour la progression. | `p_client_session_id`, `p_performances` (JSON) | `success` (boolean), `message` (text) |
+| `assign_bilan_atomic` | Assigne un bilan à un client de manière atomique. Crée un snapshot du template, insère l'assignation, et envoie une notification au client. | `p_template_id` (UUID), `p_client_id` (UUID), `p_coach_id` (UUID), `p_frequency` (TEXT), `p_scheduled_date` (DATE) | `success` (boolean), `assignment_id` (UUID), `message` (text), `error` (text) |
+| `complete_bilan_atomic` | Complète un bilan de manière atomique. Enregistre les réponses, marque le bilan comme complété, crée une notification pour le coach, et gère la récurrence si nécessaire. | `p_assignment_id` (UUID), `p_answers` (JSONB) | `success` (boolean), `message` (text), `new_assignment_id` (UUID), `new_scheduled_date` (DATE), `error` (text) |
+| `validate_initial_bilan` | Valide le bilan initial d'un client et met à jour son profil avec les données collectées. Marque le client comme actif. | `p_assignment_id` (UUID), `p_coach_id` (UUID) | `success` (boolean), `message` (text), `client_id` (UUID), `error` (text) |
+
+Ces fonctions sont appelées par le front-end via les hooks `useSessionCompletion` et `useBilanAssignments`.
 
 ## Architecture Front-end
 
@@ -269,32 +673,65 @@ L'application front-end est organisée en une architecture à composants avec s�
 
 ### Structure des Répertoires
 
+**Avant (Intervention #1 - PR #289-293):**
+
+```
+/src
+├── /components
+│   ├── ProgramDetailView.tsx
+│   └── ...
+├── /hooks
+│   ├── useSessionCompletion.ts
+│   ├── useClientProgramProgress.ts
+│   └── ...
+├── /services
+│   ├── clientProgramProgressService.ts
+│   └── ...
+├── /test
+│   ├── /logic
+│   │   └── progressionLogic.test.ts (9 tests)
+│   └── README.md
+└── ...
+```
+
+**Après (Intervention #2 - PR #294 - Décembre 2025):**
+
 ```
 /src
 ├── /components       # Composants React réutilisables
-│   ├── ProgramDetailView.tsx  # Modale de consultation des programmes (modifiée en décembre 2025)
+│   ├── ProgramDetailView.tsx     # Modale de consultation des programmes
+│   ├── BilanSection.tsx          # ✅ NOUVEAU - Interface client pour les bilans
+│   ├── ClientBilanHistory.tsx    # ✅ NOUVEAU - Historique des bilans côté coach
 │   └── ...
 ├── /hooks            # Hooks React custom
-│   ├── useSessionCompletion.ts       # Hook pour valider une séance (utilise RPC atomique)
-│   ├── useClientProgramProgress.ts   # Hook pour charger la progression (utilise la vue SQL)
+│   ├── useSessionCompletion.ts       # Hook pour valider une séance
+│   ├── useClientProgramProgress.ts   # Hook pour charger la progression
+│   ├── useBilanTemplates.ts          # ✅ NOUVEAU - Hook pour gérer les templates de bilans
+│   ├── useBilanAssignments.ts        # ✅ NOUVEAU - Hook pour gérer les assignations de bilans
 │   └── ...
 ├── /services         # Services TypeScript pour interactions API
 │   ├── clientProgramProgressService.ts  # Service pour accéder à la vue client_program_progress
+│   ├── bilanTemplateService.ts          # ✅ NOUVEAU - Service pour gérer les templates de bilans
+│   ├── bilanAssignmentService.ts        # ✅ NOUVEAU - Service pour gérer les assignations de bilans
 │   └── ...
 ├── /stores           # Stores Zustand pour gestion d'état global
-│   ├── useAuthStore.ts    # Store d'authentification
-│   ├── useDataStore.ts    # Store de données
+│   ├── useAuthStore.ts
+│   ├── useDataStore.ts
 │   └── ...
 ├── /pages            # Composants de page principaux
-│   ├── /client       # Pages de l'interface client
+│   ├── /client
 │   │   ├── /workout
-│   │   │   └── ClientCurrentProgram.tsx  # Page de séance client (utilise useSessionCompletion)
+│   │   │   └── ClientCurrentProgram.tsx
+│   │   ├── ClientProfile.tsx             # 🔄 MODIFIÉ - Intègre BilanSection
 │   │   └── ...
-│   ├── /coach        # Pages de l'interface coach
-│   └── /admin        # Pages de l'interface admin
+│   ├── /coach
+│   │   ├── BilanTemplates.tsx            # ✅ NOUVEAU - Gestion des templates de bilans
+│   │   └── ...
+│   └── /admin
 ├── /test             # Tests automatisés
 │   ├── /logic
-│   │   └── progressionLogic.test.ts  # Tests de la logique de progression (9 tests)
+│   │   ├── progressionLogic.test.ts  # Tests de la logique de progression (9 tests)
+│   │   └── bilanLogic.test.ts        # ✅ NOUVEAU - Tests de la logique des bilans (13 tests)
 │   └── README.md
 └── ...
 ```
@@ -320,6 +757,33 @@ L'application front-end est organisée en une architecture à composants avec s�
 3. Le service effectue une requête SQL vers la vue `client_program_progress`
 4. La vue calcule automatiquement la progression en temps réel
 5. Les données sont retournées au composant et affichées
+
+#### Assignation d'un Bilan (Décembre 2025)
+
+1. Le coach sélectionne un template et des clients dans `BilanTemplates.tsx`
+2. Le composant appelle le hook `useBilanAssignments.assign()`
+3. Le hook invoque le service `bilanAssignmentService.assignBilanToClient()`
+4. Le service appelle la fonction RPC `assign_bilan_atomic`
+5. La fonction RPC exécute une transaction atomique qui :
+   - Crée un snapshot du template
+   - Insère l'assignation dans `bilan_assignments`
+   - Crée une notification pour le client
+6. En cas de succès, le compteur d'assignations est rechargé automatiquement
+7. En cas d'échec, toutes les modifications sont annulées (rollback)
+
+#### Complétion d'un Bilan (Décembre 2025)
+
+1. Le client remplit le formulaire dans `BilanSection.tsx`
+2. Le composant appelle le hook `useBilanAssignments.complete()`
+3. Le hook invoque le service `bilanAssignmentService.completeBilan()`
+4. Le service appelle la fonction RPC `complete_bilan_atomic`
+5. La fonction RPC exécute une transaction atomique qui :
+   - Enregistre les réponses dans `data.answers`
+   - Marque le statut comme 'completed'
+   - Crée une notification pour le coach
+   - Si récurrence active, crée une nouvelle assignation pour la prochaine échéance
+6. En cas de succès, l'interface est rafraîchie
+7. En cas d'échec, toutes les modifications sont annulées (rollback)
 
 ## Fonctionnalités Clés
 
@@ -369,13 +833,38 @@ L'application front-end est organisée en une architecture à composants avec s�
 
 **Critères de différence:** Toute différence dans les exercices, séries, reps, ordre, ou nombre de séances est détectée.
 
+### Système de Bilans (Décembre 2025)
+
+**Composants principaux:**
+- `src/pages/coach/BilanTemplates.tsx` - Gestion des templates côté coach
+- `src/components/BilanSection.tsx` - Interface client pour remplir les bilans
+- `src/components/ClientBilanHistory.tsx` - Historique des bilans côté coach
+
+**Logique:**
+
+1. **Création de templates** - Le coach crée des questionnaires personnalisés avec 8 types de champs (texte, nombre, date, liste, checkbox, oui/non, échelle, fichier)
+2. **Assignation récurrente** - Le coach assigne un template à un ou plusieurs clients avec une fréquence (once, weekly, biweekly, monthly)
+3. **Snapshot du template** - Lors de l'assignation, le template est copié dans `data.template_snapshot` pour préserver l'historique
+4. **Complétion côté client** - Le client remplit le formulaire, les réponses sont enregistrées dans `data.answers`
+5. **Récurrence automatique** - Si fréquence active, une nouvelle assignation est créée automatiquement après complétion
+6. **Visualisation des réponses** - Le coach peut consulter toutes les réponses dans l'historique du client
+7. **Badge d'assignation** - Chaque template affiche le nombre de clients avec assignations actives
+8. **Suppression en cascade** - La suppression d'un template supprime automatiquement toutes ses assignations
+
+**Transactions atomiques:**
+- `assign_bilan_atomic` - Garantit la cohérence lors de l'assignation
+- `complete_bilan_atomic` - Garantit la cohérence lors de la complétion et gère la récurrence
+- `validate_initial_bilan` - Valide le bilan initial et met à jour le profil client
+
 ## Tests Automatisés
 
 **Framework:** Vitest 3.2.4
 
-**Fichier principal:** `src/test/logic/progressionLogic.test.ts`
+**Avant (Intervention #1 - PR #292):**
 
-**Couverture actuelle:** 9 tests automatisés couvrant la logique de calcul de progression.
+**Fichier:** `src/test/logic/progressionLogic.test.ts`
+
+**Couverture:** 9 tests automatisés couvrant la logique de calcul de progression.
 
 **Tests implémentés:**
 1. Calcul de la séance suivante dans la même semaine
@@ -388,9 +877,34 @@ L'application front-end est organisée en une architecture à composants avec s�
 8. Navigation entre les séances
 9. Validation de la cohérence des données
 
+**Après (Intervention #2 - PR #294 - Décembre 2025):**
+
+**Fichiers:**
+- `src/test/logic/progressionLogic.test.ts` (9 tests)
+- `src/test/logic/bilanLogic.test.ts` (13 tests) ✅ NOUVEAU
+
+**Couverture totale:** 22 tests automatisés
+
+**Nouveaux tests pour les bilans:**
+1. Création d'un template de bilan
+2. Validation de la structure des sections
+3. Assignation d'un bilan à un client
+4. Assignation récurrente (weekly, biweekly, monthly)
+5. Complétion d'un bilan
+6. Validation des réponses
+7. Gestion du snapshot de template
+8. Création d'assignation récurrente après complétion
+9. Archivage de bilans
+10. Suppression de template avec cascade
+11. Validation du bilan initial
+12. Mise à jour du profil client
+13. Gestion des erreurs
+
 **Commande pour lancer les tests:**
 ```bash
-pnpm test
+pnpm test                                    # Tous les tests
+pnpm test src/test/logic/progressionLogic.test.ts  # Tests de progression uniquement
+pnpm test src/test/logic/bilanLogic.test.ts        # Tests de bilans uniquement
 ```
 
 ## Déploiement
@@ -458,6 +972,6 @@ Une **refonte de l'architecture de duplication** pourrait être étudiée pour �
 
 ---
 
-**Fin du document - Version 1.0**
+**Fin du document - Version 1.1**
 
 *Ce document doit être maintenu à jour à chaque intervention significative sur le projet pour conserver sa valeur de référence.*
