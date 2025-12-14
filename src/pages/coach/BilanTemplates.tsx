@@ -298,6 +298,18 @@ const BilanTemplates: React.FC = () => {
         `Bilan "${templateToAssign.name}" assigné avec succès à ${successCount} client(s).`
       );
       setIsAssignModalOpen(false);
+      
+      // Recharger les compteurs d'assignations pour mettre à jour le badge
+      const counts: Record<string, number> = {};
+      for (const template of coachTemplates) {
+        const { count } = await supabase
+          .from('bilan_assignments')
+          .select('*', { count: 'exact', head: true })
+          .eq('bilan_template_id', template.id)
+          .neq('status', 'archived');
+        counts[template.id] = count || 0;
+      }
+      setAssignmentCounts(counts);
     } else {
       alert(
         `${successCount}/${selectedClientIds.length} assignations réussies. Certaines ont échoué.`

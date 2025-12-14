@@ -105,7 +105,7 @@ BEGIN
 
   -- Récupérer le nom du coach pour la notification
   SELECT first_name || ' ' || last_name INTO v_coach_name
-  FROM profiles
+  FROM clients
   WHERE id = p_coach_id;
 
   -- Créer l'assignation avec snapshot du template
@@ -217,7 +217,7 @@ BEGIN
 
   -- Récupérer le nom du client et du template pour la notification
   SELECT first_name || ' ' || last_name INTO v_client_name
-  FROM profiles
+  FROM clients
   WHERE id = v_assignment.client_id;
 
   v_template_name := v_assignment.data->>'template_name';
