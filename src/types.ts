@@ -16,11 +16,14 @@ export interface Notification {
 // ---- BILAN TYPES ----
 export type BilanFieldType =
   | 'text'
+  | 'textarea'
   | 'number'
   | 'date'
   | 'select'
+  | 'checkbox'
+  | 'yesno'
+  | 'scale'
   | 'multiselect'
-  | 'textarea'
   | 'file'
   | 'photo'
   | 'measurement';

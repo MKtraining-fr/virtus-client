@@ -16,6 +16,7 @@ import Modal from '../../components/Modal';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import MeasurementsLineChart from '../../components/charts/MeasurementsLineChart';
+import BilanSection from '../../components/BilanSection';
 
 // --- ICONS ---
 const ShieldCheckIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -322,43 +323,7 @@ const ClientProfile: React.FC = () => {
         </ClientAccordion>
 
         <ClientAccordion title="Mes bilans">
-          {!user?.bilans || user.bilans.length === 0 ? (
-            <p className="text-client-subtle text-center py-4">Aucun bilan assigné.</p>
-          ) : (
-            <div className="space-y-3">
-              {[...user.bilans]
-                .sort((a, b) => new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime())
-                .map((bilan) => (
-                  <div
-                    key={bilan.id}
-                    className="flex flex-wrap justify-between items-center p-3 bg-client-dark rounded-lg border border-gray-700"
-                  >
-                    <div>
-                      <p className="font-semibold text-client-light">{bilan.templateName}</p>
-                      <p className="text-sm text-client-subtle">
-                        Assigné le: {new Date(bilan.assignedAt).toLocaleDateString('fr-FR')} -
-                        Statut:
-                        <span
-                          className={`font-medium ${bilan.status === 'completed' ? 'text-green-400' : 'text-yellow-400'}`}
-                        >
-                          {bilan.status === 'completed' ? ' Complété' : ' En attente'}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="mt-2 sm:mt-0">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => setSelectedBilan(bilan)}
-                        disabled={!bilan.answers && bilan.status === 'completed'}
-                      >
-                        {bilan.status === 'pending' ? 'Remplir le bilan' : 'Consulter'}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
+          <BilanSection userId={user?.id || ''} theme={theme} />
         </ClientAccordion>
 
         <ClientAccordion title="Mensurations & Photos">

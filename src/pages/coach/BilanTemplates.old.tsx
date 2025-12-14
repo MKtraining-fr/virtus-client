@@ -1,12 +1,3 @@
-/**
- * Page de gestion des templates de bilans (version refactorisée)
- * Utilise les hooks useBilanTemplates et useBilanAssignments
- * Stocke les données dans Supabase au lieu de l'état local
- * 
- * Version: 2.0
- * Date: 2025-12-14
- */
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -14,15 +5,14 @@ import {
   BilanSection,
   BilanField,
   BilanFieldType,
+  Client,
+  BilanResult,
 } from '../../types';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
 import Select from '../../components/Select';
-import { useBilanTemplates } from '../../hooks/useBilanTemplates';
-import { useBilanAssignments } from '../../hooks/useBilanAssignments';
-import { supabase } from '../../services/supabase';
 
 const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -33,14 +23,14 @@ const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => (
     stroke="currentColor"
     {...props}
   >
+    {' '}
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
       d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.067-2.09 1.02-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-    />
+    />{' '}
   </svg>
 );
-
 const PlusIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -50,16 +40,27 @@ const PlusIcon = (props: React.SVGProps<SVGSVGElement>) => (
     stroke="currentColor"
     {...props}
   >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    {' '}
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />{' '}
+  </svg>
+);
+const ChevronDownIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    {...props}
+  >
+    {' '}
+    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />{' '}
   </svg>
 );
 
 const BilanTemplates: React.FC = () => {
-  const { user, clients } = useAuth();
-  const { templates, loading, error, create, update, remove, duplicate, clearError } =
-    useBilanTemplates(user?.id);
-  const { assign } = useBilanAssignments(user?.id, 'coach');
-
+  const { user, bilanTemplates, setBilanTemplates, clients, addNotification, setClients } =
+    useAuth();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editModalStep, setEditModalStep] = useState<'select' | 'edit'>('select');
   const [currentTemplate, setCurrentTemplate] = useState<Partial<BilanTemplate> | null>(null);
@@ -70,46 +71,16 @@ const BilanTemplates: React.FC = () => {
   const [assignmentFrequency, setAssignmentFrequency] = useState<
     'once' | 'weekly' | 'biweekly' | 'monthly'
   >('once');
-  const [scheduledDate, setScheduledDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
   const [clientSearchTerm, setClientSearchTerm] = useState('');
-  const [isAssigning, setIsAssigning] = useState(false);
-  const [assignmentCounts, setAssignmentCounts] = useState<Record<string, number>>({});
 
   const coachTemplates = useMemo(
-    () => templates.filter((t) => t.coachId === 'system' || t.coachId === user?.id),
-    [templates, user]
+    () => bilanTemplates.filter((t) => t.coachId === 'system' || t.coachId === user?.id),
+    [bilanTemplates, user]
   );
 
-  const [templateToCopy, setTemplateToCopy] = useState<string>('');
-
-  // Initialiser templateToCopy quand coachTemplates est chargé
-  useEffect(() => {
-    if (coachTemplates.length > 0 && !templateToCopy) {
-      setTemplateToCopy(coachTemplates[0].id);
-    }
-  }, [coachTemplates, templateToCopy]);
-
-  // Charger le nombre d'assignations pour chaque template
-  useEffect(() => {
-    const loadAssignmentCounts = async () => {
-      const counts: Record<string, number> = {};
-      for (const template of coachTemplates) {
-        // Compter les assignations actives (non archivées)
-        const { count } = await supabase
-          .from('bilan_assignments')
-          .select('*', { count: 'exact', head: true })
-          .eq('bilan_template_id', template.id)
-          .neq('status', 'archived');
-        counts[template.id] = count || 0;
-      }
-      setAssignmentCounts(counts);
-    };
-    if (coachTemplates.length > 0) {
-      loadAssignmentCounts();
-    }
-  }, [coachTemplates]);
+  const [templateToCopy, setTemplateToCopy] = useState<string>(coachTemplates[0]?.id || '');
+  const addMenuRef = useRef<HTMLDivElement>(null);
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
 
   const myClients = useMemo(() => {
     return clients.filter(
@@ -127,20 +98,21 @@ const BilanTemplates: React.FC = () => {
     );
   }, [myClients, clientSearchTerm]);
 
-  // Afficher les erreurs
   useEffect(() => {
-    if (error) {
-      alert(error);
-      clearError();
-    }
-  }, [error, clearError]);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(event.target as Node)) {
+        setIsAddMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const openEditModal = (template: BilanTemplate) => {
     const templateCopy = JSON.parse(JSON.stringify(template));
     if (template.coachId === 'system') {
       handleDuplicate(template.id, `Copie de ${template.name}`);
     } else {
-      // Aplatir toutes les sections en une seule pour l'édition
       if (templateCopy.sections.length > 1) {
         const allFields = templateCopy.sections.flatMap((s: BilanSection) => s.fields);
         templateCopy.sections = [
@@ -180,9 +152,9 @@ const BilanTemplates: React.FC = () => {
     setEditModalStep('edit');
   };
 
-  const handleDuplicate = async (idToCopy?: string, newName?: string) => {
+  const handleDuplicate = (idToCopy?: string, newName?: string) => {
     const finalIdToCopy = idToCopy || templateToCopy;
-    const template = templates.find((t) => t.id === finalIdToCopy);
+    const template = bilanTemplates.find((t) => t.id === finalIdToCopy);
     if (template) {
       const duplicatedTemplate = JSON.parse(JSON.stringify(template));
       const allFields = duplicatedTemplate.sections.flatMap((s: BilanSection) => s.fields);
@@ -204,44 +176,33 @@ const BilanTemplates: React.FC = () => {
     }
   };
 
-  const handleSave = async () => {
-    if (!currentTemplate || !currentTemplate.name || !user) {
+  const handleSave = () => {
+    if (!currentTemplate || !currentTemplate.name) {
       alert('Le nom du modèle est obligatoire.');
       return;
     }
 
-    let success = false;
-
     if (currentTemplate.id) {
-      // Mise à jour
-      success = await update({
-        id: currentTemplate.id,
-        name: currentTemplate.name,
-        sections: currentTemplate.sections || [],
-      });
+      // Edit
+      setBilanTemplates(
+        bilanTemplates.map((t) =>
+          t.id === currentTemplate!.id ? (currentTemplate as BilanTemplate) : t
+        )
+      );
     } else {
-      // Création
-      success = await create({
-        name: currentTemplate.name,
-        sections: currentTemplate.sections || [],
-        coachId: user.id,
-      });
+      // Add
+      const newTemplate: BilanTemplate = {
+        ...currentTemplate,
+        id: `template-${Date.now()}`,
+      } as BilanTemplate;
+      setBilanTemplates([...bilanTemplates, newTemplate]);
     }
-
-    if (success) {
-      setIsEditModalOpen(false);
-      setCurrentTemplate(null);
-    }
+    setIsEditModalOpen(false);
   };
 
-  const handleDelete = async (templateId: string) => {
-    const confirmMessage =
-      'Attention : La suppression de ce template est définitive.\n\n' +
-      'Les bilans déjà assignés aux clients conserveront une copie du template et ne seront pas affectés.\n\n' +
-      'Êtes-vous sûr de vouloir continuer ?';
-
-    if (window.confirm(confirmMessage)) {
-      await remove(templateId);
+  const handleDelete = (templateId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce modèle ?')) {
+      setBilanTemplates(bilanTemplates.filter((t) => t.id !== templateId));
     }
   };
 
@@ -250,59 +211,42 @@ const BilanTemplates: React.FC = () => {
     setTemplateToAssign(template);
     setSelectedClientIds([]);
     setAssignmentFrequency('once');
-    setScheduledDate(new Date().toISOString().split('T')[0]);
     setClientSearchTerm('');
     setIsAssignModalOpen(true);
   };
 
-  const handleAssign = async () => {
+  const handleAssign = () => {
     if (!templateToAssign || selectedClientIds.length === 0 || !user) return;
 
-    // Confirmation
-    const confirmMessage = `Êtes-vous sûr de vouloir assigner le bilan "${templateToAssign.name}" à ${selectedClientIds.length} client(s) ?\n\nFréquence : ${
-      assignmentFrequency === 'once'
-        ? 'Envoi unique'
-        : assignmentFrequency === 'weekly'
-        ? 'Hebdomadaire'
-        : assignmentFrequency === 'biweekly'
-        ? 'Toutes les 2 semaines'
-        : 'Mensuel'
-    }\nDate de première assignation : ${new Date(scheduledDate).toLocaleDateString('fr-FR')}`;
+    const newBilan: BilanResult = {
+      id: `bilan-${Date.now()}`,
+      templateId: templateToAssign.id,
+      templateName: templateToAssign.name,
+      status: 'pending',
+      assignedAt: new Date().toISOString(),
+    };
 
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
-
-    setIsAssigning(true);
-
-    // Assigner le bilan à chaque client sélectionné
-    let successCount = 0;
-    for (const clientId of selectedClientIds) {
-      const success = await assign({
-        templateId: templateToAssign.id,
-        clientId,
-        coachId: user.id,
-        frequency: assignmentFrequency,
-        scheduledDate,
-      });
-
-      if (success) {
-        successCount++;
+    const updatedClients = clients.map((client) => {
+      if (selectedClientIds.includes(client.id)) {
+        const updatedBilans = [...(client.bilans || []), newBilan];
+        return { ...client, bilans: updatedBilans };
       }
-    }
+      return client;
+    });
+    setClients(updatedClients);
 
-    setIsAssigning(false);
+    selectedClientIds.forEach((clientId) => {
+      addNotification({
+        userId: clientId,
+        fromName: `${user.firstName} ${user.lastName}`,
+        type: 'assignment',
+        message: `vous a assigné un nouveau bilan à remplir : ${templateToAssign.name}.`,
+        link: '/app/profile',
+      });
+    });
 
-    if (successCount === selectedClientIds.length) {
-      alert(
-        `Bilan "${templateToAssign.name}" assigné avec succès à ${successCount} client(s).`
-      );
-      setIsAssignModalOpen(false);
-    } else {
-      alert(
-        `${successCount}/${selectedClientIds.length} assignations réussies. Certaines ont échoué.`
-      );
-    }
+    alert(`Bilan "${templateToAssign.name}" assigné à ${selectedClientIds.length} client(s).`);
+    setIsAssignModalOpen(false);
   };
 
   // --- Modal form handlers ---
@@ -362,14 +306,6 @@ const BilanTemplates: React.FC = () => {
 
   const modalTitle = currentTemplate?.id ? 'Modifier le modèle' : 'Créer un modèle';
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-gray-500">Chargement des templates...</p>
-      </div>
-    );
-  }
-
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -384,18 +320,6 @@ const BilanTemplates: React.FC = () => {
               <p className="text-sm text-gray-500 mt-1">
                 {template.sections.reduce((acc, s) => acc + s.fields.length, 0)} question(s)
               </p>
-              <div className="flex gap-2 mt-2">
-                {template.coachId === 'system' && (
-                  <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                    Système
-                  </span>
-                )}
-                {assignmentCounts[template.id] > 0 && (
-                  <span className="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
-                    {assignmentCounts[template.id]} client{assignmentCounts[template.id] > 1 ? 's' : ''} assigné{assignmentCounts[template.id] > 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
             </div>
             <div className="bg-gray-50 p-4 flex justify-end space-x-2">
               {template.coachId !== 'system' ? (
@@ -411,21 +335,15 @@ const BilanTemplates: React.FC = () => {
                   </Button>
                 </>
               ) : (
-                <>
-                  <Button size="sm" onClick={() => handleOpenAssignModal(template)}>
-                    Assigner
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => openEditModal(template)}>
-                    Dupliquer & Modifier
-                  </Button>
-                </>
+                <Button variant="secondary" size="sm" onClick={() => openEditModal(template)}>
+                  Dupliquer & Modifier
+                </Button>
               )}
             </div>
           </Card>
         ))}
       </div>
 
-      {/* Modal de création/édition */}
       <Modal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
@@ -451,7 +369,7 @@ const BilanTemplates: React.FC = () => {
                 <div className="space-y-4">
                   <Select
                     value={templateToCopy}
-                    onChange={(value) => setTemplateToCopy(value as string)}
+                    onChange={(e) => setTemplateToCopy(e.target.value)}
                   >
                     {coachTemplates.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -507,10 +425,10 @@ const BilanTemplates: React.FC = () => {
                               <Select
                                 label="Type"
                                 value={field.type}
-                                onChange={(value) =>
+                                onChange={(e) =>
                                   updateField(mainSection.id, field.id, {
                                     ...field,
-                                    type: value as BilanFieldType,
+                                    type: e.target.value as BilanFieldType,
                                   })
                                 }
                               >
@@ -519,7 +437,7 @@ const BilanTemplates: React.FC = () => {
                                 <option value="number">Nombre</option>
                                 <option value="select">Liste déroulante</option>
                                 <option value="checkbox">Sélection multiple</option>
-                                <option value="yesno">Oui/Non</option>
+                                <option value="radio_yes_no">Oui/Non</option>
                                 <option value="scale">Échelle (1-10)</option>
                               </Select>
                             </div>
@@ -584,7 +502,6 @@ const BilanTemplates: React.FC = () => {
         )}
       </Modal>
 
-      {/* Modal d'assignation */}
       {isAssignModalOpen && templateToAssign && (
         <Modal
           isOpen={isAssignModalOpen}
@@ -629,28 +546,19 @@ const BilanTemplates: React.FC = () => {
             <Select
               label="Fréquence d'envoi"
               value={assignmentFrequency}
-              onChange={(value) => setAssignmentFrequency(value as any)}
+              onChange={(e) => setAssignmentFrequency(e.target.value as any)}
             >
               <option value="once">Envoi unique</option>
               <option value="weekly">Toutes les semaines</option>
               <option value="biweekly">Toutes les deux semaines</option>
               <option value="monthly">Tous les mois</option>
             </Select>
-            <Input
-              type="date"
-              label="Date de première assignation"
-              value={scheduledDate}
-              onChange={(e) => setScheduledDate(e.target.value)}
-            />
             <div className="flex justify-end space-x-2 pt-4">
               <Button variant="secondary" onClick={() => setIsAssignModalOpen(false)}>
                 Annuler
               </Button>
-              <Button
-                onClick={handleAssign}
-                disabled={selectedClientIds.length === 0 || isAssigning}
-              >
-                {isAssigning ? 'Assignation en cours...' : 'Assigner'}
+              <Button onClick={handleAssign} disabled={selectedClientIds.length === 0}>
+                Assigner
               </Button>
             </div>
           </div>

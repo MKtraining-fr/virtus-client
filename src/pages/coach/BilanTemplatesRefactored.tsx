@@ -22,7 +22,6 @@ import Input from '../../components/Input';
 import Select from '../../components/Select';
 import { useBilanTemplates } from '../../hooks/useBilanTemplates';
 import { useBilanAssignments } from '../../hooks/useBilanAssignments';
-import { supabase } from '../../services/supabase';
 
 const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -75,7 +74,6 @@ const BilanTemplates: React.FC = () => {
   );
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
-  const [assignmentCounts, setAssignmentCounts] = useState<Record<string, number>>({});
 
   const coachTemplates = useMemo(
     () => templates.filter((t) => t.coachId === 'system' || t.coachId === user?.id),
@@ -90,26 +88,6 @@ const BilanTemplates: React.FC = () => {
       setTemplateToCopy(coachTemplates[0].id);
     }
   }, [coachTemplates, templateToCopy]);
-
-  // Charger le nombre d'assignations pour chaque template
-  useEffect(() => {
-    const loadAssignmentCounts = async () => {
-      const counts: Record<string, number> = {};
-      for (const template of coachTemplates) {
-        // Compter les assignations actives (non archivées)
-        const { count } = await supabase
-          .from('bilan_assignments')
-          .select('*', { count: 'exact', head: true })
-          .eq('bilan_template_id', template.id)
-          .neq('status', 'archived');
-        counts[template.id] = count || 0;
-      }
-      setAssignmentCounts(counts);
-    };
-    if (coachTemplates.length > 0) {
-      loadAssignmentCounts();
-    }
-  }, [coachTemplates]);
 
   const myClients = useMemo(() => {
     return clients.filter(
@@ -235,12 +213,7 @@ const BilanTemplates: React.FC = () => {
   };
 
   const handleDelete = async (templateId: string) => {
-    const confirmMessage =
-      'Attention : La suppression de ce template est définitive.\n\n' +
-      'Les bilans déjà assignés aux clients conserveront une copie du template et ne seront pas affectés.\n\n' +
-      'Êtes-vous sûr de vouloir continuer ?';
-
-    if (window.confirm(confirmMessage)) {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce modèle ?')) {
       await remove(templateId);
     }
   };
@@ -384,18 +357,11 @@ const BilanTemplates: React.FC = () => {
               <p className="text-sm text-gray-500 mt-1">
                 {template.sections.reduce((acc, s) => acc + s.fields.length, 0)} question(s)
               </p>
-              <div className="flex gap-2 mt-2">
-                {template.coachId === 'system' && (
-                  <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                    Système
-                  </span>
-                )}
-                {assignmentCounts[template.id] > 0 && (
-                  <span className="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
-                    {assignmentCounts[template.id]} client{assignmentCounts[template.id] > 1 ? 's' : ''} assigné{assignmentCounts[template.id] > 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
+              {template.coachId === 'system' && (
+                <span className="inline-block mt-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                  Système
+                </span>
+              )}
             </div>
             <div className="bg-gray-50 p-4 flex justify-end space-x-2">
               {template.coachId !== 'system' ? (
@@ -451,7 +417,7 @@ const BilanTemplates: React.FC = () => {
                 <div className="space-y-4">
                   <Select
                     value={templateToCopy}
-                    onChange={(value) => setTemplateToCopy(value as string)}
+                    onChange={(e) => setTemplateToCopy(e.target.value)}
                   >
                     {coachTemplates.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -507,10 +473,10 @@ const BilanTemplates: React.FC = () => {
                               <Select
                                 label="Type"
                                 value={field.type}
-                                onChange={(value) =>
+                                onChange={(e) =>
                                   updateField(mainSection.id, field.id, {
                                     ...field,
-                                    type: value as BilanFieldType,
+                                    type: e.target.value as BilanFieldType,
                                   })
                                 }
                               >
@@ -519,7 +485,7 @@ const BilanTemplates: React.FC = () => {
                                 <option value="number">Nombre</option>
                                 <option value="select">Liste déroulante</option>
                                 <option value="checkbox">Sélection multiple</option>
-                                <option value="yesno">Oui/Non</option>
+                                <option value="radio_yes_no">Oui/Non</option>
                                 <option value="scale">Échelle (1-10)</option>
                               </Select>
                             </div>
@@ -629,7 +595,7 @@ const BilanTemplates: React.FC = () => {
             <Select
               label="Fréquence d'envoi"
               value={assignmentFrequency}
-              onChange={(value) => setAssignmentFrequency(value as any)}
+              onChange={(e) => setAssignmentFrequency(e.target.value as any)}
             >
               <option value="once">Envoi unique</option>
               <option value="weekly">Toutes les semaines</option>

@@ -23,6 +23,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import SimpleLineChart from '../components/charts/SimpleLineChart';
 import MeasurementsLineChart from '../components/charts/MeasurementsLineChart';
+import ClientBilanHistory from '../components/ClientBilanHistory';
 
 /* ------------------------- ICONS ------------------------- */
 const EnvelopeIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -428,23 +429,7 @@ const ClientProfile: React.FC = () => {
 
       {/* Bilans */}
       <Accordion title="Historique des Bilans" defaultOpen={true}>
-        {bilans.length > 0 ? (
-          <div className="space-y-4">
-            {bilans.map((bilan) => (
-              <Card key={bilan.id} className="p-4 flex justify-between items-center">
-                <div>
-                  <h4 className="font-semibold text-lg">{bilan.templateName}</h4>
-                  <p className="text-sm text-gray-500">Complété le {bilan.completionDate}</p>
-                </div>
-                <Button onClick={() => setSelectedBilan(bilan)} variant="secondary" size="sm">
-                  Voir Bilan
-                </Button>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500">Aucun bilan complété.</p>
-        )}
+        <ClientBilanHistory clientId={client.id} coachId={user.id} />
       </Accordion>
 
       {/* Nutrition */}
