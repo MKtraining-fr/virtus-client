@@ -139,12 +139,35 @@ const WeekContent: React.FC<{ sessions: WorkoutSession[] }> = ({ sessions }) => 
 );
 
 const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
+  const [showAllWeeks, setShowAllWeeks] = useState<boolean>(false);
+
   const weeks = Object.keys(program.sessionsByWeek)
     .map(Number)
     .sort((a, b) => a - b);
   
   // La semaine de référence est toujours la semaine 1
   const firstWeekSessions = program.sessionsByWeek[1] || [];
+
+  // Déterminer quelles semaines sont différentes de la semaine 1
+  const weekDifferences = useMemo(() => {
+    console.log('[ProgramDetailView] Calculating week differences for program:', program.name);
+    
+    const differences: Record<number, boolean> = {};
+    
+    weeks.forEach((weekNumber) => {
+      if (weekNumber === 1) {
+        differences[weekNumber] = false; // La semaine 1 est la référence
+      } else {
+        const currentWeekSessions = program.sessionsByWeek[weekNumber] || [];
+        const isDifferent = !areSessionsIdentical(firstWeekSessions, currentWeekSessions);
+        differences[weekNumber] = isDifferent;
+        console.log(`[ProgramDetailView] Week ${weekNumber} different from week 1?`, isDifferent);
+      }
+    });
+    
+    return differences;
+  }, [program.sessionsByWeek, weeks, firstWeekSessions]);
 
   const allWeeksIdentical = useMemo(() => {
     console.log('[ProgramDetailView] Checking if weeks are identical for program:', program.name);
@@ -156,21 +179,12 @@ const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
       return true;
     }
 
-    // Comparer toutes les semaines avec la semaine 1
-    for (let i = 1; i < weeks.length; i++) {
-      const weekNumber = weeks[i];
-      const currentWeekSessions = program.sessionsByWeek[weekNumber] || [];
-      const identical = areSessionsIdentical(firstWeekSessions, currentWeekSessions);
-      console.log(`[ProgramDetailView] Week ${weekNumber} identical to week 1?`, identical);
-      
-      if (!identical) {
-        console.log('[ProgramDetailView] Found difference, returning false');
-        return false;
-      }
-    }
-    console.log('[ProgramDetailView] All weeks identical, returning true');
-    return true;
-  }, [program.sessionsByWeek, weeks, firstWeekSessions]);
+    // Vérifier si au moins une semaine est différente
+    const hasDifferences = Object.values(weekDifferences).some(isDiff => isDiff);
+    console.log('[ProgramDetailView] Has differences?', hasDifferences);
+    
+    return !hasDifferences;
+  }, [weekDifferences, weeks.length, firstWeekSessions]);
 
   if (weeks.length === 0) {
     return (
@@ -186,7 +200,9 @@ const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
   return (
     <div className="space-y-2">
       <h3 className="p-3 text-lg font-bold bg-gray-50 border rounded-t-lg -mb-2">{program.name}</h3>
+      
       {allWeeksIdentical ? (
+        // Scénario 1 : Toutes les semaines sont identiques
         <Accordion
           title={weeks.length > 1 ? `Semaines 1 à ${weeks.length} (identiques)` : 'Semaine 1'}
           isOpenDefault={true}
@@ -194,13 +210,69 @@ const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
           <WeekContent sessions={firstWeekSessions} />
         </Accordion>
       ) : (
-        weeks.map((weekNumber) => {
-          return (
-            <Accordion key={weekNumber} title={`Semaine ${weekNumber}`} isOpenDefault={weekNumber === 1}>
-              <WeekContent sessions={program.sessionsByWeek[weekNumber]} />
-            </Accordion>
-          );
-        })
+        // Scénario 2 : Les semaines sont différentes
+        <div className="space-y-3">
+          {/* Indicateur "Semaines variables" */}
+          {!showAllWeeks && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span className="text-blue-800 font-medium">Semaines variables</span>
+              </div>
+              <button
+                onClick={() => setShowAllWeeks(true)}
+                className="text-blue-600 hover:text-blue-800 font-medium text-sm underline"
+              >
+                Voir toutes les semaines
+              </button>
+            </div>
+          )}
+
+          {/* Navigation par onglets (si showAllWeeks est true) */}
+          {showAllWeeks && (
+            <div className="bg-white border border-gray-200 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-gray-700">Sélectionner une semaine :</span>
+                <button
+                  onClick={() => setShowAllWeeks(false)}
+                  className="text-gray-500 hover:text-gray-700 text-sm"
+                >
+                  Masquer
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {weeks.map((weekNumber) => (
+                  <button
+                    key={weekNumber}
+                    onClick={() => setSelectedWeek(weekNumber)}
+                    className={`
+                      relative px-4 py-2 rounded-lg font-medium text-sm transition-colors
+                      ${selectedWeek === weekNumber
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }
+                    `}
+                  >
+                    Semaine {weekNumber}
+                    {weekDifferences[weekNumber] && (
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" title="Différente de la semaine 1"></span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Affichage de la semaine sélectionnée */}
+          <Accordion
+            title={`Semaine ${selectedWeek}`}
+            isOpenDefault={true}
+          >
+            <WeekContent sessions={program.sessionsByWeek[selectedWeek]} />
+          </Accordion>
+        </div>
       )}
     </div>
   );
