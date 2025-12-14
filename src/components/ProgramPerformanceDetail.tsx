@@ -132,6 +132,10 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
             <td key={week} className="p-2 text-left border-l min-w-[192px]">
               {exerciseLogInLog ? (
                 <div className="flex items-center w-full">
+                  {/* ✅ FIX: Pastille à gauche comme pour les détails */}
+                  <div className="w-5 shrink-0 flex items-center justify-center">
+                    {hasUnviewedSets && <UnviewedDot />}
+                  </div>
                   <span className={`w-10 text-right pr-1 font-mono ${repsClass}`}>
                     {formatValue(avgReps)}
                   </span>
@@ -149,7 +153,6 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
                         title="Des commentaires sont présents dans cette séance"
                       />
                     )}
-                    {hasUnviewedSets && <UnviewedDot />}
                   </div>
                 </div>
               ) : (

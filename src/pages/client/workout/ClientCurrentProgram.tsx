@@ -15,6 +15,7 @@ import Button from '../../../components/Button';
 import { savePerformanceLog } from '../../../services/performanceLogService';
 import { updateClientProgress, markSessionAsCompleted } from '../../../services/clientProgramService';
 import { createClientSession, createClientSessionExercise, getClientProgramIdFromAssignment, findExistingClientSession, updateSessionStatus } from '../../../services/clientSessionService';
+import { useSessionCompletion } from '../../../hooks/useSessionCompletion';
 import {
   ArrowLeftIcon,
   ClockIcon,
@@ -63,6 +64,10 @@ const ClientCurrentProgram: React.FC = () => {
   const isProgramLoading = !user || !baseProgram;
 
   const currentWeek = useMemo(() => user?.programWeek || 1, [user]);
+
+  // Hook pour la complétion atomique de séance
+  const clientProgramId = useMemo(() => (baseProgram as any)?.id || null, [baseProgram]);
+  const { completeSession, isCompleting } = useSessionCompletion(clientProgramId);
 
   const [localProgram, setLocalProgram] = useState<WorkoutProgram | undefined>(baseProgram || undefined);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
@@ -353,7 +358,7 @@ const ClientCurrentProgram: React.FC = () => {
   };
 
   const handleFinishSession = async () => {
-    console.log('[DEBUG] Début handleFinishSession');
+    console.log('[DEBUG] Début handleFinishSession (version atomique)');
 
     if (!localProgram || !activeSession || !user) {
       console.error('[DEBUG] Données manquantes', { hasProgram: !!localProgram, hasSession: !!activeSession, hasUser: !!user });
@@ -361,6 +366,7 @@ const ClientCurrentProgram: React.FC = () => {
       return;
     }
 
+    // Vérifier si des exercices ne sont pas complétés
     const hasUnloggedExercises = activeSession.exercises.some((exercise) => {
       const loggedSetsForExercise = logData[exercise.id.toString()] || [];
       return !loggedSetsForExercise.some((set) => set.reps.trim() !== '' || set.load.trim() !== '');
@@ -373,6 +379,7 @@ const ClientCurrentProgram: React.FC = () => {
       }
     }
 
+    // Préparer les exerciseLogs pour la modale (format ancien)
     const exerciseLogsForSession: ExerciseLog[] = activeSession.exercises
       .map((exercise) => {
         const loggedSetsForExercise = logData[exercise.id.toString()] || [];
@@ -392,6 +399,7 @@ const ClientCurrentProgram: React.FC = () => {
       })
       .filter((log): log is ExerciseLog => log !== null);
 
+    // Envoyer une notification au coach
     if (exerciseLogsForSession.length > 0 && user.coachId) {
       addNotification({
         userId: user.coachId,
@@ -402,36 +410,26 @@ const ClientCurrentProgram: React.FC = () => {
       });
     }
 
-    const newLogEntry: PerformanceLog = {
-      date: new Date().toLocaleDateString('fr-FR'),
-      week: currentWeek,
-      programName: localProgram.name,
-      sessionName: activeSession.name,
-      exerciseLogs: exerciseLogsForSession,
-    };
-
     const programAssignmentId = (localProgram as any).assignmentId || null;
-    const sessionTemplateId = activeSession.id;
     
-    console.log('[DEBUG] Étape 0: Récupération du client_program_id');
+    console.log('[DEBUG] Récupération du client_program_id');
+    const clientProgramIdValue = await getClientProgramIdFromAssignment(programAssignmentId);
     
-    // ✅ Récupérer le client_program_id à partir de l'assignment_id
-    const clientProgramId = await getClientProgramIdFromAssignment(programAssignmentId);
-    
-    if (!clientProgramId) {
+    if (!clientProgramIdValue) {
       console.error('[DEBUG] Échec récupération client_program_id');
       addNotification({ message: 'Erreur lors de la récupération du programme.', type: 'error' });
       return;
     }
     
-    console.log('[DEBUG] client_program_id récupéré:', clientProgramId);
-    console.log('[DEBUG] Étape 1: Recherche de la client_session existante');
+    console.log('[DEBUG] Recherche de la client_session existante');
     
-    // ✅ CORRECTION: Chercher la séance existante au lieu d'en créer une nouvelle
+    // ✅ FIX: Calculer le session_order réel basé sur selectedSessionIndex
+    const actualSessionOrder = selectedSessionIndex + 1;
+    
     const existingSession = await findExistingClientSession(
-      clientProgramId,
+      clientProgramIdValue,
       currentWeek,
-      user.sessionProgress || 1
+      actualSessionOrder
     );
     
     let clientSessionId: string | null = null;
@@ -439,23 +437,17 @@ const ClientCurrentProgram: React.FC = () => {
     if (existingSession) {
       console.log('[DEBUG] Séance existante trouvée:', existingSession.id);
       clientSessionId = existingSession.id;
-      
-      // Marquer la séance comme complétée
-      const updated = await updateSessionStatus(clientSessionId, 'completed');
-      if (!updated) {
-        console.warn('[DEBUG] Échec mise à jour statut séance');
-      }
     } else {
-      console.log('[DEBUG] Aucune séance existante, création d\'une nouvelle');
+      console.log('[DEBUG] Aucune séance existante, création avec session_order:', actualSessionOrder);
       
-      // Créer une nouvelle séance uniquement si elle n'existe pas
+      // Créer une nouvelle séance si elle n'existe pas
       clientSessionId = await createClientSession({
-        client_program_id: clientProgramId,
+        client_program_id: clientProgramIdValue,
         client_id: user.id,
         name: activeSession.name,
         week_number: currentWeek,
-        session_order: user.sessionProgress || 1,
-        status: 'completed'
+        session_order: actualSessionOrder,
+        status: 'pending'
       });
       
       if (!clientSessionId) {
@@ -464,12 +456,9 @@ const ClientCurrentProgram: React.FC = () => {
         return;
       }
       
-      console.log('[DEBUG] client_session créé:', clientSessionId);
-      console.log('[DEBUG] Étape 2: Création des client_session_exercises');
-      
-      // Créer les exercices de la séance uniquement pour les nouvelles séances
+      // Créer les exercices de la séance
       for (const exercise of activeSession.exercises) {
-        const success = await createClientSessionExercise({
+        await createClientSessionExercise({
           client_session_id: clientSessionId,
           exercise_id: exercise.exerciseId.toString(),
           client_id: user.id,
@@ -481,71 +470,41 @@ const ClientCurrentProgram: React.FC = () => {
           rest_time: exercise.details?.[0]?.rest || undefined,
           details: exercise.details || undefined
         });
-        
-        if (!success) {
-          console.warn(`[DEBUG] Échec création exercice ${exercise.name}`);
-        }
       }
     }
-    
-    console.log('[DEBUG] Étape 3: Sauvegarde des performances');
-    console.log('[DEBUG] Tentative sauvegarde logs...', { programAssignmentId, clientSessionId });
-    
-    // ✅ Maintenant on peut sauvegarder avec le bon client_session_id
-    const savedLogId = await savePerformanceLog(
-      user.id,
-      programAssignmentId,
-      clientSessionId, // ← Maintenant c'est le bon ID
-      newLogEntry,
-      user.coachId
-    );
 
-    console.log('[DEBUG] Résultat sauvegarde:', savedLogId);
-
-    if (!savedLogId) {
-      addNotification({ message: 'Erreur lors de la sauvegarde.', type: 'error' });
+    console.log('[DEBUG] Appel de la fonction RPC atomique');
+    
+    // ✅ NOUVELLE APPROCHE: Appel de la fonction RPC atomique
+    const result = await completeSession(activeSession, clientSessionId, logData);
+    
+    if (!result.success) {
+      console.error('[DEBUG] Échec complétion atomique:', result.error);
+      addNotification({ 
+        message: result.error || 'Erreur lors de la complétion de la séance.', 
+        type: 'error' 
+      });
       return;
     }
+
+    console.log('[DEBUG] Séance complétée avec succès:', result.performanceLogId);
 
     // Préparation progression
     let nextSessionProgress = (user.sessionProgress || 1) + 1;
     let nextProgramWeek = user.programWeek || 1;
     
-    const sessionsForCurrentWeek = localProgram.sessionsByWeek[nextProgramWeek] || localProgram.sessionsByWeek[1] || [];
+    // ✅ FIX: Utiliser la semaine ACTUELLE pour vérifier le nombre de séances
+    const sessionsForCurrentWeek = localProgram.sessionsByWeek[user.programWeek || 1] || localProgram.sessionsByWeek[1] || [];
     if (nextSessionProgress > sessionsForCurrentWeek.length) {
       nextProgramWeek++;
       nextSessionProgress = 1;
     }
 
-    // Optimistic update
-    const updatedClients = clients.map((c) => {
-        if (c.id === user.id) {
-          const newPerformanceLog = [...(c.performanceLog || []), newLogEntry];
-          const totalWeeks = c.totalWeeks || localProgram.weekCount;
-          const isLastSessionOfProgram = nextProgramWeek > totalWeeks;
-          
-          if (isLastSessionOfProgram) {
-             return { ...c, performanceLog: newPerformanceLog };
-          }
-          return {
-            ...c,
-            performanceLog: newPerformanceLog,
-            sessionProgress: nextSessionProgress,
-            programWeek: nextProgramWeek,
-          };
-        }
-        return c;
-    });
-
     const totalWeeks = localProgram.weekCount;
     const wasProgramFinished = nextProgramWeek > totalWeeks;
     const hasNextProgram = (user.assignedPrograms?.length || 0) > 1;
 
-    console.log('[DEBUG] Étape 4: Application des mises à jour');
-    
-    // ✅ APPLIQUER LES MISES À JOUR IMMÉDIATEMENT
-    // Note: markSessionAsCompleted est pour l'ancienne architecture, on utilise updateSessionStatus via savePerformanceLog
-
+    // Mettre à jour la progression dans program_assignments
     if (!wasProgramFinished) {
       await updateClientProgress(
         programAssignmentId,
@@ -554,28 +513,49 @@ const ClientCurrentProgram: React.FC = () => {
       );
     }
 
+    // Optimistic update du state local
+    const newLogEntry: PerformanceLog = {
+      date: new Date().toLocaleDateString('fr-FR'),
+      week: currentWeek,
+      programName: localProgram.name,
+      sessionName: activeSession.name,
+      exerciseLogs: exerciseLogsForSession,
+    };
+
+    const updatedClients = clients.map((c) => {
+      if (c.id === user.id) {
+        const newPerformanceLog = [...(c.performanceLog || []), newLogEntry];
+        
+        if (wasProgramFinished) {
+          return { ...c, performanceLog: newPerformanceLog };
+        }
+        return {
+          ...c,
+          performanceLog: newPerformanceLog,
+          sessionProgress: nextSessionProgress,
+          programWeek: nextProgramWeek,
+        };
+      }
+      return c;
+    });
+
     setClients(updatedClients);
 
     console.log('[DEBUG] Ouverture de la modale');
     
-    // 🔑 Sauvegarder dans sessionStorage AVANT setRecapData
+    // Sauvegarder dans sessionStorage pour persistance
     const recapDataToSave = {
       exerciseLogs: exerciseLogsForSession,
       sessionName: activeSession.name,
       sessionId: activeSession.id,
-      performanceLogId: savedLogId,
+      performanceLogId: result.clientSessionId, // Utiliser clientSessionId pour compatibilité
       activeSession: { name: activeSession.name, exercises: activeSession.exercises },
       wasProgramFinished,
       hasNextProgram,
     };
     
     sessionStorage.setItem('pendingRecapData', JSON.stringify(recapDataToSave));
-    console.log('[DEBUG] recapData sauvegardé dans sessionStorage');
-    
-    // Définir recapData pour afficher la modale
     setRecapData(recapDataToSave);
-    
-    console.log('[DEBUG] recapData défini - modale devrait s\'afficher');
   };
 
   const handleCloseRecapModal = () => {
@@ -587,7 +567,8 @@ const ClientCurrentProgram: React.FC = () => {
     if (recapData?.wasProgramFinished && !recapData?.hasNextProgram) {
       setIsCongratsModalOpen(true);
     } else {
-      navigate('/app/workout');
+      // ✅ FIX: Recharger la page pour mettre à jour la progression
+      window.location.href = '/app/workout';
     }
     
     setRecapData(null);

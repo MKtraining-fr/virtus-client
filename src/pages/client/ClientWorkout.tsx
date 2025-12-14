@@ -64,8 +64,9 @@ const ClientWorkout: React.FC = () => {
 
   const currentWeek = program?.currentWeek || user?.programWeek || 1;
   const totalWeeks = program?.weekCount || 1;
+  // ✅ FIX: Ne pas fallback sur semaine 1 si currentWeek n'existe pas
   const totalSessions =
-    (program?.sessionsByWeek?.[currentWeek] || program?.sessionsByWeek?.[1] || []).length || 1;
+    (program?.sessionsByWeek?.[currentWeek] || []).length || 0;
 
   // Charger le nombre de séances complétées pour la semaine actuelle
   useEffect(() => {
