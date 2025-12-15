@@ -9,6 +9,7 @@
 import React, { useState, useEffect } from 'react';
 import { getBilanAssignmentsForClient } from '../services/bilanAssignmentService';
 import { validateInitialBilan } from '../services/bilanAssignmentService';
+import { deleteBilanAssignment } from '../services/bilanAssignmentService';
 import { BilanAssignment } from '../services/bilanAssignmentService';
 import Button from './Button';
 import Modal from './Modal';
@@ -18,21 +19,24 @@ interface ClientBilanHistoryProps {
   clientId: string;
   coachId: string;
   clientStatus?: 'prospect' | 'active' | 'archived';
+  refreshTrigger?: number;
 }
 
 const ClientBilanHistory: React.FC<ClientBilanHistoryProps> = ({
   clientId,
   coachId,
   clientStatus,
+  refreshTrigger,
 }) => {
   const [assignments, setAssignments] = useState<BilanAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBilan, setSelectedBilan] = useState<BilanAssignment | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     loadAssignments();
-  }, [clientId]);
+  }, [clientId, refreshTrigger]);
 
   const loadAssignments = async () => {
     setLoading(true);
@@ -69,6 +73,33 @@ const ClientBilanHistory: React.FC<ClientBilanHistoryProps> = ({
     }
   };
 
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    if (
+      !window.confirm(
+        'Êtes-vous sûr de vouloir supprimer cette assignation ? Cette action est irréversible.'
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(assignmentId);
+
+    const result = await deleteBilanAssignment({
+      assignmentId,
+      coachId,
+    });
+
+    setIsDeleting(null);
+
+    if (result.success) {
+      alert('Assignation supprimée avec succès.');
+      // Recharger les assignations
+      await loadAssignments();
+    } else {
+      alert(`Erreur lors de la suppression : ${result.error}`);
+    }
+  };
+
   if (loading) {
     return <p className="text-gray-500">Chargement de l'historique des bilans...</p>;
   }
@@ -93,6 +124,11 @@ const ClientBilanHistory: React.FC<ClientBilanHistoryProps> = ({
                     <p>
                       Assigné le: {new Date(bilan.assigned_at).toLocaleDateString('fr-FR')}
                     </p>
+                    {bilan.scheduled_date && (
+                      <p>
+                        Date planifiée: {new Date(bilan.scheduled_date + 'T00:00:00').toLocaleDateString('fr-FR')}
+                      </p>
+                    )}
                     {bilan.completed_at && (
                       <p>
                         Complété le: {new Date(bilan.completed_at).toLocaleDateString('fr-FR')}
@@ -127,7 +163,7 @@ const ClientBilanHistory: React.FC<ClientBilanHistoryProps> = ({
                     )}
                   </div>
                 </div>
-                <div className="ml-4 space-x-2">
+                <div className="ml-4 flex items-center space-x-2">
                   {bilan.status === 'completed' && (
                     <>
                       <Button size="sm" variant="secondary" onClick={() => setSelectedBilan(bilan)}>
@@ -147,6 +183,15 @@ const ClientBilanHistory: React.FC<ClientBilanHistoryProps> = ({
                   {bilan.status === 'assigned' && (
                     <span className="text-sm text-gray-500">En attente de réponse</span>
                   )}
+                  {/* Bouton supprimer pour toutes les assignations */}
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => handleDeleteAssignment(bilan.id)}
+                    disabled={isDeleting === bilan.id}
+                  >
+                    {isDeleting === bilan.id ? 'Suppression...' : 'Supprimer'}
+                  </Button>
                 </div>
               </div>
             </Card>

@@ -66,6 +66,17 @@ export interface ValidateInitialBilanResult {
   error?: string;
 }
 
+export interface DeleteBilanAssignmentParams {
+  assignmentId: string;
+  coachId: string;
+}
+
+export interface DeleteBilanAssignmentResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
 /**
  * Assigne un bilan à un client
  * Utilise la fonction RPC assign_bilan_atomic pour garantir l'atomicité
@@ -354,6 +365,59 @@ export const archiveBilanAssignment = async (
     return {
       success: false,
       error: String(error),
+    };
+  }
+};
+
+/**
+ * Supprime une assignation de bilan
+ * Utilise la fonction RPC delete_bilan_assignment pour garantir la sécurité
+ * Supprime également les notifications associées
+ * 
+ * @param params - Paramètres de suppression (assignmentId, coachId)
+ * @returns Résultat de la suppression
+ */
+export const deleteBilanAssignment = async (
+  params: DeleteBilanAssignmentParams
+): Promise<DeleteBilanAssignmentResult> => {
+  try {
+    console.log('Appel RPC delete_bilan_assignment avec params:', {
+      p_assignment_id: params.assignmentId,
+      p_coach_id: params.coachId,
+    });
+
+    const { data, error } = await supabase.rpc('delete_bilan_assignment', {
+      p_assignment_id: params.assignmentId,
+      p_coach_id: params.coachId,
+    });
+
+    console.log('Résultat RPC delete_bilan_assignment:', { data, error });
+
+    if (error) {
+      console.error('Erreur lors de la suppression de l\'assignation:', error);
+      return {
+        success: false,
+        error: error.message,
+        message: 'Erreur lors de la suppression de l\'assignation',
+      };
+    }
+
+    if (!data || !data.success) {
+      console.error('La fonction RPC a retourné success=false:', data);
+      return {
+        success: false,
+        error: data?.error || 'Erreur inconnue',
+        message: data?.message || 'Erreur lors de la suppression de l\'assignation',
+      };
+    }
+
+    return data as DeleteBilanAssignmentResult;
+  } catch (error) {
+    console.error('Erreur globale lors de la suppression:', error);
+    return {
+      success: false,
+      error: String(error),
+      message: 'Une erreur inattendue s\'est produite',
     };
   }
 };

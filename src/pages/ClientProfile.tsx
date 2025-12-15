@@ -298,6 +298,12 @@ const ClientProfile: React.FC = () => {
   const [selectedBilan, setSelectedBilan] = useState<BilanResult | null>(null);
   const [assignedPrograms, setAssignedPrograms] = useState<any[]>([]);
   const [isLoadingPrograms, setIsLoadingPrograms] = useState(true);
+  const [bilanRefreshTrigger, setBilanRefreshTrigger] = useState(0);
+
+  const handleBilanAssignmentSuccess = () => {
+    // Incrémenter le trigger pour forcer le rafraîchissement
+    setBilanRefreshTrigger(prev => prev + 1);
+  };
 
   const client = useMemo(() => clients.find((c) => c.id === clientId), [clients, clientId]);
 
@@ -429,7 +435,12 @@ const ClientProfile: React.FC = () => {
 
       {/* Bilans */}
       <Accordion title="Historique des Bilans" defaultOpen={true}>
-        <ClientBilanHistory clientId={client.id} coachId={user.id} />
+        <ClientBilanHistory 
+          clientId={client.id} 
+          coachId={user.id} 
+          clientStatus={client.status}
+          refreshTrigger={bilanRefreshTrigger}
+        />
       </Accordion>
 
       {/* Nutrition */}
@@ -465,6 +476,7 @@ const ClientProfile: React.FC = () => {
           isOpen={showBilanAssignmentModal}
           onClose={() => setShowBilanAssignmentModal(false)}
           client={client}
+          onAssignmentSuccess={handleBilanAssignmentSuccess}
         />
       )}
 

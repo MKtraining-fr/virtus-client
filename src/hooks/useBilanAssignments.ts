@@ -16,10 +16,12 @@ import {
   completeBilan,
   validateInitialBilan,
   archiveBilanAssignment,
+  deleteBilanAssignment,
   BilanAssignment,
   AssignBilanParams,
   CompleteBilanParams,
   ValidateInitialBilanParams,
+  DeleteBilanAssignmentParams,
 } from '../services/bilanAssignmentService';
 
 export const useBilanAssignments = (
@@ -145,6 +147,25 @@ export const useBilanAssignments = (
   );
 
   /**
+   * Supprime une assignation
+   */
+  const deleteAssignment = useCallback(
+    async (params: DeleteBilanAssignmentParams): Promise<boolean> => {
+      const result = await deleteBilanAssignment(params);
+
+      if (result.success) {
+        // Recharger les assignations après la suppression
+        await loadAssignments();
+        return true;
+      } else {
+        setError(result.error || 'Erreur lors de la suppression de l\'assignation');
+        return false;
+      }
+    },
+    [loadAssignments]
+  );
+
+  /**
    * Récupère les assignations actives d'un client
    */
   const getActiveAssignments = useCallback(async (clientId: string) => {
@@ -173,6 +194,7 @@ export const useBilanAssignments = (
     complete,
     validate,
     archive,
+    deleteAssignment,
     getActiveAssignments,
     getCompletedAssignments,
     reload: loadAssignments,

@@ -108,8 +108,12 @@ BEGIN
   FROM clients
   WHERE id = p_coach_id;
 
+  -- Générer un nouvel ID
+  v_assignment_id := gen_random_uuid();
+
   -- Créer l'assignation avec snapshot du template
   INSERT INTO bilan_assignments (
+    id,
     coach_id,
     client_id,
     bilan_template_id,
@@ -119,6 +123,7 @@ BEGIN
     assigned_at,
     data
   ) VALUES (
+    v_assignment_id,
     p_coach_id,
     p_client_id,
     p_template_id,
@@ -131,8 +136,7 @@ BEGIN
       'template_name', v_template_name,
       'answers', '{}'::jsonb
     )
-  )
-  RETURNING id INTO v_assignment_id;
+  );
 
   -- Créer une notification pour le client
   INSERT INTO notifications (user_id, title, message, type, read, created_at)

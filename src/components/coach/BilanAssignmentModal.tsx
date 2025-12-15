@@ -12,6 +12,7 @@ interface BilanAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   client: Client;
+  onAssignmentSuccess?: () => void;
 }
 
 type FrequencyType = 'once' | 'weekly' | 'biweekly' | 'monthly';
@@ -23,7 +24,7 @@ const frequencyOptions: { value: FrequencyType; label: string }[] = [
   { value: 'monthly', label: 'Mensuel' },
 ];
 
-const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({ isOpen, onClose, client }) => {
+const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({ isOpen, onClose, client, onAssignmentSuccess }) => {
   const { user } = useAuth();
   const { templates, loading: templatesLoading } = useBilanTemplates(user?.id);
   const { assign, loading: assignLoading, error: assignError } = useBilanAssignments(user?.id, user?.role as 'coach' | 'client');
@@ -56,6 +57,10 @@ const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({ isOpen, onC
 
       if (success) {
         alert(`Bilan assigné à ${client.firstName} ${client.lastName} avec succès !`);
+        // Notifier le parent pour rafraîchir la liste
+        if (onAssignmentSuccess) {
+          onAssignmentSuccess();
+        }
         onClose();
         // Réinitialiser les champs
         setSelectedTemplateId('');
