@@ -1,8 +1,8 @@
 # Base de Connaissance Technique - Projet Virtus
 
 **Auteur:** Manus AI  
-**Dernière mise à jour:** 14 décembre 2025  
-**Version:** 1.1
+**Dernière mise à jour:** 15 décembre 2025  
+**Version:** 1.2
 
 ---
 
@@ -13,6 +13,408 @@ Ce document constitue le **journal technique central** du projet Virtus. Il sert
 ---
 
 # HISTORIQUE DES INTERVENTIONS
+
+## Intervention #3 - Corrections Finales du Système de Bilans (Décembre 2025)
+
+**Date:** 15 décembre 2025  
+**Pull Request:**
+- [PR #296](https://github.com/MKtraining-fr/virtus/pull/296) - `feature/bilan-assignment-delete` ⏳ En attente de merge
+
+**Statut:** Prêt pour déploiement.
+
+### Contexte
+
+Suite à l'implémentation du système de bilans (Intervention #2), plusieurs problèmes critiques ont été identifiés lors des tests utilisateurs :
+1. Impossibilité d'assigner le même template plusieurs fois (contrainte d'unicité trop stricte)
+2. Absence de fonctionnalité de suppression d'assignation
+3. Date planifiée non visible dans l'interface
+4. Absence de rafraîchissement automatique après les actions
+
+Ces limitations empêchaient l'utilisation normale du système pour des cas d'usage récurrents (ex: bilan mensuel).
+
+### Problèmes Résolus
+
+#### Problème 1: Contrainte d'Unicité Trop Stricte
+
+**Description:** La contrainte `UNIQUE (client_id, bilan_template_id)` empêchait d'assigner le même template plusieurs fois au même client, même avec des dates différentes.
+
+**Impact:** Impossible de créer des bilans récurrents (ex: "Bilan mensuel" assigné chaque mois).
+
+**Diagnostic:**
+```sql
+-- Ancienne contrainte
+ALTER TABLE bilan_assignments 
+ADD CONSTRAINT bilan_assignments_client_id_bilan_template_id_key 
+UNIQUE (client_id, bilan_template_id);
+```
+
+**Solution:**
+```sql
+-- Suppression de l'ancienne contrainte
+ALTER TABLE bilan_assignments 
+DROP CONSTRAINT IF EXISTS bilan_assignments_client_id_bilan_template_id_key;
+
+-- Création d'un index unique partiel incluant la date
+CREATE UNIQUE INDEX bilan_assignments_active_unique 
+ON bilan_assignments (client_id, bilan_template_id, scheduled_date) 
+WHERE status IN ('assigned', 'in_progress');
+```
+
+**Avantages:**
+- ✅ Permet plusieurs assignations du même template avec des dates différentes
+- ✅ Empêche les doublons pour la même date (protection contre les erreurs)
+- ✅ Permet de réassigner un template après complétion
+- ✅ Conserve l'historique des bilans complétés
+
+#### Problème 2: Génération d'UUID dans assign_bilan_atomic
+
+**Description:** La fonction RPC utilisait `RETURNING id INTO v_assignment_id` sans générer explicitement l'UUID, causant des conflits de clé primaire.
+
+**Erreur:** `duplicate key value violates unique constraint "bilan_assignments_pkey"`
+
+**Solution:**
+```sql
+CREATE OR REPLACE FUNCTION assign_bilan_atomic(...)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_assignment_id UUID;
+  ...
+BEGIN
+  -- Génération explicite de l'UUID
+  v_assignment_id := gen_random_uuid();
+  
+  INSERT INTO bilan_assignments (
+    id,  -- UUID généré explicitement
+    coach_id,
+    client_id,
+    ...
+  ) VALUES (
+    v_assignment_id,
+    p_coach_id,
+    p_client_id,
+    ...
+  );
+  ...
+END;
+$$;
+```
+
+#### Problème 3: Absence de Fonctionnalité de Suppression
+
+**Description:** Aucun moyen pour le coach de supprimer une assignation erronée ou obsolète.
+
+**Impact:** Accumulation d'assignations non désirées, impossibilité de corriger les erreurs.
+
+**Solution Complète:**
+
+**1. Fonction RPC Supabase avec vérification d'autorisation:**
+```sql
+CREATE OR REPLACE FUNCTION delete_bilan_assignment(
+  p_assignment_id UUID,
+  p_coach_id UUID
+) RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_assignment_record RECORD;
+  v_result JSON;
+BEGIN
+  -- Vérification de l'existence et récupération des infos
+  SELECT id, coach_id, client_id, status INTO v_assignment_record
+  FROM bilan_assignments
+  WHERE id = p_assignment_id;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object(
+      'success', false,
+      'error', 'Assignment not found'
+    );
+  END IF;
+
+  -- Vérification d'autorisation
+  IF v_assignment_record.coach_id != p_coach_id THEN
+    RETURN json_build_object(
+      'success', false,
+      'error', 'Unauthorized: You can only delete your own assignments'
+    );
+  END IF;
+
+  -- Suppression de l'assignation
+  DELETE FROM bilan_assignments WHERE id = p_assignment_id;
+  
+  -- Suppression des notifications associées
+  DELETE FROM notifications
+  WHERE type = 'assignment'
+    AND user_id = v_assignment_record.client_id
+    AND message LIKE '%bilan%';
+
+  RETURN json_build_object(
+    'success', true,
+    'message', 'Assignment deleted successfully'
+  );
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN json_build_object(
+      'success', false,
+      'error', SQLERRM,
+      'message', 'Error deleting assignment'
+    );
+END;
+$$;
+```
+
+**2. Service TypeScript:**
+```typescript
+export interface DeleteBilanAssignmentParams {
+  assignmentId: string;
+  coachId: string;
+}
+
+export interface DeleteBilanAssignmentResult {
+  success: boolean;
+  error?: string;
+  message?: string;
+}
+
+export const deleteBilanAssignment = async (
+  params: DeleteBilanAssignmentParams
+): Promise<DeleteBilanAssignmentResult> => {
+  const { data, error } = await supabase.rpc('delete_bilan_assignment', {
+    p_assignment_id: params.assignmentId,
+    p_coach_id: params.coachId,
+  });
+  
+  if (error || !data?.success) {
+    console.error('[deleteBilanAssignment] Error:', error || data?.error);
+    return { success: false, error: data?.error || error.message };
+  }
+  
+  return data as DeleteBilanAssignmentResult;
+};
+```
+
+**3. Hook React:**
+```typescript
+const deleteAssignment = useCallback(
+  async (params: DeleteBilanAssignmentParams): Promise<boolean> => {
+    const result = await deleteBilanAssignment(params);
+    if (result.success) {
+      await loadAssignments(); // Rechargement automatique
+      return true;
+    }
+    setError(result.error || 'Erreur lors de la suppression');
+    return false;
+  },
+  [loadAssignments]
+);
+```
+
+**4. Interface utilisateur (ClientBilanHistory.tsx):**
+```tsx
+const handleDeleteAssignment = async (assignmentId: string) => {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cette assignation ?')) {
+    return;
+  }
+
+  setIsDeleting(assignmentId);
+
+  const result = await deleteBilanAssignment({
+    assignmentId,
+    coachId,
+  });
+
+  setIsDeleting(null);
+
+  if (result.success) {
+    alert('Assignation supprimée avec succès.');
+    await loadAssignments();
+  } else {
+    alert(`Erreur lors de la suppression : ${result.error}`);
+  }
+};
+
+// Dans le rendu
+<Button
+  size="sm"
+  variant="danger"
+  onClick={() => handleDeleteAssignment(bilan.id)}
+  disabled={isDeleting === bilan.id}
+>
+  {isDeleting === bilan.id ? 'Suppression...' : 'Supprimer'}
+</Button>
+```
+
+#### Problème 4: Date Planifiée Non Affichée
+
+**Description:** L'interface affichait uniquement `assigned_at` (date de création), pas `scheduled_date` (date planifiée par le coach).
+
+**Impact:** Confusion sur la date à laquelle le bilan doit être rempli.
+
+**Solution:**
+```tsx
+<div className="text-sm text-gray-600 mt-1 space-y-1">
+  <p>
+    Assigné le: {new Date(bilan.assigned_at).toLocaleDateString('fr-FR')}
+  </p>
+  {bilan.scheduled_date && (
+    <p>
+      Date planifiée: {new Date(bilan.scheduled_date + 'T00:00:00').toLocaleDateString('fr-FR')}
+    </p>
+  )}
+  {bilan.completed_at && (
+    <p>
+      Complété le: {new Date(bilan.completed_at).toLocaleDateString('fr-FR')}
+    </p>
+  )}
+</div>
+```
+
+**Note technique:** Ajout de `'T00:00:00'` pour éviter les problèmes de fuseau horaire avec les dates SQL (format `YYYY-MM-DD`).
+
+#### Problème 5: Absence de Rafraîchissement Automatique
+
+**Description:** Après assignation ou suppression, il fallait rafraîchir manuellement la page pour voir les changements.
+
+**Impact:** Mauvaise expérience utilisateur, impression que l'action n'a pas fonctionné.
+
+**Solution - Pattern Callback React:**
+
+**1. BilanAssignmentModal - Callback de succès:**
+```tsx
+interface BilanAssignmentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  client: Client;
+  onAssignmentSuccess?: () => void; // Nouveau callback
+}
+
+const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({
+  isOpen,
+  onClose,
+  client,
+  onAssignmentSuccess
+}) => {
+  const handleAssign = async () => {
+    // ...
+    if (success) {
+      alert(`Bilan assigné avec succès !`);
+      // Notifier le parent pour rafraîchir la liste
+      if (onAssignmentSuccess) {
+        onAssignmentSuccess();
+      }
+      onClose();
+    }
+  };
+};
+```
+
+**2. ClientBilanHistory - Prop de rafraîchissement:**
+```tsx
+interface ClientBilanHistoryProps {
+  clientId: string;
+  coachId: string;
+  clientStatus?: 'prospect' | 'active' | 'archived';
+  refreshTrigger?: number; // Nouveau trigger
+}
+
+const ClientBilanHistory: React.FC<ClientBilanHistoryProps> = ({
+  clientId,
+  coachId,
+  clientStatus,
+  refreshTrigger,
+}) => {
+  useEffect(() => {
+    loadAssignments();
+  }, [clientId, refreshTrigger]); // Rechargement quand refreshTrigger change
+};
+```
+
+**3. ClientProfile - Orchestration:**
+```tsx
+const ClientProfile: React.FC = () => {
+  const [bilanRefreshTrigger, setBilanRefreshTrigger] = useState(0);
+
+  const handleBilanAssignmentSuccess = () => {
+    // Incrémenter le trigger pour forcer le rafraîchissement
+    setBilanRefreshTrigger(prev => prev + 1);
+  };
+
+  return (
+    <>
+      <ClientBilanHistory 
+        clientId={client.id} 
+        coachId={user.id} 
+        clientStatus={client.status}
+        refreshTrigger={bilanRefreshTrigger}
+      />
+
+      <BilanAssignmentModal
+        isOpen={showBilanAssignmentModal}
+        onClose={() => setShowBilanAssignmentModal(false)}
+        client={client}
+        onAssignmentSuccess={handleBilanAssignmentSuccess}
+      />
+    </>
+  );
+};
+```
+
+### Fichiers Modifiés
+
+**Base de données:**
+- `supabase/migrations/20251215_fix_bilan_assignments_constraints.sql` (créé)
+
+**Backend/Services:**
+- `src/services/bilanAssignmentService.ts` (ajout de `deleteBilanAssignment`)
+- `src/hooks/useBilanAssignments.ts` (ajout de `deleteAssignment`)
+
+**Frontend/Components:**
+- `src/components/coach/BilanAssignmentModal.tsx` (callback `onAssignmentSuccess`)
+- `src/components/ClientBilanHistory.tsx` (affichage date planifiée, prop `refreshTrigger`, bouton supprimer)
+- `src/pages/ClientProfile.tsx` (mécanisme de rafraîchissement)
+
+### Tests Effectués
+
+✅ Suppression de la contrainte d'unicité stricte dans Supabase  
+✅ Création de l'index unique partiel avec date  
+✅ Correction de `assign_bilan_atomic` avec génération UUID explicite  
+✅ Création de `delete_bilan_assignment` RPC function  
+✅ Test d'assignation multiple du même template avec dates différentes  
+✅ Test de suppression d'assignation depuis l'interface coach  
+✅ Vérification de l'affichage de la date planifiée  
+✅ Validation du rafraîchissement automatique après assignation  
+
+### Résultat Final
+
+**Fonctionnalités opérationnelles:**
+- ✅ Assignation multiple du même template avec dates différentes
+- ✅ Suppression d'assignation depuis le profil client (côté coach)
+- ✅ Affichage distinct de la date d'assignation et de la date planifiée
+- ✅ Rafraîchissement automatique après toute action (assignation, suppression)
+- ✅ Protection contre les doublons pour la même date
+- ✅ Génération correcte des UUID pour éviter les conflits
+
+**Architecture technique:**
+- Index unique partiel PostgreSQL pour performance et flexibilité
+- Fonction RPC sécurisée avec vérification d'autorisation
+- Pattern callback React pour communication parent-enfant
+- Hook personnalisé avec rechargement automatique
+
+### Leçons Apprises
+
+1. **Contraintes d'unicité partielles:** Les index uniques partiels avec clause `WHERE` sont très puissants pour implémenter des règles métier complexes tout en maintenant la flexibilité.
+
+2. **Génération explicite d'UUID:** Toujours générer les UUID explicitement avec `gen_random_uuid()` dans les fonctions PL/pgSQL pour éviter les conflits.
+
+3. **Pattern callback React:** Pour la communication parent-enfant, le pattern callback est plus simple et plus performant que les context API ou les state managers pour des cas d'usage simples.
+
+4. **Dates SQL et fuseaux horaires:** Toujours ajouter `'T00:00:00'` lors de la conversion de dates SQL (`YYYY-MM-DD`) en objets JavaScript pour éviter les décalages de fuseau horaire.
+
+---
 
 ## Intervention #2 - Implémentation Complète du Système de Bilans (Décembre 2025)
 
