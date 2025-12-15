@@ -25,7 +25,7 @@ const frequencyOptions: { value: FrequencyType; label: string }[] = [
 
 const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({ isOpen, onClose, client }) => {
   const { user } = useAuth();
-  const { coachTemplates, loading: templatesLoading } = useBilanTemplates();
+  const { templates, loading: templatesLoading } = useBilanTemplates(user?.id);
   const { assign, loading: assignLoading } = useBilanAssignments();
   
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
@@ -86,7 +86,7 @@ const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({ isOpen, onC
           disabled={templatesLoading}
         >
           <option value="">-- Choisir un template --</option>
-          {coachTemplates.map((template) => (
+          {templates.map((template) => (
             <option key={template.id} value={template.id}>
               {template.name}
             </option>
