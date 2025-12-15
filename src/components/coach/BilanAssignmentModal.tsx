@@ -82,22 +82,25 @@ const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({ isOpen, onC
         <Select
           label="Sélectionner le Template de Bilan"
           value={selectedTemplateId}
-          onChange={(e) => setSelectedTemplateId(e.target.value)}
+          onChange={(value) => setSelectedTemplateId(value as string)}
           disabled={templatesLoading}
         >
           <option value="">-- Choisir un template --</option>
-          {templates.map((template) => (
-            <option key={template.id} value={template.id}>
-              {template.name}
-            </option>
-          ))}
+          {templates && templates.length > 0 ? (
+            templates.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.name}
+              </option>
+            ))
+          ) : (
+            !templatesLoading && <option value="" disabled>Aucun template disponible</option>
+          )}
         </Select>
 
         <Select
           label="Fréquence d'envoi"
           value={frequency}
-          onChange={(e) => setFrequency(e.target.value as FrequencyType)}
-          icon={<CalendarIcon className="w-5 h-5" />}
+          onChange={(value) => setFrequency(value as FrequencyType)}
         >
           {frequencyOptions.map((option) => (
             <option key={option.value} value={option.value}>
