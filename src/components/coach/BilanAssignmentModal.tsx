@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Client, BilanAssignment } from '../../types';
+import { Client } from '../../types';
 import Modal from '../Modal';
 import Button from '../Button';
 import Select from '../Select';
-import Input from '../Input';
 import { CalendarIcon } from '../../constants/icons';
+import { useBilanTemplates } from '../../hooks/useBilanTemplates';
+import { useBilanAssignments } from '../../hooks/useBilanAssignments';
 
 interface BilanAssignmentModalProps {
   isOpen: boolean;
@@ -13,25 +14,24 @@ interface BilanAssignmentModalProps {
   client: Client;
 }
 
-// J'ai ajouté 'quarterly' aux options, même s'il n'était pas dans le type BilanAssignment, car il est pertinent pour la récurrence.
-// Je vais le laisser dans les options pour l'interface utilisateur.
-const recurrenceOptions: { value: BilanAssignment['recurrence']; label: string }[] = [
-  { value: undefined, label: 'Une seule fois' },
+type FrequencyType = 'once' | 'weekly' | 'biweekly' | 'monthly';
+
+const frequencyOptions: { value: FrequencyType; label: string }[] = [
+  { value: 'once', label: 'Envoi unique' },
   { value: 'weekly', label: 'Hebdomadaire' },
-  { value: 'monthly', label: 'Mensuelle' },
-  { value: 'quarterly', label: 'Trimestrielle' },
-  { value: 'yearly', label: 'Annuelle' },
+  { value: 'biweekly', label: 'Toutes les 2 semaines' },
+  { value: 'monthly', label: 'Mensuel' },
 ];
 
 const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({ isOpen, onClose, client }) => {
-  const { bilanTemplates, assignBilanTemplate, user } = useAuth();
+  const { user } = useAuth();
+  const { coachTemplates, loading: templatesLoading } = useBilanTemplates();
+  const { assign, loading: assignLoading } = useBilanAssignments();
+  
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-  const [recurrence, setRecurrence] = useState<BilanAssignment['recurrence']>(undefined);
-  const [isAssigning, setIsAssigning] = useState(false);
-
-  const coachTemplates = useMemo(
-    () => bilanTemplates.filter((t) => t.coachId === 'system' || t.coachId === user?.id),
-    [bilanTemplates, user]
+  const [frequency, setFrequency] = useState<FrequencyType>('once');
+  const [scheduledDate, setScheduledDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
   );
 
   const handleAssign = async () => {
@@ -40,17 +40,35 @@ const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({ isOpen, onC
       return;
     }
 
-    setIsAssigning(true);
+    if (!user?.id) {
+      alert('Erreur : Utilisateur non connecté.');
+      return;
+    }
+
     try {
-      await assignBilanTemplate(client.id, selectedTemplateId, recurrence);
-      alert(`Bilan assigné à ${client.firstName} ${client.lastName} avec succès !`);
-      onClose();
+      const success = await assign({
+        templateId: selectedTemplateId,
+        clientId: client.id,
+        coachId: user.id,
+        frequency,
+        scheduledDate,
+      });
+
+      if (success) {
+        alert(`Bilan assigné à ${client.firstName} ${client.lastName} avec succès !`);
+        onClose();
+        // Réinitialiser les champs
+        setSelectedTemplateId('');
+        setFrequency('once');
+        setScheduledDate(new Date().toISOString().split('T')[0]);
+      } else {
+        alert('Erreur lors de l\'assignation du bilan.');
+      }
     } catch (error) {
+      console.error('Erreur lors de l\'assignation:', error);
       alert(
         `Erreur lors de l'assignation : ${error instanceof Error ? error.message : 'Erreur inconnue'}`
       );
-    } finally {
-      setIsAssigning(false);
     }
   };
 
@@ -65,39 +83,50 @@ const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({ isOpen, onC
           label="Sélectionner le Template de Bilan"
           value={selectedTemplateId}
           onChange={(e) => setSelectedTemplateId(e.target.value)}
+          disabled={templatesLoading}
         >
           <option value="">-- Choisir un template --</option>
           {coachTemplates.map((template) => (
             <option key={template.id} value={template.id}>
-              {template.name} {template.coachId === 'system' && '(Système)'}
+              {template.name}
             </option>
           ))}
         </Select>
 
         <Select
-          label="Récurrence"
-          value={recurrence || ''}
-          onChange={(e) => setRecurrence(e.target.value as BilanAssignment['recurrence'])}
+          label="Fréquence d'envoi"
+          value={frequency}
+          onChange={(e) => setFrequency(e.target.value as FrequencyType)}
           icon={<CalendarIcon className="w-5 h-5" />}
         >
-          {recurrenceOptions.map((option) => (
-            <option key={option.value || 'once'} value={option.value || ''}>
+          {frequencyOptions.map((option) => (
+            <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
         </Select>
 
-        {/* Note: L'implémentation de la récurrence côté backend (Supabase) est supposée être gérée par une fonction ou un cronjob */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Date de première assignation
+          </label>
+          <input
+            type="date"
+            value={scheduledDate}
+            onChange={(e) => setScheduledDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} disabled={assignLoading}>
             Annuler
           </Button>
           <Button
             variant="primary"
             onClick={handleAssign}
-            disabled={!selectedTemplateId || isAssigning}
-            isLoading={isAssigning}
+            disabled={!selectedTemplateId || assignLoading || templatesLoading}
+            isLoading={assignLoading}
           >
             Assigner le Bilan
           </Button>
