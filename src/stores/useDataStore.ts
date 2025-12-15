@@ -148,6 +148,7 @@ interface DataState {
   markMessageAsRead: (messageId: string) => Promise<void>;
 
   addUser: (userData: Partial<Client>) => Promise<Client>;
+  inviteClient: (userData: { email: string; firstName: string; lastName: string; phone?: string }) => Promise<Client>;
   updateUser: (userId: string, userData: Partial<Client>) => Promise<Client>;
   deleteUser: (userId: string) => Promise<void>;
 
@@ -655,6 +656,59 @@ export const useDataStore = create<DataState>((set, get) => {
         return newClient;
       } catch (error) {
         logger.error("Erreur lors de l'ajout de l'utilisateur", error as Error);
+        throw error;
+      }
+    },
+
+    inviteClient: async (userData: { email: string; firstName: string; lastName: string; phone?: string }): Promise<Client> => {
+      logger.info("Invitation d'un client via Edge Function invite-user", { userData });
+      try {
+        // Récupérer le token d'authentification de l'utilisateur actuel
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error('No active session');
+        }
+
+        // Appeler l'Edge Function pour inviter l'utilisateur
+        const { data, error } = await supabase.functions.invoke('invite-user', {
+          body: {
+            email: userData.email,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            phone: userData.phone,
+            role: 'client',
+          },
+        });
+
+        if (error) {
+          logger.error('Erreur lors de l\'appel à l\'Edge Function invite-user', { error });
+          throw error;
+        }
+
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to invite user');
+        }
+
+        // Créer un objet Client temporaire avec les données de l'invitation
+        // Le profil complet sera créé par le trigger lors de la confirmation
+        const newClient: Client = {
+          id: data.user.id,
+          email: data.user.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          phone: userData.phone || '',
+          role: 'client',
+          coachId: useAuthStore.getState().user?.id || null,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        set((state) => ({ clients: [...state.clients, newClient] }));
+        logger.info('Client invité avec succès via Edge Function', { newClient });
+        return newClient;
+      } catch (error) {
+        logger.error("Erreur lors de l'invitation du client", error as Error);
         throw error;
       }
     },

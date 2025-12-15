@@ -92,6 +92,11 @@ serve(async (req) => {
         role: userData.role || 'client',
         affiliation_code: userData.affiliationCode || null,
         coach_id: userData.coachId && userData.coachId !== '' ? userData.coachId : null,
+        // Flag pour indiquer que l'utilisateur a été créé par un admin/coach
+        // et doit changer son mot de passe à la première connexion
+        created_by_admin: true,
+        password_changed: false,
+        created_at: new Date().toISOString(),
       },
     });
 
