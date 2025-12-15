@@ -26,7 +26,7 @@ const frequencyOptions: { value: FrequencyType; label: string }[] = [
 const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({ isOpen, onClose, client }) => {
   const { user } = useAuth();
   const { templates, loading: templatesLoading } = useBilanTemplates(user?.id);
-  const { assign, loading: assignLoading } = useBilanAssignments();
+  const { assign, loading: assignLoading, error: assignError } = useBilanAssignments(user?.id, user?.role as 'coach' | 'client');
   
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [frequency, setFrequency] = useState<FrequencyType>('once');
@@ -62,7 +62,9 @@ const BilanAssignmentModal: React.FC<BilanAssignmentModalProps> = ({ isOpen, onC
         setFrequency('once');
         setScheduledDate(new Date().toISOString().split('T')[0]);
       } else {
-        alert('Erreur lors de l\'assignation du bilan.');
+        // Afficher l'erreur détaillée
+        console.error('Erreur d\'assignation:', assignError);
+        alert(`Erreur lors de l'assignation du bilan.\n\nDétails: ${assignError || 'Aucun détail disponible'}`);
       }
     } catch (error) {
       console.error('Erreur lors de l\'assignation:', error);
