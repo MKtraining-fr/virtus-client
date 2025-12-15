@@ -77,6 +77,14 @@ export const assignBilanToClient = async (
   params: AssignBilanParams
 ): Promise<AssignBilanResult> => {
   try {
+    console.log('Appel RPC assign_bilan_atomic avec params:', {
+      p_template_id: params.templateId,
+      p_client_id: params.clientId,
+      p_coach_id: params.coachId,
+      p_frequency: params.frequency || 'once',
+      p_scheduled_date: params.scheduledDate || new Date().toISOString().split('T')[0],
+    });
+
     const { data, error } = await supabase.rpc('assign_bilan_atomic', {
       p_template_id: params.templateId,
       p_client_id: params.clientId,
@@ -85,12 +93,23 @@ export const assignBilanToClient = async (
       p_scheduled_date: params.scheduledDate || new Date().toISOString().split('T')[0],
     });
 
+    console.log('Résultat RPC assign_bilan_atomic:', { data, error });
+
     if (error) {
       console.error('Erreur lors de l\'assignation du bilan:', error);
       return {
         success: false,
         error: error.message,
         message: 'Erreur lors de l\'assignation du bilan',
+      };
+    }
+
+    if (!data || !data.success) {
+      console.error('La fonction RPC a retourné success=false:', data);
+      return {
+        success: false,
+        error: data?.error || data?.message || 'Erreur inconnue',
+        message: data?.message || 'Erreur lors de l\'assignation du bilan',
       };
     }
 
