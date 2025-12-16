@@ -1,8 +1,8 @@
 # Base de Connaissance Technique - Projet Virtus
 
 **Auteur:** Manus AI  
-**Dernière mise à jour:** 15 décembre 2025  
-**Version:** 1.2
+**Dernière mise à jour:** 16 décembre 2025  
+**Version:** 1.3
 
 ---
 
@@ -13,6 +13,218 @@ Ce document constitue le **journal technique central** du projet Virtus. Il sert
 ---
 
 # HISTORIQUE DES INTERVENTIONS
+
+## Intervention #4 - Correction Urgente des RLS Policies (Décembre 2025)
+
+**Date:** 16 décembre 2025  
+**Type:** Intervention d'urgence  
+**Statut:** ✅ Résolu et déployé
+
+### Contexte
+
+Après le déploiement de l'Intervention #3, l'application est devenue **complètement inaccessible** avec des erreurs 500 (Internal Server Error) empêchant toute connexion. Les logs Supabase ont révélé une **récursion infinie** dans les Row Level Security (RLS) policies de la table `clients`.
+
+### Problème Critique Identifié
+
+**Symptôme:** `ERROR: infinite recursion detected in policy for relation "clients"`
+
+**Cause racine:** Les policies RLS vérifiaient le rôle de l'utilisateur en faisant un `SELECT` sur la table `clients`, ce qui déclenchait à nouveau les policies RLS, créant une boucle infinie.
+
+**Policies problématiques:**
+```sql
+-- Exemple de policy avec récursion
+CREATE POLICY "admins_can_view_all_profiles" ON clients FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM clients clients_1 
+    WHERE clients_1.id = auth.uid() 
+    AND clients_1.role = 'admin'
+  )
+);
+```
+
+**Pourquoi c'est récursif:**
+1. L'utilisateur tente un `SELECT` sur `clients`
+2. PostgreSQL vérifie la policy `admins_can_view_all_profiles`
+3. La policy fait un `SELECT` sur `clients` pour vérifier le rôle
+4. PostgreSQL vérifie à nouveau la policy... → **Boucle infinie** 🔄
+
+### Fonctions RPC Affectées
+
+Deux fonctions RPC créées dans l'Intervention #3 aggravaient le problème en accédant à la table `clients` avec `SECURITY DEFINER`:
+
+**1. `assign_bilan_atomic`**
+```sql
+-- Ligne problématique
+SELECT first_name || ' ' || last_name INTO v_coach_name 
+FROM clients 
+WHERE id = p_coach_id;
+```
+
+**2. `complete_bilan_atomic`**
+```sql
+-- Ligne problématique
+SELECT first_name || ' ' || last_name INTO v_client_name 
+FROM clients 
+WHERE id = v_assignment.client_id;
+```
+
+### Solution Appliquée
+
+#### Étape 1: Désactivation Temporaire de RLS (Urgence)
+
+```sql
+ALTER TABLE clients DISABLE ROW LEVEL SECURITY;
+```
+
+**Résultat:** Restauration immédiate de l'accès à l'application.
+
+#### Étape 2: Correction des Fonctions RPC
+
+Suppression des requêtes `SELECT` sur `clients` dans les fonctions:
+
+**`assign_bilan_atomic` corrigée:**
+```sql
+CREATE OR REPLACE FUNCTION assign_bilan_atomic(...) 
+RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_assignment_id UUID;
+  v_template_data JSONB;
+  v_template_name TEXT;
+  -- v_coach_name TEXT; ← Supprimé
+  v_result JSON;
+BEGIN
+  -- SELECT ... FROM clients ... ← Supprimé
+  
+  -- Message de notification simplifié
+  INSERT INTO notifications (...)
+  VALUES (..., 'Vous avez reçu un nouveau bilan : ' || v_template_name, ...);
+  
+  RETURN v_result;
+END;
+$$;
+```
+
+**`complete_bilan_atomic` corrigée:**
+```sql
+CREATE OR REPLACE FUNCTION complete_bilan_atomic(...) 
+RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  -- v_client_name TEXT; ← Supprimé
+BEGIN
+  -- SELECT ... FROM clients ... ← Supprimé
+  
+  -- Message de notification simplifié
+  INSERT INTO notifications (...)
+  VALUES (..., 'Un client a complété le bilan : ' || v_template_name, ...);
+  
+  RETURN v_result;
+END;
+$$;
+```
+
+#### Étape 3: Refonte Complète des RLS Policies
+
+**Suppression de toutes les anciennes policies:**
+```sql
+DROP POLICY IF EXISTS admins_can_insert_clients ON clients;
+DROP POLICY IF EXISTS admins_can_update_all_profiles ON clients;
+DROP POLICY IF EXISTS admins_can_view_all_profiles ON clients;
+DROP POLICY IF EXISTS coaches_can_insert_clients ON clients;
+DROP POLICY IF EXISTS coaches_can_update_their_clients ON clients;
+DROP POLICY IF EXISTS coaches_can_view_their_clients ON clients;
+DROP POLICY IF EXISTS only_admins_can_delete ON clients;
+DROP POLICY IF EXISTS users_can_update_own_profile ON clients;
+DROP POLICY IF EXISTS users_can_view_own_profile ON clients;
+```
+
+**Création de nouvelles policies simplifiées (sans récursion):**
+
+```sql
+-- SELECT: Utilisateurs voient leur propre profil
+CREATE POLICY "Users can view own profile" ON clients FOR SELECT
+USING (auth.uid() = id);
+
+-- SELECT: Coaches voient leurs clients
+CREATE POLICY "Coaches can view their clients" ON clients FOR SELECT
+USING (auth.uid() = coach_id OR auth.uid() = id);
+
+-- UPDATE: Utilisateurs modifient leur propre profil
+CREATE POLICY "Users can update own profile" ON clients FOR UPDATE
+USING (auth.uid() = id)
+WITH CHECK (auth.uid() = id);
+
+-- UPDATE: Coaches modifient leurs clients
+CREATE POLICY "Coaches can update their clients" ON clients FOR UPDATE
+USING (auth.uid() = coach_id)
+WITH CHECK (auth.uid() = coach_id);
+
+-- INSERT: Utilisateurs authentifiés peuvent créer des profils
+CREATE POLICY "Authenticated users can insert" ON clients FOR INSERT
+WITH CHECK (auth.uid() IS NOT NULL);
+```
+
+**Principe clé:** Utiliser uniquement les colonnes de la ligne actuelle (`id`, `coach_id`) et `auth.uid()`, **jamais de sous-requête SELECT**.
+
+#### Étape 4: Réactivation de RLS
+
+```sql
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+```
+
+### Résultat Final
+
+✅ **Application accessible** : Connexion restaurée pour tous les utilisateurs  
+✅ **Pas de récursion** : Policies simplifiées sans sous-requêtes  
+✅ **Sécurité maintenue** : Utilisateurs voient uniquement leurs données  
+✅ **Fonctions RPC corrigées** : Plus d'accès à la table `clients`  
+
+⚠️ **Limitation connue** : Les privilèges admin spéciaux ont été temporairement supprimés. Les admins sont traités comme des coaches.
+
+### Leçons Apprises
+
+1. **RLS Policies et Récursion**
+   - ❌ Ne JAMAIS faire de `SELECT` sur la table elle-même dans une policy
+   - ✅ Utiliser uniquement les colonnes de la ligne courante et `auth.uid()`
+   - ✅ Pour les vérifications de rôle, stocker le rôle dans `auth.jwt()` metadata
+
+2. **Fonctions SECURITY DEFINER**
+   - ⚠️ Avec `SECURITY DEFINER`, les fonctions RPC déclenchent les RLS policies
+   - ✅ Minimiser les accès aux tables avec RLS dans ces fonctions
+   - ✅ Privilégier les données déjà disponibles (paramètres, autres tables)
+
+3. **Tests de Déploiement**
+   - ⚠️ Tester les RLS policies avant le déploiement en production
+   - ✅ Vérifier les logs Supabase immédiatement après un déploiement
+   - ✅ Avoir un plan de rollback rapide (désactivation RLS)
+
+4. **Architecture de Sécurité**
+   - Pour les systèmes avec rôles complexes (admin, coach, client), considérer:
+     - Stocker le rôle dans `auth.jwt()` via un trigger
+     - Utiliser des vues matérialisées pour les vérifications de rôle
+     - Séparer les tables par rôle si nécessaire
+
+### Fichiers Modifiés
+
+**Supabase (via MCP):**
+- Fonction `assign_bilan_atomic` (correction)
+- Fonction `complete_bilan_atomic` (correction)
+- Toutes les RLS policies de la table `clients` (refonte complète)
+
+**Aucun fichier code source modifié** (intervention uniquement en base de données)
+
+### Prochaines Étapes Recommandées
+
+1. **Restaurer les privilèges admin** via une approche sans récursion:
+   - Option A: Stocker le rôle dans `auth.jwt()` metadata
+   - Option B: Créer une table `user_roles` séparée sans RLS
+   - Option C: Utiliser une fonction `SECURITY DEFINER` dédiée pour vérifier le rôle
+
+2. **Ajouter des tests automatisés** pour les RLS policies
+
+3. **Documenter les patterns RLS** à suivre pour les futures tables
+
+---
 
 ## Intervention #3 - Corrections Finales du Système de Bilans (Décembre 2025)
 
