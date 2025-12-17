@@ -1,8 +1,8 @@
 # Base de Connaissance Technique - Projet Virtus
 
 **Auteur:** Manus AI  
-**Dernière mise à jour:** 16 décembre 2025  
-**Version:** 1.3
+**Dernière mise à jour:** 17 décembre 2025  
+**Version:** 1.4
 
 ---
 
@@ -13,6 +13,70 @@ Ce document constitue le **journal technique central** du projet Virtus. Il sert
 ---
 
 # HISTORIQUE DES INTERVENTIONS
+
+## Intervention #5 - Audit et Correction des Vulnérabilités de Sécurité (Décembre 2025)
+
+**Date:** 17 décembre 2025  
+**Type:** Sécurité  
+**Statut:** ✅ Résolu et déployé
+
+### Contexte
+
+Suite à la réception d'un e-mail de Supabase signalant 18 erreurs de sécurité critiques, une intervention a été menée pour analyser et corriger ces vulnérabilités sans impacter le bon fonctionnement de l'application.
+
+### Problèmes Critiques Identifiés
+
+L'analyse initiale a confirmé les 18 erreurs critiques et a également révélé plus de 16 avertissements de sécurité. Les problèmes majeurs étaient les suivants :
+
+| Type de Vulnérabilité | Description | Impact | Nombre |
+| :--- | :--- | :--- | :--- |
+| **Erreur Critique** | Exposition de données sensibles via des vues publiques | Accès non autorisé aux données des utilisateurs | 1 |
+| **Erreur Critique** | Row Level Security (RLS) désactivé sur des tables | Accès non restreint aux données des tables | 3 |
+| **Erreur Critique** | Vues avec `SECURITY DEFINER` | Contournement des politiques RLS | 12 |
+| **Avertissement** | Fonctions avec `search_path` mutable | Vulnérabilité aux attaques par injection de schéma | 16+ |
+
+### Solution Appliquée
+
+Une série de migrations a été appliquée pour corriger ces vulnérabilités. Voici le détail des interventions :
+
+#### 1. Activation de Row Level Security (RLS)
+
+Le RLS a été activé sur les tables qui ne l'avaient pas, et des politiques de sécurité ont été créées pour contrôler l'accès aux données :
+
+- **`program_templates`** : RLS activé.
+- **`intensification_techniques`** : RLS activé avec des politiques restrictives.
+- **`nutrition_logs`** : RLS activé avec des politiques permettant aux utilisateurs et à leurs coachs de gérer les données.
+- **`session_feedback`** : RLS activé avec des politiques similaires à `nutrition_logs`.
+
+#### 2. Suppression des Vues Non Sécurisées et Inutilisées
+
+- La vue **`unified_users`**, qui exposait publiquement la table `auth.users`, a été **supprimée** après confirmation qu'elle n'était pas utilisée dans le code de l'application.
+- Les 3 vues dépréciées (`session_exercises_deprecated_20251203`, `sessions_deprecated_20251203`, `programs_deprecated_20251203`) ont été **supprimées**.
+
+#### 3. Recréation des Vues avec `SECURITY INVOKER`
+
+Toutes les vues qui utilisaient `SECURITY DEFINER` ont été recréées avec l'option **`SECURITY INVOKER = true`**. Cela garantit que les politiques RLS de l'utilisateur qui effectue la requête sont appliquées, empêchant ainsi tout contournement des règles de sécurité.
+
+#### 4. Sécurisation des Fonctions PostgreSQL
+
+Toutes les fonctions qui présentaient un `search_path` mutable ont été recréées en fixant le `search_path` à `public`. Cette mesure empêche les attaques par injection de schéma.
+
+### Résultat Final
+
+- **Erreurs critiques : 0**
+- **Avertissements : 1**
+
+L'unique avertissement restant concerne la **protection contre les mots de passe compromis**.
+
+### Leçons Apprises
+
+1.  **Importance des audits de sécurité réguliers** pour identifier et corriger les vulnérabilités de manière proactive.
+2.  **`SECURITY INVOKER` vs `SECURITY DEFINER`**: `SECURITY INVOKER` est le choix par défaut pour les vues afin de garantir que les politiques RLS sont toujours appliquées.
+3.  **`search_path`**: Toujours fixer le `search_path` dans les fonctions PostgreSQL pour éviter les attaques par injection de schéma.
+
+---
+
+
 
 ## Intervention #4 - Correction Urgente des RLS Policies (Décembre 2025)
 
@@ -1589,3 +1653,25 @@ Une **refonte de l'architecture de duplication** pourrait être étudiée pour �
 **Fin du document - Version 1.1**
 
 *Ce document doit être maintenu à jour à chaque intervention significative sur le projet pour conserver sa valeur de référence.*
+
+
+# ARCHITECTURE TECHNIQUE DU PROJET
+
+## Sécurité et Permissions (Mise à jour du 17 décembre 2025)
+
+### Avant (16 décembre 2025)
+
+- **RLS (Row Level Security):** Activé sur `clients`, mais avec des politiques récursives provoquant des erreurs.
+- **Vues:** De nombreuses vues utilisaient `SECURITY DEFINER`, contournant les politiques RLS.
+- **Fonctions:** La plupart des fonctions avaient un `search_path` mutable, les exposant à des risques d'injection.
+
+### Après (17 décembre 2025)
+
+- **RLS (Row Level Security):**
+  - **`clients`:** Politiques corrigées pour éviter la récursion.
+  - **`program_templates`, `intensification_techniques`, `nutrition_logs`, `session_feedback`:** RLS activé avec des politiques restrictives.
+- **Vues:**
+  - Toutes les vues critiques ont été recréées avec **`SECURITY INVOKER = true`** pour forcer l'application des RLS.
+  - La vue non sécurisée `unified_users` a été supprimée.
+- **Fonctions:**
+  - Toutes les fonctions critiques ont été recréées avec **`SET search_path = public`** pour prévenir les attaques par injection de schéma.
