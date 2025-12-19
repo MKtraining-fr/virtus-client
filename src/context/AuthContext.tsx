@@ -124,9 +124,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Vérifier aussi le hash de l'URL (au cas où l'événement n'a pas encore été traité)
       const hashHasRecoveryTokens = window.location.hash.includes('access_token') || 
-                                     window.location.hash.includes('type=recovery');
+                                     window.location.hash.includes('type=recovery') ||
+                                     window.location.hash.includes('token_type=bearer');
 
-      const shouldStayOnSetPassword = currentPath === '/set-password' && 
+      // Vérifier si le pathname contient set-password (avec ou sans slash final)
+      const isOnSetPasswordPage = currentPath === '/set-password' || currentPath.endsWith('/set-password');
+
+      const shouldStayOnSetPassword = isOnSetPasswordPage && 
                                        (isPasswordRecoveryFlow || hashHasRecoveryTokens);
 
       if (shouldStayOnSetPassword) {
@@ -137,7 +141,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      if (currentPath === '/' || currentPath === '/login' || currentPath === '/set-password') {
+      if (currentPath === '/' || currentPath === '/login' || isOnSetPasswordPage) {
         logger.info('Redirecting authenticated user', { from: currentPath, to: targetPath });
         lastNavigationRef.current = targetPath;
         navigate(targetPath, { replace: true });
