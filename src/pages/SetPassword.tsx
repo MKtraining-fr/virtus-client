@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import Card from '../components/Card';
 
-// Clé pour stocker le flag de récupération de mot de passe (doit correspondre à AuthContext)
-const PASSWORD_RECOVERY_FLAG = 'virtus_password_recovery_flow';
-
 const SetPassword: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(true);
@@ -22,81 +20,84 @@ const SetPassword: React.FC = () => {
       try {
         console.log('SetPassword - Initialisation...');
         console.log('SetPassword - URL complète:', window.location.href);
-        console.log('SetPassword - Hash:', window.location.hash);
+        console.log('SetPassword - Search params:', window.location.search);
 
-        // Vérifier si le flag de récupération est défini
-        const hasRecoveryFlag = sessionStorage.getItem(PASSWORD_RECOVERY_FLAG) === 'true';
-        console.log('SetPassword - Recovery flag:', hasRecoveryFlag);
+        // Récupérer les paramètres de l'URL (format HashRouter: /#/set-password?token=...&type=...&email=...)
+        const token = searchParams.get('token');
+        const type = searchParams.get('type');
+        const email = searchParams.get('email');
 
-        // Écouter les événements d'authentification Supabase
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          console.log('SetPassword - Auth event:', event, 'Session:', !!session);
+        console.log('SetPassword - Token:', token ? 'présent' : 'absent');
+        console.log('SetPassword - Type:', type);
+        console.log('SetPassword - Email:', email);
+
+        // Si on a un token de récupération, le vérifier via verifyOtp
+        if (token && type === 'recovery' && email) {
+          console.log('SetPassword - Vérification du token via verifyOtp...');
           
-          if (event === 'PASSWORD_RECOVERY') {
-            // Événement spécifique pour la récupération de mot de passe
-            console.log('SetPassword - Événement PASSWORD_RECOVERY détecté');
-            sessionStorage.setItem(PASSWORD_RECOVERY_FLAG, 'true');
+          const { data, error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'recovery',
+          });
+
+          if (verifyError) {
+            console.error('SetPassword - Erreur verifyOtp:', verifyError);
+            setError('Lien invalide ou expiré. Veuillez demander un nouveau lien de réinitialisation.');
+            setLoading(false);
+            return;
+          }
+
+          if (data.session) {
+            console.log('SetPassword - Session établie via verifyOtp');
             setIsValidSession(true);
             setLoading(false);
-          } else if (event === 'SIGNED_IN' && session) {
-            // Vérifier si c'est un flux de récupération
-            const isRecoveryFlow = sessionStorage.getItem(PASSWORD_RECOVERY_FLAG) === 'true';
-            if (isRecoveryFlow) {
-              console.log('SetPassword - Utilisateur connecté via le lien de récupération');
-              setIsValidSession(true);
-              setLoading(false);
-            }
+            return;
           }
-        });
+        }
 
-        // Vérifier si une session existe déjà
+        // Vérifier si une session existe déjà (cas où l'utilisateur est déjà connecté)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         console.log('SetPassword - Session existante:', !!session, 'Erreur:', sessionError);
 
         if (session) {
-          // Une session existe
-          // Vérifier si c'est un flux de récupération de mot de passe
-          if (hasRecoveryFlag) {
-            console.log('SetPassword - Session valide avec flag de récupération');
-            setIsValidSession(true);
-            setLoading(false);
-            return;
-          }
-          
-          // Vérifier le hash de l'URL pour les tokens de récupération
-          const hash = window.location.hash;
-          if (hash.includes('access_token') || hash.includes('type=recovery')) {
-            console.log('SetPassword - Tokens de récupération dans le hash');
-            sessionStorage.setItem(PASSWORD_RECOVERY_FLAG, 'true');
-            setIsValidSession(true);
-            setLoading(false);
-            return;
-          }
-
-          // Session existante mais pas de flux de récupération
-          // L'utilisateur peut quand même changer son mot de passe s'il a une session valide
-          console.log('SetPassword - Session valide trouvée (pas de flux de récupération explicite)');
+          console.log('SetPassword - Session valide trouvée');
           setIsValidSession(true);
           setLoading(false);
           return;
         }
 
-        // Attendre un peu pour laisser le temps à Supabase de traiter le token dans l'URL
-        setTimeout(async () => {
-          const { data: { session: delayedSession } } = await supabase.auth.getSession();
-          const hasRecoveryFlagAfterDelay = sessionStorage.getItem(PASSWORD_RECOVERY_FLAG) === 'true';
+        // Écouter les événements d'authentification Supabase (pour les autres cas)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log('SetPassword - Auth event:', event, 'Session:', !!session);
           
-          if (delayedSession || hasRecoveryFlagAfterDelay) {
-            console.log('SetPassword - Session ou flag trouvé après délai');
+          if (event === 'PASSWORD_RECOVERY' && session) {
+            console.log('SetPassword - Événement PASSWORD_RECOVERY détecté');
             setIsValidSession(true);
             setLoading(false);
-          } else {
-            console.log('SetPassword - Aucune session trouvée');
-            setError('Lien invalide ou expiré. Veuillez demander un nouveau lien de réinitialisation.');
+          } else if (event === 'SIGNED_IN' && session) {
+            console.log('SetPassword - Utilisateur connecté');
+            setIsValidSession(true);
             setLoading(false);
           }
-        }, 1500);
+        });
+
+        // Si pas de token dans l'URL et pas de session, afficher une erreur après un délai
+        if (!token) {
+          setTimeout(async () => {
+            const { data: { session: delayedSession } } = await supabase.auth.getSession();
+            
+            if (delayedSession) {
+              console.log('SetPassword - Session trouvée après délai');
+              setIsValidSession(true);
+              setLoading(false);
+            } else {
+              console.log('SetPassword - Aucune session trouvée');
+              setError('Lien invalide ou expiré. Veuillez demander un nouveau lien de réinitialisation.');
+              setLoading(false);
+            }
+          }, 1500);
+        }
 
         // Cleanup subscription on unmount
         return () => {
@@ -110,7 +111,7 @@ const SetPassword: React.FC = () => {
     };
 
     initializeSession();
-  }, []);
+  }, [searchParams]);
 
   const validatePassword = (pwd: string): string[] => {
     const errors: string[] = [];
@@ -157,9 +158,6 @@ const SetPassword: React.FC = () => {
           password_changed_at: new Date().toISOString(),
         }
       });
-
-      // Nettoyer le flag de récupération
-      sessionStorage.removeItem(PASSWORD_RECOVERY_FLAG);
 
       setSuccess(true);
 
@@ -320,7 +318,7 @@ const SetPassword: React.FC = () => {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             Vous avez déjà un compte ?{' '}
-            <a href="/login" className="text-primary hover:underline font-medium">
+            <a href="/#/login" className="text-primary hover:underline font-medium">
               Se connecter
             </a>
           </p>
