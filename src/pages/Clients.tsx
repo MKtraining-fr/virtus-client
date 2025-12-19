@@ -6,6 +6,8 @@ import Button from '../components/Button';
 import Input from '../components/Input';
 import { useAuth } from '../context/AuthContext';
 import { useSortableData } from '../hooks/useSortableData';
+import InviteClientModal, { InviteClientData } from '../components/InviteClientModal';
+import { useDataStore } from '../stores/useDataStore';
 
 const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null }) => {
   return (
@@ -26,8 +28,21 @@ const Clients: React.FC = () => {
     deleteUser,
     resendInvitation,
   } = useAuth();
+  const { inviteClient } = useDataStore();
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [filter, setFilter] = useState('');
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  const handleInviteClient = async (data: InviteClientData) => {
+    try {
+      await inviteClient(data);
+      alert(`\u2705 Invitation envoy\u00e9e avec succ\u00e8s \u00e0 ${data.email}\n\nLe client recevra un email lui permettant de d\u00e9finir son mot de passe.`);
+      await reloadData();
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error('Une erreur inconnue est survenue.');
+      throw err;
+    }
+  };
   const navigate = useNavigate();
 
   const clients = useMemo(() => {
@@ -122,6 +137,13 @@ const Clients: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Mes Clients</h1>
         <div>
+          <Button
+            variant="primary"
+            className="mr-2"
+            onClick={() => setIsInviteModalOpen(true)}
+          >
+            + Inviter un client
+          </Button>
           <Button
             variant="secondary"
             className="mr-2"
@@ -270,6 +292,13 @@ const Clients: React.FC = () => {
           </table>
         </div>
       </Card>
+
+      {/* Modal d'invitation */}
+      <InviteClientModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        onInvite={handleInviteClient}
+      />
     </div>
   );
 };

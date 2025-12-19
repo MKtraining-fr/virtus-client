@@ -93,11 +93,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      if (
-        currentPath === '/' ||
-        currentPath === '/login' ||
-        currentPath === '/set-password'
-      ) {
+      // Vérifier si le pathname contient set-password (avec ou sans slash final)
+      const isOnSetPasswordPage = currentPath === '/set-password' || currentPath.endsWith('/set-password');
+
+      // NE JAMAIS rediriger depuis /set-password
+      // L'utilisateur doit pouvoir accéder à cette page pour changer son mot de passe,
+      // qu'il soit connecté ou non (flux de récupération de mot de passe)
+      if (isOnSetPasswordPage) {
+        logger.info('On /set-password page, not redirecting');
+        return;
+      }
+
+      if (currentPath === '/' || currentPath === '/login') {
         logger.info('Redirecting authenticated user', { from: currentPath, to: targetPath });
         lastNavigationRef.current = targetPath;
         navigate(targetPath, { replace: true });

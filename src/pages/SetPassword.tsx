@@ -9,21 +9,141 @@ const SetPassword: React.FC = () => {
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [isValidSession, setIsValidSession] = useState(false);
+
+  // Fonction pour extraire les paramètres de l'URL avec HashRouter
+  // Format: /#/set-password?token=xxx&type=recovery&email=xxx
+  const getHashParams = (): { token: string | null; type: string | null; email: string | null } => {
+    const hash = window.location.hash; // Ex: #/set-password?token=xxx&type=recovery&email=xxx
+    console.log('SetPassword - Hash complet:', hash);
+    
+    // Extraire la partie après le ? dans le hash
+    const queryIndex = hash.indexOf('?');
+    if (queryIndex === -1) {
+      console.log('SetPassword - Pas de paramètres dans le hash');
+      return { token: null, type: null, email: null };
+    }
+    
+    const queryString = hash.substring(queryIndex + 1);
+    console.log('SetPassword - Query string:', queryString);
+    
+    const params = new URLSearchParams(queryString);
+    const token = params.get('token');
+    const type = params.get('type');
+    const email = params.get('email');
+    
+    console.log('SetPassword - Paramètres extraits:', { 
+      token: token ? `${token.substring(0, 10)}...` : null, 
+      type, 
+      email 
+    });
+    
+    return { token, type, email };
+  };
 
   useEffect(() => {
-    // Vérifier si l'utilisateur a un token de récupération valide
-    const checkRecoveryToken = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        setError('Lien invalide ou expiré. Veuillez demander un nouveau lien.');
+    const initializeSession = async () => {
+      try {
+        console.log('SetPassword - Initialisation...');
+        console.log('SetPassword - URL complète:', window.location.href);
+        console.log('SetPassword - Hash:', window.location.hash);
+
+        // Récupérer les paramètres depuis le hash (format HashRouter)
+        const { token, type, email } = getHashParams();
+
+        console.log('SetPassword - Token présent:', !!token);
+        console.log('SetPassword - Type:', type);
+        console.log('SetPassword - Email:', email);
+
+        // Si on a un token de récupération, le vérifier via verifyOtp
+        if (token && type === 'recovery') {
+          console.log('SetPassword - Vérification du token via verifyOtp...');
+          console.log('SetPassword - Token (premiers caractères):', token.substring(0, 20));
+          
+          try {
+            const { data, error: verifyError } = await supabase.auth.verifyOtp({
+              token_hash: token,
+              type: 'recovery',
+            });
+
+            console.log('SetPassword - Résultat verifyOtp:', { 
+              hasData: !!data, 
+              hasSession: !!data?.session,
+              hasUser: !!data?.user,
+              error: verifyError?.message 
+            });
+
+            if (verifyError) {
+              console.error('SetPassword - Erreur verifyOtp:', verifyError);
+              // Ne pas afficher l'erreur immédiatement, essayer d'autres méthodes
+            } else if (data?.session) {
+              console.log('SetPassword - Session établie via verifyOtp');
+              setIsValidSession(true);
+              setLoading(false);
+              return;
+            }
+          } catch (verifyErr) {
+            console.error('SetPassword - Exception verifyOtp:', verifyErr);
+          }
+        }
+
+        // Vérifier si une session existe déjà (cas où l'utilisateur est déjà connecté)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        console.log('SetPassword - Session existante:', !!session, 'Erreur:', sessionError?.message);
+
+        if (session) {
+          console.log('SetPassword - Session valide trouvée');
+          setIsValidSession(true);
+          setLoading(false);
+          return;
+        }
+
+        // Écouter les événements d'authentification Supabase
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log('SetPassword - Auth event:', event, 'Session:', !!session);
+          
+          if (event === 'PASSWORD_RECOVERY' && session) {
+            console.log('SetPassword - Événement PASSWORD_RECOVERY détecté');
+            setIsValidSession(true);
+            setLoading(false);
+          } else if (event === 'SIGNED_IN' && session) {
+            console.log('SetPassword - Utilisateur connecté via SIGNED_IN');
+            setIsValidSession(true);
+            setLoading(false);
+          }
+        });
+
+        // Attendre un peu pour voir si une session est établie
+        setTimeout(async () => {
+          const { data: { session: delayedSession } } = await supabase.auth.getSession();
+          
+          if (delayedSession) {
+            console.log('SetPassword - Session trouvée après délai');
+            setIsValidSession(true);
+            setLoading(false);
+          } else if (!isValidSession) {
+            console.log('SetPassword - Aucune session trouvée après délai');
+            setError('Lien invalide ou expiré. Veuillez demander un nouveau lien de réinitialisation.');
+            setLoading(false);
+          }
+        }, 2000);
+
+        // Cleanup subscription on unmount
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (err) {
+        console.error('SetPassword - Erreur lors de l\'initialisation:', err);
+        setError('Une erreur est survenue. Veuillez réessayer.');
+        setLoading(false);
       }
     };
-    checkRecoveryToken();
+
+    initializeSession();
   }, []);
 
   const validatePassword = (pwd: string): string[] => {
@@ -64,20 +184,43 @@ const SetPassword: React.FC = () => {
 
       if (updateError) throw updateError;
 
+      // Mettre à jour les métadonnées pour indiquer que le mot de passe a été changé
+      await supabase.auth.updateUser({
+        data: {
+          password_changed: true,
+          password_changed_at: new Date().toISOString(),
+        }
+      });
+
       setSuccess(true);
 
       // Rediriger vers la page de connexion après 3 secondes
       setTimeout(() => {
-        navigate('/login');
+        // Se déconnecter pour forcer une nouvelle connexion avec le nouveau mot de passe
+        supabase.auth.signOut().then(() => {
+          navigate('/login');
+        });
       }, 3000);
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error('Une erreur inconnue est survenue.');
       setError(error.message || 'Une erreur est survenue');
-    } finally {
       setLoading(false);
     }
   };
 
+  // Affichage du chargement
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
+        <Card className="w-full max-w-md p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Vérification du lien...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  // Affichage du succès
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
@@ -109,6 +252,39 @@ const SetPassword: React.FC = () => {
     );
   }
 
+  // Affichage de l'erreur (lien invalide) - seulement si pas de session valide
+  if (!isValidSession && error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
+        <Card className="w-full max-w-md p-8 text-center">
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Lien invalide</h1>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => navigate('/login')} className="w-full">
+              Retour à la connexion
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Formulaire de définition du mot de passe
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
       <Card className="w-full max-w-md p-8">
@@ -175,7 +351,7 @@ const SetPassword: React.FC = () => {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             Vous avez déjà un compte ?{' '}
-            <a href="/login" className="text-primary hover:underline font-medium">
+            <a href="/#/login" className="text-primary hover:underline font-medium">
               Se connecter
             </a>
           </p>

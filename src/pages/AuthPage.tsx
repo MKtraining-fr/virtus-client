@@ -23,7 +23,7 @@ const AuthPage: React.FC = () => {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
   const [showSignUpSuccess, setShowSignUpSuccess] = useState(false); // État pour la modale de succès d'inscription
-  const { login, register, clients, isDataLoading, dataError } = useAuth();
+  const { login, register, resetPassword, clients, isDataLoading, dataError } = useAuth();
   const location = useLocation();
 
   const isFormDisabled = isLoading || isDataLoading;

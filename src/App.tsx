@@ -6,6 +6,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 import { AuthCallback } from './components/AuthCallback';
+import FirstLoginPasswordModal from './components/FirstLoginPasswordModal';
+import { useFirstLogin } from './hooks/useFirstLogin';
 
 // Lazy loading des composants lourds
 const AuthPage = lazy(() => import('./pages/AuthPage'));
@@ -20,6 +22,22 @@ const App: React.FC = () => {
   const { isDataLoading } = useDataStore();
   const navigate = useNavigate();
   const lastViewRoleRef = useRef(currentViewRole);
+  
+  // Hook pour détecter la première connexion
+  const { isFirstLogin, isLoading: isFirstLoginLoading, userEmail } = useFirstLogin(user?.id);
+  const [showPasswordModal, setShowPasswordModal] = React.useState(false);
+
+  // Afficher la modal si c'est la première connexion
+  React.useEffect(() => {
+    if (!isFirstLoginLoading && isFirstLogin && user) {
+      setShowPasswordModal(true);
+    }
+  }, [isFirstLogin, isFirstLoginLoading, user]);
+
+  const handlePasswordChanged = () => {
+    setShowPasswordModal(false);
+    // Optionnel: afficher une notification de succès
+  };
 
   const shouldDisplayLoading = isAuthLoading || (user && isDataLoading);
 
@@ -68,6 +86,15 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <AuthCallback />
+      
+      {/* Modal de changement de mot de passe à la première connexion */}
+      <FirstLoginPasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        onPasswordChanged={handlePasswordChanged}
+        userEmail={userEmail}
+      />
+      
       <Suspense fallback={<LoadingSpinner fullScreen message="Chargement..." />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
