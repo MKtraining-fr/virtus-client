@@ -627,10 +627,12 @@ export const useDataStore = create<DataState>((set, get) => {
         }
 
         // Appeler l'Edge Function pour créer l'utilisateur
+        // Le mot de passe est optionnel - s'il n'est pas fourni, un mot de passe temporaire sera généré
+        // et envoyé par email au client
         const { data, error } = await supabase.functions.invoke('create-user-admin', {
           body: {
             email: userData.email,
-            password: (userData as any).password, // Le mot de passe est passé depuis le formulaire
+            password: (userData as any).password || undefined, // Optionnel - sera généré si non fourni
             firstName: userData.firstName,
             lastName: userData.lastName,
             phone: userData.phone,
@@ -638,6 +640,7 @@ export const useDataStore = create<DataState>((set, get) => {
             coachId: userData.coachId,
             affiliationCode: userData.affiliationCode,
             status: userData.status,
+            sendCredentialsEmail: true, // Envoyer les identifiants par email
           },
         });
 
