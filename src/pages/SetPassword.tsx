@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import Button from '../components/Button';
 import Input from '../components/Input';
@@ -7,7 +7,6 @@ import Card from '../components/Card';
 
 const SetPassword: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(true);
@@ -15,50 +14,86 @@ const SetPassword: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
 
+  // Fonction pour extraire les paramètres de l'URL avec HashRouter
+  // Format: /#/set-password?token=xxx&type=recovery&email=xxx
+  const getHashParams = (): { token: string | null; type: string | null; email: string | null } => {
+    const hash = window.location.hash; // Ex: #/set-password?token=xxx&type=recovery&email=xxx
+    console.log('SetPassword - Hash complet:', hash);
+    
+    // Extraire la partie après le ? dans le hash
+    const queryIndex = hash.indexOf('?');
+    if (queryIndex === -1) {
+      console.log('SetPassword - Pas de paramètres dans le hash');
+      return { token: null, type: null, email: null };
+    }
+    
+    const queryString = hash.substring(queryIndex + 1);
+    console.log('SetPassword - Query string:', queryString);
+    
+    const params = new URLSearchParams(queryString);
+    const token = params.get('token');
+    const type = params.get('type');
+    const email = params.get('email');
+    
+    console.log('SetPassword - Paramètres extraits:', { 
+      token: token ? `${token.substring(0, 10)}...` : null, 
+      type, 
+      email 
+    });
+    
+    return { token, type, email };
+  };
+
   useEffect(() => {
     const initializeSession = async () => {
       try {
         console.log('SetPassword - Initialisation...');
         console.log('SetPassword - URL complète:', window.location.href);
-        console.log('SetPassword - Search params:', window.location.search);
+        console.log('SetPassword - Hash:', window.location.hash);
 
-        // Récupérer les paramètres de l'URL (format HashRouter: /#/set-password?token=...&type=...&email=...)
-        const token = searchParams.get('token');
-        const type = searchParams.get('type');
-        const email = searchParams.get('email');
+        // Récupérer les paramètres depuis le hash (format HashRouter)
+        const { token, type, email } = getHashParams();
 
-        console.log('SetPassword - Token:', token ? 'présent' : 'absent');
+        console.log('SetPassword - Token présent:', !!token);
         console.log('SetPassword - Type:', type);
         console.log('SetPassword - Email:', email);
 
         // Si on a un token de récupération, le vérifier via verifyOtp
-        if (token && type === 'recovery' && email) {
+        if (token && type === 'recovery') {
           console.log('SetPassword - Vérification du token via verifyOtp...');
+          console.log('SetPassword - Token (premiers caractères):', token.substring(0, 20));
           
-          const { data, error: verifyError } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: 'recovery',
-          });
+          try {
+            const { data, error: verifyError } = await supabase.auth.verifyOtp({
+              token_hash: token,
+              type: 'recovery',
+            });
 
-          if (verifyError) {
-            console.error('SetPassword - Erreur verifyOtp:', verifyError);
-            setError('Lien invalide ou expiré. Veuillez demander un nouveau lien de réinitialisation.');
-            setLoading(false);
-            return;
-          }
+            console.log('SetPassword - Résultat verifyOtp:', { 
+              hasData: !!data, 
+              hasSession: !!data?.session,
+              hasUser: !!data?.user,
+              error: verifyError?.message 
+            });
 
-          if (data.session) {
-            console.log('SetPassword - Session établie via verifyOtp');
-            setIsValidSession(true);
-            setLoading(false);
-            return;
+            if (verifyError) {
+              console.error('SetPassword - Erreur verifyOtp:', verifyError);
+              // Ne pas afficher l'erreur immédiatement, essayer d'autres méthodes
+            } else if (data?.session) {
+              console.log('SetPassword - Session établie via verifyOtp');
+              setIsValidSession(true);
+              setLoading(false);
+              return;
+            }
+          } catch (verifyErr) {
+            console.error('SetPassword - Exception verifyOtp:', verifyErr);
           }
         }
 
         // Vérifier si une session existe déjà (cas où l'utilisateur est déjà connecté)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        console.log('SetPassword - Session existante:', !!session, 'Erreur:', sessionError);
+        console.log('SetPassword - Session existante:', !!session, 'Erreur:', sessionError?.message);
 
         if (session) {
           console.log('SetPassword - Session valide trouvée');
@@ -67,7 +102,7 @@ const SetPassword: React.FC = () => {
           return;
         }
 
-        // Écouter les événements d'authentification Supabase (pour les autres cas)
+        // Écouter les événements d'authentification Supabase
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
           console.log('SetPassword - Auth event:', event, 'Session:', !!session);
           
@@ -76,28 +111,26 @@ const SetPassword: React.FC = () => {
             setIsValidSession(true);
             setLoading(false);
           } else if (event === 'SIGNED_IN' && session) {
-            console.log('SetPassword - Utilisateur connecté');
+            console.log('SetPassword - Utilisateur connecté via SIGNED_IN');
             setIsValidSession(true);
             setLoading(false);
           }
         });
 
-        // Si pas de token dans l'URL et pas de session, afficher une erreur après un délai
-        if (!token) {
-          setTimeout(async () => {
-            const { data: { session: delayedSession } } = await supabase.auth.getSession();
-            
-            if (delayedSession) {
-              console.log('SetPassword - Session trouvée après délai');
-              setIsValidSession(true);
-              setLoading(false);
-            } else {
-              console.log('SetPassword - Aucune session trouvée');
-              setError('Lien invalide ou expiré. Veuillez demander un nouveau lien de réinitialisation.');
-              setLoading(false);
-            }
-          }, 1500);
-        }
+        // Attendre un peu pour voir si une session est établie
+        setTimeout(async () => {
+          const { data: { session: delayedSession } } = await supabase.auth.getSession();
+          
+          if (delayedSession) {
+            console.log('SetPassword - Session trouvée après délai');
+            setIsValidSession(true);
+            setLoading(false);
+          } else if (!isValidSession) {
+            console.log('SetPassword - Aucune session trouvée après délai');
+            setError('Lien invalide ou expiré. Veuillez demander un nouveau lien de réinitialisation.');
+            setLoading(false);
+          }
+        }, 2000);
 
         // Cleanup subscription on unmount
         return () => {
@@ -111,7 +144,7 @@ const SetPassword: React.FC = () => {
     };
 
     initializeSession();
-  }, [searchParams]);
+  }, []);
 
   const validatePassword = (pwd: string): string[] => {
     const errors: string[] = [];
