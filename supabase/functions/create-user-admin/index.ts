@@ -289,12 +289,12 @@ serve(async (req) => {
       affiliation_code: userData.affiliationCode || null,
       coach_id: profile.role === 'coach' ? user.id : (userData.coachId && userData.coachId !== '' ? userData.coachId : null),
       status: userData.status || 'active',
-      // Champs additionnels du bilan
+      // Champs additionnels du bilan (noms de colonnes Supabase)
       sex: userData.sex || null,
-      date_of_birth: userData.dateOfBirth || null,
+      dob: userData.dateOfBirth || null,
       height: userData.height || null,
       weight: userData.weight || null,
-      activity_level: userData.activityLevel || null,
+      energy_expenditure_level: userData.activityLevel || null,
     };
 
     // Utiliser UPSERT pour éviter les erreurs de clé dupliquée
