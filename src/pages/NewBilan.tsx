@@ -39,7 +39,13 @@ const DynamicField: React.FC<{
       );
     case 'select':
       return (
-        <Select {...commonProps}>
+        <Select
+          id={field.id}
+          label={field.label}
+          name={field.id}
+          value={(value as string) || ''}
+          onChange={(val) => onChange(val)}
+        >
           <option value="">-- Sélectionnez --</option>
           {field.options?.map((opt) => (
             <option key={opt} value={opt}>
