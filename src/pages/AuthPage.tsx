@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal'; // Importation du composant Modal
 import { SignUpSchema } from '../validation/schemas'; // Importation du schéma de validation pour les exigences de mot de passe
 import Input from '../components/Input';
+import PasswordInput from '../components/PasswordInput';
 import Button from '../components/Button';
 import Select from '../components/Select';
 import { Client } from '../types';
@@ -219,10 +220,9 @@ const AuthPage: React.FC = () => {
             disabled={isFormDisabled}
           />
 
-          <Input
+          <PasswordInput
             label="Mot de passe"
             id="password"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import Button from '../components/Button';
-import Input from '../components/Input';
+import PasswordInput from '../components/PasswordInput';
 import Card from '../components/Card';
 
 const SetPassword: React.FC = () => {
@@ -302,18 +302,16 @@ const SetPassword: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <Input
+          <PasswordInput
             label="Nouveau mot de passe"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             required
           />
 
-          <Input
+          <PasswordInput
             label="Confirmer le mot de passe"
-            type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="••••••••"

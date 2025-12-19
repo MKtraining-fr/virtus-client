@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Button from './Button';
-import Input from './Input';
+import PasswordInput from './PasswordInput';
 import { supabase } from '../services/supabase';
 
 interface FirstLoginPasswordModalProps {
@@ -205,10 +205,9 @@ const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = ({
                 </ul>
               </div>
 
-              <Input
+              <PasswordInput
                 label="Nouveau mot de passe"
                 name="newPassword"
-                type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Entrez votre nouveau mot de passe"
@@ -234,10 +233,9 @@ const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = ({
                 </div>
               )}
 
-              <Input
+              <PasswordInput
                 label="Confirmer le mot de passe"
                 name="confirmPassword"
-                type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirmez votre mot de passe"
