@@ -93,14 +93,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
+      // Ne pas rediriger depuis /set-password si c'est un flux de récupération de mot de passe
+      // (détecté par la présence de tokens dans le hash de l'URL)
+      const isPasswordRecoveryFlow = currentPath === '/set-password' && (
+        window.location.hash.includes('access_token') ||
+        window.location.hash.includes('type=recovery')
+      );
+
       if (
-        currentPath === '/' ||
-        currentPath === '/login' ||
-        currentPath === '/set-password'
+        (currentPath === '/' || currentPath === '/login') ||
+        (currentPath === '/set-password' && !isPasswordRecoveryFlow)
       ) {
         logger.info('Redirecting authenticated user', { from: currentPath, to: targetPath });
         lastNavigationRef.current = targetPath;
         navigate(targetPath, { replace: true });
+      } else if (isPasswordRecoveryFlow) {
+        logger.info('Password recovery flow detected, staying on /set-password');
       }
     } else {
       const publicPaths = ['/', '/login', '/set-password'];
