@@ -158,22 +158,9 @@ const NewBilan: React.FC = () => {
 
   const [selectedTemplateId, setSelectedTemplateId] = useState(coachTemplates[0]?.id || '');
 
+  // Initialiser avec un email généré automatiquement pour les nouveaux prospects
   const [answers, setAnswers] = useState<Record<string, unknown>>({
-    firstName: 'John',
-    lastName: 'Prospect',
-    dob: '1990-05-15',
-    sex: 'Homme',
-    address: '10 Test Street',
     email: `prospect-${Date.now()}@test.com`,
-    phone: '0123456789',
-    height: '180',
-    weight: '75',
-    energyExpenditureLevel: 'Actif',
-    fld_objectif: 'Test Objective',
-    fld_profession: 'Tester',
-    fld_allergies: 'Aucune',
-    fld_aversions: 'Rien',
-    fld_habits: 'Bonnes habitudes',
   });
 
   const selectedTemplate = useMemo(
@@ -188,8 +175,9 @@ const NewBilan: React.FC = () => {
   };
 
   // Helper function to get value from answers with fallback for different field ID formats
+  // Priorise les IDs français car c'est le format utilisé dans le template Supabase
   const getAnswerValue = (englishId: string, frenchId: string): unknown => {
-    return answers[englishId] || answers[frenchId] || '';
+    return answers[frenchId] || answers[englishId] || '';
   };
 
   const handleSubmit = async (status: 'active' | 'prospect') => {
