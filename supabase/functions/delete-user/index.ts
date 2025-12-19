@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 const defaultAllowedOrigins = [
   'https://virtusofficiel.netlify.app',
   'https://www.virtusofficiel.netlify.app',
+  'https://virtus-6zp.pages.dev',
   'http://localhost:5173',
   'http://localhost:3000',
 ];
@@ -162,20 +163,66 @@ serve(async (req) => {
     );
     console.log('Client Supabase Service Role créé.');
 
-    // Supprimer l'utilisateur de Supabase Auth
-    console.log("Tentative de suppression de l'utilisateur de Supabase Auth:", userIdToDelete);
-    const { error: authError } = await serviceRoleClient.auth.admin.deleteUser(userIdToDelete);
+    // Récupérer le profil de l'appelant pour vérifier son rôle
+    const { data: callerProfile, error: callerProfileError } = await serviceRoleClient
+      .from('clients')
+      .select('role')
+      .eq('id', callingUser.id)
+      .single();
 
-    if (authError) {
-      console.error("Erreur lors de la suppression de l'utilisateur de Supabase Auth:", authError);
-      return new Response(JSON.stringify({ error: authError.message }), {
+    if (callerProfileError || !callerProfile) {
+      console.error("Erreur lors de la récupération du profil de l'appelant:", callerProfileError);
+      return new Response(JSON.stringify({ error: 'Could not verify caller permissions' }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        status: 500,
+        status: 403,
       });
     }
-    console.log('Utilisateur supprimé de Supabase Auth:', userIdToDelete);
 
-    // Supprimer le profil client de la table 'clients'
+    // Vérifier que l'appelant est admin ou coach
+    if (callerProfile.role !== 'admin' && callerProfile.role !== 'coach') {
+      console.error("L'appelant n'a pas les permissions nécessaires. Rôle:", callerProfile.role);
+      return new Response(JSON.stringify({ error: 'Insufficient permissions. Only admin or coach can delete users.' }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        status: 403,
+      });
+    }
+
+    // Si l'appelant est un coach, vérifier qu'il ne supprime que ses propres clients
+    if (callerProfile.role === 'coach') {
+      const { data: clientToDelete, error: clientError } = await serviceRoleClient
+        .from('clients')
+        .select('coach_id, role')
+        .eq('id', userIdToDelete)
+        .single();
+
+      if (clientError || !clientToDelete) {
+        console.error("Erreur lors de la vérification du client à supprimer:", clientError);
+        return new Response(JSON.stringify({ error: 'Client not found' }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 404,
+        });
+      }
+
+      // Un coach ne peut supprimer que ses propres clients
+      if (clientToDelete.coach_id !== callingUser.id) {
+        console.error("Le coach essaie de supprimer un client qui ne lui appartient pas.");
+        return new Response(JSON.stringify({ error: 'You can only delete your own clients' }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 403,
+        });
+      }
+
+      // Un coach ne peut pas supprimer un autre coach ou admin
+      if (clientToDelete.role === 'coach' || clientToDelete.role === 'admin') {
+        console.error("Le coach essaie de supprimer un autre coach ou admin.");
+        return new Response(JSON.stringify({ error: 'Coaches cannot delete other coaches or admins' }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 403,
+        });
+      }
+    }
+
+    // Supprimer d'abord le profil client de la table 'clients' (avant auth.users à cause des FK)
     console.log("Tentative de suppression du profil client de la table 'clients':", userIdToDelete);
     const { error: profileError } = await serviceRoleClient
       .from('clients')
@@ -190,6 +237,20 @@ serve(async (req) => {
       });
     }
     console.log("Profil client supprimé de la table 'clients':", userIdToDelete);
+
+    // Supprimer l'utilisateur de Supabase Auth
+    console.log("Tentative de suppression de l'utilisateur de Supabase Auth:", userIdToDelete);
+    const { error: authError } = await serviceRoleClient.auth.admin.deleteUser(userIdToDelete);
+
+    if (authError) {
+      console.error("Erreur lors de la suppression de l'utilisateur de Supabase Auth:", authError);
+      // Note: Le profil a déjà été supprimé, mais l'utilisateur auth reste
+      return new Response(JSON.stringify({ error: authError.message }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        status: 500,
+      });
+    }
+    console.log('Utilisateur supprimé de Supabase Auth:', userIdToDelete);
 
     return new Response(
       JSON.stringify({ message: 'Utilisateur et profil supprimés avec succès' }),
