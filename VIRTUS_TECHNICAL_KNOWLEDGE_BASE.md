@@ -1,8 +1,8 @@
 # Base de Connaissance Technique - Projet Virtus
 
 **Auteur:** Manus AI  
-**Dernière mise à jour:** 17 décembre 2025  
-**Version:** 1.4
+**Dernière mise à jour:** 19 décembre 2025  
+**Version:** 1.5
 
 ---
 
@@ -13,6 +13,174 @@ Ce document constitue le **journal technique central** du projet Virtus. Il sert
 ---
 
 # HISTORIQUE DES INTERVENTIONS
+
+## Intervention #6 - Correction du Flux de Réinitialisation de Mot de Passe et Amélioration UX (Décembre 2025)
+
+**Date:** 19 décembre 2025  
+**Type:** Authentification / UX  
+**Statut:** ✅ Résolu et déployé
+
+### Contexte
+
+Le flux de réinitialisation de mot de passe ne fonctionnait pas correctement. Les utilisateurs recevaient le message "Lien invalide ou expiré" immédiatement après avoir cliqué sur le lien dans l'email, ou étaient redirigés vers le dashboard au lieu de la page de définition de mot de passe.
+
+### Problèmes Identifiés
+
+| Problème | Cause | Impact |
+| :--- | :--- | :--- |
+| **Lien expiré immédiat** | Template email utilisant `{{ .Token }}` (OTP 6 chiffres) au lieu de `{{ .TokenHash }}` | Token invalide pour `verifyOtp()` |
+| **Redirection vers dashboard** | Migration vers BrowserRouter incompatible avec la configuration Cloudflare Pages | Route `/set-password` non reconnue |
+| **Paramètres URL non lus** | `useSearchParams` de React Router ne fonctionne pas avec HashRouter | Token non extrait de l'URL |
+| **Session non détectée** | `AuthContext` redirigeait depuis `/set-password` vers le dashboard | Utilisateur connecté redirigé avant de voir le formulaire |
+
+### Solution Appliquée
+
+#### 1. Retour à HashRouter
+
+La migration vers BrowserRouter a été annulée car elle nécessitait une configuration serveur spécifique que Cloudflare Pages ne gérait pas correctement pour les previews.
+
+```tsx
+// src/index.tsx
+import { HashRouter } from 'react-router-dom';
+
+root.render(
+  <React.StrictMode>
+    <HashRouter>
+      <App />
+    </HashRouter>
+  </React.StrictMode>
+);
+```
+
+#### 2. Modification du Template Email Supabase
+
+Le template "Reset Password" a été modifié pour utiliser `{{ .TokenHash }}` compatible avec `verifyOtp()`:
+
+```html
+<h2>Réinitialisation de mot de passe</h2>
+<p>Vous avez demandé à réinitialiser votre mot de passe.</p>
+<p><a href="{{ .SiteURL }}/#/set-password?token={{ .TokenHash }}&type=recovery&email={{ .Email }}">Réinitialiser mon mot de passe</a></p>
+<p>Si vous n'avez pas fait cette demande, ignorez cet email.</p>
+```
+
+**Points clés:**
+- `{{ .SiteURL }}/#/set-password` : URL compatible HashRouter
+- `{{ .TokenHash }}` : Token long pour `verifyOtp()` (pas `{{ .Token }}` qui est un OTP 6 chiffres)
+- `{{ .Email }}` : Email de l'utilisateur pour référence
+
+#### 3. Parsing des Paramètres URL avec HashRouter
+
+Avec HashRouter, les paramètres sont dans le hash (`/#/set-password?token=xxx`), pas dans la query string standard. Une fonction personnalisée a été créée:
+
+```tsx
+// src/pages/SetPassword.tsx
+const getHashParams = () => {
+  const hash = window.location.hash; // Ex: #/set-password?token=xxx&type=recovery&email=xxx
+  const queryIndex = hash.indexOf('?');
+  if (queryIndex === -1) return { token: null, type: null, email: null };
+  
+  const queryString = hash.substring(queryIndex + 1);
+  const params = new URLSearchParams(queryString);
+  return {
+    token: params.get('token'),
+    type: params.get('type'),
+    email: params.get('email')
+  };
+};
+```
+
+#### 4. Vérification du Token via verifyOtp
+
+```tsx
+const { token, type, email } = getHashParams();
+
+if (token && type === 'recovery') {
+  const { data, error } = await supabase.auth.verifyOtp({
+    token_hash: token,
+    type: 'recovery',
+  });
+  
+  if (data?.session) {
+    setIsValidSession(true);
+  }
+}
+```
+
+#### 5. Nouveau Composant PasswordInput
+
+Un nouveau composant a été créé pour améliorer l'UX avec un bouton œil pour afficher/masquer le mot de passe:
+
+```tsx
+// src/components/PasswordInput.tsx
+const PasswordInput: React.FC<PasswordInputProps> = ({ label, ...props }) => {
+  const [showPassword, setShowPassword] = useState(false);
+
+  return (
+    <div className="relative">
+      <input
+        type={showPassword ? 'text' : 'password'}
+        {...props}
+      />
+      <button
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        aria-label={showPassword ? 'Masquer' : 'Afficher'}
+      >
+        {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
+      </button>
+    </div>
+  );
+};
+```
+
+**Appliqué sur:**
+- `SetPassword.tsx` : Page de réinitialisation
+- `AuthPage.tsx` : Page de connexion/inscription
+- `FirstLoginPasswordModal.tsx` : Modal première connexion
+
+### Fichiers Modifiés
+
+| Fichier | Modification |
+| :--- | :--- |
+| `src/index.tsx` | Retour à HashRouter |
+| `src/pages/SetPassword.tsx` | Parsing URL hash + PasswordInput |
+| `src/pages/AuthPage.tsx` | Utilisation de PasswordInput |
+| `src/components/PasswordInput.tsx` | Nouveau composant (créé) |
+| `src/components/FirstLoginPasswordModal.tsx` | Utilisation de PasswordInput |
+| `src/context/AuthContext.tsx` | Suppression redirection depuis /set-password |
+
+### Configuration Supabase Requise
+
+**Template Email "Reset Password":**
+```html
+<h2>Réinitialisation de mot de passe</h2>
+<p>Vous avez demandé à réinitialiser votre mot de passe.</p>
+<p><a href="{{ .SiteURL }}/#/set-password?token={{ .TokenHash }}&type=recovery&email={{ .Email }}">Réinitialiser mon mot de passe</a></p>
+<p>Si vous n'avez pas fait cette demande, ignorez cet email.</p>
+```
+
+**URL Configuration:**
+- Site URL: `https://virtus-6zp.pages.dev`
+- Redirect URLs: `https://virtus-6zp.pages.dev/**`
+
+### Leçons Apprises
+
+1. **HashRouter vs BrowserRouter**
+   - HashRouter est plus simple pour les SPA hébergées sur des CDN/static hosting
+   - BrowserRouter nécessite une configuration serveur pour les redirections
+   - Avec HashRouter, les paramètres URL sont dans le hash, pas dans `window.location.search`
+
+2. **Tokens Supabase**
+   - `{{ .Token }}` = OTP 6 chiffres (pour saisie manuelle)
+   - `{{ .TokenHash }}` = Token long (pour liens cliquables avec `verifyOtp()`)
+   - `{{ .ConfirmationURL }}` = URL complète Supabase (incompatible avec HashRouter)
+
+3. **Flux de Récupération de Mot de Passe**
+   - Le lien email doit pointer directement vers l'application (pas vers Supabase)
+   - L'application vérifie le token via `verifyOtp({ token_hash, type: 'recovery' })`
+   - Une session est établie après vérification réussie
+
+---
 
 ## Intervention #5 - Audit et Correction des Vulnérabilités de Sécurité (Décembre 2025)
 
