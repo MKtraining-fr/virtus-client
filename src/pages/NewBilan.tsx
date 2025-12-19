@@ -181,21 +181,27 @@ const NewBilan: React.FC = () => {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }));
   };
 
+  // Helper function to get value from answers with fallback for different field ID formats
+  const getAnswerValue = (englishId: string, frenchId: string): unknown => {
+    return answers[englishId] || answers[frenchId] || '';
+  };
+
   const handleSubmit = async (status: 'active' | 'prospect') => {
-    // Vérifier les champs requis avec les bons IDs
-    if (isInitialBilanSelected) {
-      if (!answers.prenom || !answers.nom || !answers.email) {
-        alert('Prénom, nom et email sont requis pour le bilan initial.');
-        return;
-      }
-    } else {
-      // Pour les templates personnalisés
-      if (!answers.prenom || !answers.nom || !answers.email) {
-        alert(
-          'Ce modèle de bilan ne peut pas être utilisé pour créer un nouvel utilisateur car les champs Prénom, Nom et Email sont manquants.'
-        );
-        return;
-      }
+    // Récupérer les valeurs avec support des deux formats d'IDs (anglais et français)
+    const firstName = getAnswerValue('firstName', 'prenom') as string;
+    const lastName = getAnswerValue('lastName', 'nom') as string;
+    const email = answers.email as string;
+    const phone = getAnswerValue('phone', 'telephone') as string;
+    const dob = getAnswerValue('dob', 'date_naissance') as string;
+    const sex = getAnswerValue('sex', 'sexe') as string;
+    const height = getAnswerValue('height', 'taille') as string;
+    const weight = getAnswerValue('weight', 'poids') as string;
+    const activityLevel = getAnswerValue('energyExpenditureLevel', 'activite_physique') as string;
+
+    // Vérifier les champs requis
+    if (!firstName || !lastName || !email) {
+      alert('Prénom, nom et email sont requis pour créer un client.');
+      return;
     }
 
     // Mapper les niveaux d'activité physique vers energyExpenditureLevel
@@ -203,14 +209,15 @@ const NewBilan: React.FC = () => {
       Sédentaire: 'sedentary',
       'Légèrement actif': 'lightly_active',
       'Modérément actif': 'moderately_active',
+      Actif: 'moderately_active',
       'Très actif': 'very_active',
       'Extrêmement actif': 'extremely_active',
     };
 
     // Combiner les allergies et aversions pour le champ foodAversions
     const allergiesList = Array.isArray(answers.allergies) ? answers.allergies : [];
-    const allergiesAutre = answers.allergies_autre || '';
-    const aversions = answers.aversions || '';
+    const allergiesAutre = (answers.allergies_autre || '') as string;
+    const aversions = (answers.aversions || answers.fld_aversions || '') as string;
 
     let combinedAllergiesAndAversions = '';
     if (allergiesList.length > 0) {
@@ -227,40 +234,39 @@ const NewBilan: React.FC = () => {
     // Préparer les données du profil client avec le bon mapping
     const dataToSubmit: Partial<Client> = {
       // Informations générales
-      firstName: answers.prenom,
-      lastName: answers.nom,
-      dob: answers.date_naissance,
-      age: answers.date_naissance
+      firstName: firstName,
+      lastName: lastName,
+      dob: dob,
+      age: dob
         ? Math.floor(
-            (new Date().getTime() - new Date(answers.date_naissance).getTime()) /
+            (new Date().getTime() - new Date(dob).getTime()) /
               (1000 * 60 * 60 * 24 * 365.25)
           )
         : 0,
-      sex: answers.sexe as Client['sex'],
-      email: answers.email,
-      phone: answers.telephone,
-      height: answers.taille ? Number(answers.taille) : undefined,
-      weight: answers.poids ? Number(answers.poids) : undefined,
-      energyExpenditureLevel:
-        activityLevelMap[answers.activite_physique as string] || 'moderately_active',
+      sex: sex as Client['sex'],
+      email: email,
+      phone: phone,
+      height: height ? Number(height) : undefined,
+      weight: weight ? Number(weight) : undefined,
+      energyExpenditureLevel: activityLevelMap[activityLevel] || 'moderately_active',
 
       // Objectif
-      objective: answers.objectif_principal || '',
+      objective: (answers.objectif_principal || answers.fld_objectif || '') as string,
 
       // Vie quotidienne
       lifestyle: {
-        profession: answers.profession || '',
+        profession: (answers.profession || answers.fld_profession || '') as string,
       },
 
       // Notes et médical
       medicalInfo: {
-        history: answers.antecedents_medicaux || '',
+        history: (answers.antecedents_medicaux || '') as string,
         allergies:
           allergiesList.length > 0
             ? allergiesList.join(', ') + (allergiesAutre ? ', ' + allergiesAutre : '')
-            : '',
+            : (answers.fld_allergies || '') as string,
       },
-      notes: answers.notes_coach || '',
+      notes: (answers.notes_coach || '') as string,
 
       // Nutrition
       nutrition: {
@@ -269,7 +275,7 @@ const NewBilan: React.FC = () => {
         calorieHistory: [],
         macros: { protein: 0, carbs: 0, fat: 0 },
         foodAversions: combinedAllergiesAndAversions,
-        generalHabits: answers.habitudes || '',
+        generalHabits: (answers.habitudes || answers.fld_habits || '') as string,
         historyLog: [],
       },
 
