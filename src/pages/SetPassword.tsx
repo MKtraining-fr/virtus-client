@@ -286,7 +286,7 @@ const SetPassword: React.FC = () => {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             Vous avez déjà un compte ?{' '}
-            <a href="#/login" className="text-primary hover:underline font-medium">
+            <a href="/login" className="text-primary hover:underline font-medium">
               Se connecter
             </a>
           </p>

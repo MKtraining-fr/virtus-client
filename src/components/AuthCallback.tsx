@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 /**
  * Composant qui intercepte les callbacks d'authentification Supabase
@@ -7,9 +7,11 @@ import { useNavigate } from 'react-router-dom';
  */
 export function AuthCallback() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    // Vérifier s'il y a un hash fragment dans l'URL (utilisé par Supabase)
+    // Avec BrowserRouter, Supabase ajoute les tokens dans le hash de l'URL
+    // Format: /set-password#access_token=...&refresh_token=...&type=recovery
     const hash = window.location.hash;
 
     if (hash) {
@@ -18,14 +20,14 @@ export function AuthCallback() {
       const type = params.get('type');
       const accessToken = params.get('access_token');
 
-      // Si c'est un lien de réinitialisation de mot de passe
-      if (type === 'recovery' && accessToken) {
+      // Si c'est un lien de réinitialisation de mot de passe et qu'on n'est pas déjà sur /set-password
+      if (type === 'recovery' && accessToken && location.pathname !== '/set-password') {
         // Rediriger vers la page de définition du mot de passe
-        // en conservant les paramètres nécessaires
+        // en conservant les paramètres dans le hash
         navigate(`/set-password${hash}`);
       }
     }
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   return null; // Ce composant ne rend rien
 }
