@@ -151,8 +151,9 @@ const NewBilan: React.FC = () => {
   const { user, addUser, bilanTemplates } = useAuth();
   const navigate = useNavigate();
 
+  // Filtrer les templates: inclure les templates système (coachId null ou 'system') et ceux du coach
   const coachTemplates = useMemo(
-    () => bilanTemplates.filter((t) => t.coachId === 'system' || t.coachId === user?.id),
+    () => bilanTemplates.filter((t) => !t.coachId || t.coachId === 'system' || t.coachId === user?.id),
     [bilanTemplates, user]
   );
 
@@ -168,7 +169,8 @@ const NewBilan: React.FC = () => {
     [coachTemplates, selectedTemplateId]
   );
 
-  const isInitialBilanSelected = selectedTemplate?.coachId === 'system';
+  // Vérifier si c'est un template système (coachId null ou 'system')
+  const isInitialBilanSelected = !selectedTemplate?.coachId || selectedTemplate?.coachId === 'system';
 
   const handleAnswerChange = (fieldId: string, value: unknown) => {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }));

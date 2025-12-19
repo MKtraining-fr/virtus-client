@@ -213,10 +213,19 @@ serve(async (req) => {
 
     // Parser les données de la requête
     const userData: CreateUserRequest = await req.json();
+    
+    // Log des données reçues pour le debugging
+    console.log('Received userData:', JSON.stringify(userData, null, 2));
 
     // Valider les données requises (mot de passe optionnel maintenant)
     if (!userData.email || !userData.firstName || !userData.lastName) {
-      throw new Error('Missing required fields: email, firstName, lastName');
+      console.error('Missing required fields:', {
+        hasEmail: !!userData.email,
+        hasFirstName: !!userData.firstName,
+        hasLastName: !!userData.lastName,
+        receivedData: userData
+      });
+      throw new Error(`Missing required fields: email=${!!userData.email}, firstName=${!!userData.firstName}, lastName=${!!userData.lastName}`);
     }
 
     // Générer un mot de passe temporaire si non fourni
