@@ -19,6 +19,12 @@ interface CreateUserRequest {
   affiliationCode?: string;
   status?: 'active' | 'prospect';
   sendCredentialsEmail?: boolean; // Envoyer un email avec les identifiants
+  // Champs additionnels du bilan
+  sex?: string;
+  dateOfBirth?: string;
+  height?: number;
+  weight?: number;
+  activityLevel?: string;
 }
 
 /**
@@ -283,11 +289,18 @@ serve(async (req) => {
       affiliation_code: userData.affiliationCode || null,
       coach_id: profile.role === 'coach' ? user.id : (userData.coachId && userData.coachId !== '' ? userData.coachId : null),
       status: userData.status || 'active',
+      // Champs additionnels du bilan
+      sex: userData.sex || null,
+      date_of_birth: userData.dateOfBirth || null,
+      height: userData.height || null,
+      weight: userData.weight || null,
+      activity_level: userData.activityLevel || null,
     };
 
+    // Utiliser UPSERT pour éviter les erreurs de clé dupliquée
     const { data: profileData, error: profileInsertError } = await supabaseAdmin
       .from('clients')
-      .insert([clientProfile])
+      .upsert([clientProfile], { onConflict: 'id' })
       .select()
       .single();
 

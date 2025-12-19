@@ -641,6 +641,12 @@ export const useDataStore = create<DataState>((set, get) => {
             affiliationCode: userData.affiliationCode,
             status: userData.status,
             sendCredentialsEmail: true, // Envoyer les identifiants par email
+            // Champs additionnels du bilan
+            sex: userData.sex,
+            dateOfBirth: userData.dob,
+            height: userData.height,
+            weight: userData.weight,
+            activityLevel: userData.energyExpenditureLevel,
           },
         });
 
