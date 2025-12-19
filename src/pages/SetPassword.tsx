@@ -5,6 +5,9 @@ import Button from '../components/Button';
 import Input from '../components/Input';
 import Card from '../components/Card';
 
+// Clé pour stocker le flag de récupération de mot de passe (doit correspondre à AuthContext)
+const PASSWORD_RECOVERY_FLAG = 'virtus_password_recovery_flow';
+
 const SetPassword: React.FC = () => {
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
@@ -19,22 +22,30 @@ const SetPassword: React.FC = () => {
       try {
         console.log('SetPassword - Initialisation...');
         console.log('SetPassword - URL complète:', window.location.href);
+        console.log('SetPassword - Hash:', window.location.hash);
+
+        // Vérifier si le flag de récupération est défini
+        const hasRecoveryFlag = sessionStorage.getItem(PASSWORD_RECOVERY_FLAG) === 'true';
+        console.log('SetPassword - Recovery flag:', hasRecoveryFlag);
 
         // Écouter les événements d'authentification Supabase
-        // Cela permet de détecter quand Supabase établit une session après la vérification du token
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
           console.log('SetPassword - Auth event:', event, 'Session:', !!session);
           
           if (event === 'PASSWORD_RECOVERY') {
             // Événement spécifique pour la récupération de mot de passe
             console.log('SetPassword - Événement PASSWORD_RECOVERY détecté');
+            sessionStorage.setItem(PASSWORD_RECOVERY_FLAG, 'true');
             setIsValidSession(true);
             setLoading(false);
           } else if (event === 'SIGNED_IN' && session) {
-            // L'utilisateur vient de se connecter via le lien de récupération
-            console.log('SetPassword - Utilisateur connecté via le lien');
-            setIsValidSession(true);
-            setLoading(false);
+            // Vérifier si c'est un flux de récupération
+            const isRecoveryFlow = sessionStorage.getItem(PASSWORD_RECOVERY_FLAG) === 'true';
+            if (isRecoveryFlow) {
+              console.log('SetPassword - Utilisateur connecté via le lien de récupération');
+              setIsValidSession(true);
+              setLoading(false);
+            }
           }
         });
 
@@ -44,20 +55,40 @@ const SetPassword: React.FC = () => {
         console.log('SetPassword - Session existante:', !!session, 'Erreur:', sessionError);
 
         if (session) {
-          // Une session existe, l'utilisateur peut changer son mot de passe
-          console.log('SetPassword - Session valide trouvée');
+          // Une session existe
+          // Vérifier si c'est un flux de récupération de mot de passe
+          if (hasRecoveryFlag) {
+            console.log('SetPassword - Session valide avec flag de récupération');
+            setIsValidSession(true);
+            setLoading(false);
+            return;
+          }
+          
+          // Vérifier le hash de l'URL pour les tokens de récupération
+          const hash = window.location.hash;
+          if (hash.includes('access_token') || hash.includes('type=recovery')) {
+            console.log('SetPassword - Tokens de récupération dans le hash');
+            sessionStorage.setItem(PASSWORD_RECOVERY_FLAG, 'true');
+            setIsValidSession(true);
+            setLoading(false);
+            return;
+          }
+
+          // Session existante mais pas de flux de récupération
+          // L'utilisateur peut quand même changer son mot de passe s'il a une session valide
+          console.log('SetPassword - Session valide trouvée (pas de flux de récupération explicite)');
           setIsValidSession(true);
           setLoading(false);
           return;
         }
 
         // Attendre un peu pour laisser le temps à Supabase de traiter le token dans l'URL
-        // Supabase gère automatiquement les tokens dans le hash de l'URL
         setTimeout(async () => {
           const { data: { session: delayedSession } } = await supabase.auth.getSession();
+          const hasRecoveryFlagAfterDelay = sessionStorage.getItem(PASSWORD_RECOVERY_FLAG) === 'true';
           
-          if (delayedSession) {
-            console.log('SetPassword - Session trouvée après délai');
+          if (delayedSession || hasRecoveryFlagAfterDelay) {
+            console.log('SetPassword - Session ou flag trouvé après délai');
             setIsValidSession(true);
             setLoading(false);
           } else {
@@ -65,7 +96,7 @@ const SetPassword: React.FC = () => {
             setError('Lien invalide ou expiré. Veuillez demander un nouveau lien de réinitialisation.');
             setLoading(false);
           }
-        }, 1000);
+        }, 1500);
 
         // Cleanup subscription on unmount
         return () => {
@@ -126,6 +157,9 @@ const SetPassword: React.FC = () => {
           password_changed_at: new Date().toISOString(),
         }
       });
+
+      // Nettoyer le flag de récupération
+      sessionStorage.removeItem(PASSWORD_RECOVERY_FLAG);
 
       setSuccess(true);
 

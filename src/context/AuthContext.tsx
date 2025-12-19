@@ -3,6 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useDataStore, initializeMessagesRealtime } from '../stores/useDataStore';
 import { logger } from '../utils/logger';
+import { supabase } from '../services/supabase';
+
+// Clé pour stocker le flag de récupération de mot de passe
+const PASSWORD_RECOVERY_FLAG = 'virtus_password_recovery_flow';
 
 // Le nouveau AuthProvider est un composant "léger" qui gère les effets de bord
 // comme la navigation, mais ne fournit pas de contexte directement.
@@ -11,6 +15,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const location = useLocation();
   const { user, isAuthLoading, initializeAuth, currentViewRole, originalUser, theme } = useAuthStore();
   const lastNavigationRef = useRef<string>('');
+  const passwordRecoveryListenerRef = useRef<boolean>(false);
+
+  // Écouter l'événement PASSWORD_RECOVERY de Supabase pour définir le flag
+  useEffect(() => {
+    if (passwordRecoveryListenerRef.current) return;
+    passwordRecoveryListenerRef.current = true;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      logger.info('Auth event in AuthProvider', { event, hasSession: !!session });
+      
+      if (event === 'PASSWORD_RECOVERY') {
+        // Définir le flag pour indiquer qu'on est dans un flux de récupération
+        logger.info('PASSWORD_RECOVERY event detected, setting flag');
+        sessionStorage.setItem(PASSWORD_RECOVERY_FLAG, 'true');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      passwordRecoveryListenerRef.current = false;
+    };
+  }, []);
 
   // Initialisation de l'écouteur d'authentification au montage du composant
   useEffect(() => {
@@ -93,22 +119,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      // Ne pas rediriger depuis /set-password si c'est un flux de récupération de mot de passe
-      // (détecté par la présence de tokens dans le hash de l'URL)
-      const isPasswordRecoveryFlow = currentPath === '/set-password' && (
-        window.location.hash.includes('access_token') ||
-        window.location.hash.includes('type=recovery')
-      );
+      // Vérifier si on est dans un flux de récupération de mot de passe
+      const isPasswordRecoveryFlow = sessionStorage.getItem(PASSWORD_RECOVERY_FLAG) === 'true';
+      
+      // Vérifier aussi le hash de l'URL (au cas où l'événement n'a pas encore été traité)
+      const hashHasRecoveryTokens = window.location.hash.includes('access_token') || 
+                                     window.location.hash.includes('type=recovery');
 
-      if (
-        (currentPath === '/' || currentPath === '/login') ||
-        (currentPath === '/set-password' && !isPasswordRecoveryFlow)
-      ) {
+      const shouldStayOnSetPassword = currentPath === '/set-password' && 
+                                       (isPasswordRecoveryFlow || hashHasRecoveryTokens);
+
+      if (shouldStayOnSetPassword) {
+        logger.info('Password recovery flow detected, staying on /set-password', { 
+          isPasswordRecoveryFlow, 
+          hashHasRecoveryTokens 
+        });
+        return;
+      }
+
+      if (currentPath === '/' || currentPath === '/login' || currentPath === '/set-password') {
         logger.info('Redirecting authenticated user', { from: currentPath, to: targetPath });
         lastNavigationRef.current = targetPath;
         navigate(targetPath, { replace: true });
-      } else if (isPasswordRecoveryFlow) {
-        logger.info('Password recovery flow detected, staying on /set-password');
       }
     } else {
       const publicPaths = ['/', '/login', '/set-password'];
