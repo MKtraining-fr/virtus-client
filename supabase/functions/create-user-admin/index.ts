@@ -141,7 +141,7 @@ async function sendCredentialsEmail(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Virtus <noreply@virtus-app.com>',
+        from: 'Virtus <noreply@mktraining.fr>',
         to: [email],
         subject: 'Bienvenue sur Virtus - Vos identifiants de connexion',
         html: emailHtml,
