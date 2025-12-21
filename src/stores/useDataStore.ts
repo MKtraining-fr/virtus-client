@@ -31,26 +31,35 @@ import {
   mapSupabaseBilanTemplateToTemplate,
 } from '../services/typeMappers';
 import { useAuthStore } from './useAuthStore';
-// import { deleteUserAndProfile } from '../services/authService'; // Migré ici
-// Fonctions qui étaient dans authService.ts
+// Fonction de suppression d'utilisateur via Edge Function
 const deleteUserAndProfile = async (userIdToDelete: string, accessToken: string): Promise<void> => {
-  logger.info('Appel de deleteUserAndProfile via RPC', { userIdToDelete });
+  logger.info('Appel de deleteUserAndProfile via Edge Function', { userIdToDelete });
   try {
-    const { error } = await supabase.rpc('delete_user_and_profile', {
-      user_id_text: userIdToDelete,
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ userId: userIdToDelete }),
+      }
+    );
 
-    if (error) {
-      logger.error("Erreur lors de l'appel RPC delete_user_and_profile:", {
-        error,
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      logger.error("Erreur lors de l'appel Edge Function delete-user:", {
+        status: response.status,
+        error: errorData,
         userIdToDelete,
       });
-      throw new Error(error.message || "Erreur lors de l'appel RPC de suppression.");
+      throw new Error(errorData.error || `Erreur ${response.status} lors de la suppression.`);
     }
 
-    logger.info('Utilisateur et profil supprimés avec succès via RPC:', { userIdToDelete });
+    logger.info('Utilisateur et profil supprimés avec succès via Edge Function:', { userIdToDelete });
   } catch (error) {
-    logger.error("Erreur lors de l'appel de la fonction RPC delete_user_and_profile:", {
+    logger.error("Erreur lors de l'appel de l'Edge Function delete-user:", {
       error,
       userIdToDelete,
     });
