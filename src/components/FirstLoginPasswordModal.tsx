@@ -95,6 +95,12 @@ const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = ({
     setIsLoading(true);
 
     try {
+      // IMPORTANT: Récupérer le token AVANT de changer le mot de passe
+      // car après le changement, le token sera invalidé
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      const userId = sessionData.session?.user?.id;
+
       // Mettre à jour le mot de passe via Supabase Auth
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
@@ -109,19 +115,18 @@ const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = ({
       }
 
       // Mettre à jour le flag must_change_password dans la table clients
-      const { data: { user, session } } = await supabase.auth.getUser();
-      if (user) {
+      if (userId) {
         await supabase
           .from('clients')
           .update({ must_change_password: false })
-          .eq('id', user.id);
+          .eq('id', userId);
       }
 
       // Envoyer l'email de confirmation avec le nouveau mot de passe
-      try {
-        const accessToken = session?.access_token || (await supabase.auth.getSession()).data.session?.access_token;
-        if (accessToken) {
-          await fetch(
+      // On utilise le token récupéré AVANT le changement de mot de passe
+      if (accessToken) {
+        try {
+          const response = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-password-confirmation`,
             {
               method: 'POST',
@@ -136,10 +141,19 @@ const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = ({
               }),
             }
           );
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Erreur lors de l\'envoi de l\'email de confirmation:', response.status, errorData);
+          } else {
+            console.log('Email de confirmation envoyé avec succès');
+          }
+        } catch (emailError) {
+          // Ne pas bloquer si l'email échoue
+          console.error('Erreur lors de l\'envoi de l\'email de confirmation:', emailError);
         }
-      } catch (emailError) {
-        // Ne pas bloquer si l'email échoue
-        console.error('Erreur lors de l\'envoi de l\'email de confirmation:', emailError);
+      } else {
+        console.warn('Pas de token d\'accès disponible pour envoyer l\'email de confirmation');
       }
 
       // Succès
