@@ -145,6 +145,16 @@ export interface SharedFile {
 }
 
 // ---- CLIENT TYPES ----
+// Interface pour les permissions d'accès du client
+export interface ClientAccessPermissions {
+  canUseWorkoutBuilder: boolean;
+  grantedFormationIds: string[];
+  shopAccess: {
+    adminShop: boolean;
+    coachShop: boolean;
+  };
+}
+
 export interface Client {
   id: string;
   email: string;
@@ -179,7 +189,21 @@ export interface Client {
   assignedProgram?: WorkoutProgram | null;
   assignedPrograms?: WorkoutProgram[];
   savedPrograms?: WorkoutProgram[];
+  // Propriétés d'accès et permissions (extraites de lifestyle.access)
+  canUseWorkoutBuilder?: boolean;
+  grantedFormationIds?: string[];
+  shopAccess?: {
+    adminShop: boolean;
+    coachShop: boolean;
+  };
+  // Champs legacy pour compatibilité
+  goal?: string;
+  activityLevel?: string;
+  sessionProgress?: number;
 }
+
+// Alias User pour compatibilité avec le code existant
+export type User = Client;
 
 // ---- EXERCISE TYPES ----
 export interface Exercise {
