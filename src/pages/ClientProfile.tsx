@@ -360,17 +360,62 @@ const ClientProfile: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <Card className="lg:col-span-1">
+        <Card className="lg:col-span-2">
           <h3 className="text-xl font-semibold mb-4">Informations Client</h3>
-          <div className="space-y-3">
-            <InfoItem label="Email" value={client.email} />
-            <InfoItem label="Rôle" value={client.role} />
-            <InfoItem label="Date de naissance" value={client.birthDate} />
-            <InfoItem label="Objectif" value={client.goal} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Informations personnelles */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-600 border-b pb-1">Informations personnelles</h4>
+              <InfoItem label="Email" value={client.email} />
+              <InfoItem label="Téléphone" value={client.phone} />
+              <InfoItem label="Date de naissance" value={client.dob ? new Date(client.dob).toLocaleDateString('fr-FR') : undefined} />
+              <InfoItem label="Âge" value={client.age ? `${client.age} ans` : undefined} />
+              <InfoItem label="Sexe" value={client.sex === 'male' ? 'Homme' : client.sex === 'female' ? 'Femme' : client.sex} />
+              <InfoItem label="Statut" value={client.status === 'active' ? 'Actif' : client.status === 'prospect' ? 'Prospect' : client.status === 'archived' ? 'Archivé' : client.status} />
+            </div>
+            
+            {/* Mensurations et objectifs */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-600 border-b pb-1">Mensurations & Objectifs</h4>
+              <InfoItem label="Taille" value={client.height ? `${client.height} cm` : undefined} />
+              <InfoItem label="Poids" value={client.weight ? `${client.weight} kg` : undefined} />
+              <InfoItem label="Niveau d'activité" value={{
+                'sedentary': 'Sédentaire',
+                'lightly_active': 'Légèrement actif',
+                'moderately_active': 'Modérément actif',
+                'very_active': 'Très actif',
+                'extremely_active': 'Extrêmement actif'
+              }[client.energyExpenditureLevel || ''] || client.energyExpenditureLevel} />
+              <InfoItem label="Objectif" value={client.objective} />
+            </div>
           </div>
+          
+          {/* Notes et informations médicales */}
+          {(client.notes || client.medicalInfo) && (
+            <div className="mt-4 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {client.medicalInfo && (
+                  <div>
+                    <h4 className="font-medium text-gray-600 mb-2">Informations médicales</h4>
+                    <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
+                      {typeof client.medicalInfo === 'object' 
+                        ? (client.medicalInfo as any).history || (client.medicalInfo as any).allergies || JSON.stringify(client.medicalInfo)
+                        : String(client.medicalInfo)}
+                    </p>
+                  </div>
+                )}
+                {client.notes && (
+                  <div>
+                    <h4 className="font-medium text-gray-600 mb-2">Notes du coach</h4>
+                    <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{client.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-1">
           <h3 className="text-xl font-semibold mb-4">Statistiques de Performance</h3>
           <div className="h-64">
             <SimpleLineChart
