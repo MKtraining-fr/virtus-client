@@ -19,6 +19,10 @@ type SupabaseNotification = Database['public']['Tables']['notifications']['Row']
  * Convertir un client Supabase vers le format de l'application
  */
 export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Client {
+  // Extraire les permissions d'accès depuis lifestyle.access
+  const lifestyle = (supabaseClient.lifestyle as any) || {};
+  const accessPermissions = lifestyle.access || {};
+  
   return {
     id: supabaseClient.id,
     email: supabaseClient.email,
@@ -44,7 +48,7 @@ export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Clien
     objective: supabaseClient.objective || '',
     notes: supabaseClient.notes || '',
     // Données JSON
-    lifestyle: (supabaseClient.lifestyle as any) || { profession: '' },
+    lifestyle: lifestyle,
     medicalInfo: (supabaseClient.medical_info as any) || { history: '', allergies: '' },
     nutrition: (supabaseClient.nutrition as any) || {
       measurements: {},
@@ -60,6 +64,14 @@ export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Clien
     nutritionLogs: (supabaseClient.nutrition_logs as any) || [],
     performanceLogs: (supabaseClient.performance_logs as any) || [],
     assignedNutritionPlans: (supabaseClient.assigned_nutrition_plans as any) || [],
+    // Permissions d'accès (extraites de lifestyle.access)
+    // Par défaut, tous les accès sont activés si non définis
+    canUseWorkoutBuilder: accessPermissions.canUseWorkoutBuilder ?? true,
+    grantedFormationIds: accessPermissions.grantedFormationIds || [],
+    shopAccess: {
+      adminShop: accessPermissions.shopAccess?.adminShop ?? true,
+      coachShop: accessPermissions.shopAccess?.coachShop ?? true,
+    },
     // Champs legacy pour compatibilité
     goal: supabaseClient.objective || '',
     activityLevel: 'moderate',
