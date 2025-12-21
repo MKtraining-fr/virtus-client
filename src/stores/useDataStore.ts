@@ -43,7 +43,7 @@ const deleteUserAndProfile = async (userIdToDelete: string, accessToken: string)
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ userId: userIdToDelete }),
+        body: JSON.stringify({ userIdToDelete }),
       }
     );
 
