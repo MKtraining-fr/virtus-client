@@ -1,8 +1,8 @@
 # Base de Connaissance Technique - Projet Virtus
 
 **Auteur:** Manus AI  
-**Dernière mise à jour:** 19 décembre 2025  
-**Version:** 1.5
+**Dernière mise à jour:** 21 décembre 2025  
+**Version:** 1.6
 
 ---
 
@@ -13,6 +13,149 @@ Ce document constitue le **journal technique central** du projet Virtus. Il sert
 ---
 
 # HISTORIQUE DES INTERVENTIONS
+
+## Intervention #7 - Correction des Edge Functions et Inscription Client Indépendant (Décembre 2025)
+
+**Date:** 21 décembre 2025  
+**Type:** Edge Functions / Authentification / RLS  
+**Statut:** ✅ Résolu et déployé
+
+### Contexte
+
+Plusieurs fonctionnalités ne fonctionnaient pas correctement :
+1. La suppression des clients retournait une erreur 401 (Unauthorized)
+2. L'email de confirmation de changement de mot de passe n'était pas envoyé
+3. L'inscription d'un client indépendant échouait avec une erreur 401
+
+### Problèmes Identifiés
+
+| Problème | Cause | Impact |
+| :--- | :--- | :--- |
+| **Suppression client 401** | Edge Function `delete-user` utilisait `SUPABASE_ANON_KEY` pour vérifier le token au lieu de `SUPABASE_SERVICE_ROLE_KEY` | Impossible de supprimer des clients |
+| **Email confirmation non envoyé** | Edge Function `send-password-confirmation` utilisait la même mauvaise méthode de vérification | Pas d'email après changement de mot de passe |
+| **Inscription client 401** | Le code frontend essayait d'insérer manuellement le profil dans `clients` alors qu'un trigger le faisait déjà | L'utilisateur non confirmé n'avait pas les droits RLS pour INSERT |
+
+### Solution Appliquée
+
+#### 1. Correction des Edge Functions (delete-user et send-password-confirmation)
+
+Les deux Edge Functions ont été corrigées pour utiliser la même méthode de vérification de token que `create-user-admin` qui fonctionnait :
+
+```typescript
+// AVANT (ne fonctionnait pas)
+const userClient = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_ANON_KEY') ?? '',  // <-- Problème ici
+  { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+);
+const { data: { user }, error } = await userClient.auth.getUser();
+
+// APRÈS (fonctionne)
+const supabaseAdmin = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',  // <-- Clé service
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
+const token = authHeader.replace('Bearer ', '');
+const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+```
+
+**Points clés :**
+- Utiliser `SUPABASE_SERVICE_ROLE_KEY` pour créer le client admin
+- Passer le token directement à `getUser(token)` au lieu de le mettre dans les headers
+- Désactiver `verify_jwt` dans les options de déploiement car la vérification est faite dans le code
+
+#### 2. Correction de l'Inscription Client Indépendant
+
+Le problème était que le code frontend essayait d'insérer le profil manuellement après `signUp()`, mais :
+- L'utilisateur n'était pas encore authentifié (email non confirmé)
+- La politique RLS `auth.uid() IS NOT NULL` bloquait l'insertion
+- Un trigger `on_auth_user_created_sync_clients` existait déjà et créait automatiquement le profil !
+
+```typescript
+// AVANT (dans useAuthStore.ts)
+const { error: profileError } = await supabase.from('clients').insert([clientProfile]);
+if (profileError) throw profileError;  // <-- Erreur 401 ici
+
+// APRÈS
+// Le profil client est créé automatiquement par le trigger 'on_auth_user_created_sync_clients'
+// Pas besoin d'insérer manuellement dans la table clients
+logger.info('Le profil client sera créé automatiquement par le trigger de base de données');
+```
+
+### Trigger Existant
+
+Le trigger `on_auth_user_created_sync_clients` sur `auth.users` exécute la fonction `create_client_profile_for_new_user()` :
+
+```sql
+CREATE OR REPLACE FUNCTION create_client_profile_for_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.clients (
+    id, email, role, first_name, last_name, phone, coach_id, status, affiliation_code
+  )
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'role', 'client')::text,
+    COALESCE(NEW.raw_user_meta_data->>'first_name', '')::text,
+    COALESCE(NEW.raw_user_meta_data->>'last_name', '')::text,
+    COALESCE(NEW.raw_user_meta_data->>'phone', '')::text,
+    CASE 
+      WHEN NEW.raw_user_meta_data->>'coach_id' IS NOT NULL 
+           AND NEW.raw_user_meta_data->>'coach_id' != '' 
+      THEN (NEW.raw_user_meta_data->>'coach_id')::uuid 
+      ELSE NULL 
+    END,
+    COALESCE(NEW.raw_user_meta_data->>'status', 'active')::text,
+    NEW.raw_user_meta_data->>'affiliation_code'
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### Fichiers Modifiés
+
+| Fichier | Modification |
+| :--- | :--- |
+| `supabase/functions/delete-user/index.ts` | Utilisation de SERVICE_ROLE_KEY + getUser(token) |
+| `supabase/functions/send-password-confirmation/index.ts` | Même correction que delete-user |
+| `src/stores/useAuthStore.ts` | Suppression de l'insertion manuelle du profil |
+| `src/components/FirstLoginPasswordModal.tsx` | Récupération du token AVANT le changement de mot de passe |
+
+### Versions des Edge Functions Déployées
+
+| Fonction | Version | verify_jwt |
+| :--- | :--- | :--- |
+| `delete-user` | v6 | false |
+| `send-password-confirmation` | v3 | false |
+| `create-user-admin` | v12 | false |
+
+### Leçons Apprises
+
+1. **Vérification de Token dans les Edge Functions**
+   - Toujours utiliser `SUPABASE_SERVICE_ROLE_KEY` pour créer un client admin
+   - Passer le token directement à `getUser(token)` plutôt que dans les headers
+   - Comparer avec une fonction qui fonctionne (`create-user-admin`) pour trouver les différences
+
+2. **Triggers vs Code Frontend**
+   - Vérifier si des triggers existent avant d'implémenter une logique côté frontend
+   - Les triggers avec `SECURITY DEFINER` peuvent contourner les politiques RLS
+   - Privilégier les triggers pour les opérations qui doivent se faire sans session utilisateur
+
+3. **Politiques RLS et Inscription**
+   - Après `signUp()`, l'utilisateur n'a pas de session tant que l'email n'est pas confirmé
+   - `auth.uid()` retourne NULL pour un utilisateur non confirmé
+   - Utiliser des triggers `SECURITY DEFINER` pour les insertions automatiques
+
+---
 
 ## Intervention #6 - Correction du Flux de Réinitialisation de Mot de Passe et Amélioration UX (Décembre 2025)
 
