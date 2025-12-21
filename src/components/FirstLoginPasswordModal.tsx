@@ -8,6 +8,7 @@ interface FirstLoginPasswordModalProps {
   onClose: () => void;
   onPasswordChanged: () => void;
   userEmail: string;
+  userFirstName?: string;
 }
 
 /**
@@ -20,6 +21,7 @@ const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = ({
   onClose,
   onPasswordChanged,
   userEmail,
+  userFirstName,
 }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -107,12 +109,37 @@ const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = ({
       }
 
       // Mettre à jour le flag must_change_password dans la table clients
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user, session } } = await supabase.auth.getUser();
       if (user) {
         await supabase
           .from('clients')
           .update({ must_change_password: false })
           .eq('id', user.id);
+      }
+
+      // Envoyer l'email de confirmation avec le nouveau mot de passe
+      try {
+        const accessToken = session?.access_token || (await supabase.auth.getSession()).data.session?.access_token;
+        if (accessToken) {
+          await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-password-confirmation`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({
+                email: userEmail,
+                firstName: userFirstName || 'Utilisateur',
+                newPassword: newPassword,
+              }),
+            }
+          );
+        }
+      } catch (emailError) {
+        // Ne pas bloquer si l'email échoue
+        console.error('Erreur lors de l\'envoi de l\'email de confirmation:', emailError);
       }
 
       // Succès

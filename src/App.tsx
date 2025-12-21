@@ -24,7 +24,7 @@ const App: React.FC = () => {
   const lastViewRoleRef = useRef(currentViewRole);
   
   // Hook pour détecter la première connexion
-  const { isFirstLogin, isLoading: isFirstLoginLoading, userEmail } = useFirstLogin(user?.id);
+  const { isFirstLogin, isLoading: isFirstLoginLoading, userEmail, userFirstName } = useFirstLogin(user?.id);
   const [showPasswordModal, setShowPasswordModal] = React.useState(false);
 
   // Afficher la modal si c'est la première connexion
@@ -93,6 +93,7 @@ const App: React.FC = () => {
         onClose={() => setShowPasswordModal(false)}
         onPasswordChanged={handlePasswordChanged}
         userEmail={userEmail}
+        userFirstName={userFirstName}
       />
       
       <Suspense fallback={<LoadingSpinner fullScreen message="Chargement..." />}>

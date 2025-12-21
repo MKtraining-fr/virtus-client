@@ -6,6 +6,7 @@ interface FirstLoginState {
   isFirstLogin: boolean;
   isLoading: boolean;
   userEmail: string;
+  userFirstName: string;
 }
 
 /**
@@ -20,6 +21,7 @@ export const useFirstLogin = (userId: string | undefined): FirstLoginState => {
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userEmail, setUserEmail] = useState('');
+  const [userFirstName, setUserFirstName] = useState('');
 
   useEffect(() => {
     const checkFirstLogin = async () => {
@@ -43,9 +45,13 @@ export const useFirstLogin = (userId: string | undefined): FirstLoginState => {
         // Vérifier le flag must_change_password dans la table clients
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
-          .select('must_change_password')
+          .select('must_change_password, first_name')
           .eq('id', userId)
           .single();
+
+        if (clientData?.first_name) {
+          setUserFirstName(clientData.first_name);
+        }
 
         if (clientError) {
           logger.error('Erreur lors de la récupération du profil client', { error: clientError });
@@ -87,7 +93,7 @@ export const useFirstLogin = (userId: string | undefined): FirstLoginState => {
     checkFirstLogin();
   }, [userId]);
 
-  return { isFirstLogin, isLoading, userEmail };
+  return { isFirstLogin, isLoading, userEmail, userFirstName };
 };
 
 export default useFirstLogin;
