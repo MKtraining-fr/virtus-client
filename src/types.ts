@@ -43,6 +43,7 @@ export interface BilanSection {
   id: string;
   title: string;
   fields: BilanField[];
+  isCivility?: boolean;
 }
 
 export interface BilanTemplate {
@@ -67,10 +68,15 @@ export interface BilanAssignment {
 export interface BilanResult {
   id: string;
   bilanAssignmentId: string;
+  templateId?: string;
+  templateName?: string;
   clientId: string;
   coachId: string;
-  responses: Record<string, any>;
-  completedAt: string;
+  responses?: Record<string, any>;
+  answers?: Record<string, any>;
+  status?: 'pending' | 'completed' | 'overdue';
+  assignedAt?: string;
+  completedAt?: string;
 }
 
 // ---- NUTRITION TYPES ----
@@ -95,9 +101,12 @@ export interface MacroData {
 
 export interface NutritionLogEntry {
   date: string;
-  meals: any[];
-  totalCalories: number;
-  macros: MacroData;
+  meals?: any[];
+  totalCalories?: number;
+  calories?: number;
+  weight?: number | null;
+  macros?: MacroData;
+  measurements?: Record<string, number>;
 }
 
 export interface PerformanceSet {
@@ -125,8 +134,12 @@ export interface PerformanceLog {
 export interface SharedFile {
   id: string;
   name: string;
+  fileName?: string;
   url: string;
+  fileContent?: string;
   type: string;
+  fileType?: string;
+  size?: number;
   uploadedBy: string;
   uploadedAt: string;
 }
@@ -303,16 +316,38 @@ export interface Message {
 }
 
 // ---- NUTRITION PLAN TYPES ----
+export interface MealItem {
+  id: string;
+  food?: FoodItem;
+  quantity?: number;
+  unit?: string;
+}
+
+export interface Meal {
+  id: string;
+  name: string;
+  items: MealItem[];
+}
+
+export interface NutritionDay {
+  id?: string;
+  dayName?: string;
+  meals?: Meal[];
+}
+
 export interface NutritionPlan {
   id: string;
   clientId?: string;
   name: string;
   description?: string;
+  objective?: string;
+  weekCount?: number;
   caloriesTarget?: number;
   proteinTarget?: number;
   carbsTarget?: number;
   fatTarget?: number;
   meals?: Json;
+  daysByWeek?: Record<string, NutritionDay[]>;
   createdAt: string;
   updatedAt: string;
 }
