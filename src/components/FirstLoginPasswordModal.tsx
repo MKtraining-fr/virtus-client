@@ -106,6 +106,15 @@ const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = ({
         throw updateError;
       }
 
+      // Mettre à jour le flag must_change_password dans la table clients
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('clients')
+          .update({ must_change_password: false })
+          .eq('id', user.id);
+      }
+
       // Succès
       onPasswordChanged();
       onClose();
@@ -131,6 +140,15 @@ const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = ({
           password_change_skipped_at: new Date().toISOString(),
         },
       });
+
+      // Mettre à jour le flag must_change_password dans la table clients
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('clients')
+          .update({ must_change_password: false })
+          .eq('id', user.id);
+      }
     } catch (err) {
       console.error('Erreur lors de la mise à jour des métadonnées:', err);
     }

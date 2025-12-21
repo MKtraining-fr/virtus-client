@@ -295,6 +295,7 @@ serve(async (req) => {
       height: userData.height || null,
       weight: userData.weight || null,
       energy_expenditure_level: userData.activityLevel || null,
+      must_change_password: isTemporaryPassword, // Doit changer le mot de passe si temporaire
     };
 
     // Utiliser UPSERT pour éviter les erreurs de clé dupliquée
