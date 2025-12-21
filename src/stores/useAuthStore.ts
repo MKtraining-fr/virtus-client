@@ -320,31 +320,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email: userData.email,
       });
 
-      const clientProfile = {
-        id: authData.user.id,
+      // Le profil client est créé automatiquement par le trigger 'on_auth_user_created_sync_clients'
+      // qui s'exécute lors de l'insertion dans auth.users
+      // Pas besoin d'insérer manuellement dans la table clients
+      logger.info('Le profil client sera créé automatiquement par le trigger de base de données', {
+        userId: authData.user.id,
         email: userData.email,
-        first_name: userData.firstName,
-        last_name: userData.lastName,
-        phone: userData.phone || '',
-        role: userData.role || 'client',
-        affiliation_code: userData.affiliationCode || null,
-        coach_id: userData.coachId || null,
-      };
-
-      const { error: profileError } = await supabase.from('clients').insert([clientProfile]);
-
-      if (profileError) {
-        logger.error('Erreur lors de la création du profil client:', {
-          error: profileError,
-          clientProfile,
-        });
-        throw profileError;
-      } else {
-        logger.info('Profil client créé avec succès dans la base de données', {
-          userId: clientProfile.id,
-          email: clientProfile.email,
-        });
-      }
+      });
     } catch (error) {
       logger.error("Erreur d'inscription", { error });
       throw error;

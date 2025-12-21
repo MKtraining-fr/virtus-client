@@ -1,82 +1,12 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
-const defaultAllowedOrigins = [
-  'https://virtusofficiel.netlify.app',
-  'https://www.virtusofficiel.netlify.app',
-  'https://virtus-6zp.pages.dev',
-  'http://localhost:5173',
-  'http://localhost:3000',
-];
-
-const allowedOriginCandidates =
-  Deno.env
-    .get('ALLOWED_ORIGINS')
-    ?.split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean) ?? defaultAllowedOrigins;
-
-function normalizeOrigin(origin: string) {
-  return origin ? origin.replace(/\/$/, '').toLowerCase() : '';
-}
-
-const allowedOrigins = new Set(allowedOriginCandidates.map((origin) => normalizeOrigin(origin)));
-
-const defaultAllowedHeaders = ['authorization', 'x-client-info', 'apikey', 'content-type'];
-
-const defaultCorsHeaders = {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  Vary: 'Origin, Access-Control-Request-Headers',
+  'Content-Type': 'application/json; charset=utf-8',
 };
-
-function buildCorsHeaders(req: Request) {
-  const rawOrigin = req.headers.get('origin') ?? req.headers.get('Origin') ?? '';
-  const trimmedOrigin = rawOrigin.replace(/\/$/, '');
-  const normalizedOrigin = normalizeOrigin(rawOrigin);
-  const allowedOrigin =
-    allowedOrigins.size === 0
-      ? trimmedOrigin || '*'
-      : normalizedOrigin && allowedOrigins.has(normalizedOrigin)
-        ? trimmedOrigin
-        : null;
-
-  const requestHeaders = req.headers
-    .get('Access-Control-Request-Headers')
-    ?.split(',')
-    .map((header) => header.trim())
-    .filter(Boolean);
-
-  const headerSet = new Map<string, string>();
-  for (const header of defaultAllowedHeaders) {
-    const key = header.toLowerCase();
-    if (!headerSet.has(key)) {
-      headerSet.set(key, header);
-    }
-  }
-
-  if (requestHeaders) {
-    for (const header of requestHeaders) {
-      const key = header.toLowerCase();
-      if (!headerSet.has(key)) {
-        headerSet.set(key, header);
-      }
-    }
-  }
-
-  const headers: Record<string, string> = {
-    ...defaultCorsHeaders,
-    'Access-Control-Allow-Headers': Array.from(headerSet.values()).join(', '),
-  };
-
-  if (allowedOrigin) {
-    headers['Access-Control-Allow-Origin'] = allowedOrigin;
-    if (allowedOrigin !== '*') {
-      headers['Access-Control-Allow-Credentials'] = 'true';
-    }
-  }
-
-  return { headers, allowedOrigin, requestedOrigin: rawOrigin };
-}
 
 // Fonction pour envoyer l'email de confirmation via Resend
 async function sendPasswordConfirmationEmail(
@@ -90,6 +20,8 @@ async function sendPasswordConfirmationEmail(
     console.error('RESEND_API_KEY non configurée');
     throw new Error('Email service not configured');
   }
+
+  console.log('Envoi de l\'email de confirmation à:', email);
 
   const emailHtml = `
 <!DOCTYPE html>
@@ -148,7 +80,7 @@ async function sendPasswordConfirmationEmail(
               
               <!-- CTA Button -->
               <div style="text-align: center; margin: 32px 0;">
-                <a href="https://virtus-6zp.pages.dev/login" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                <a href="https://virtus-6zp.pages.dev/#/login" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
                   Se connecter à Virtus
                 </a>
               </div>
@@ -192,38 +124,35 @@ async function sendPasswordConfirmationEmail(
     throw new Error(`Failed to send email: ${response.status}`);
   }
 
-  console.log('Email de confirmation envoyé avec succès à:', email);
+  const result = await response.json();
+  console.log('Email de confirmation envoyé avec succès à:', email, 'ID:', result.id);
 }
 
 serve(async (req) => {
-  const { headers: corsHeaders, allowedOrigin, requestedOrigin } = buildCorsHeaders(req);
-  
-  if (!allowedOrigin || allowedOrigin === '') {
-    console.warn('Requête refusée pour une origine non autorisée:', requestedOrigin || '(aucune)');
-    return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      status: 403,
-    });
-  }
-
-  // Gérer les requêtes OPTIONS (preflight)
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    });
   }
 
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      headers: corsHeaders,
       status: 405,
     });
   }
 
+  console.log('Requête reçue par send-password-confirmation');
+
   try {
     const { email, firstName, newPassword } = await req.json();
+    console.log('Données reçues - email:', email, 'firstName:', firstName);
 
     if (!email || !newPassword) {
       return new Response(JSON.stringify({ error: 'email and newPassword are required' }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        headers: corsHeaders,
         status: 400,
       });
     }
@@ -231,40 +160,50 @@ serve(async (req) => {
     // Vérifier l'authentification
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Authorization header missing' }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      console.error('Authorization header manquant');
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        headers: corsHeaders,
         status: 401,
       });
     }
 
-    const accessToken = authHeader.split(' ')[1];
-    if (!accessToken) {
-      return new Response(JSON.stringify({ error: 'Access Token missing' }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        status: 401,
-      });
-    }
-
-    // Vérifier que l'utilisateur est bien authentifié
-    const userClient = createClient(
+    // Créer un client Supabase avec la clé service pour les opérations admin
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
     );
 
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    // Extraire le token JWT du header Authorization
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Token extrait, vérification de l\'utilisateur...');
+
+    // Vérifier que l'utilisateur est bien authentifié (même méthode que create-user-admin)
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid or expired access token' }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      console.error('Erreur de vérification utilisateur:', userError);
+      return new Response(JSON.stringify({ error: 'Unauthorized: Invalid user' }), {
+        headers: corsHeaders,
         status: 401,
       });
     }
+
+    console.log('Utilisateur vérifié:', user.id, user.email);
 
     // Vérifier que l'email correspond à l'utilisateur authentifié
     if (user.email !== email) {
+      console.error('Email mismatch:', user.email, '!=', email);
       return new Response(JSON.stringify({ error: 'Email mismatch' }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        headers: corsHeaders,
         status: 403,
       });
     }
@@ -273,16 +212,19 @@ serve(async (req) => {
     await sendPasswordConfirmationEmail(email, firstName || 'Utilisateur', newPassword);
 
     return new Response(
-      JSON.stringify({ message: 'Email de confirmation envoyé avec succès' }),
+      JSON.stringify({ 
+        success: true,
+        message: 'Email de confirmation envoyé avec succès' 
+      }),
       {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        headers: corsHeaders,
         status: 200,
       }
     );
   } catch (error) {
     console.error('Erreur dans send-password-confirmation:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
+      headers: corsHeaders,
       status: 500,
     });
   }
