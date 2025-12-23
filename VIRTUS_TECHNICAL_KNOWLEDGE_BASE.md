@@ -1,8 +1,8 @@
 # Base de Connaissance Technique - Projet Virtus
 
 **Auteur:** Manus AI  
-**Dernière mise à jour:** 21 décembre 2025  
-**Version:** 1.6
+**Dernière mise à jour:** 23 décembre 2025  
+**Version:** 1.7
 
 ---
 
@@ -13,6 +13,167 @@ Ce document constitue le **journal technique central** du projet Virtus. Il sert
 ---
 
 # HISTORIQUE DES INTERVENTIONS
+
+## Intervention #8 - Restauration du Profil Client Côté Coach et Améliorations UX (Décembre 2025)
+
+**Date:** 23 décembre 2025  
+**Type:** Interface Coach / Profil Client / UX  
+**Statut:** ✅ Résolu et déployé
+
+### Contexte
+
+L'interface du profil client côté coach avait perdu plusieurs sections importantes lors de la connexion au backend Supabase. L'utilisateur a fourni des captures d'écran montrant l'état souhaité (version originale) et demandé la restauration complète des fonctionnalités.
+
+### Problèmes Identifiés
+
+| Problème | Cause | Impact |
+| :--- | :--- | :--- |
+| **Sections manquantes** | Simplification du code lors de l'intégration backend | Perte de fonctionnalités pour le coach |
+| **Permissions non persistantes** | Mapper `mapSupabaseClientToClient` n'extrayait pas les permissions de `lifestyle.access` | Les modifications d'accès ne persistaient pas |
+| **Âge statique** | Champ `age` stocké en dur au lieu d'être calculé depuis `dob` | Âge devenant obsolète avec le temps |
+| **Notes non affichées** | Créateur de séance utilisait des données statiques | Coach ne voyait pas les vraies notes du client |
+
+### Pull Requests Réalisées
+
+| PR | Titre | Description |
+| :--- | :--- | :--- |
+| **#301** | Restauration complète du profil client côté coach | Restauration de toutes les sections manquantes + correction persistance permissions |
+| **#302** | Calcul automatique de l'âge | Implémentation du calcul dynamique de l'âge à partir de la date de naissance |
+| **#303** | Toggle grammes/pourcentages + Améliorations UX | Toggle g/% pour les macros, delta persistant, notes dynamiques dans créateur de séance |
+
+### Solutions Appliquées
+
+#### 1. Restauration des Sections du Profil Client (PR #301)
+
+**Fichier:** `src/pages/ClientProfile.tsx`
+
+Sections restaurées :
+- **Données Métaboliques (sidebar)** : BMR, TDEE calculés automatiquement
+- **Objectif calorique** : Graphique donut avec répartition P/G/L
+- **Ajustement des Macros** : Boutons +/- pour modifier protéines, glucides, lipides
+- **Notes et Médical** : Notes du coach + antécédents médicaux
+- **Suivi Nutritionnel** : Plans alimentaires, aversions/allergies, historique macros, journal alimentaire
+- **Suivi Mensurations & Photos** : Graphique d'évolution, historique des données, photos de suivi
+- **Documents** : Liste des documents partagés avec suppression
+- **Accès & Permissions** : Toggles Workout Builder, boutiques, formations
+- **Suivi du Poids (sidebar)** : Graphique de l'historique du poids
+
+#### 2. Correction de la Persistance des Permissions (PR #301)
+
+**Fichiers:** `src/types.ts`, `src/services/typeMappers.ts`
+
+```typescript
+// types.ts - Ajout des propriétés d'accès au type Client
+export interface ClientAccessPermissions {
+  canUseWorkoutBuilder: boolean;
+  shopAccess: { adminShop: boolean; coachShop: boolean };
+  grantedFormationIds: string[];
+}
+
+// typeMappers.ts - Extraction des permissions depuis lifestyle.access
+const lifestyleData = row.lifestyle as { access?: ClientAccessPermissions } | null;
+const accessData = lifestyleData?.access;
+
+return {
+  // ... autres propriétés
+  canUseWorkoutBuilder: accessData?.canUseWorkoutBuilder ?? true,
+  shopAccess: accessData?.shopAccess ?? { adminShop: true, coachShop: true },
+  grantedFormationIds: accessData?.grantedFormationIds ?? [],
+};
+```
+
+#### 3. Calcul Automatique de l'Âge (PR #302)
+
+**Fichier:** `src/services/typeMappers.ts`
+
+```typescript
+// Fonction de calcul de l'âge à partir de la date de naissance
+const calculateAgeFromDob = (dob: string | null | undefined): number | undefined => {
+  if (!dob) return undefined;
+  const birthDate = new Date(dob);
+  if (isNaN(birthDate.getTime())) return undefined;
+  
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+// Utilisation dans le mapper
+age: calculateAgeFromDob(row.dob) ?? (row.age as number | undefined),
+```
+
+#### 4. Toggle Grammes/Pourcentages pour les Macros (PR #303)
+
+**Fichier:** `src/pages/ClientProfile.tsx`
+
+- Ajout d'un état `macroDisplayMode: 'grams' | 'percent'`
+- Bouton de bascule g / % à côté du titre "Objectif calorique"
+- Calcul des pourcentages : (g × kcal par g) / total kcal × 100
+- Delta affiché en g ou % selon le mode (vert si positif, rouge si négatif)
+- Delta persistant par rapport aux macros d'origine (TDEE), pas par rapport à la dernière sauvegarde
+
+#### 5. Affichage Dynamique des Notes dans le Créateur de Séance (PR #303)
+
+**Fichier:** `src/pages/WorkoutBuilder.tsx`
+
+```tsx
+// Avant : données statiques
+<textarea placeholder="Très motivée, suit le plan à la lettre." />
+
+// Après : données dynamiques du client
+{selectedClient !== '0' && clientData ? (
+  <div className="w-full p-2 border rounded-lg bg-gray-50">
+    {(() => {
+      const latestNote = getLatestNote(clientData.notes);
+      return latestNote.full ? (
+        <p>{latestNote.full}</p>
+      ) : (
+        <p>Aucune note enregistrée pour ce client.</p>
+      );
+    })()}
+  </div>
+) : (
+  <p>Sélectionnez un client pour voir les notes.</p>
+)}
+```
+
+Les informations médicales (antécédents, allergies) sont également récupérées dynamiquement depuis `clientData.medicalInfo`.
+
+### Autres Corrections Mineures
+
+- **Suppression du doublon Allergies** : La section "Allergies" a été retirée de "Notes et Médical" car elle était déjà présente dans "Suivi Nutritionnel > Aversions et allergies"
+- **Réinitialisation du mot de passe client** : Mot de passe du client test `mickael.roncin@gmail.com` réinitialisé directement en base
+- **Mise à jour des données client test** : Ajout des données (poids: 85kg, taille: 168cm, sexe: homme, dob: 1986-06-15) pour permettre le calcul des données métaboliques
+
+### Fichiers Modifiés
+
+| Fichier | Modification |
+| :--- | :--- |
+| `src/pages/ClientProfile.tsx` | Restauration complète des sections, toggle g/%, delta persistant |
+| `src/pages/WorkoutBuilder.tsx` | Affichage dynamique des notes et infos médicales |
+| `src/types.ts` | Ajout interface `ClientAccessPermissions`, alias `User = Client` |
+| `src/services/typeMappers.ts` | Extraction permissions, calcul automatique de l'âge |
+
+### Leçons Apprises
+
+1. **Mapper et Persistance**
+   - Toujours vérifier que les propriétés stockées en JSON sont correctement extraites par le mapper
+   - Les propriétés imbriquées (comme `lifestyle.access`) nécessitent une extraction explicite
+
+2. **Calculs Dynamiques vs Données Statiques**
+   - Privilégier les calculs dynamiques (comme l'âge depuis dob) pour éviter les données obsolètes
+   - Conserver les valeurs statiques en fallback pour la rétrocompatibilité
+
+3. **Delta et Valeurs de Référence**
+   - Pour un delta significatif, utiliser les valeurs d'origine (TDEE) et non les dernières valeurs sauvegardées
+   - Stocker les valeurs d'origine dans un état séparé (`originMacros`) qui ne change pas après sauvegarde
+
+---
 
 ## Intervention #7 - Correction des Edge Functions et Inscription Client Indépendant (Décembre 2025)
 
@@ -1967,6 +2128,39 @@ Une **refonte de l'architecture de duplication** pourrait être étudiée pour �
 
 
 # ARCHITECTURE TECHNIQUE DU PROJET
+
+## Interface Profil Client Côté Coach (Mise à jour du 23 décembre 2025 - PR #301, #302, #303)
+
+### Avant (22 décembre 2025)
+
+- **ClientProfile.tsx** : Interface simplifiée avec sections manquantes (Données Métaboliques, Objectif calorique, Notes et Médical, Suivi Nutritionnel, etc.)
+- **typeMappers.ts** : Pas d'extraction des permissions depuis `lifestyle.access`, âge statique
+- **WorkoutBuilder.tsx** : Notes et infos médicales affichées en dur (placeholder statique)
+- **types.ts** : Pas d'interface `ClientAccessPermissions`, pas d'alias `User`
+
+### Après (23 décembre 2025)
+
+- **ClientProfile.tsx** :
+  - Restauration complète de toutes les sections (Données Métaboliques, Objectif calorique avec toggle g/%, Notes et Médical, Suivi Nutritionnel, Suivi Mensurations & Photos, Documents, Accès & Permissions, Suivi du Poids)
+  - Toggle grammes/pourcentages pour les macros avec delta persistant par rapport aux valeurs TDEE d'origine
+  - État `originMacros` pour conserver les macros de référence (TDEE)
+  - État `macroDisplayMode` pour basculer entre affichage g et %
+
+- **typeMappers.ts** :
+  - Fonction `calculateAgeFromDob()` pour calcul dynamique de l'âge
+  - Extraction des permissions depuis `lifestyle.access` (canUseWorkoutBuilder, shopAccess, grantedFormationIds)
+  - Valeurs par défaut : tous les accès activés si non définis
+
+- **WorkoutBuilder.tsx** :
+  - Section "Dernière note du coach" affiche dynamiquement `clientData.notes` via `getLatestNote()`
+  - Section "Informations Médicales" affiche `clientData.medicalInfo.history` et `clientData.medicalInfo.allergies`
+
+- **types.ts** :
+  - Interface `ClientAccessPermissions` ajoutée
+  - Propriétés `canUseWorkoutBuilder`, `shopAccess`, `grantedFormationIds` ajoutées au type `Client`
+  - Alias `export type User = Client` pour compatibilité
+
+---
 
 ## Sécurité et Permissions (Mise à jour du 17 décembre 2025)
 
