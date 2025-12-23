@@ -1590,6 +1590,15 @@ const ClientProfile: React.FC = () => {
                       ? Math.round((macroCalories / totalCalories) * 100) 
                       : 0;
                     
+                    // Calcul du pourcentage initial pour le delta en mode %
+                    const initialMacroCalories = macro === 'fat'
+                      ? (initialMacros[macro] || 0) * 9
+                      : (initialMacros[macro] || 0) * 4;
+                    const initialMacroPercent = totalCalories > 0
+                      ? Math.round((initialMacroCalories / totalCalories) * 100)
+                      : 0;
+                    const deltaPercent = macroPercent - initialMacroPercent;
+                    
                     return (
                       <div key={macro} className="grid grid-cols-12 items-center gap-2">
                         <div className="col-span-4 flex items-center gap-2">
@@ -1608,9 +1617,11 @@ const ClientProfile: React.FC = () => {
                               >{`${delta > 0 ? '+' : ''}${delta.toFixed(0)}g`}</span>
                             )
                           ) : (
-                            <span className="font-bold text-sm text-gray-600">
-                              {macroPercent}%
-                            </span>
+                            Math.abs(deltaPercent) > 0 && (
+                              <span
+                                className={`font-bold text-sm ${deltaPercent > 0 ? 'text-green-500' : 'text-red-500'}`}
+                              >{`${deltaPercent > 0 ? '+' : ''}${deltaPercent}%`}</span>
+                            )
                           )}
                         </div>
                         <div className="col-span-6 flex items-center justify-end">
