@@ -18,10 +18,28 @@ type SupabaseNotification = Database['public']['Tables']['notifications']['Row']
 /**
  * Convertir un client Supabase vers le format de l'application
  */
+/**
+ * Calcule l'âge à partir d'une date de naissance
+ */
+function calculateAgeFromDob(dob: string | null | undefined): number {
+  if (!dob) return 0;
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Client {
   // Extraire les permissions d'accès depuis lifestyle.access
   const lifestyle = (supabaseClient.lifestyle as any) || {};
   const accessPermissions = lifestyle.access || {};
+  
+  // Calculer l'âge automatiquement à partir de la date de naissance
+  const calculatedAge = calculateAgeFromDob(supabaseClient.dob);
   
   return {
     id: supabaseClient.id,
@@ -36,7 +54,8 @@ export function mapSupabaseClientToClient(supabaseClient: SupabaseClient): Clien
     createdAt: supabaseClient.created_at,
     // Informations générales
     dob: supabaseClient.dob || undefined,
-    age: supabaseClient.age || 0,
+    // L'âge est calculé automatiquement à partir de dob, sinon on utilise la valeur stockée
+    age: calculatedAge > 0 ? calculatedAge : (supabaseClient.age || 0),
     sex: (supabaseClient.sex as Client['sex']) || undefined,
     height: supabaseClient.height || 0,
     weight: supabaseClient.weight || 0,
