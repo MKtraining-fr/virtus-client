@@ -51,6 +51,21 @@ export interface BilanResult {
 }
 
 
+// ---- COACH PROFILES ----
+export interface CoachProfile {
+  id: string; // Référence à l'ID du coach dans la table clients
+  bio?: string; // Biographie ou présentation du coach
+  specialties?: string[]; // Liste des spécialités
+  experienceYears?: number; // Années d'expérience
+  certifications?: string[]; // Certifications et diplômes
+  publicUrl?: string; // URL personnalisée pour le profil public
+  instagramHandle?: string; // Pseudo Instagram
+  facebookProfile?: string; // URL du profil Facebook
+  websiteUrl?: string; // Site web personnel
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // ---- CLIENTS / USERS ----
 export interface Measurement {
     neck?: number;
@@ -174,6 +189,7 @@ export interface Client {
       adminShop: boolean;
       coachShop: boolean;
   };
+  coachProfile?: CoachProfile; // Fiche de présentation du coach (uniquement pour les coachs)
 }
 
 
