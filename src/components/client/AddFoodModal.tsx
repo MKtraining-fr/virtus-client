@@ -104,6 +104,21 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
     ];
   }, [db]);
 
+  // Catégories prioritaires pour le tri (aliments simples en premier)
+  const PRIORITY_CATEGORIES = [
+    'fruits, légumes, légumineuses et oléagineux',
+    'viandes, oeufs, poissons',
+    'produits laitiers',
+    'produits céréaliers',
+    'matières grasses',
+  ];
+
+  // Catégories de plats composés (affichés en dernier)
+  const COMPOSED_CATEGORIES = [
+    'entrées et plats composés',
+    'aides culinaires et ingrédients divers',
+  ];
+
   const filteredResults = useMemo(() => {
     if (!searchTerm && activeCategory === 'Tout') return [];
 
@@ -126,6 +141,50 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
       const lowercasedFilter = searchTerm.toLowerCase();
       results = results.filter((f) => f.name.toLowerCase().includes(lowercasedFilter));
     }
+
+    // 3. Sort results: prioritize simple foods over composed dishes
+    results.sort((a, b) => {
+      // Recettes et Repas en dernier
+      const aIsRecipe = 'type' in a;
+      const bIsRecipe = 'type' in b;
+      if (aIsRecipe && !bIsRecipe) return 1;
+      if (!aIsRecipe && bIsRecipe) return -1;
+
+      // Pour les aliments, trier par catégorie prioritaire
+      if (!aIsRecipe && !bIsRecipe) {
+        const aCategory = (a as FoodItem).category || '';
+        const bCategory = (b as FoodItem).category || '';
+
+        // Vérifier si c'est une catégorie prioritaire
+        const aPriorityIndex = PRIORITY_CATEGORIES.indexOf(aCategory);
+        const bPriorityIndex = PRIORITY_CATEGORIES.indexOf(bCategory);
+        const aIsComposed = COMPOSED_CATEGORIES.includes(aCategory);
+        const bIsComposed = COMPOSED_CATEGORIES.includes(bCategory);
+
+        // Plats composés en dernier
+        if (aIsComposed && !bIsComposed) return 1;
+        if (!aIsComposed && bIsComposed) return -1;
+
+        // Catégories prioritaires en premier
+        if (aPriorityIndex !== -1 && bPriorityIndex === -1) return -1;
+        if (aPriorityIndex === -1 && bPriorityIndex !== -1) return 1;
+        if (aPriorityIndex !== -1 && bPriorityIndex !== -1) {
+          return aPriorityIndex - bPriorityIndex;
+        }
+
+        // Bonus: aliments dont le nom commence par le terme recherché
+        if (searchTerm) {
+          const lowercasedFilter = searchTerm.toLowerCase();
+          const aStartsWith = a.name.toLowerCase().startsWith(lowercasedFilter);
+          const bStartsWith = b.name.toLowerCase().startsWith(lowercasedFilter);
+          if (aStartsWith && !bStartsWith) return -1;
+          if (!aStartsWith && bStartsWith) return 1;
+        }
+      }
+
+      // Tri alphabétique par défaut
+      return a.name.localeCompare(b.name);
+    });
 
     return results.slice(0, 50);
   }, [searchTerm, db, activeCategory]);
