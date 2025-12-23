@@ -21,6 +21,19 @@ const ClipboardIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const ChevronDownIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    {...props}
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+  </svg>
+);
+
 // FIX: Update SearchableItem to accept 'Repas' type as well.
 type SearchableItem = FoodItem | (Meal & { type: 'Recette' | 'Repas' });
 
@@ -67,6 +80,8 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const [quantity, setQuantity] = useState('100');
   const [unit, setUnit] = useState<'g' | 'ml'>('g');
   const [activeCategory, setActiveCategory] = useState('Tout');
+  const [activeSubcategory, setActiveSubcategory] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   // Reset state when modal is closed to avoid stale data on reopen
   useEffect(() => {
@@ -77,6 +92,8 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
         setQuantity('100');
         setUnit('g');
         setActiveCategory('Tout');
+        setActiveSubcategory('');
+        setShowFilters(false);
       }, 200); // Delay to allow for animations
       return () => clearTimeout(timer);
     }
@@ -91,7 +108,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
       if ('type' in item) {
         if (item.type === 'Recette') hasRecipes = true;
         if (item.type === 'Repas') hasMeals = true;
-      } else if ('category' in item && item.category !== 'Groupe alimentaire') {
+      } else if ('category' in item && item.category && item.category !== 'Groupe alimentaire') {
         foodCats.add(item.category);
       }
     });
@@ -103,6 +120,26 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
       ...sortedFoodCats,
     ];
   }, [db]);
+
+  // Extraire les sous-catégories (familles) uniques pour la catégorie sélectionnée
+  const subcategories = useMemo(() => {
+    if (activeCategory === 'Tout' || activeCategory === 'Recettes' || activeCategory === 'Repas') {
+      return [];
+    }
+    const subcats = new Set<string>();
+    db.forEach((item) => {
+      if ('category' in item && item.category === activeCategory && 'subcategory' in item && item.subcategory) {
+        subcats.add(item.subcategory as string);
+      }
+    });
+    return Array.from(subcats).sort();
+  }, [db, activeCategory]);
+
+  // Réinitialiser la sous-catégorie quand la catégorie change
+  const handleCategoryChange = (category: string) => {
+    setActiveCategory(category);
+    setActiveSubcategory('');
+  };
 
   // Catégories prioritaires pour le tri (aliments simples en premier)
   const PRIORITY_CATEGORIES = [
@@ -134,6 +171,13 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
       } else {
         results = db.filter((item) => 'category' in item && item.category === activeCategory);
       }
+    }
+
+    // 1.5. Filter by subcategory (famille)
+    if (activeSubcategory) {
+      results = results.filter(
+        (item) => 'subcategory' in item && item.subcategory === activeSubcategory
+      );
     }
 
     // 2. Filter by search term
@@ -187,7 +231,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
     });
 
     return results.slice(0, 50);
-  }, [searchTerm, db, activeCategory]);
+  }, [searchTerm, db, activeCategory, activeSubcategory]);
 
   const calculatedMacros = useMemo(() => {
     if (!selectedFood) return null;
@@ -219,32 +263,126 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
 
-          <div className="flex space-x-2 overflow-x-auto pb-2 -mx-1 px-1">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setActiveCategory(category)}
-                className={`flex-shrink-0 px-3 py-1 text-sm rounded-full transition-colors ${
-                  activeCategory === category
-                    ? 'bg-primary text-white font-semibold'
-                    : 'bg-gray-100 dark:bg-client-dark text-gray-600 dark:text-client-subtle hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
+          {/* Bouton pour afficher/masquer les filtres avancés */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-1 text-sm text-gray-600 dark:text-client-subtle hover:text-primary transition-colors"
+          >
+            <ChevronDownIcon
+              className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
+            />
+            Filtres avancés
+            {(activeCategory !== 'Tout' || activeSubcategory) && (
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-white rounded-full">
+                {activeSubcategory ? 2 : 1}
+              </span>
+            )}
+          </button>
+
+          {/* Filtres avancés (catégorie + sous-catégorie) */}
+          {showFilters && (
+            <div className="space-y-2 p-3 bg-gray-50 dark:bg-client-dark rounded-lg">
+              {/* Filtre par catégorie */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-client-subtle mb-1">
+                  Catégorie
+                </label>
+                <select
+                  value={activeCategory}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-client-dark text-gray-800 dark:text-client-light focus:ring-2 focus:ring-primary focus:border-primary"
+                >
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat === 'Tout' ? 'Toutes les catégories' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filtre par sous-catégorie (famille) */}
+              {subcategories.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-client-subtle mb-1">
+                    Famille d'aliments
+                  </label>
+                  <select
+                    value={activeSubcategory}
+                    onChange={(e) => setActiveSubcategory(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-client-dark text-gray-800 dark:text-client-light focus:ring-2 focus:ring-primary focus:border-primary"
+                  >
+                    <option value="">Toutes les familles</option>
+                    {subcategories.map((subcat) => (
+                      <option key={subcat} value={subcat}>
+                        {subcat.charAt(0).toUpperCase() + subcat.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Bouton de réinitialisation */}
+              {(activeCategory !== 'Tout' || activeSubcategory) && (
+                <button
+                  onClick={() => {
+                    setActiveCategory('Tout');
+                    setActiveSubcategory('');
+                  }}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Réinitialiser les filtres
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Catégories rapides (pills) - visible uniquement si filtres masqués */}
+          {!showFilters && (
+            <div className="flex space-x-2 overflow-x-auto pb-2 -mx-1 px-1">
+              {categories.slice(0, 6).map((category) => (
+                <button
+                  key={category}
+                  onClick={() => handleCategoryChange(category)}
+                  className={`flex-shrink-0 px-3 py-1 text-sm rounded-full transition-colors ${
+                    activeCategory === category
+                      ? 'bg-primary text-white font-semibold'
+                      : 'bg-gray-100 dark:bg-client-dark text-gray-600 dark:text-client-subtle hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+              {categories.length > 6 && (
+                <button
+                  onClick={() => setShowFilters(true)}
+                  className="flex-shrink-0 px-3 py-1 text-sm rounded-full bg-gray-100 dark:bg-client-dark text-gray-600 dark:text-client-subtle hover:bg-gray-200 dark:hover:bg-gray-700"
+                >
+                  +{categories.length - 6}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Indicateur de filtre actif */}
+          {(activeCategory !== 'Tout' || activeSubcategory) && (
+            <p className="text-xs text-gray-500 dark:text-client-subtle">
+              {filteredResults.length} résultat{filteredResults.length > 1 ? 's' : ''}
+              {activeCategory !== 'Tout' && ` dans "${activeCategory}"`}
+              {activeSubcategory && ` → "${activeSubcategory}"`}
+            </p>
+          )}
 
           <div className="max-h-60 overflow-y-auto space-y-1 pr-1">
             {filteredResults.map((item) => {
               // FIX: Use a more general check for meal/recipe types.
               const isMealOrRecipe = 'type' in item;
+              const foodItem = item as FoodItem;
               const macroString = isMealOrRecipe
                 ? (() => {
                     const macros = calculateRecipeMacros((item as Meal).items);
                     return `${macros.calories} kcal | P:${macros.protein}g G:${macros.carbs}g L:${macros.fat}g`;
                   })()
-                : `${(item as FoodItem).calories} kcal / 100g`;
+                : `${foodItem.calories} kcal / 100g`;
 
               return (
                 <button
@@ -263,9 +401,16 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
                     {isMealOrRecipe && <ClipboardIcon className="w-4 h-4 text-primary shrink-0" />}
                     <p className="text-gray-800 dark:text-client-light">{item.name}</p>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-client-subtle pl-6">
-                    {macroString}
-                  </p>
+                  <div className="pl-6">
+                    <p className="text-xs text-gray-500 dark:text-client-subtle">
+                      {macroString}
+                    </p>
+                    {!isMealOrRecipe && foodItem.subcategory && (
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        {foodItem.subcategory}
+                      </p>
+                    )}
+                  </div>
                 </button>
               );
             })}
@@ -274,6 +419,11 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
       ) : (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-primary">{selectedFood.name}</h3>
+          {selectedFood.subcategory && (
+            <p className="text-sm text-gray-500 dark:text-client-subtle -mt-2">
+              {selectedFood.subcategory}
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-4 items-end">
             <Input
               label="Quantité"
