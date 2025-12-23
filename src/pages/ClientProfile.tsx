@@ -444,6 +444,8 @@ const ClientProfile: React.FC = () => {
   // Editable states for macros
   const [editableMacros, setEditableMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
   const [initialMacros, setInitialMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
+  // Macros d'origine basés sur le TDEE - ne changent jamais après initialisation
+  const [originMacros, setOriginMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
   const [tdee, setTdee] = useState<number | null>(null);
   const [macroDisplayMode, setMacroDisplayMode] = useState<'grams' | 'percent'>('grams');
 
@@ -548,6 +550,16 @@ const ClientProfile: React.FC = () => {
     if (client && baseMetabolicData) {
       setTdee(baseMetabolicData.baseTdee);
 
+      // Calculer les macros d'origine basés sur le TDEE (répartition standard 30/40/30)
+      const targetTdee = baseMetabolicData.baseTdee;
+      const originP = Math.round((targetTdee * 0.3) / 4);
+      const originF = Math.round((targetTdee * 0.3) / 9);
+      const originC = Math.round((targetTdee * 0.4) / 4);
+      const tdeeMacros = { protein: originP, carbs: originC, fat: originF };
+      
+      // Définir les macros d'origine une seule fois (basés sur le TDEE)
+      setOriginMacros(tdeeMacros);
+
       const nutritionData = client.nutrition as any;
       const clientMacros = nutritionData?.macros || { protein: 0, carbs: 0, fat: 0 };
       const { protein, carbs, fat } = clientMacros;
@@ -557,13 +569,8 @@ const ClientProfile: React.FC = () => {
         setEditableMacros(clientMacros);
         setInitialMacros(clientMacros);
       } else {
-        const targetTdee = baseMetabolicData.baseTdee;
-        const pG = Math.round((targetTdee * 0.3) / 4);
-        const fG = Math.round((targetTdee * 0.3) / 9);
-        const cG = Math.round((targetTdee * 0.4) / 4);
-        const defaultMacros = { protein: pG, carbs: cG, fat: fG };
-        setEditableMacros(defaultMacros);
-        setInitialMacros(defaultMacros);
+        setEditableMacros(tdeeMacros);
+        setInitialMacros(tdeeMacros);
       }
     }
   }, [client, baseMetabolicData]);
@@ -1581,7 +1588,8 @@ const ClientProfile: React.FC = () => {
                 </div>
                 <div className="space-y-3 text-sm w-full max-w-sm">
                   {(['protein', 'carbs', 'fat'] as const).map((macro) => {
-                    const delta = editableMacros[macro] - (initialMacros[macro] || 0);
+                    // Delta par rapport aux macros d'origine (TDEE) - persiste même après sauvegarde
+                    const delta = editableMacros[macro] - (originMacros[macro] || 0);
                     const totalCalories = editableCalculatedData.objectifCalorique;
                     const macroCalories = macro === 'fat' 
                       ? editableMacros[macro] * 9 
@@ -1590,14 +1598,16 @@ const ClientProfile: React.FC = () => {
                       ? Math.round((macroCalories / totalCalories) * 100) 
                       : 0;
                     
-                    // Calcul du pourcentage initial pour le delta en mode %
-                    const initialMacroCalories = macro === 'fat'
-                      ? (initialMacros[macro] || 0) * 9
-                      : (initialMacros[macro] || 0) * 4;
-                    const initialMacroPercent = totalCalories > 0
-                      ? Math.round((initialMacroCalories / totalCalories) * 100)
+                    // Calcul du pourcentage d'origine (TDEE) pour le delta en mode %
+                    const originMacroCalories = macro === 'fat'
+                      ? (originMacros[macro] || 0) * 9
+                      : (originMacros[macro] || 0) * 4;
+                    // Calculer les calories totales d'origine pour le pourcentage
+                    const originTotalCalories = (originMacros.protein * 4) + (originMacros.carbs * 4) + (originMacros.fat * 9);
+                    const originMacroPercent = originTotalCalories > 0
+                      ? Math.round((originMacroCalories / originTotalCalories) * 100)
                       : 0;
-                    const deltaPercent = macroPercent - initialMacroPercent;
+                    const deltaPercent = macroPercent - originMacroPercent;
                     
                     return (
                       <div key={macro} className="grid grid-cols-12 items-center gap-2">
