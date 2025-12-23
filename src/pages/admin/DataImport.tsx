@@ -27,8 +27,8 @@ const IMPORT_CONFIG: {
   },
   ciqual: {
     title: 'Base Alimentaire (Ciqual)',
-    requiredHeaders: ['name', 'category', 'calories', 'protein', 'carbs', 'fat'],
-    description: 'Importer des aliments avec leurs valeurs nutritionnelles.',
+    requiredHeaders: ['alim_nom_fr', 'alim_grp_nom_fr'],
+    description: 'Importer des aliments. Supporte le format Ciqual officiel (séparateur ;) ou le format simplifié Virtus (name, category, calories, protein, carbs, fat).',
   },
   products: {
     title: 'Produits Boutique',
@@ -195,7 +195,8 @@ const DataImport: React.FC = () => {
           'Développé couché,Musculation,Exercice pour les pectoraux,Barre|Banc,Pectoraux|Triceps|Épaules\nSquat,Musculation,Exercice pour les jambes,Barre,Quadriceps|Fessiers';
         break;
       case 'ciqual':
-        exampleRows = 'Poulet grillé,Viandes,165,31,0,3.6\nRiz blanc cuit,Féculents,130,2.7,28,0.3';
+        // Template pour format simplifié Virtus (le format Ciqual officiel est auto-détecté)
+        exampleRows = 'Poulet grillé,Viandes,165,31,0,3.6,0.5,1.2,0.8\nRiz blanc cuit,Féculents,130,2.7,28,0.3,0.1,0.4,0';
         break;
     }
 

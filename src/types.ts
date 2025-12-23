@@ -384,6 +384,25 @@ export interface FoodItem {
   protein?: number;
   carbs?: number;
   fat?: number;
+  // Nouveaux champs nutritionnels (Ciqual)
+  sugar?: number;
+  fiber?: number;
+  salt?: number;
+  // Champs de classification Ciqual
+  ciqualCode?: string;
+  subcategory?: string;
+  subsubcategory?: string;
+  // Champs Open Food Facts
+  barcode?: string;
+  brand?: string;
+  nutriScore?: string; // A, B, C, D, E
+  novaGroup?: number; // 1-4
+  ecoScore?: string; // A-E
+  allergens?: string;
+  ingredients?: string;
+  quantity?: string; // ex: "400g"
+  // Métadonnées
+  source?: 'ciqual' | 'openfoodfacts' | 'manual';
   servingSize?: string;
   foodFamily?: string;
   micronutrients?: Json;
