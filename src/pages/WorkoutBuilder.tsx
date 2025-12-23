@@ -1610,25 +1610,39 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             <div>
               <div className="mb-4">
                 <h3 className="font-semibold mb-2">Dernière note du coach</h3>
-                <textarea
-                  className="w-full p-2 border rounded-lg"
-                  rows={3}
-                  placeholder={selectedClient === '0' ? 'Sélectionnez un client pour voir les notes.' : 'Très motivée, suit le plan à la lettre.'}
-                  disabled={selectedClient === '0'}
-                />
+                {selectedClient !== '0' && clientData ? (
+                  <div className="w-full p-2 border rounded-lg bg-gray-50 min-h-[76px]">
+                    {(() => {
+                      const latestNote = getLatestNote(clientData.notes);
+                      return latestNote.full ? (
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{latestNote.full}</p>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">Aucune note enregistrée pour ce client.</p>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <div className="w-full p-2 border rounded-lg bg-gray-100 min-h-[76px]">
+                    <p className="text-sm text-gray-500 italic">Sélectionnez un client pour voir les notes.</p>
+                  </div>
+                )}
               </div>
               
               <div>
                 <h3 className="font-semibold mb-2">Informations Médicales</h3>
-                {selectedClient !== '0' ? (
+                {selectedClient !== '0' && clientData ? (
                   <div className="space-y-2 text-sm">
                     <div>
                       <span className="font-medium">ANTÉCÉDENTS:</span>
-                      <p className="ml-4 text-gray-600">RAS</p>
+                      <p className="ml-4 text-gray-600">
+                        {(clientData.medicalInfo as { history?: string })?.history || 'RAS'}
+                      </p>
                     </div>
                     <div>
                       <span className="font-medium">ALLERGIES:</span>
-                      <p className="ml-4 text-gray-600">Aucune connue</p>
+                      <p className="ml-4 text-gray-600">
+                        {(clientData.medicalInfo as { allergies?: string })?.allergies || 'Aucune connue'}
+                      </p>
                     </div>
                   </div>
                 ) : (
