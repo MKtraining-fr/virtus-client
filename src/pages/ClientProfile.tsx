@@ -445,6 +445,7 @@ const ClientProfile: React.FC = () => {
   const [editableMacros, setEditableMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
   const [initialMacros, setInitialMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
   const [tdee, setTdee] = useState<number | null>(null);
+  const [macroDisplayMode, setMacroDisplayMode] = useState<'grams' | 'percent'>('grams');
 
   // Editable states for access & permissions
   const [editableAccess, setEditableAccess] = useState({
@@ -1526,7 +1527,32 @@ const ClientProfile: React.FC = () => {
           {editableCalculatedData && (
             <Card className="p-4">
               <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
-                <h3 className="font-bold text-lg">Objectif calorique</h3>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-bold text-lg">Objectif calorique</h3>
+                  {/* Toggle Grammes / Pourcentages */}
+                  <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+                    <button
+                      onClick={() => setMacroDisplayMode('grams')}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                        macroDisplayMode === 'grams'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      g
+                    </button>
+                    <button
+                      onClick={() => setMacroDisplayMode('percent')}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                        macroDisplayMode === 'percent'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      %
+                    </button>
+                  </div>
+                </div>
                 {editableCalculatedData.surplusDeficit !== 0 && (
                   <span
                     className={`font-bold text-sm px-2 py-0.5 rounded-md ${editableCalculatedData.surplusDeficit > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
@@ -1556,6 +1582,14 @@ const ClientProfile: React.FC = () => {
                 <div className="space-y-3 text-sm w-full max-w-sm">
                   {(['protein', 'carbs', 'fat'] as const).map((macro) => {
                     const delta = editableMacros[macro] - (initialMacros[macro] || 0);
+                    const totalCalories = editableCalculatedData.objectifCalorique;
+                    const macroCalories = macro === 'fat' 
+                      ? editableMacros[macro] * 9 
+                      : editableMacros[macro] * 4;
+                    const macroPercent = totalCalories > 0 
+                      ? Math.round((macroCalories / totalCalories) * 100) 
+                      : 0;
+                    
                     return (
                       <div key={macro} className="grid grid-cols-12 items-center gap-2">
                         <div className="col-span-4 flex items-center gap-2">
@@ -1567,15 +1601,21 @@ const ClientProfile: React.FC = () => {
                           </label>
                         </div>
                         <div className="col-span-2 text-left">
-                          {Math.abs(delta) > 0 && (
-                            <span
-                              className={`font-bold text-sm ${delta > 0 ? 'text-green-500' : 'text-red-500'}`}
-                            >{`${delta > 0 ? '+' : ''}${delta.toFixed(0)}g`}</span>
+                          {macroDisplayMode === 'grams' ? (
+                            Math.abs(delta) > 0 && (
+                              <span
+                                className={`font-bold text-sm ${delta > 0 ? 'text-green-500' : 'text-red-500'}`}
+                              >{`${delta > 0 ? '+' : ''}${delta.toFixed(0)}g`}</span>
+                            )
+                          ) : (
+                            <span className="font-bold text-sm text-gray-600">
+                              {macroPercent}%
+                            </span>
                           )}
                         </div>
                         <div className="col-span-6 flex items-center justify-end">
                           <button
-                            onClick={() => handleMacroAdjustment(macro, -1)}
+                            onClick={() => handleMacroAdjustment(macro, macroDisplayMode === 'percent' ? -1 : -1)}
                             className="p-1 rounded-l-md bg-gray-200 hover:bg-gray-300 h-9"
                           >
                             <MinusIcon className="w-4 h-4" />
@@ -1583,16 +1623,28 @@ const ClientProfile: React.FC = () => {
                           <div className="relative w-20">
                             <Input
                               type="number"
-                              value={editableMacros[macro]}
-                              onChange={(e) => handleMacroChange(macro, e.target.value)}
+                              value={macroDisplayMode === 'grams' ? editableMacros[macro] : macroPercent}
+                              onChange={(e) => {
+                                if (macroDisplayMode === 'grams') {
+                                  handleMacroChange(macro, e.target.value);
+                                } else {
+                                  // Convertir le pourcentage en grammes
+                                  const newPercent = parseFloat(e.target.value) || 0;
+                                  const caloriesForMacro = (newPercent / 100) * totalCalories;
+                                  const gramsForMacro = macro === 'fat' 
+                                    ? Math.round(caloriesForMacro / 9) 
+                                    : Math.round(caloriesForMacro / 4);
+                                  handleMacroChange(macro, gramsForMacro.toString());
+                                }
+                              }}
                               className="w-full text-center !p-1 h-9 !rounded-none"
                             />
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none text-xs">
-                              g
+                              {macroDisplayMode === 'grams' ? 'g' : '%'}
                             </span>
                           </div>
                           <button
-                            onClick={() => handleMacroAdjustment(macro, 1)}
+                            onClick={() => handleMacroAdjustment(macro, macroDisplayMode === 'percent' ? 1 : 1)}
                             className="p-1 rounded-r-md bg-gray-200 hover:bg-gray-300 h-9"
                           >
                             <PlusIcon className="w-4 h-4" />
