@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import { supabase } from '../../lib/supabaseClient';
+import { supabase } from '../../services/supabase';
 import { logger } from '../../utils/logger';
 import { CoachProfile } from '../../types';
 

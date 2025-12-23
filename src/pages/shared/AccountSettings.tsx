@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
-import { supabase } from '../../lib/supabaseClient';
+import { supabase } from '../../services/supabase';
 import { logger } from '../../utils/logger';
 
 // Icons
