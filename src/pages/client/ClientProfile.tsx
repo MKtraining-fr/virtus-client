@@ -17,6 +17,7 @@ import Input from '../../components/Input';
 import Button from '../../components/Button';
 import MeasurementsLineChart from '../../components/charts/MeasurementsLineChart';
 import BilanSection from '../../components/BilanSection';
+import AccountSettingsModal from '../../components/AccountSettingsModal';
 
 // --- ICONS ---
 const ShieldCheckIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -108,6 +109,7 @@ const ClientProfile: React.FC = () => {
     user?.nutrition.measurements || {}
   );
   const [selectedBilan, setSelectedBilan] = useState<BilanResult | null>(null);
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
 
   const measurementLabels: Record<keyof MeasurementType, string> = {
     neck: 'Cou (cm)',
@@ -547,12 +549,15 @@ const ClientProfile: React.FC = () => {
         </ClientAccordion>
         <ClientAccordion title="Paramètres du compte">
           <div className="flex flex-col items-start space-y-2 text-gray-700 dark:text-client-subtle">
-            <button className="hover:text-primary dark:hover:text-client-light">
-              Modifier le mot de passe
+            <button 
+              onClick={() => setShowAccountSettings(true)}
+              className="hover:text-primary dark:hover:text-client-light font-semibold"
+            >
+              Modifier mes informations personnelles
             </button>
-            <button className="hover:text-primary dark:hover:text-client-light">
-              Notifications
-            </button>
+            <p className="text-sm text-gray-500 dark:text-client-subtle">
+              Gérez votre profil, photo, mot de passe et informations de contact
+            </p>
           </div>
         </ClientAccordion>
         <ClientAccordion title="Apparence">
@@ -652,6 +657,12 @@ const ClientProfile: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* Account Settings Modal */}
+      <AccountSettingsModal
+        isOpen={showAccountSettings}
+        onClose={() => setShowAccountSettings(false)}
+      />
     </div>
   );
 };

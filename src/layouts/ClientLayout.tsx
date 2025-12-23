@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 // Main pages
 import ClientWorkout from '../pages/client/ClientWorkout';
 import ClientLibrary from '../pages/client/ClientLibrary';
-import AccountSettings from '../pages/shared/AccountSettings';
+import ClientProfile from '../pages/client/ClientProfile';
 import ClientMessaging from '../pages/client/ClientMessaging';
 import ClientShop from '../pages/client/ClientShop';
 import NutritionRouter from '../pages/client/NutritionRouter';
@@ -122,7 +122,7 @@ const ClientLayout: React.FC = () => {
           <Route path="workout/current-program" element={<ClientCurrentProgram />} />
           <Route path="workout/builder" element={<ClientWorkoutBuilder />} />
           <Route path="workout/my-programs" element={<ClientMyPrograms />} />
-          <Route path="profile" element={<AccountSettings />} />
+          <Route path="profile" element={<ClientProfile />} />
           <Route path="nutrition/*" element={<NutritionRouter />} />
           <Route path="messaging" element={<ClientMessaging />} />
           <Route
