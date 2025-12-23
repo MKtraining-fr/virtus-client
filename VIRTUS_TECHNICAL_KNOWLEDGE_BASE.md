@@ -2,7 +2,7 @@
 
 **Auteur:** Manus AI  
 **Dernière mise à jour:** 23 décembre 2025  
-**Version:** 1.7
+**Version:** 1.8
 
 ---
 
@@ -13,6 +13,116 @@ Ce document constitue le **journal technique central** du projet Virtus. Il sert
 ---
 
 # HISTORIQUE DES INTERVENTIONS
+
+## Intervention #9 - Implémentation des Profils Utilisateurs (Client & Coach)
+
+**Date:** 23 décembre 2025  
+**Type:** Profils Utilisateurs / Base de Données / Interface  
+**Statut:** ✅ Résolu et déployé
+
+### Contexte
+
+Le projet ne disposait pas de fonctionnalités permettant aux utilisateurs de modifier leurs informations personnelles ou de créer une fiche de présentation. L'objectif était de créer une page "Mon Compte" pour tous les utilisateurs et une fiche de présentation détaillée pour les coachs.
+
+### Problèmes Identifiés
+
+| Problème | Cause | Impact |
+| :--- | :--- | :--- |
+| **Absence de gestion de profil** | Fonctionnalité non implémentée | Les utilisateurs ne pouvaient pas modifier leurs informations |
+| **Fiche coach inexistante** | Fonctionnalité non implémentée | Les coachs ne pouvaient pas se présenter |
+| **Erreurs de build** | Imports incorrects dans les nouveaux composants | Déploiement impossible |
+| **Remplacement de page** | La page "Mon Compte" remplaçait tout le profil client | Perte de contexte pour l'utilisateur |
+
+### Pull Requests Réalisées
+
+| PR | Titre | Description |
+| :--- | :--- | :--- |
+| **#305** | ✨ Ajout des profils utilisateurs avec gestion avatar et fiche coach | Implémentation complète des profils, correction des erreurs de build et transformation en modale |
+
+### Solutions Appliquées
+
+#### 1. Création de la table `coach_profiles` (Migration SQL)
+
+**Fichier:** `supabase/migrations/20251223_create_coach_profiles.sql`
+
+- Création de la table `coach_profiles` avec des champs pour la biographie, les spécialités, l'expérience, les certifications, les réseaux sociaux, etc.
+- Ajout d'une clé étrangère vers `clients.id`.
+- Mise en place de politiques RLS pour que les coachs ne puissent modifier que leur propre profil.
+- Création d'un trigger pour mettre à jour `updated_at` automatiquement.
+
+#### 2. Page "Mon Compte" (Modale pour les clients, Onglet pour les coachs)
+
+**Fichiers:** `src/components/AccountSettingsModal.tsx`, `src/pages/coach/Settings.tsx`
+
+- **Pour les clients :**
+  - Création d'une modale `AccountSettingsModal` qui s'ouvre depuis la page de profil existante.
+  - Permet de modifier nom, prénom, téléphone.
+  - Intégration de l'upload d'avatar via Cloudinary (preset `virtus_avatars`).
+  - Accès à la modale de changement de mot de passe.
+  - Bouton de déconnexion.
+
+- **Pour les coachs :**
+  - Création d'une page `Settings.tsx` avec deux onglets :
+    - **Mon Compte :** Réutilise le composant `AccountSettings` pour la gestion des informations personnelles et de l'avatar.
+    - **Ma Fiche Coach :** Utilise le nouveau composant `CoachProfileEditor.tsx`.
+
+#### 3. Fiche de Présentation Coach
+
+**Fichier:** `src/pages/coach/CoachProfileEditor.tsx`
+
+- Formulaire complet pour que les coachs puissent créer et modifier leur fiche de présentation.
+- Gestion des spécialités sous forme de tags.
+- Champs pour la biographie, l'expérience, les certifications, et les réseaux sociaux.
+- Sauvegarde des informations dans la nouvelle table `coach_profiles`.
+
+#### 4. Corrections et Améliorations
+
+- **Correction des erreurs de build :** Correction de tous les imports incorrects de `supabaseClient`.
+- **Transformation en modale :** La page "Mon Compte" a été transformée en modale pour les clients afin de ne pas masquer les autres éléments du profil (bilans, mensurations, etc.).
+- **Restauration de `ClientProfile.tsx` :** La page de profil client originale a été restaurée et un bouton a été ajouté pour ouvrir la modale de gestion de compte.
+
+### Schéma de l'architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     INTERFACE UTILISATEUR                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  CLIENT                          COACH                       │
+│  ┌─────────────────┐            ┌──────────────────────┐    │
+│  │ Profil          │            │ Paramètres           │    │
+│  │ ┌─────────────┐ │            │ ┌──────────────────┐ │    │
+│  │ │ Mon Compte  │ │            │ │ Mon Compte       │ │    │
+│  │ │ (Modale)    │ │            │ │ (Onglet)         │ │    │
+│  │ └─────────────┘ │            │ └──────────────────┘ │    │
+│  └─────────────────┘            │ ┌──────────────────┐ │    │
+│                                  │ │ Ma Fiche Coach   │ │    │
+│                                  │ │ (Onglet)         │ │    │
+│                                  │ └──────────────────┘ │    │
+│                                  └──────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                         SERVICES                             │
+├─────────────────────────────────────────────────────────────┤
+│  Supabase Client        │  Cloudinary Upload                │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      BASE DE DONNÉES                         │
+├─────────────────────────────────────────────────────────────┤
+│  Table: clients                                              │
+│  - id, first_name, last_name, phone, avatar, ...            │
+│                                                              │
+│  Table: coach_profiles                                       │
+│  - id (FK → clients.id)                                     │
+│  - bio, specialties[], experience_years, certifications[]   │
+│  - public_url, instagram_handle, facebook_profile, ...      │
+│  - RLS: auth.uid() = id                                     │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## Intervention #8 - Restauration du Profil Client Côté Coach et Améliorations UX (Décembre 2025)
 
