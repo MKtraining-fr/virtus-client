@@ -1107,21 +1107,7 @@ const ClientProfile: React.FC = () => {
                       rows={5}
                     />
                   </div>
-                  <div>
-                    <label
-                      htmlFor="medicalAllergies"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Allergies
-                    </label>
-                    <textarea
-                      id="medicalAllergies"
-                      value={editableData.medicalInfo.allergies}
-                      onChange={(e) => handleMedicalChange('allergies', e.target.value)}
-                      className="w-full p-2 bg-white border border-gray-300 rounded-lg shadow-sm"
-                      rows={3}
-                    />
-                  </div>
+
                 </div>
               </div>
             </div>
