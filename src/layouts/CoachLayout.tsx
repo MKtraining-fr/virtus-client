@@ -11,7 +11,7 @@ import WorkoutLibrary from '../pages/WorkoutLibrary.tsx';
 import WorkoutDatabase from '../pages/WorkoutDatabase.tsx';
 import Nutrition from '../pages/Nutrition.tsx';
 import Messaging from '../pages/Messaging.tsx';
-import ComingSoon from '../pages/ComingSoon.tsx';
+import Settings from '../pages/coach/Settings.tsx';
 import ClientProfile from '../pages/ClientProfile.tsx';
 import ViewBanner from '../components/ViewBanner.tsx';
 import { useAuth } from '../context/AuthContext';
@@ -67,7 +67,7 @@ const CoachLayout: React.FC = () => {
             <Route path="formations/pro/:id" element={<ProFormationDetail />} />
             <Route path="shop" element={<CoachShop />} />
             <Route path="messagerie" element={<Messaging />} />
-            <Route path="parametres" element={<ComingSoon title="Paramètres" />} />
+            <Route path="parametres" element={<Settings />} />
             <Route path="*" element={<Navigate to="/app" replace />} />
           </Routes>
         </main>
