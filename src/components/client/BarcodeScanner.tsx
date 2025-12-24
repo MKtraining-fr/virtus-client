@@ -11,6 +11,7 @@ interface BarcodeScannerProps {
 
 const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan }) => {
   const [isScanning, setIsScanning] = useState(false);
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [container, setContainer] = useState<HTMLElement | null>(null);
@@ -24,24 +25,76 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
   }, []);
 
   useEffect(() => {
-    if (isOpen && !isScanning && container) {
-      // Petit délai pour s'assurer que le DOM est prêt
-      const timer = setTimeout(() => {
-        startScanner();
-      }, 100);
-      return () => clearTimeout(timer);
+    if (isOpen && container) {
+      // Demander la permission de la caméra d'abord
+      requestCameraPermission();
     }
 
     return () => {
       stopScanner();
     };
-  }, [isOpen, facingMode, container]);
+  }, [isOpen, container]);
+
+  // Redémarrer le scanner quand on change de caméra
+  useEffect(() => {
+    if (isOpen && container && !isRequestingPermission && !error) {
+      const timer = setTimeout(() => {
+        startScanner();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [facingMode]);
+
+  const requestCameraPermission = async () => {
+    setIsRequestingPermission(true);
+    setError(null);
+
+    try {
+      // Demander explicitement la permission de la caméra
+      console.log('Demande de permission caméra...');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      
+      // Arrêter le stream immédiatement (on veut juste la permission)
+      stream.getTracks().forEach(track => track.stop());
+      
+      console.log('Permission accordée, démarrage du scanner...');
+      setIsRequestingPermission(false);
+      
+      // Petit délai pour s'assurer que le DOM est prêt
+      setTimeout(() => {
+        startScanner();
+      }, 200);
+      
+    } catch (err: any) {
+      console.error('Erreur de permission caméra:', err);
+      setIsRequestingPermission(false);
+      
+      if (err.name === 'NotAllowedError' || err.message?.includes('Permission denied')) {
+        setError('Accès à la caméra refusé. Veuillez autoriser l\'accès à la caméra dans les paramètres de votre navigateur, puis réessayez.');
+      } else if (err.name === 'NotFoundError') {
+        setError('Aucune caméra trouvée sur cet appareil.');
+      } else if (err.name === 'NotReadableError') {
+        setError('La caméra est utilisée par une autre application. Fermez les autres applications utilisant la caméra et réessayez.');
+      } else if (err.name === 'OverconstrainedError') {
+        setError('La caméra demandée n\'est pas disponible. Essayez de changer de caméra.');
+      } else if (err.name === 'SecurityError') {
+        setError('L\'accès à la caméra n\'est pas autorisé sur ce site. Vérifiez que vous utilisez HTTPS.');
+      } else {
+        setError(`Erreur d'accès à la caméra: ${err.message || err.name || 'Erreur inconnue'}`);
+      }
+    }
+  };
 
   const startScanner = async () => {
+    // Arrêter le scanner existant s'il y en a un
+    await stopScanner();
+
     const scannerContainer = document.getElementById('barcode-scanner-container');
     if (!scannerContainer) {
       console.error('Scanner container not found');
-      setError('Erreur: conteneur du scanner non trouvé');
+      setError('Erreur: conteneur du scanner non trouvé. Veuillez réessayer.');
       return;
     }
 
@@ -49,9 +102,13 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
       setError(null);
       setIsScanning(true);
 
+      console.log('Création du scanner html5-qrcode...');
+      
       // Créer une nouvelle instance du scanner
       const scanner = new Html5Qrcode('barcode-scanner-container');
       scannerRef.current = scanner;
+
+      console.log('Démarrage du scanner avec facingMode:', facingMode);
 
       await scanner.start(
         { facingMode },
@@ -69,9 +126,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
         },
         (errorMessage) => {
           // Ignorer les erreurs de scan continues (pas de code-barres trouvé)
-          // console.log('Scan en cours...', errorMessage);
         }
       );
+      
+      console.log('Scanner démarré avec succès');
+      
     } catch (err: any) {
       console.error('Erreur lors du démarrage du scanner:', err);
       setIsScanning(false);
@@ -80,8 +139,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
         setError('Accès à la caméra refusé. Veuillez autoriser l\'accès à la caméra dans les paramètres de votre navigateur.');
       } else if (err.message?.includes('NotFoundError') || err.name === 'NotFoundError') {
         setError('Aucune caméra trouvée sur cet appareil.');
+      } else if (err.message?.includes('already running')) {
+        // Le scanner est déjà en cours, ignorer
+        console.log('Scanner déjà en cours');
       } else {
-        setError('Impossible de démarrer le scanner. Vérifiez que votre appareil dispose d\'une caméra.');
+        setError(`Erreur du scanner: ${err.message || 'Erreur inconnue'}. Vérifiez que votre appareil dispose d\'une caméra.`);
       }
     }
   };
@@ -89,7 +151,10 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
   const stopScanner = async () => {
     if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
+        const state = scannerRef.current.getState();
+        if (state === 2) { // SCANNING
+          await scannerRef.current.stop();
+        }
         scannerRef.current.clear();
       } catch (err) {
         console.error('Erreur lors de l\'arrêt du scanner:', err);
@@ -107,6 +172,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
   const handleClose = async () => {
     await stopScanner();
     onClose();
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    requestCameraPermission();
   };
 
   // Ne pas rendre si pas ouvert ou pas de container
@@ -154,8 +224,19 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
             </div>
           )}
 
-          {/* Loading state */}
-          {!isScanning && !error && (
+          {/* Loading state - Demande de permission */}
+          {isRequestingPermission && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black">
+              <div className="text-center text-white p-4">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                <p className="font-medium">Demande d'accès à la caméra...</p>
+                <p className="text-sm text-gray-400 mt-2">Veuillez autoriser l'accès à la caméra dans la popup du navigateur</p>
+              </div>
+            </div>
+          )}
+
+          {/* Loading state - Initialisation du scanner */}
+          {!isScanning && !error && !isRequestingPermission && (
             <div className="absolute inset-0 flex items-center justify-center bg-black">
               <div className="text-center text-white">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
@@ -168,9 +249,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
           {error && (
             <div className="absolute inset-0 flex items-center justify-center bg-black p-6">
               <div className="text-center text-white">
-                <p className="text-red-400 mb-4">{error}</p>
+                <p className="text-red-400 mb-4 text-sm">{error}</p>
                 <button
-                  onClick={startScanner}
+                  onClick={handleRetry}
                   className="px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
                 >
                   Réessayer
