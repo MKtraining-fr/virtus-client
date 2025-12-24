@@ -79,9 +79,11 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
   const [quantity, setQuantity] = useState('100');
   const [unit, setUnit] = useState<'g' | 'ml'>('g');
-  // Catégorie principale : Tout, Recettes, Repas, Brut, Autre
-  const [mainCategory, setMainCategory] = useState('Tout');
-  // Famille d'aliments (subcategory) - dynamique selon la catégorie principale
+  // Type d'aliment : Tout, Recettes, Repas, Brut, Autre
+  const [foodTypeFilter, setFoodTypeFilter] = useState('');
+  // Catégorie (category) - les catégories Ciqual existantes
+  const [categoryFilter, setCategoryFilter] = useState('');
+  // Famille d'aliments (subcategory) - dynamique selon le type et la catégorie
   const [familyFilter, setFamilyFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -93,7 +95,8 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
         setSelectedFood(null);
         setQuantity('100');
         setUnit('g');
-        setMainCategory('Tout');
+        setFoodTypeFilter('');
+        setCategoryFilter('');
         setFamilyFilter('');
         setShowFilters(false);
       }, 200); // Delay to allow for animations
@@ -101,8 +104,8 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
     }
   }, [isOpen]);
 
-  // Catégories principales disponibles
-  const mainCategories = useMemo(() => {
+  // Types d'aliments disponibles
+  const foodTypes = useMemo(() => {
     let hasRecipes = false;
     let hasMeals = false;
     let hasBrut = false;
@@ -119,36 +122,62 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
     });
 
     return [
-      'Tout',
-      ...(hasRecipes ? ['Recettes'] : []),
-      ...(hasMeals ? ['Repas'] : []),
-      ...(hasBrut ? ['🥬 Aliments bruts'] : []),
-      ...(hasAutre ? ['🍰 Autres aliments'] : []),
+      { value: '', label: 'Tous les types' },
+      ...(hasRecipes ? [{ value: 'recette', label: 'Recettes' }] : []),
+      ...(hasMeals ? [{ value: 'repas', label: 'Repas' }] : []),
+      ...(hasBrut ? [{ value: 'brut', label: '🥬 Aliments bruts' }] : []),
+      ...(hasAutre ? [{ value: 'autre', label: '🍰 Autres aliments' }] : []),
     ];
   }, [db]);
 
-  // Extraire les familles d'aliments uniques (filtrées par catégorie principale)
+  // Extraire les catégories uniques (filtrées par type d'aliment)
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    db.forEach((item) => {
+      if ('category' in item && item.category) {
+        const foodItem = item as FoodItem;
+        // Filtrer selon le type sélectionné
+        if (!foodTypeFilter || foodTypeFilter === 'recette' || foodTypeFilter === 'repas') {
+          cats.add(foodItem.category);
+        } else if (foodTypeFilter === 'brut' && foodItem.foodType === 'brut') {
+          cats.add(foodItem.category);
+        } else if (foodTypeFilter === 'autre' && foodItem.foodType === 'autre') {
+          cats.add(foodItem.category);
+        }
+      }
+    });
+    return Array.from(cats).sort();
+  }, [db, foodTypeFilter]);
+
+  // Extraire les familles d'aliments uniques (filtrées par type et catégorie)
   const families = useMemo(() => {
     const fams = new Set<string>();
     db.forEach((item) => {
       if ('subcategory' in item && item.subcategory) {
         const foodItem = item as FoodItem;
-        // Filtrer selon la catégorie principale sélectionnée
-        if (mainCategory === 'Tout') {
-          fams.add(foodItem.subcategory as string);
-        } else if (mainCategory === '🥬 Aliments bruts' && foodItem.foodType === 'brut') {
-          fams.add(foodItem.subcategory as string);
-        } else if (mainCategory === '🍰 Autres aliments' && foodItem.foodType === 'autre') {
+        const matchesType = !foodTypeFilter || 
+          foodTypeFilter === 'recette' || 
+          foodTypeFilter === 'repas' || 
+          foodItem.foodType === foodTypeFilter;
+        const matchesCategory = !categoryFilter || foodItem.category === categoryFilter;
+        if (matchesType && matchesCategory) {
           fams.add(foodItem.subcategory as string);
         }
       }
     });
     return Array.from(fams).sort();
-  }, [db, mainCategory]);
+  }, [db, foodTypeFilter, categoryFilter]);
 
-  // Réinitialiser la famille quand la catégorie principale change
-  const handleMainCategoryChange = (category: string) => {
-    setMainCategory(category);
+  // Réinitialiser les filtres en cascade quand le type change
+  const handleFoodTypeChange = (value: string) => {
+    setFoodTypeFilter(value);
+    setCategoryFilter('');
+    setFamilyFilter('');
+  };
+
+  // Réinitialiser la famille quand la catégorie change
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value);
     setFamilyFilter('');
   };
 
@@ -168,25 +197,32 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
   ];
 
   const filteredResults = useMemo(() => {
-    if (!searchTerm && mainCategory === 'Tout' && !familyFilter) return [];
+    if (!searchTerm && !foodTypeFilter && !categoryFilter && !familyFilter) return [];
 
     let results: SearchableItem[] = db;
 
-    // Filtre par catégorie principale
-    if (mainCategory !== 'Tout') {
-      if (mainCategory === 'Recettes') {
+    // Filtre par type d'aliment
+    if (foodTypeFilter) {
+      if (foodTypeFilter === 'recette') {
         results = results.filter((item) => 'type' in item && item.type === 'Recette');
-      } else if (mainCategory === 'Repas') {
+      } else if (foodTypeFilter === 'repas') {
         results = results.filter((item) => 'type' in item && item.type === 'Repas');
-      } else if (mainCategory === '🥬 Aliments bruts') {
+      } else if (foodTypeFilter === 'brut') {
         results = results.filter(
           (item) => 'foodType' in item && (item as FoodItem).foodType === 'brut'
         );
-      } else if (mainCategory === '🍰 Autres aliments') {
+      } else if (foodTypeFilter === 'autre') {
         results = results.filter(
           (item) => 'foodType' in item && (item as FoodItem).foodType === 'autre'
         );
       }
+    }
+
+    // Filtre par catégorie
+    if (categoryFilter) {
+      results = results.filter(
+        (item) => 'category' in item && item.category === categoryFilter
+      );
     }
 
     // Filtre par famille d'aliments (subcategory)
@@ -251,7 +287,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
     });
 
     return results.slice(0, 50);
-  }, [searchTerm, db, mainCategory, familyFilter]);
+  }, [searchTerm, db, foodTypeFilter, categoryFilter, familyFilter]);
 
   const calculatedMacros = useMemo(() => {
     if (!selectedFood) return null;
@@ -273,7 +309,8 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
     }
   };
 
-  const hasActiveFilters = mainCategory !== 'Tout' || familyFilter;
+  const hasActiveFilters = foodTypeFilter || categoryFilter || familyFilter;
+  const activeFiltersCount = [foodTypeFilter, categoryFilter, familyFilter].filter(Boolean).length;
 
   return (
     <Modal
@@ -299,33 +336,54 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
               className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
             />
             Filtres avancés
-            {hasActiveFilters && (
+            {activeFiltersCount > 0 && (
               <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-white rounded-full">
-                {[mainCategory !== 'Tout', familyFilter].filter(Boolean).length}
+                {activeFiltersCount}
               </span>
             )}
           </button>
 
-          {/* Filtres avancés (catégorie + famille) */}
+          {/* Filtres avancés (type + catégorie + famille) */}
           {showFilters && (
             <div className="space-y-2 p-3 bg-gray-50 dark:bg-client-dark rounded-lg">
-              {/* Filtre par catégorie principale (Brut/Autre) */}
+              {/* Filtre par type d'aliment */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-client-subtle mb-1">
-                  Catégorie
+                  Type d'aliment
                 </label>
                 <select
-                  value={mainCategory}
-                  onChange={(e) => handleMainCategoryChange(e.target.value)}
+                  value={foodTypeFilter}
+                  onChange={(e) => handleFoodTypeChange(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-client-dark text-gray-800 dark:text-client-light focus:ring-2 focus:ring-primary focus:border-primary"
                 >
-                  {mainCategories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat === 'Tout' ? 'Toutes les catégories' : cat}
+                  {foodTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
                     </option>
                   ))}
                 </select>
               </div>
+
+              {/* Filtre par catégorie */}
+              {categories.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-client-subtle mb-1">
+                    Catégorie
+                  </label>
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-client-dark text-gray-800 dark:text-client-light focus:ring-2 focus:ring-primary focus:border-primary"
+                  >
+                    <option value="">Toutes les catégories</option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Filtre par famille d'aliments */}
               {families.length > 0 && (
@@ -352,7 +410,8 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
               {hasActiveFilters && (
                 <button
                   onClick={() => {
-                    setMainCategory('Tout');
+                    setFoodTypeFilter('');
+                    setCategoryFilter('');
                     setFamilyFilter('');
                   }}
                   className="text-xs text-primary hover:underline"
@@ -366,25 +425,25 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
           {/* Catégories rapides (pills) - visible uniquement si filtres masqués */}
           {!showFilters && (
             <div className="flex space-x-2 overflow-x-auto pb-2 -mx-1 px-1">
-              {mainCategories.slice(0, 5).map((category) => (
+              {foodTypes.slice(0, 5).map((type) => (
                 <button
-                  key={category}
-                  onClick={() => handleMainCategoryChange(category)}
+                  key={type.value}
+                  onClick={() => handleFoodTypeChange(type.value)}
                   className={`flex-shrink-0 px-3 py-1 text-sm rounded-full transition-colors ${
-                    mainCategory === category
+                    foodTypeFilter === type.value
                       ? 'bg-primary text-white font-semibold'
                       : 'bg-gray-100 dark:bg-client-dark text-gray-600 dark:text-client-subtle hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                 >
-                  {category}
+                  {type.label}
                 </button>
               ))}
-              {mainCategories.length > 5 && (
+              {foodTypes.length > 5 && (
                 <button
                   onClick={() => setShowFilters(true)}
                   className="flex-shrink-0 px-3 py-1 text-sm rounded-full bg-gray-100 dark:bg-client-dark text-gray-600 dark:text-client-subtle hover:bg-gray-200 dark:hover:bg-gray-700"
                 >
-                  +{mainCategories.length - 5}
+                  +{foodTypes.length - 5}
                 </button>
               )}
             </div>
@@ -394,7 +453,8 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
           {hasActiveFilters && (
             <p className="text-xs text-gray-500 dark:text-client-subtle">
               {filteredResults.length} résultat{filteredResults.length > 1 ? 's' : ''}
-              {mainCategory !== 'Tout' && ` dans "${mainCategory}"`}
+              {foodTypeFilter && ` (${foodTypes.find(t => t.value === foodTypeFilter)?.label})`}
+              {categoryFilter && ` → "${categoryFilter}"`}
               {familyFilter && ` → "${familyFilter}"`}
             </p>
           )}
