@@ -23,7 +23,7 @@ const MEAL_STRUCTURE_TEMPLATE: { id: string; name: string }[] = [
 ];
 
 const Journal: React.FC = () => {
-  const { user, setClients, clients, foodItems, recipes, meals, theme } = useAuth();
+  const { user, setClients, clients, foodItems, recipes, meals, theme, setUser } = useAuth();
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isAddFoodModalOpen, setIsAddFoodModalOpen] = useState(false);
@@ -95,7 +95,11 @@ const Journal: React.FC = () => {
     const updatedJournal = { ...currentJournal, [dateKey]: newJournalForDay };
     const updatedNutrition = { ...user.nutrition, foodJournal: updatedJournal };
     
-    // Mise à jour locale immédiate pour une UX réactive
+    // Mise à jour de user pour déclencher le re-render
+    const updatedUser = { ...user, nutrition: updatedNutrition };
+    setUser(updatedUser);
+    
+    // Mise à jour locale de clients aussi
     const updatedClients = clients.map((c) => {
       if (c.id === user.id) {
         return { ...c, nutrition: updatedNutrition };
