@@ -21,6 +21,7 @@ const ClientWorkout: React.FC = () => {
   const program = user?.assignedProgram;
   const hasAssignedProgram = !!program;
   const hasAccessToFormations = user?.grantedFormationIds && user.grantedFormationIds.length > 0;
+  const hasCoach = !!user?.coachId;
 
   const currentWeek = user?.programWeek || 1;
   const totalWeeks = program?.weekCount || 1;
@@ -98,8 +99,9 @@ const ClientWorkout: React.FC = () => {
             Programme en cours
           </h3>
           <p className="text-sm text-gray-500 dark:text-client-subtle mt-2">
-            Aucun programme ne vous a été assigné pour le moment. Contactez votre coach pour
-            commencer !
+            {hasCoach
+              ? "Aucun programme ne vous a été assigné pour le moment. Contactez votre coach pour commencer !"
+              : "Vous n'avez pas encore de programme en cours. Utilisez le Workout Builder pour créer votre première séance !"}
           </p>
         </div>
       )}
