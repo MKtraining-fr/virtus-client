@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../../services/supabase';
 import { useAuth } from '../../../context/AuthContext';
 import { Meal, MealItem, FoodItem, Client } from '../../../types';
 import AddFoodModal from '../../../components/client/AddFoodModal';
@@ -88,17 +89,34 @@ const Journal: React.FC = () => {
     );
   }, [journalDayMeals]);
 
-  const updateJournal = (newJournalForDay: Meal[]) => {
+  const updateJournal = async (newJournalForDay: Meal[]) => {
     if (!user) return;
     const currentJournal = user.nutrition.foodJournal || {};
     const updatedJournal = { ...currentJournal, [dateKey]: newJournalForDay };
+    const updatedNutrition = { ...user.nutrition, foodJournal: updatedJournal };
+    
+    // Mise à jour locale immédiate pour une UX réactive
     const updatedClients = clients.map((c) => {
       if (c.id === user.id) {
-        return { ...c, nutrition: { ...c.nutrition, foodJournal: updatedJournal } };
+        return { ...c, nutrition: updatedNutrition };
       }
       return c;
     });
     setClients(updatedClients as Client[]);
+    
+    // Persistance dans Supabase
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ nutrition: updatedNutrition })
+        .eq('id', user.id);
+      
+      if (error) {
+        console.error('Erreur lors de la sauvegarde du journal:', error);
+      }
+    } catch (err) {
+      console.error('Erreur lors de la sauvegarde du journal:', err);
+    }
   };
 
   const getEditableJournalForDay = (): Meal[] => {
