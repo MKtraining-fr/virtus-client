@@ -273,7 +273,8 @@ export const useDataStore = create<DataState>((set, get) => {
         supabase.from('nutrition_plans').select('*'),
         supabase.from('messages').select('*'),
         supabase.from('notifications').select('*'),
-        supabase.from('food_items').select('*').range(0, 9999),
+        // food_items sera chargé séparément avec pagination
+        Promise.resolve({ data: null, error: null }),
         supabase.from('bilan_templates').select('*'),
         supabase.from('bilan_assignments').select('*').eq('coach_id', userId), // Nouvelle requête
         // supabase.from('partners').select('*'), // Commenté car problématique
@@ -369,8 +370,36 @@ export const useDataStore = create<DataState>((set, get) => {
       if (notificationsData.data) {
         set({ notifications: notificationsData.data.map(mapSupabaseNotificationToNotification) });
       }
-      if (foodItemsData.data) {
-        set({ foodItems: foodItemsData.data as FoodItem[] });
+      // Charger tous les food_items avec pagination (Supabase limite a 1000 par requete)
+      const allFoodItems: FoodItem[] = [];
+      const PAGE_SIZE = 1000;
+      let page = 0;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const { data: foodPage, error: foodError } = await supabase
+          .from('food_items')
+          .select('*')
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+          .order('name');
+        
+        if (foodError) {
+          console.error('Erreur de chargement des aliments:', foodError);
+          break;
+        }
+        
+        if (foodPage && foodPage.length > 0) {
+          allFoodItems.push(...(foodPage as FoodItem[]));
+          page++;
+          hasMore = foodPage.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      if (allFoodItems.length > 0) {
+        set({ foodItems: allFoodItems });
+        console.log('Charge ' + allFoodItems.length + ' aliments');
       }
       if (bilanTemplatesData.data) {
         let templates = bilanTemplatesData.data.map(mapSupabaseBilanTemplateToTemplate);
