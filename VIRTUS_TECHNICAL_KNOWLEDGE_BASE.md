@@ -2,7 +2,7 @@
 
 **Auteur:** Manus AI  
 **Dernière mise à jour:** 24 décembre 2025  
-**Version:** 1.9
+**Version:** 2.0
 
 ---
 
@@ -13,6 +13,139 @@ Ce document constitue le **journal technique central** du projet Virtus. Il sert
 ---
 
 # HISTORIQUE DES INTERVENTIONS
+
+## Intervention #11 - Scanner de Code-Barres avec Open Food Facts
+
+**Date:** 24 décembre 2025  
+**Type:** Fonctionnalité / Caméra / API Externe  
+**Statut:** ✅ Résolu et déployé
+
+### Contexte
+
+L'objectif était d'implémenter un scanner de code-barres utilisant la caméra du téléphone pour permettre aux clients de scanner des produits alimentaires et de les ajouter à leur journal nutritionnel. Le scanner utilise l'API Open Food Facts pour récupérer les informations nutritionnelles des produits.
+
+### Problèmes Identifiés
+
+| Problème | Cause | Impact |
+| :--- | :--- | :--- |
+| **Modal du scanner ne s'ouvre pas** | Problème de z-index et rendu du portail React | Bouton "Scanner" non fonctionnel |
+| **Caméra non demandée** | Initialisation du scanner avant que le DOM soit prêt | Erreur silencieuse |
+| **"Permissions policy violation: camera is not allowed"** | Header `Permissions-Policy: camera=()` bloquant la caméra | Impossible d'accéder à la caméra même avec permission |
+
+### Pull Requests Réalisées
+
+| PR | Titre | Description |
+| :--- | :--- | :--- |
+| **#315** | ✨ Scanner de code-barres avec Open Food Facts | Implémentation complète du scanner avec correction des permissions |
+
+### Solutions Appliquées
+
+#### 1. Service Open Food Facts (openFoodFactsService.ts)
+
+**Fichier:** `src/services/openFoodFactsService.ts`
+
+- Intégration de l'API Open Food Facts pour rechercher des produits par code-barres
+- Mapping des données nutritionnelles vers le format `FoodItem` de l'application
+- Gestion des erreurs et des produits non trouvés
+
+```typescript
+export const searchByBarcode = async (barcode: string): Promise<FoodItem | null> => {
+  const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
+  const data = await response.json();
+  
+  if (data.status === 1 && data.product) {
+    return mapOpenFoodFactsToFoodItem(data.product);
+  }
+  return null;
+};
+```
+
+#### 2. Composant BarcodeScanner (BarcodeScanner.tsx)
+
+**Fichier:** `src/components/client/BarcodeScanner.tsx`
+
+- Utilisation de la bibliothèque `html5-qrcode` pour le scan de code-barres
+- Rendu via `createPortal` dans `#modal-root` pour éviter les problèmes de z-index
+- Demande explicite de permission caméra via `navigator.mediaDevices.getUserMedia()` avant initialisation du scanner
+- Gestion des erreurs détaillée (permission refusée, caméra non trouvée, caméra occupée, etc.)
+- Interface avec guide de scan animé et bouton pour changer de caméra (avant/arrière)
+
+```typescript
+const requestCameraPermission = async () => {
+  const stream = await navigator.mediaDevices.getUserMedia({ 
+    video: { facingMode: 'environment' } 
+  });
+  stream.getTracks().forEach(track => track.stop());
+  // Puis démarrer le scanner html5-qrcode
+};
+```
+
+#### 3. Correction des Headers Permissions-Policy
+
+**Fichier:** `public/_headers`
+
+- **Avant :** `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- **Après :** `Permissions-Policy: camera=(self), microphone=(), geolocation=()`
+
+Le header `camera=()` bloquait explicitement l'accès à la caméra au niveau du navigateur, même si l'utilisateur accordait la permission. La modification `camera=(self)` autorise l'accès à la caméra pour le site lui-même.
+
+#### 4. Intégration dans AddFoodModal
+
+**Fichier:** `src/components/AddFoodModal.tsx`
+
+- Ajout d'un bouton "Scanner" dans l'interface d'ajout d'aliments
+- Gestion de l'état `isScannerOpen` pour afficher/masquer le scanner
+- Callback `onScan` pour traiter le code-barres scanné et appeler l'API Open Food Facts
+
+### Schéma de l'architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     INTERFACE UTILISATEUR                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  AddFoodModal                                                │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ [Recherche manuelle] [Scanner]                      │    │
+│  │                                                      │    │
+│  │ BarcodeScanner (Portal → #modal-root)               │    │
+│  │ ┌─────────────────────────────────────────────────┐ │    │
+│  │ │ 📷 Caméra (html5-qrcode)                        │ │    │
+│  │ │ ┌─────────────────────────────────────────────┐ │ │    │
+│  │ │ │ [Guide de scan animé]                       │ │ │    │
+│  │ │ └─────────────────────────────────────────────┘ │ │    │
+│  │ │ [Changer caméra] [Fermer]                       │ │    │
+│  │ └─────────────────────────────────────────────────┘ │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ Code-barres détecté
+┌─────────────────────────────────────────────────────────────┐
+│                         SERVICES                             │
+├─────────────────────────────────────────────────────────────┤
+│  openFoodFactsService.ts                                     │
+│  - searchByBarcode(barcode) → FoodItem                      │
+│  - API: https://world.openfoodfacts.org/api/v2/product/     │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      BASE DE DONNÉES                         │
+├─────────────────────────────────────────────────────────────┤
+│  Table: food_items                                           │
+│  - barcode (nouveau champ pour Open Food Facts)             │
+│  - nutri_score, brand, allergens, etc.                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Points Techniques Importants
+
+1. **HTTPS obligatoire** : L'accès à la caméra nécessite une connexion HTTPS (OK sur Cloudflare Pages)
+2. **Permissions-Policy** : Le header HTTP doit explicitement autoriser la caméra avec `camera=(self)`
+3. **Portail React** : Le scanner doit être rendu dans un portail avec z-index élevé pour s'afficher au-dessus des autres modales
+4. **Permission explicite** : Demander `getUserMedia()` avant d'initialiser `html5-qrcode` pour déclencher la popup de permission du navigateur
+
+---
 
 ## Intervention #10 - Base de Données Alimentaire Ciqual & Filtres Avancés
 
@@ -555,6 +688,33 @@ Une **refonte de l'architecture de duplication** pourrait être étudiée pour �
   - Interface `ClientAccessPermissions` ajoutée
   - Propriétés `canUseWorkoutBuilder`, `shopAccess`, `grantedFormationIds` ajoutées au type `Client`
   - Alias `export type User = Client` pour compatibilité
+
+---
+
+## Scanner de Code-Barres (Mise à jour du 24 décembre 2025 - PR #315)
+
+### Avant (23 décembre 2025)
+
+- **Fonctionnalité :** Inexistante
+- **Headers Cloudflare :** `Permissions-Policy: camera=(), microphone=(), geolocation()` - caméra bloquée
+
+### Après (24 décembre 2025)
+
+- **Composant BarcodeScanner :**
+  - Fichier : `src/components/client/BarcodeScanner.tsx`
+  - Bibliothèque : `html5-qrcode`
+  - Rendu via `createPortal` dans `#modal-root` avec z-index 100
+  - Demande explicite de permission via `navigator.mediaDevices.getUserMedia()`
+  - Support caméra avant/arrière avec `facingMode`
+
+- **Service Open Food Facts :**
+  - Fichier : `src/services/openFoodFactsService.ts`
+  - API : `https://world.openfoodfacts.org/api/v2/product/{barcode}.json`
+  - Mapping vers format `FoodItem` de l'application
+
+- **Headers Cloudflare :**
+  - Fichier : `public/_headers`
+  - Modification : `Permissions-Policy: camera=(self), microphone=(), geolocation()`
 
 ---
 
