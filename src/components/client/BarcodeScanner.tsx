@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Html5Qrcode } from 'html5-qrcode';
 import { X, Camera, FlipHorizontal, Loader2 } from 'lucide-react';
 
@@ -12,21 +13,37 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [container, setContainer] = useState<HTMLElement | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Initialiser le container pour le portail
   useEffect(() => {
-    if (isOpen && !isScanning) {
-      startScanner();
+    const modalRoot = document.getElementById('modal-root');
+    setContainer(modalRoot);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && !isScanning && container) {
+      // Petit délai pour s'assurer que le DOM est prêt
+      const timer = setTimeout(() => {
+        startScanner();
+      }, 100);
+      return () => clearTimeout(timer);
     }
 
     return () => {
       stopScanner();
     };
-  }, [isOpen, facingMode]);
+  }, [isOpen, facingMode, container]);
 
   const startScanner = async () => {
-    if (!containerRef.current) return;
+    const scannerContainer = document.getElementById('barcode-scanner-container');
+    if (!scannerContainer) {
+      console.error('Scanner container not found');
+      setError('Erreur: conteneur du scanner non trouvé');
+      return;
+    }
 
     try {
       setError(null);
@@ -92,10 +109,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
     onClose();
   };
 
-  if (!isOpen) return null;
+  // Ne pas rendre si pas ouvert ou pas de container
+  if (!isOpen || !container) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90">
       <div className="relative w-full max-w-md mx-4 bg-gray-900 rounded-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
@@ -178,7 +196,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    container
   );
 };
 
