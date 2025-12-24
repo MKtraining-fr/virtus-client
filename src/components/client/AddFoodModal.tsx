@@ -81,6 +81,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const [unit, setUnit] = useState<'g' | 'ml'>('g');
   const [activeCategory, setActiveCategory] = useState('Tout');
   const [activeSubcategory, setActiveSubcategory] = useState('');
+  const [activeFoodType, setActiveFoodType] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
 
   // Reset state when modal is closed to avoid stale data on reopen
@@ -93,6 +94,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
         setUnit('g');
         setActiveCategory('Tout');
         setActiveSubcategory('');
+        setActiveFoodType('');
         setShowFilters(false);
       }, 200); // Delay to allow for animations
       return () => clearTimeout(timer);
@@ -141,6 +143,11 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
     setActiveSubcategory('');
   };
 
+  // Réinitialiser les filtres en cascade quand le type change
+  const handleFoodTypeChange = (foodType: string) => {
+    setActiveFoodType(foodType);
+  };
+
   // Catégories prioritaires pour le tri (aliments simples en premier)
   const PRIORITY_CATEGORIES = [
     'fruits, légumes, légumineuses et oléagineux',
@@ -157,19 +164,26 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
   ];
 
   const filteredResults = useMemo(() => {
-    if (!searchTerm && activeCategory === 'Tout') return [];
+    if (!searchTerm && activeCategory === 'Tout' && !activeFoodType) return [];
 
     let results: SearchableItem[] = db;
+
+    // 0. Filter by food type (brut/autre)
+    if (activeFoodType) {
+      results = results.filter(
+        (item) => 'foodType' in item && (item as FoodItem).foodType === activeFoodType
+      );
+    }
 
     // FIX: Update filtering logic to handle the 'Repas' category.
     // 1. Filter by category
     if (activeCategory !== 'Tout') {
       if (activeCategory === 'Recettes') {
-        results = db.filter((item) => 'type' in item && item.type === 'Recette');
+        results = results.filter((item) => 'type' in item && item.type === 'Recette');
       } else if (activeCategory === 'Repas') {
-        results = db.filter((item) => 'type' in item && item.type === 'Repas');
+        results = results.filter((item) => 'type' in item && item.type === 'Repas');
       } else {
-        results = db.filter((item) => 'category' in item && item.category === activeCategory);
+        results = results.filter((item) => 'category' in item && item.category === activeCategory);
       }
     }
 
@@ -231,7 +245,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
     });
 
     return results.slice(0, 50);
-  }, [searchTerm, db, activeCategory, activeSubcategory]);
+  }, [searchTerm, db, activeCategory, activeSubcategory, activeFoodType]);
 
   const calculatedMacros = useMemo(() => {
     if (!selectedFood) return null;
@@ -272,16 +286,32 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
               className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
             />
             Filtres avancés
-            {(activeCategory !== 'Tout' || activeSubcategory) && (
+            {(activeCategory !== 'Tout' || activeSubcategory || activeFoodType) && (
               <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-white rounded-full">
-                {activeSubcategory ? 2 : 1}
+                {[activeCategory !== 'Tout', activeSubcategory, activeFoodType].filter(Boolean).length}
               </span>
             )}
           </button>
 
-          {/* Filtres avancés (catégorie + sous-catégorie) */}
+          {/* Filtres avancés (type + catégorie + sous-catégorie) */}
           {showFilters && (
             <div className="space-y-2 p-3 bg-gray-50 dark:bg-client-dark rounded-lg">
+              {/* Filtre par type d'aliment (brut/autre) */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-client-subtle mb-1">
+                  Type d'aliment
+                </label>
+                <select
+                  value={activeFoodType}
+                  onChange={(e) => handleFoodTypeChange(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-client-dark text-gray-800 dark:text-client-light focus:ring-2 focus:ring-primary focus:border-primary"
+                >
+                  <option value="">Tous les types</option>
+                  <option value="brut">🥬 Aliments bruts</option>
+                  <option value="autre">🍰 Autres aliments</option>
+                </select>
+              </div>
+
               {/* Filtre par catégorie */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-client-subtle mb-1">
@@ -322,11 +352,12 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
               )}
 
               {/* Bouton de réinitialisation */}
-              {(activeCategory !== 'Tout' || activeSubcategory) && (
+              {(activeCategory !== 'Tout' || activeSubcategory || activeFoodType) && (
                 <button
                   onClick={() => {
                     setActiveCategory('Tout');
                     setActiveSubcategory('');
+                    setActiveFoodType('');
                   }}
                   className="text-xs text-primary hover:underline"
                 >
@@ -364,9 +395,10 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
           )}
 
           {/* Indicateur de filtre actif */}
-          {(activeCategory !== 'Tout' || activeSubcategory) && (
+          {(activeCategory !== 'Tout' || activeSubcategory || activeFoodType) && (
             <p className="text-xs text-gray-500 dark:text-client-subtle">
               {filteredResults.length} résultat{filteredResults.length > 1 ? 's' : ''}
+              {activeFoodType && ` (${activeFoodType === 'brut' ? 'aliments bruts' : 'autres aliments'})`}
               {activeCategory !== 'Tout' && ` dans "${activeCategory}"`}
               {activeSubcategory && ` → "${activeSubcategory}"`}
             </p>

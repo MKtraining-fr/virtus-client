@@ -19,6 +19,7 @@ const ITEMS_PER_PAGE = 50;
 const NutritionDatabase: React.FC = () => {
   const { foodItems } = useAuth();
   const [searchFilter, setSearchFilter] = useState('');
+  const [foodTypeFilter, setFoodTypeFilter] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [subcategoryFilter, setSubcategoryFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,25 +30,39 @@ const NutritionDatabase: React.FC = () => {
     getSortDirection,
   } = useSortableData(foodItems, { key: 'name', direction: 'ascending' });
 
-  // Extraire les catégories uniques
+  // Extraire les catégories uniques (filtrées par type si sélectionné)
   const categories = useMemo(() => {
     const cats = new Set<string>();
     foodItems.forEach((item) => {
-      if (item.category) cats.add(item.category);
+      if (item.category && (!foodTypeFilter || item.foodType === foodTypeFilter)) {
+        cats.add(item.category);
+      }
     });
     return Array.from(cats).sort();
-  }, [foodItems]);
+  }, [foodItems, foodTypeFilter]);
 
-  // Extraire les sous-catégories uniques (filtrées par catégorie sélectionnée)
+  // Extraire les sous-catégories uniques (filtrées par catégorie et type)
   const subcategories = useMemo(() => {
     const subcats = new Set<string>();
     foodItems.forEach((item) => {
-      if (item.subcategory && (!categoryFilter || item.category === categoryFilter)) {
+      if (
+        item.subcategory &&
+        (!foodTypeFilter || item.foodType === foodTypeFilter) &&
+        (!categoryFilter || item.category === categoryFilter)
+      ) {
         subcats.add(item.subcategory);
       }
     });
     return Array.from(subcats).sort();
-  }, [foodItems, categoryFilter]);
+  }, [foodItems, foodTypeFilter, categoryFilter]);
+
+  // Réinitialiser les filtres en cascade quand le type change
+  const handleFoodTypeChange = (value: string) => {
+    setFoodTypeFilter(value);
+    setCategoryFilter('');
+    setSubcategoryFilter('');
+    setCurrentPage(1);
+  };
 
   // Réinitialiser la sous-catégorie et la page quand la catégorie change
   const handleCategoryChange = (value: string) => {
@@ -69,6 +84,11 @@ const NutritionDatabase: React.FC = () => {
 
   const filteredData = useMemo(() => {
     let results = sortedFoodItems;
+
+    // Filtre par type d'aliment (brut/autre)
+    if (foodTypeFilter) {
+      results = results.filter((item) => item.foodType === foodTypeFilter);
+    }
 
     // Filtre par catégorie
     if (categoryFilter) {
@@ -92,7 +112,7 @@ const NutritionDatabase: React.FC = () => {
     }
 
     return results;
-  }, [sortedFoodItems, searchFilter, categoryFilter, subcategoryFilter]);
+  }, [sortedFoodItems, searchFilter, foodTypeFilter, categoryFilter, subcategoryFilter]);
 
   // Pagination
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
@@ -147,6 +167,8 @@ const NutritionDatabase: React.FC = () => {
     </th>
   );
 
+  const hasActiveFilters = foodTypeFilter || categoryFilter || subcategoryFilter || searchFilter;
+
   return (
     <div>
       <h1 className="text-3xl font-bold text-gray-800 mb-6">
@@ -163,8 +185,24 @@ const NutritionDatabase: React.FC = () => {
           onChange={(e) => handleSearchChange(e.target.value)}
         />
 
-        {/* Filtres par catégorie et sous-catégorie */}
+        {/* Filtres par type, catégorie et sous-catégorie */}
         <div className="flex flex-wrap gap-3">
+          {/* Filtre par type d'aliment (brut/autre) */}
+          <div className="flex-1 min-w-[150px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Type d'aliment
+            </label>
+            <select
+              value={foodTypeFilter}
+              onChange={(e) => handleFoodTypeChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+            >
+              <option value="">Tous les types</option>
+              <option value="brut">🥬 Aliments bruts</option>
+              <option value="autre">🍰 Autres aliments</option>
+            </select>
+          </div>
+
           {/* Filtre par catégorie */}
           <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -205,10 +243,11 @@ const NutritionDatabase: React.FC = () => {
           </div>
 
           {/* Bouton de réinitialisation */}
-          {(categoryFilter || subcategoryFilter || searchFilter) && (
+          {hasActiveFilters && (
             <div className="flex items-end">
               <button
                 onClick={() => {
+                  setFoodTypeFilter('');
                   setCategoryFilter('');
                   setSubcategoryFilter('');
                   setSearchFilter('');
@@ -225,6 +264,7 @@ const NutritionDatabase: React.FC = () => {
         {/* Compteur de résultats */}
         <p className="text-sm text-gray-500">
           {filteredData.length} aliment{filteredData.length > 1 ? 's' : ''} trouvé{filteredData.length > 1 ? 's' : ''}
+          {foodTypeFilter && ` (${foodTypeFilter === 'brut' ? 'aliments bruts' : 'autres aliments'})`}
           {categoryFilter && ` dans "${categoryFilter}"`}
           {subcategoryFilter && ` → "${subcategoryFilter}"`}
           {filteredData.length > ITEMS_PER_PAGE && (
@@ -241,6 +281,9 @@ const NutritionDatabase: React.FC = () => {
             <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
               <tr>
                 {renderHeader('Aliment', 'name')}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type
+                </th>
                 {renderHeader('Catégorie', 'category')}
                 {renderHeader('Famille', 'subcategory')}
                 {renderHeader('Calories (kcal)', 'calories')}
@@ -254,6 +297,17 @@ const NutritionDatabase: React.FC = () => {
                 <tr key={item.id || item.name} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {item.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        item.foodType === 'brut'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-orange-100 text-orange-800'
+                      }`}
+                    >
+                      {item.foodType === 'brut' ? '🥬 Brut' : '🍰 Autre'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {item.category}

@@ -401,6 +401,8 @@ export interface FoodItem {
   allergens?: string;
   ingredients?: string;
   quantity?: string; // ex: "400g"
+  // Classification par type
+  foodType?: 'brut' | 'autre';
   // Métadonnées
   source?: 'ciqual' | 'openfoodfacts' | 'manual';
   servingSize?: string;
