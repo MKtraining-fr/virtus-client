@@ -19,9 +19,10 @@ const ITEMS_PER_PAGE = 50;
 const NutritionDatabase: React.FC = () => {
   const { foodItems } = useAuth();
   const [searchFilter, setSearchFilter] = useState('');
-  const [foodTypeFilter, setFoodTypeFilter] = useState<string>('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
-  const [subcategoryFilter, setSubcategoryFilter] = useState<string>('');
+  // Catégorie principale : Brut ou Autre (remplace l'ancien foodTypeFilter)
+  const [mainCategoryFilter, setMainCategoryFilter] = useState<string>('');
+  // Famille d'aliments (subcategory) - dynamique selon la catégorie principale
+  const [familyFilter, setFamilyFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
 
   const {
@@ -30,50 +31,27 @@ const NutritionDatabase: React.FC = () => {
     getSortDirection,
   } = useSortableData(foodItems, { key: 'name', direction: 'ascending' });
 
-  // Extraire les catégories uniques (filtrées par type si sélectionné)
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
+  // Extraire les familles d'aliments uniques (filtrées par catégorie principale)
+  const families = useMemo(() => {
+    const fams = new Set<string>();
     foodItems.forEach((item) => {
-      if (item.category && (!foodTypeFilter || item.foodType === foodTypeFilter)) {
-        cats.add(item.category);
+      if (item.subcategory && (!mainCategoryFilter || item.foodType === mainCategoryFilter)) {
+        fams.add(item.subcategory);
       }
     });
-    return Array.from(cats).sort();
-  }, [foodItems, foodTypeFilter]);
+    return Array.from(fams).sort();
+  }, [foodItems, mainCategoryFilter]);
 
-  // Extraire les sous-catégories uniques (filtrées par catégorie et type)
-  const subcategories = useMemo(() => {
-    const subcats = new Set<string>();
-    foodItems.forEach((item) => {
-      if (
-        item.subcategory &&
-        (!foodTypeFilter || item.foodType === foodTypeFilter) &&
-        (!categoryFilter || item.category === categoryFilter)
-      ) {
-        subcats.add(item.subcategory);
-      }
-    });
-    return Array.from(subcats).sort();
-  }, [foodItems, foodTypeFilter, categoryFilter]);
-
-  // Réinitialiser les filtres en cascade quand le type change
-  const handleFoodTypeChange = (value: string) => {
-    setFoodTypeFilter(value);
-    setCategoryFilter('');
-    setSubcategoryFilter('');
+  // Réinitialiser la famille et la page quand la catégorie principale change
+  const handleMainCategoryChange = (value: string) => {
+    setMainCategoryFilter(value);
+    setFamilyFilter('');
     setCurrentPage(1);
   };
 
-  // Réinitialiser la sous-catégorie et la page quand la catégorie change
-  const handleCategoryChange = (value: string) => {
-    setCategoryFilter(value);
-    setSubcategoryFilter('');
-    setCurrentPage(1);
-  };
-
-  // Réinitialiser la page quand un filtre change
-  const handleSubcategoryChange = (value: string) => {
-    setSubcategoryFilter(value);
+  // Réinitialiser la page quand la famille change
+  const handleFamilyChange = (value: string) => {
+    setFamilyFilter(value);
     setCurrentPage(1);
   };
 
@@ -85,19 +63,14 @@ const NutritionDatabase: React.FC = () => {
   const filteredData = useMemo(() => {
     let results = sortedFoodItems;
 
-    // Filtre par type d'aliment (brut/autre)
-    if (foodTypeFilter) {
-      results = results.filter((item) => item.foodType === foodTypeFilter);
+    // Filtre par catégorie principale (brut/autre)
+    if (mainCategoryFilter) {
+      results = results.filter((item) => item.foodType === mainCategoryFilter);
     }
 
-    // Filtre par catégorie
-    if (categoryFilter) {
-      results = results.filter((item) => item.category === categoryFilter);
-    }
-
-    // Filtre par sous-catégorie (famille)
-    if (subcategoryFilter) {
-      results = results.filter((item) => item.subcategory === subcategoryFilter);
+    // Filtre par famille d'aliments (subcategory)
+    if (familyFilter) {
+      results = results.filter((item) => item.subcategory === familyFilter);
     }
 
     // Filtre par recherche textuelle
@@ -112,7 +85,7 @@ const NutritionDatabase: React.FC = () => {
     }
 
     return results;
-  }, [sortedFoodItems, searchFilter, foodTypeFilter, categoryFilter, subcategoryFilter]);
+  }, [sortedFoodItems, searchFilter, mainCategoryFilter, familyFilter]);
 
   // Pagination
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
@@ -167,7 +140,7 @@ const NutritionDatabase: React.FC = () => {
     </th>
   );
 
-  const hasActiveFilters = foodTypeFilter || categoryFilter || subcategoryFilter || searchFilter;
+  const hasActiveFilters = mainCategoryFilter || familyFilter || searchFilter;
 
   return (
     <div>
@@ -185,58 +158,39 @@ const NutritionDatabase: React.FC = () => {
           onChange={(e) => handleSearchChange(e.target.value)}
         />
 
-        {/* Filtres par type, catégorie et sous-catégorie */}
+        {/* Filtres par catégorie principale et famille */}
         <div className="flex flex-wrap gap-3">
-          {/* Filtre par type d'aliment (brut/autre) */}
-          <div className="flex-1 min-w-[150px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Type d'aliment
-            </label>
-            <select
-              value={foodTypeFilter}
-              onChange={(e) => handleFoodTypeChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white"
-            >
-              <option value="">Tous les types</option>
-              <option value="brut">🥬 Aliments bruts</option>
-              <option value="autre">🍰 Autres aliments</option>
-            </select>
-          </div>
-
-          {/* Filtre par catégorie */}
+          {/* Filtre par catégorie principale (Brut/Autre) */}
           <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Catégorie
             </label>
             <select
-              value={categoryFilter}
-              onChange={(e) => handleCategoryChange(e.target.value)}
+              value={mainCategoryFilter}
+              onChange={(e) => handleMainCategoryChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white"
             >
               <option value="">Toutes les catégories</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </option>
-              ))}
+              <option value="brut">🥬 Aliments bruts (fruits, légumes, viandes...)</option>
+              <option value="autre">🍰 Autres aliments (plats, biscuits, confitures...)</option>
             </select>
           </div>
 
-          {/* Filtre par sous-catégorie (famille) */}
-          <div className="flex-1 min-w-[200px]">
+          {/* Filtre par famille d'aliments */}
+          <div className="flex-1 min-w-[250px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Famille d'aliments
             </label>
             <select
-              value={subcategoryFilter}
-              onChange={(e) => handleSubcategoryChange(e.target.value)}
+              value={familyFilter}
+              onChange={(e) => handleFamilyChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white"
-              disabled={subcategories.length === 0}
+              disabled={families.length === 0}
             >
               <option value="">Toutes les familles</option>
-              {subcategories.map((subcat) => (
-                <option key={subcat} value={subcat}>
-                  {subcat.charAt(0).toUpperCase() + subcat.slice(1)}
+              {families.map((family) => (
+                <option key={family} value={family}>
+                  {family.charAt(0).toUpperCase() + family.slice(1)}
                 </option>
               ))}
             </select>
@@ -247,9 +201,8 @@ const NutritionDatabase: React.FC = () => {
             <div className="flex items-end">
               <button
                 onClick={() => {
-                  setFoodTypeFilter('');
-                  setCategoryFilter('');
-                  setSubcategoryFilter('');
+                  setMainCategoryFilter('');
+                  setFamilyFilter('');
                   setSearchFilter('');
                   setCurrentPage(1);
                 }}
@@ -264,9 +217,8 @@ const NutritionDatabase: React.FC = () => {
         {/* Compteur de résultats */}
         <p className="text-sm text-gray-500">
           {filteredData.length} aliment{filteredData.length > 1 ? 's' : ''} trouvé{filteredData.length > 1 ? 's' : ''}
-          {foodTypeFilter && ` (${foodTypeFilter === 'brut' ? 'aliments bruts' : 'autres aliments'})`}
-          {categoryFilter && ` dans "${categoryFilter}"`}
-          {subcategoryFilter && ` → "${subcategoryFilter}"`}
+          {mainCategoryFilter && ` (${mainCategoryFilter === 'brut' ? 'aliments bruts' : 'autres aliments'})`}
+          {familyFilter && ` → "${familyFilter}"`}
           {filteredData.length > ITEMS_PER_PAGE && (
             <span className="ml-2">
               (affichage {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)})
@@ -282,9 +234,8 @@ const NutritionDatabase: React.FC = () => {
               <tr>
                 {renderHeader('Aliment', 'name')}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
+                  Catégorie
                 </th>
-                {renderHeader('Catégorie', 'category')}
                 {renderHeader('Famille', 'subcategory')}
                 {renderHeader('Calories (kcal)', 'calories')}
                 {renderHeader('Protéines (g)', 'protein')}
@@ -308,9 +259,6 @@ const NutritionDatabase: React.FC = () => {
                     >
                       {item.foodType === 'brut' ? '🥬 Brut' : '🍰 Autre'}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.category}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {item.subcategory || '-'}
