@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from '../Modal';
+import BarcodeScanner from './BarcodeScanner';
 import Input from '../Input';
 import { FoodItem, Meal, MealItem } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -170,6 +171,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const [showFilters, setShowFilters] = useState(false);
 
   // États pour le scanner de code-barres
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [showBarcodeInput, setShowBarcodeInput] = useState(false);
   const [barcode, setBarcode] = useState('');
   const [isSearchingBarcode, setIsSearchingBarcode] = useState(false);
@@ -190,6 +192,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
         setFamilyFilter('');
         setShowFilters(false);
         setShowBarcodeInput(false);
+        setIsScannerOpen(false);
         setBarcode('');
         setBarcodeError(null);
         setScannedProduct(null);
@@ -199,7 +202,34 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
     }
   }, [isOpen]);
 
-  // Fonction de recherche par code-barres
+  // Fonction appelée quand un code-barres est scanné par la caméra
+  const handleBarcodeScan = async (scannedBarcode: string) => {
+    setBarcode(scannedBarcode);
+    setShowBarcodeInput(true);
+    setIsScannerOpen(false);
+    
+    // Lancer automatiquement la recherche
+    setIsSearchingBarcode(true);
+    setBarcodeError(null);
+    setScannedProduct(null);
+
+    try {
+      const result = await searchAndConvertProduct(scannedBarcode);
+
+      if (result.foodItem) {
+        setScannedProduct(result.foodItem);
+        setIsIncompleteData(result.isIncomplete || false);
+      } else {
+        setBarcodeError(result.error || 'Produit non trouvé');
+      }
+    } catch (error) {
+      setBarcodeError('Erreur lors de la recherche. Vérifiez votre connexion.');
+    } finally {
+      setIsSearchingBarcode(false);
+    }
+  };
+
+  // Fonction de recherche par code-barres (saisie manuelle)
   const handleBarcodeSearch = async () => {
     if (!barcode.trim()) {
       setBarcodeError('Veuillez entrer un code-barres');
@@ -446,25 +476,38 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const activeFiltersCount = [foodTypeFilter, categoryFilter, familyFilter].filter(Boolean).length;
 
   return (
+    <>
     <Modal isOpen={isOpen} onClose={onClose} title={`Ajouter à ${mealName}`} theme={theme}>
       {!selectedFood ? (
         <div className="space-y-3">
-          {/* Bouton Scanner de code-barres */}
-          <button
-            onClick={() => {
-              setShowBarcodeInput(!showBarcodeInput);
-              setBarcodeError(null);
-              setScannedProduct(null);
-            }}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
-              showBarcodeInput
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-client-subtle hover:border-primary hover:text-primary'
-            }`}
-          >
-            <BarcodeIcon className="w-5 h-5" />
-            <span className="font-medium">Scanner un code-barres</span>
-          </button>
+          {/* Boutons Scanner de code-barres */}
+          <div className="flex gap-2">
+            {/* Bouton pour ouvrir la caméra */}
+            <button
+              onClick={() => setIsScannerOpen(true)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-client-subtle hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
+            >
+              <BarcodeIcon className="w-5 h-5" />
+              <span className="font-medium">Scanner</span>
+            </button>
+            
+            {/* Bouton pour saisie manuelle */}
+            <button
+              onClick={() => {
+                setShowBarcodeInput(!showBarcodeInput);
+                setBarcodeError(null);
+                setScannedProduct(null);
+              }}
+              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
+                showBarcodeInput
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-client-subtle hover:border-primary hover:text-primary'
+              }`}
+            >
+              <ClipboardIcon className="w-5 h-5" />
+              <span className="font-medium">Saisir code</span>
+            </button>
+          </div>
 
           {/* Zone de saisie du code-barres */}
           {showBarcodeInput && (
@@ -901,6 +944,14 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({
         </div>
       )}
     </Modal>
+
+      {/* Composant Scanner de code-barres avec caméra */}
+      <BarcodeScanner
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={handleBarcodeScan}
+      />
+    </>
   );
 };
 

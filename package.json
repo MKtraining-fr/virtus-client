@@ -25,6 +25,7 @@
     "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.58.0",
     "@types/papaparse": "^5.3.16",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.552.0",
     "papaparse": "^5.5.3",
     "react": "^19.1.0",
