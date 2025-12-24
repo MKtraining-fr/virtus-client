@@ -273,7 +273,7 @@ export const useDataStore = create<DataState>((set, get) => {
         supabase.from('nutrition_plans').select('*'),
         supabase.from('messages').select('*'),
         supabase.from('notifications').select('*'),
-        supabase.from('food_items').select('*'),
+        supabase.from('food_items').select('*').range(0, 9999),
         supabase.from('bilan_templates').select('*'),
         supabase.from('bilan_assignments').select('*').eq('coach_id', userId), // Nouvelle requête
         // supabase.from('partners').select('*'), // Commenté car problématique

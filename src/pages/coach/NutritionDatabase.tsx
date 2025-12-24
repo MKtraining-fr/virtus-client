@@ -14,11 +14,14 @@ const SortIcon = ({ direction }: { direction: 'ascending' | 'descending' | null 
   );
 };
 
+const ITEMS_PER_PAGE = 50;
+
 const NutritionDatabase: React.FC = () => {
   const { foodItems } = useAuth();
   const [searchFilter, setSearchFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [subcategoryFilter, setSubcategoryFilter] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const {
     items: sortedFoodItems,
@@ -46,10 +49,22 @@ const NutritionDatabase: React.FC = () => {
     return Array.from(subcats).sort();
   }, [foodItems, categoryFilter]);
 
-  // Réinitialiser la sous-catégorie quand la catégorie change
+  // Réinitialiser la sous-catégorie et la page quand la catégorie change
   const handleCategoryChange = (value: string) => {
     setCategoryFilter(value);
     setSubcategoryFilter('');
+    setCurrentPage(1);
+  };
+
+  // Réinitialiser la page quand un filtre change
+  const handleSubcategoryChange = (value: string) => {
+    setSubcategoryFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchFilter(value);
+    setCurrentPage(1);
   };
 
   const filteredData = useMemo(() => {
@@ -79,6 +94,50 @@ const NutritionDatabase: React.FC = () => {
     return results;
   }, [sortedFoodItems, searchFilter, categoryFilter, subcategoryFilter]);
 
+  // Pagination
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredData, currentPage]);
+
+  // Générer les numéros de page à afficher
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages + 2) {
+      // Afficher toutes les pages si peu nombreuses
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Toujours afficher la première page
+      pages.push(1);
+
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+
+      // Pages autour de la page courante
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+
+      // Toujours afficher la dernière page
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
+
   const renderHeader = (label: string, key: keyof FoodItem) => (
     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
       <button onClick={() => requestSort(key)} className="flex items-center hover:text-gray-700">
@@ -101,7 +160,7 @@ const NutritionDatabase: React.FC = () => {
           type="text"
           placeholder="Rechercher par nom..."
           value={searchFilter}
-          onChange={(e) => setSearchFilter(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
         />
 
         {/* Filtres par catégorie et sous-catégorie */}
@@ -132,7 +191,7 @@ const NutritionDatabase: React.FC = () => {
             </label>
             <select
               value={subcategoryFilter}
-              onChange={(e) => setSubcategoryFilter(e.target.value)}
+              onChange={(e) => handleSubcategoryChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white"
               disabled={subcategories.length === 0}
             >
@@ -153,6 +212,7 @@ const NutritionDatabase: React.FC = () => {
                   setCategoryFilter('');
                   setSubcategoryFilter('');
                   setSearchFilter('');
+                  setCurrentPage(1);
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
@@ -167,11 +227,16 @@ const NutritionDatabase: React.FC = () => {
           {filteredData.length} aliment{filteredData.length > 1 ? 's' : ''} trouvé{filteredData.length > 1 ? 's' : ''}
           {categoryFilter && ` dans "${categoryFilter}"`}
           {subcategoryFilter && ` → "${subcategoryFilter}"`}
+          {filteredData.length > ITEMS_PER_PAGE && (
+            <span className="ml-2">
+              (affichage {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)})
+            </span>
+          )}
         </p>
       </div>
 
       <Card className="overflow-hidden">
-        <div className="overflow-auto max-h-[calc(100vh-350px)]">
+        <div className="overflow-auto max-h-[calc(100vh-400px)]">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
               <tr>
@@ -185,7 +250,7 @@ const NutritionDatabase: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredData.map((item) => (
+              {paginatedData.map((item) => (
                 <tr key={item.id || item.name} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {item.name}
@@ -213,6 +278,67 @@ const NutritionDatabase: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ««
+              </button>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                «
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              {getPageNumbers().map((page, index) =>
+                typeof page === 'number' ? (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1 text-sm font-medium rounded-md ${
+                      currentPage === page
+                        ? 'bg-primary text-white'
+                        : 'text-gray-600 bg-white border border-gray-300 hover:bg-gray-100'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ) : (
+                  <span key={index} className="px-2 text-gray-400">
+                    {page}
+                  </span>
+                )
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                »
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                »»
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );
