@@ -31,6 +31,7 @@ import Button from '../components/Button';
 import SimpleLineChart from '../components/charts/SimpleLineChart';
 import MeasurementsLineChart from '../components/charts/MeasurementsLineChart';
 import ClientBilanHistory from '../components/ClientBilanHistory';
+import CoachClientDocuments from '../components/coach/CoachClientDocuments';
 import { supabase } from '../services/supabase';
 
 /* ------------------------- ICONS ------------------------- */
@@ -1403,38 +1404,10 @@ const ClientProfile: React.FC = () => {
           </Accordion>
 
           <Accordion title="Documents" isOpenDefault={false}>
-            <div className="space-y-2">
-              {documentFiles.length > 0 ? (
-                documentFiles.map((file: SharedFile) => (
-                  <div
-                    key={file.id}
-                    className="p-3 border rounded-lg flex items-center justify-between gap-2 hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <DocumentIcon className="w-6 h-6 text-primary flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-sm truncate">{file.fileName || file.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(file.uploadedAt).toLocaleDateString('fr-FR')} &middot;{' '}
-                          {formatFileSize(file.size || 0)}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteFile(file.id)}
-                      className="p-2 text-gray-500 hover:text-red-500"
-                      aria-label="Supprimer le fichier"
-                    >
-                      <TrashIcon className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center py-4 bg-gray-50 rounded-md">
-                  Aucun document partagé.
-                </p>
-              )}
-            </div>
+            <CoachClientDocuments 
+              clientId={client.id} 
+              clientName={`${client.firstName} ${client.lastName}`} 
+            />
           </Accordion>
 
           <Accordion title="Accès & Permissions" isOpenDefault={false}>
