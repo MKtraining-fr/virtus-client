@@ -267,16 +267,35 @@ export function mapNutritionPlanToSupabaseNutritionPlan(
  * Convertir un message Supabase vers le format de l'application
  */
 export function mapSupabaseMessageToMessage(supabaseMessage: SupabaseMessage): Message {
+  const msg = supabaseMessage as any;
+  const messageType = msg.message_type || (msg.is_voice ? 'voice' : 'text');
+  const readAt = msg.read_at || null;
+  
   return {
     id: supabaseMessage.id,
     senderId: supabaseMessage.sender_id || '',
     recipientId: supabaseMessage.recipient_id || '',
     content: supabaseMessage.content,
+    text: supabaseMessage.content, // Alias pour compatibilité
     timestamp: supabaseMessage.created_at || new Date().toISOString(),
-    isVoice: supabaseMessage.is_voice || false,
+    // Type de message
+    messageType: messageType as 'text' | 'voice' | 'document',
+    // Indicateur de lecture
+    readAt: readAt,
+    isRead: !!readAt || msg.seen_by_recipient || false,
+    // Champs vocaux
+    isVoice: messageType === 'voice',
     voiceUrl: supabaseMessage.voice_url || undefined,
-    seenBySender: (supabaseMessage as any).seen_by_sender ?? true,
-    seenByRecipient: (supabaseMessage as any).seen_by_recipient ?? false,
+    voiceDuration: msg.voice_duration || undefined,
+    // Champs pièces jointes
+    attachmentUrl: msg.attachment_url || undefined,
+    attachmentName: msg.attachment_name || undefined,
+    attachmentType: msg.attachment_type || undefined,
+    // Champs legacy
+    seenBySender: msg.seen_by_sender ?? true,
+    seenByRecipient: !!readAt || msg.seen_by_recipient || false,
+    seenByCoach: msg.seen_by_sender ?? true, // Pour compatibilité
+    clientId: supabaseMessage.sender_id || supabaseMessage.recipient_id || '',
   } as Message;
 }
 
@@ -289,8 +308,14 @@ export function mapMessageToSupabaseMessage(message: Partial<Message>): Partial<
     sender_id: message.senderId || null,
     recipient_id: message.recipientId || null,
     content: message.content || '',
-    is_voice: message.isVoice || false,
+    message_type: message.messageType || 'text',
+    is_voice: message.isVoice || message.messageType === 'voice' || false,
     voice_url: message.voiceUrl || null,
+    voice_duration: message.voiceDuration || null,
+    attachment_url: message.attachmentUrl || null,
+    attachment_name: message.attachmentName || null,
+    attachment_type: message.attachmentType || null,
+    read_at: message.readAt || null,
     seen_by_sender: message.seenBySender ?? true,
     seen_by_recipient: message.seenByRecipient ?? false,
   } as any;

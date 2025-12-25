@@ -68,7 +68,11 @@ const ClientMessaging: React.FC = () => {
         senderId: user.id,
         recipientId: coach.id,
         content: newMessage.trim(),
+        messageType: 'text',
         isRead: false,
+        isVoice: false,
+        seenBySender: true,
+        seenByRecipient: false,
       });
       setNewMessage('');
     } catch (error) {

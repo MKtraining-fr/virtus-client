@@ -1,23 +1,252 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Message } from '../types';
+import { Message, MessageType } from '../types';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Select from '../components/Select';
 import { useAuth } from '../context/AuthContext';
-import { PaperAirplaneIcon, PlusIcon } from '../constants/icons';
+import { supabase } from '../services/supabase';
+import { 
+  PaperAirplaneIcon, 
+  PlusIcon, 
+  MicrophoneIcon, 
+  PaperClipIcon,
+  CheckIcon,
+  DocumentIcon,
+  PlayIcon,
+  PauseIcon,
+  StopIcon,
+  XMarkIcon
+} from '../constants/icons';
+
+// Composant pour afficher l'indicateur de lecture (double check)
+const ReadIndicator: React.FC<{ message: Message; isCoach: boolean }> = ({ message, isCoach }) => {
+  // Seul le coach voit l'indicateur de lecture sur ses propres messages
+  if (!isCoach) return null;
+  
+  const isRead = message.readAt || message.seenByRecipient;
+  
+  return (
+    <span className="inline-flex ml-1">
+      {isRead ? (
+        // Double check bleu = lu
+        <span className="text-blue-300 flex">
+          <CheckIcon className="w-3 h-3" />
+          <CheckIcon className="w-3 h-3 -ml-1.5" />
+        </span>
+      ) : (
+        // Simple check gris = envoyé mais non lu
+        <span className="text-gray-300">
+          <CheckIcon className="w-3 h-3" />
+        </span>
+      )}
+    </span>
+  );
+};
+
+// Composant pour le lecteur audio des messages vocaux
+const VoiceMessagePlayer: React.FC<{ url: string; duration?: number; isMe: boolean }> = ({ url, duration, isMe }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className={`flex items-center space-x-2 ${isMe ? 'text-white' : 'text-gray-700'}`}>
+      <audio
+        ref={audioRef}
+        src={url}
+        onTimeUpdate={(e) => setCurrentTime((e.target as HTMLAudioElement).currentTime)}
+        onEnded={() => setIsPlaying(false)}
+      />
+      <button
+        onClick={togglePlay}
+        className={`p-2 rounded-full ${isMe ? 'bg-violet-600 hover:bg-violet-700' : 'bg-gray-200 hover:bg-gray-300'}`}
+      >
+        {isPlaying ? (
+          <PauseIcon className="w-4 h-4" />
+        ) : (
+          <PlayIcon className="w-4 h-4" />
+        )}
+      </button>
+      <div className="flex-1">
+        <div className={`h-1 rounded-full ${isMe ? 'bg-violet-400' : 'bg-gray-300'}`}>
+          <div
+            className={`h-full rounded-full ${isMe ? 'bg-white' : 'bg-primary'}`}
+            style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+          />
+        </div>
+      </div>
+      <span className="text-xs">
+        {formatTime(currentTime)} / {formatTime(duration || 0)}
+      </span>
+    </div>
+  );
+};
+
+// Composant pour l'affichage d'une pièce jointe
+const AttachmentDisplay: React.FC<{ message: Message; isMe: boolean }> = ({ message, isMe }) => {
+  if (!message.attachmentUrl) return null;
+
+  const handleDownload = async () => {
+    try {
+      // Créer une URL signée pour le téléchargement
+      const { data, error } = await supabase.storage
+        .from('client-documents')
+        .createSignedUrl(message.attachmentUrl!.replace(/^.*client-documents\//, ''), 3600);
+      
+      if (error) throw error;
+      
+      window.open(data.signedUrl, '_blank');
+    } catch (error) {
+      console.error('Erreur lors du téléchargement:', error);
+      // Fallback: essayer d'ouvrir directement l'URL
+      window.open(message.attachmentUrl, '_blank');
+    }
+  };
+
+  return (
+    <div
+      onClick={handleDownload}
+      className={`flex items-center space-x-2 p-2 rounded-lg cursor-pointer ${
+        isMe ? 'bg-violet-600 hover:bg-violet-700' : 'bg-gray-100 hover:bg-gray-200'
+      }`}
+    >
+      <DocumentIcon className="w-5 h-5" />
+      <span className="text-sm truncate max-w-[200px]">
+        {message.attachmentName || 'Document'}
+      </span>
+    </div>
+  );
+};
+
+// Composant pour l'enregistrement vocal
+const VoiceRecorder: React.FC<{
+  onRecordingComplete: (blob: Blob, duration: number) => void;
+  onCancel: () => void;
+}> = ({ onRecordingComplete, onCancel }) => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        onRecordingComplete(blob, duration);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setDuration(0);
+
+      timerRef.current = setInterval(() => {
+        setDuration((d) => d + 1);
+      }, 1000);
+    } catch (error) {
+      console.error('Erreur lors de l\'accès au microphone:', error);
+      alert('Impossible d\'accéder au microphone. Vérifiez les permissions.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    }
+    onCancel();
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg">
+      <div className="flex items-center space-x-2">
+        <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+        <span className="text-red-600 font-medium">{formatTime(duration)}</span>
+      </div>
+      <div className="flex-1" />
+      {!isRecording ? (
+        <Button onClick={startRecording} className="bg-red-500 hover:bg-red-600">
+          <MicrophoneIcon className="w-5 h-5" />
+        </Button>
+      ) : (
+        <>
+          <Button onClick={stopRecording} className="bg-green-500 hover:bg-green-600">
+            <StopIcon className="w-5 h-5" />
+          </Button>
+          <Button onClick={cancelRecording} variant="secondary">
+            <XMarkIcon className="w-5 h-5" />
+          </Button>
+        </>
+      )}
+    </div>
+  );
+};
 
 const Messaging: React.FC = () => {
-  const { user, clients, messages, setMessages, addMessage, markMessageAsRead } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, clients, messages, addMessage, markMessageAsRead } = useAuth();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [newMessage, setNewMessage] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clientForNewConversation, setClientForNewConversation] = useState('');
+
+  const isCoach = user?.role === 'coach' || user?.role === 'admin';
 
   const myClients = useMemo(() => {
     const baseClients = clients.filter((c) => c.role === 'client');
@@ -30,13 +259,10 @@ const Messaging: React.FC = () => {
   const conversationClientIds = useMemo(() => {
     const ids = new Set<string>();
     messages.forEach((msg) => {
-      // Un message implique soit le sender soit le recipient
       if (msg.senderId === user?.id) {
-        // Message envoyé par le coach, le client est le recipient
         const client = myClients.find((c) => c.id === msg.recipientId);
         if (client) ids.add(msg.recipientId);
       } else if (msg.recipientId === user?.id) {
-        // Message reçu par le coach, le client est le sender
         const client = myClients.find((c) => c.id === msg.senderId);
         if (client) ids.add(msg.senderId);
       }
@@ -60,7 +286,7 @@ const Messaging: React.FC = () => {
     if (user && selectedClientId) {
       // Marquer les messages non lus comme lus
       const unreadMessages = messages.filter(
-        (m) => m.senderId === selectedClientId && m.recipientId === user.id && !m.isRead
+        (m) => m.senderId === selectedClientId && m.recipientId === user.id && !m.readAt && !m.isRead
       );
 
       unreadMessages.forEach(async (msg) => {
@@ -79,27 +305,114 @@ const Messaging: React.FC = () => {
 
   const conversation = useMemo(() => {
     if (!selectedClientId) return [];
-    return messages.filter(
-      (m) =>
-        (m.senderId === user?.id && m.recipientId === selectedClientId) ||
-        (m.senderId === selectedClientId && m.recipientId === user?.id)
-    );
+    return messages
+      .filter(
+        (m) =>
+          (m.senderId === user?.id && m.recipientId === selectedClientId) ||
+          (m.senderId === selectedClientId && m.recipientId === user?.id)
+      )
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }, [selectedClientId, messages, user]);
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user || !selectedClientId) return;
+  const handleSendMessage = async (
+    messageType: MessageType = 'text',
+    content: string = newMessage.trim(),
+    attachmentData?: { url: string; name: string; type: string; duration?: number }
+  ) => {
+    if ((!content && messageType === 'text') || !user || !selectedClientId) return;
 
     try {
       await addMessage({
         senderId: user.id,
         recipientId: selectedClientId,
-        content: newMessage.trim(),
+        content: content || '',
+        messageType,
+        isVoice: messageType === 'voice',
+        voiceUrl: attachmentData?.url,
+        voiceDuration: attachmentData?.duration,
+        attachmentUrl: messageType === 'document' ? attachmentData?.url : undefined,
+        attachmentName: messageType === 'document' ? attachmentData?.name : undefined,
+        attachmentType: messageType === 'document' ? attachmentData?.type : undefined,
         isRead: false,
+        seenBySender: true,
+        seenByRecipient: false,
       });
       setNewMessage('');
     } catch (error) {
       console.error("Erreur lors de l'envoi du message:", error);
       alert("Erreur lors de l'envoi du message. Veuillez réessayer.");
+    }
+  };
+
+  const handleVoiceRecordingComplete = async (blob: Blob, duration: number) => {
+    setIsRecording(false);
+    setIsUploading(true);
+
+    try {
+      const fileName = `voice_${user?.id}_${Date.now()}.webm`;
+      const filePath = `${selectedClientId}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('voice-messages')
+        .upload(filePath, blob, {
+          contentType: 'audio/webm',
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('voice-messages')
+        .getPublicUrl(filePath);
+
+      await handleSendMessage('voice', '🎤 Message vocal', {
+        url: urlData.publicUrl,
+        name: fileName,
+        type: 'audio/webm',
+        duration,
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'upload du vocal:', error);
+      alert('Erreur lors de l\'envoi du message vocal.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedClientId) return;
+
+    setIsUploading(true);
+
+    try {
+      const fileName = `${Date.now()}_${file.name}`;
+      const filePath = `${selectedClientId}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('client-documents')
+        .upload(filePath, file, {
+          contentType: file.type,
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('client-documents')
+        .getPublicUrl(filePath);
+
+      await handleSendMessage('document', `📎 ${file.name}`, {
+        url: urlData.publicUrl,
+        name: file.name,
+        type: file.type,
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'upload du document:', error);
+      alert('Erreur lors de l\'envoi du document.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -114,6 +427,47 @@ const Messaging: React.FC = () => {
     }
   };
 
+  // Rendu d'un message
+  const renderMessage = (msg: Message) => {
+    const isMe = msg.senderId === user?.id;
+
+    return (
+      <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+        <div
+          className={`max-w-md px-4 py-2 rounded-xl ${
+            isMe ? 'bg-primary text-white' : 'bg-white border'
+          }`}
+        >
+          {/* Contenu selon le type de message */}
+          {msg.messageType === 'voice' && msg.voiceUrl ? (
+            <VoiceMessagePlayer url={msg.voiceUrl} duration={msg.voiceDuration} isMe={isMe} />
+          ) : msg.messageType === 'document' && msg.attachmentUrl ? (
+            <>
+              <AttachmentDisplay message={msg} isMe={isMe} />
+              {msg.content && !msg.content.startsWith('📎') && (
+                <p className="mt-2">{msg.content}</p>
+              )}
+            </>
+          ) : (
+            <p>{msg.content || msg.text}</p>
+          )}
+
+          {/* Horodatage et indicateur de lecture */}
+          <div className={`flex items-center justify-end mt-1 ${isMe ? 'text-violet-200' : 'text-gray-400'}`}>
+            <span className="text-xs">
+              {new Date(msg.timestamp).toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+            {/* Indicateur de lecture uniquement pour les messages envoyés par le coach */}
+            {isMe && isCoach && <ReadIndicator message={msg} isCoach={isCoach} />}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-[calc(100vh-150px)]">
       {/* Sidebar */}
@@ -125,15 +479,28 @@ const Messaging: React.FC = () => {
           {conversationClientIds.map((clientId) => {
             const client = clients.find((c) => c.id === clientId);
             if (!client) return null;
-            const lastMessage = messages.filter((m) => m.clientId === clientId).slice(-1)[0];
-            const isUnread =
-              lastMessage && lastMessage.senderId !== user?.id && !lastMessage.seenByCoach;
+            
+            // Trouver le dernier message de cette conversation
+            const conversationMessages = messages.filter(
+              (m) =>
+                (m.senderId === user?.id && m.recipientId === clientId) ||
+                (m.senderId === clientId && m.recipientId === user?.id)
+            );
+            const lastMessage = conversationMessages.sort(
+              (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            )[0];
+            
+            const isUnread = lastMessage && lastMessage.senderId !== user?.id && !lastMessage.readAt && !lastMessage.isRead;
 
             return (
               <div
                 key={clientId}
                 onClick={() => navigate(`/app/messagerie?clientId=${clientId}`)}
-                className={`p-4 flex items-center space-x-3 cursor-pointer border-l-4 ${selectedClientId === clientId ? 'bg-gray-100 border-primary' : 'border-transparent hover:bg-gray-50'}`}
+                className={`p-4 flex items-center space-x-3 cursor-pointer border-l-4 ${
+                  selectedClientId === clientId
+                    ? 'bg-gray-100 border-primary'
+                    : 'border-transparent hover:bg-gray-50'
+                }`}
               >
                 <img
                   src={client.avatar || `https://i.pravatar.cc/40?u=${client.id}`}
@@ -149,7 +516,11 @@ const Messaging: React.FC = () => {
                   </div>
                   {lastMessage && (
                     <p className="text-sm text-gray-500 truncate">
-                      {lastMessage.content || lastMessage.text}
+                      {lastMessage.messageType === 'voice'
+                        ? '🎤 Message vocal'
+                        : lastMessage.messageType === 'document'
+                        ? `📎 ${lastMessage.attachmentName || 'Document'}`
+                        : lastMessage.content || lastMessage.text}
                     </p>
                   )}
                 </div>
@@ -163,6 +534,7 @@ const Messaging: React.FC = () => {
           </Button>
         </div>
       </div>
+
       {/* Chat window */}
       <Card className="w-2/3 flex flex-col">
         {selectedClient ? (
@@ -179,49 +551,76 @@ const Messaging: React.FC = () => {
                 </h2>
               </div>
             </div>
+
             <div className="flex-1 p-6 overflow-y-auto bg-gray-50">
               <div className="space-y-4">
-                {conversation.map((msg) => {
-                  const isMe = msg.senderId === user?.id;
-                  return (
-                    <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                      <div
-                        className={`max-w-md px-4 py-2 rounded-xl ${isMe ? 'bg-primary text-white' : 'bg-white border'}`}
-                      >
-                        <p>{msg.content || msg.text}</p>
-                        <p
-                          className={`text-xs mt-1 text-right ${isMe ? 'text-violet-200' : 'text-gray-400'}`}
-                        >
-                          {new Date(msg.timestamp).toLocaleTimeString('fr-FR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                {conversation.map(renderMessage)}
                 <div ref={messagesEndRef} />
               </div>
             </div>
-            <div className="p-4 bg-white border-t flex items-center space-x-2">
-              <Input
-                placeholder="Écrire un message..."
-                className="flex-1"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-              />
-              <Button onClick={handleSendMessage}>
-                {' '}
-                <PaperAirplaneIcon className="w-5 h-5" />{' '}
-              </Button>
-            </div>
+
+            {/* Zone de saisie */}
+            {isRecording ? (
+              <div className="p-4 bg-white border-t">
+                <VoiceRecorder
+                  onRecordingComplete={handleVoiceRecordingComplete}
+                  onCancel={() => setIsRecording(false)}
+                />
+              </div>
+            ) : (
+              <div className="p-4 bg-white border-t flex items-center space-x-2">
+                {/* Bouton pièce jointe (coach uniquement) */}
+                {isCoach && (
+                  <>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+                    />
+                    <Button
+                      variant="secondary"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      title="Joindre un document"
+                    >
+                      <PaperClipIcon className="w-5 h-5" />
+                    </Button>
+                  </>
+                )}
+
+                <Input
+                  placeholder="Écrire un message..."
+                  className="flex-1"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  disabled={isUploading}
+                />
+
+                {/* Bouton vocal (coach uniquement) */}
+                {isCoach && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setIsRecording(true)}
+                    disabled={isUploading}
+                    title="Enregistrer un message vocal"
+                  >
+                    <MicrophoneIcon className="w-5 h-5" />
+                  </Button>
+                )}
+
+                <Button onClick={() => handleSendMessage()} disabled={isUploading || !newMessage.trim()}>
+                  <PaperAirplaneIcon className="w-5 h-5" />
+                </Button>
+              </div>
+            )}
           </>
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">

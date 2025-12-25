@@ -326,17 +326,34 @@ export interface SessionExercise {
 }
 
 // ---- MESSAGING ----
+export type MessageType = 'text' | 'voice' | 'document';
+
 export interface Message {
   id: string;
   senderId: string;
   recipientId: string;
   content: string;
   timestamp: string;
-  isVoice: boolean;
+  // Type de message
+  messageType: MessageType;
+  // Indicateur de lecture
+  readAt?: string; // Horodatage de lecture par le destinataire
+  isRead: boolean; // Alias pour compatibilité
+  // Champs vocaux
+  isVoice: boolean; // Deprecated, utiliser messageType === 'voice'
   voiceUrl?: string;
+  voiceDuration?: number; // Durée en secondes
+  // Champs pièces jointes
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentType?: string; // Type MIME
+  // Champs legacy
   seenBySender: boolean;
   seenByRecipient: boolean;
+  seenByCoach?: boolean; // Pour compatibilité avec l'ancien code
   subject?: string;
+  text?: string; // Alias pour content
+  clientId?: string; // Pour compatibilité
 }
 
 // ---- NUTRITION PLAN TYPES ----

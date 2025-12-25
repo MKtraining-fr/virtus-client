@@ -1074,13 +1074,18 @@ export const useDataStore = create<DataState>((set, get) => {
 
     addMessage: async (messageData: Omit<Message, 'id' | 'timestamp'>) => {
       try {
-        // Mapper les données vers le format Supabase
-        const supabaseData = {
+        // Mapper les données vers le format Supabase avec les nouveaux champs
+        const supabaseData: any = {
           sender_id: messageData.senderId,
           recipient_id: messageData.recipientId,
-          content: messageData.content,
-          is_voice: messageData.isVoice || false,
+          content: messageData.content || '',
+          message_type: messageData.messageType || 'text',
+          is_voice: messageData.isVoice || messageData.messageType === 'voice' || false,
           voice_url: messageData.voiceUrl || null,
+          voice_duration: messageData.voiceDuration || null,
+          attachment_url: messageData.attachmentUrl || null,
+          attachment_name: messageData.attachmentName || null,
+          attachment_type: messageData.attachmentType || null,
           seen_by_sender: messageData.seenBySender ?? true,
           seen_by_recipient: messageData.seenByRecipient ?? false,
         };
@@ -1102,9 +1107,13 @@ export const useDataStore = create<DataState>((set, get) => {
 
     markMessageAsRead: async (messageId: string) => {
       try {
+        // Mettre à jour read_at avec l'horodatage actuel
         const { data, error } = await supabase
           .from('messages')
-          .update({ seen_by_recipient: true } as any)
+          .update({ 
+            seen_by_recipient: true,
+            read_at: new Date().toISOString()
+          } as any)
           .eq('id', messageId)
           .select()
           .single();
