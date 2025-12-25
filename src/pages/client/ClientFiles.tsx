@@ -152,15 +152,24 @@ const ClientFiles: React.FC = () => {
 
   // Charger les documents du client
   const loadDocuments = useCallback(async () => {
-    if (!user) return;
+    console.log('[ClientFiles] loadDocuments called, user:', user);
+    console.log('[ClientFiles] user.id:', user?.id);
+    
+    if (!user) {
+      console.log('[ClientFiles] No user, returning');
+      return;
+    }
     
     setIsLoading(true);
     try {
+      console.log('[ClientFiles] Fetching documents for client_id:', user.id);
       const { data, error } = await supabase
         .from('client_documents')
         .select('*')
         .eq('client_id', user.id)
         .order('created_at', { ascending: false });
+      
+      console.log('[ClientFiles] Query result - data:', data, 'error:', error);
       
       if (error) throw error;
       setDocuments(data || []);
