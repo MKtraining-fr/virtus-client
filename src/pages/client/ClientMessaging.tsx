@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useDataStore } from '../../stores/useDataStore';
 import { Message } from '../../types';
 import Input from '../../components/Input';
 
@@ -74,6 +75,18 @@ const ClientMessaging: React.FC = () => {
         seenBySender: true,
         seenByRecipient: false,
       });
+      
+      // Envoyer une notification au coach
+      const { addNotification } = useDataStore.getState();
+      await addNotification({
+        userId: coach.id,
+        title: 'Nouveau message',
+        message: `${user.firstName} ${user.lastName} vous a envoyé un message`,
+        type: 'message',
+        fromName: `${user.firstName} ${user.lastName}`,
+        link: `/app/coach/messaging`,
+      });
+      
       setNewMessage('');
     } catch (error) {
       console.error("Erreur lors de l'envoi du message:", error);

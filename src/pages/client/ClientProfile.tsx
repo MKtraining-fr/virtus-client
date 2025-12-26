@@ -19,6 +19,7 @@ import MeasurementsLineChart from '../../components/charts/MeasurementsLineChart
 import BilanSection from '../../components/BilanSection';
 import AccountSettingsModal from '../../components/AccountSettingsModal';
 import { supabase } from '../../services/supabase';
+import { useDataStore } from '../../stores/useDataStore';
 
 // Type pour les documents Supabase
 interface ClientDocument {
@@ -311,6 +312,19 @@ const ClientProfile: React.FC = () => {
       
       // Ajouter le nouveau document à la liste
       setSupabaseDocuments((prev) => [docData, ...prev]);
+      
+      // 4. Envoyer une notification au coach
+      if (user.coachId) {
+        const { addNotification } = useDataStore.getState();
+        await addNotification({
+          userId: user.coachId,
+          title: 'Nouveau document reçu',
+          message: `${user.firstName} ${user.lastName} vous a envoyé un document : ${selectedDocFile.name}`,
+          type: 'document',
+          fromName: `${user.firstName} ${user.lastName}`,
+          link: `/app/client/${user.id}`,
+        });
+      }
       
       // Fermer la modal et réinitialiser
       setShowUploadModal(false);
@@ -765,6 +779,15 @@ const ClientProfile: React.FC = () => {
                 </div>
               </div>
             )}
+
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <span className="font-semibold">Formats acceptés :</span> PDF, Word (.doc, .docx), Images (JPG, PNG), Texte (.txt)
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                Taille maximum : 10 Mo par fichier
+              </p>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-client-light mb-1">

@@ -142,12 +142,25 @@ export const useSessionCompletion = (
         console.log('[useSessionCompletion] Rechargement des données...');
         
         // Recharger les données du store
-        const userId = useDataStore.getState().clients.find(
+        const client = useDataStore.getState().clients.find(
           (c) => c.assignedProgram?.id === clientProgramId
-        )?.id;
+        );
         
-        if (userId) {
-          await useDataStore.getState().loadData(userId);
+        if (client?.id) {
+          await useDataStore.getState().loadData(client.id);
+          
+          // Envoyer une notification au coach
+          if (client.coachId) {
+            const { addNotification } = useDataStore.getState();
+            await addNotification({
+              userId: client.coachId,
+              title: 'Séance complétée',
+              message: `${client.firstName} ${client.lastName} a terminé sa séance : ${activeSession.name}`,
+              type: 'workout',
+              fromName: `${client.firstName} ${client.lastName}`,
+              link: `/app/client/${client.id}`,
+            });
+          }
         }
       }
 
