@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -18,6 +18,32 @@ import Button from '../../components/Button';
 import MeasurementsLineChart from '../../components/charts/MeasurementsLineChart';
 import BilanSection from '../../components/BilanSection';
 import AccountSettingsModal from '../../components/AccountSettingsModal';
+import { supabase } from '../../services/supabase';
+
+// Type pour les documents Supabase
+interface ClientDocument {
+  id: string;
+  client_id: string;
+  coach_id: string | null;
+  file_name: string;
+  file_url: string;
+  file_type: string;
+  file_size: number;
+  category: 'medical' | 'identity' | 'contract' | 'progress' | 'nutrition' | 'other';
+  description: string | null;
+  uploaded_by: string;
+  created_at: string;
+}
+
+// Catégories de documents
+const DOCUMENT_CATEGORIES = [
+  { value: 'medical', label: 'Médical' },
+  { value: 'identity', label: 'Identité' },
+  { value: 'contract', label: 'Contrat' },
+  { value: 'progress', label: 'Progression' },
+  { value: 'nutrition', label: 'Nutrition' },
+  { value: 'other', label: 'Autre' },
+];
 
 // --- ICONS ---
 const ShieldCheckIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -111,6 +137,16 @@ const ClientProfile: React.FC = () => {
   const [selectedBilan, setSelectedBilan] = useState<BilanResult | null>(null);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
 
+  // États pour les documents Supabase
+  const [supabaseDocuments, setSupabaseDocuments] = useState<ClientDocument[]>([]);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(true);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedDocFile, setSelectedDocFile] = useState<File | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('other');
+  const [docDescription, setDocDescription] = useState('');
+  const [consentChecked, setConsentChecked] = useState(false);
+
   const measurementLabels: Record<keyof MeasurementType, string> = {
     neck: 'Cou (cm)',
     chest: 'Poitrine (cm)',
@@ -188,6 +224,145 @@ const ClientProfile: React.FC = () => {
 
     return { data, headers: sortedHeaders };
   }, [user]);
+
+  // Charger les documents depuis Supabase
+  const loadSupabaseDocuments = useCallback(async () => {
+    if (!user) return;
+    
+    setIsLoadingDocs(true);
+    try {
+      const { data, error } = await supabase
+        .from('client_documents')
+        .select('*')
+        .eq('client_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setSupabaseDocuments(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des documents:', error);
+    } finally {
+      setIsLoadingDocs(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadSupabaseDocuments();
+  }, [loadSupabaseDocuments]);
+
+  const handleDocFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Le fichier est trop volumineux. Taille maximum : 10 Mo');
+      return;
+    }
+    
+    setSelectedDocFile(file);
+    setShowUploadModal(true);
+    
+    if (docInputRef.current) {
+      docInputRef.current.value = '';
+    }
+  };
+
+  const handleDocUpload = async () => {
+    if (!selectedDocFile || !user || !consentChecked) return;
+    
+    setIsUploadingDoc(true);
+    
+    try {
+      // 1. Upload vers Supabase Storage
+      const fileName = `${Date.now()}_${selectedDocFile.name}`;
+      const filePath = `${user.id}/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('client-documents')
+        .upload(filePath, selectedDocFile, {
+          contentType: selectedDocFile.type,
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // 2. Obtenir l'URL publique
+      const { data: urlData } = supabase.storage
+        .from('client-documents')
+        .getPublicUrl(filePath);
+      
+      // 3. Créer l'entrée dans la table client_documents
+      const { data: docData, error: docError } = await supabase
+        .from('client_documents')
+        .insert({
+          client_id: user.id,
+          coach_id: user.coachId || null,
+          file_name: selectedDocFile.name,
+          file_url: urlData.publicUrl,
+          file_type: selectedDocFile.type,
+          file_size: selectedDocFile.size,
+          category: selectedCategory,
+          description: docDescription || null,
+          uploaded_by: user.id,
+        })
+        .select()
+        .single();
+      
+      if (docError) throw docError;
+      
+      // Ajouter le nouveau document à la liste
+      setSupabaseDocuments((prev) => [docData, ...prev]);
+      
+      // Fermer la modal et réinitialiser
+      setShowUploadModal(false);
+      setSelectedDocFile(null);
+      setSelectedCategory('other');
+      setDocDescription('');
+      setConsentChecked(false);
+      
+      alert('Document téléversé avec succès !');
+    } catch (error) {
+      console.error('Erreur lors du téléversement:', error);
+      alert('Erreur lors du téléversement du document. Veuillez réessayer.');
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
+
+  const handleDocDownload = async (doc: ClientDocument) => {
+    try {
+      const filePath = doc.file_url.split('/client-documents/')[1];
+      const { data, error } = await supabase.storage
+        .from('client-documents')
+        .createSignedUrl(filePath, 3600);
+      
+      if (error) throw error;
+      window.open(data.signedUrl, '_blank');
+    } catch (error) {
+      console.error('Erreur lors du téléchargement:', error);
+      window.open(doc.file_url, '_blank');
+    }
+  };
+
+  const handleDocDelete = async (doc: ClientDocument) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) return;
+    
+    try {
+      const filePath = doc.file_url.split('/client-documents/')[1];
+      await supabase.storage.from('client-documents').remove([filePath]);
+      
+      const { error } = await supabase
+        .from('client_documents')
+        .delete()
+        .eq('id', doc.id);
+      
+      if (error) throw error;
+      
+      setSupabaseDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      alert('Erreur lors de la suppression du document.');
+    }
+  };
 
   const handleToggleMeasurement = (key: keyof MeasurementType) => {
     setSelectedMeasurements((prev) =>
@@ -483,9 +658,9 @@ const ClientProfile: React.FC = () => {
             <input
               type="file"
               ref={docInputRef}
-              onChange={handleFileChange}
+              onChange={handleDocFileSelect}
               className="hidden"
-              accept=".pdf,.doc,.docx,.txt,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,text/plain"
+              accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,text/plain,image/*"
             />
             <Button onClick={() => docInputRef.current?.click()} className="w-full" size="lg">
               Téléverser un document
@@ -507,10 +682,14 @@ const ClientProfile: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              {documentFiles.length > 0 ? (
-                documentFiles.map((file) => (
+              {isLoadingDocs ? (
+                <div className="text-center py-6">
+                  <p className="text-gray-500 dark:text-client-subtle">Chargement des documents...</p>
+                </div>
+              ) : supabaseDocuments.length > 0 ? (
+                supabaseDocuments.map((doc) => (
                   <div
-                    key={file.id}
+                    key={doc.id}
                     className="!bg-white dark:!bg-client-dark/50 p-3 !shadow-sm border border-gray-200 dark:border-gray-700/50 rounded-lg"
                   >
                     <div className="flex items-center gap-4">
@@ -519,20 +698,34 @@ const ClientProfile: React.FC = () => {
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <p className="font-semibold text-gray-900 dark:text-client-light truncate">
-                          {file.fileName}
+                          {doc.file_name}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-client-subtle">
-                          {new Date(file.uploadedAt).toLocaleDateString('fr-FR')} &middot;{' '}
-                          {formatFileSize(file.size)}
+                          {new Date(doc.created_at).toLocaleDateString('fr-FR')} &middot;{' '}
+                          {formatFileSize(doc.file_size)}
+                          {doc.uploaded_by !== user?.id && (
+                            <span className="ml-2 text-primary">• Envoyé par votre coach</span>
+                          )}
                         </p>
                       </div>
                       <button
-                        onClick={() => handleDeleteFile(file.id)}
-                        className="p-2 text-gray-500 dark:text-client-subtle hover:text-red-500"
-                        aria-label="Supprimer le fichier"
+                        onClick={() => handleDocDownload(doc)}
+                        className="p-2 text-gray-500 dark:text-client-subtle hover:text-primary"
+                        aria-label="Télécharger le fichier"
                       >
-                        <TrashIcon className="w-5 h-5" />
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
                       </button>
+                      {doc.uploaded_by === user?.id && (
+                        <button
+                          onClick={() => handleDocDelete(doc)}
+                          className="p-2 text-gray-500 dark:text-client-subtle hover:text-red-500"
+                          aria-label="Supprimer le fichier"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -547,6 +740,101 @@ const ClientProfile: React.FC = () => {
             </div>
           </div>
         </ClientAccordion>
+
+        {/* Modal d'upload de document */}
+        <Modal
+          isOpen={showUploadModal}
+          onClose={() => {
+            setShowUploadModal(false);
+            setSelectedDocFile(null);
+            setSelectedCategory('other');
+            setDocDescription('');
+            setConsentChecked(false);
+          }}
+          title="Téléverser un document"
+        >
+          <div className="space-y-4">
+            {selectedDocFile && (
+              <div className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-client-dark rounded-lg">
+                <DocumentIcon className="w-8 h-8 text-primary" />
+                <div>
+                  <p className="font-semibold text-gray-900 dark:text-client-light">{selectedDocFile.name}</p>
+                  <p className="text-sm text-gray-500 dark:text-client-subtle">
+                    {formatFileSize(selectedDocFile.size)}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-client-light mb-1">
+                Catégorie du document
+              </label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-client-dark text-gray-900 dark:text-client-light"
+              >
+                {DOCUMENT_CATEGORIES.map((cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-client-light mb-1">
+                Description (optionnel)
+              </label>
+              <textarea
+                value={docDescription}
+                onChange={(e) => setDocDescription(e.target.value)}
+                placeholder="Ajoutez une description pour ce document..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-client-dark text-gray-900 dark:text-client-light resize-none"
+                rows={3}
+              />
+            </div>
+
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={consentChecked}
+                  onChange={(e) => setConsentChecked(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-primary rounded"
+                />
+                <span className="text-sm text-yellow-800 dark:text-yellow-200">
+                  Je consens à partager ce document avec mon coach. Je comprends que ces données
+                  seront stockées de manière sécurisée conformément au RGPD.
+                </span>
+              </label>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setSelectedDocFile(null);
+                  setSelectedCategory('other');
+                  setDocDescription('');
+                  setConsentChecked(false);
+                }}
+                className="flex-1"
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handleDocUpload}
+                disabled={!consentChecked || isUploadingDoc}
+                className="flex-1"
+              >
+                {isUploadingDoc ? 'Envoi en cours...' : 'Envoyer'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
         <ClientAccordion title="Paramètres du compte">
           <div className="flex flex-col items-start space-y-2 text-gray-700 dark:text-client-subtle">
             <button 
