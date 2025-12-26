@@ -46,6 +46,47 @@ const DOCUMENT_CATEGORIES = [
   { value: 'other', label: 'Autre' },
 ];
 
+// Traduction du niveau d'activité
+const translateActivityLevel = (level: string | undefined): string => {
+  if (!level) return 'Non défini';
+  const translations: Record<string, string> = {
+    'sedentary': 'Sédentaire',
+    'lightly_active': 'Légèrement actif',
+    'moderately_active': 'Modérément actif',
+    'very_active': 'Très actif',
+    'extra_active': 'Extrêmement actif',
+  };
+  return translations[level] || level;
+};
+
+// Traduction du sexe
+const translateSex = (sex: string | undefined): string => {
+  if (!sex) return 'Non défini';
+  const translations: Record<string, string> = {
+    'male': 'Homme',
+    'female': 'Femme',
+    'Homme': 'Homme',
+    'Femme': 'Femme',
+  };
+  return translations[sex] || sex;
+};
+
+// Formatage de la date
+const formatDate = (dateString: string | undefined): string => {
+  if (!dateString) return 'Non défini';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  } catch {
+    return dateString;
+  }
+};
+
 // --- ICONS ---
 const ShieldCheckIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -502,13 +543,14 @@ const ClientProfile: React.FC = () => {
         <ClientAccordion title="Informations personnelles" isOpenDefault={true}>
           {user ? (
             <div className="space-y-1">
-              <InfoRow label="Âge" value={user.age?.toString()} />
-              <InfoRow label="Sexe" value={user.sex} />
+              <InfoRow label="Âge" value={user.age ? `${user.age} ans` : undefined} />
+              <InfoRow label="Sexe" value={translateSex(user.sex)} />
               <InfoRow label="Taille" value={user.height ? `${user.height} cm` : undefined} />
               <InfoRow label="Poids actuel" value={user.weight ? `${user.weight} kg` : undefined} />
-              <InfoRow label="Niveau d'activité" value={user.energyExpenditureLevel} />
+              <InfoRow label="Niveau d'activité" value={translateActivityLevel(user.energyExpenditureLevel)} />
+              <InfoRow label="Email" value={user.email} />
               <InfoRow label="Téléphone" value={user.phone} />
-              <InfoRow label="Date d'inscription" value={user.registrationDate} />
+              <InfoRow label="Date d'inscription" value={formatDate(user.createdAt)} />
             </div>
           ) : null}
         </ClientAccordion>
