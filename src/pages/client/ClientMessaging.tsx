@@ -48,7 +48,7 @@ const ClientMessaging: React.FC = () => {
     if (user && coach) {
       // Marquer les messages non lus comme lus
       const unreadMessages = messages.filter(
-        (m) => m.senderId === coach.id && m.recipientId === user.id && !m.isRead
+        (m) => m.senderId === coach.id && m.recipientId === user.id && !m.isRead && !m.readAt
       );
 
       unreadMessages.forEach(async (msg) => {
