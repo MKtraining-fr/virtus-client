@@ -145,16 +145,23 @@ const VoiceRecorder: React.FC<{
 }> = ({ onRecordingComplete, onCancel }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const durationRef = useRef(0);
 
   const startRecording = async () => {
     try {
+      console.log('[VoiceRecorder] Demande d\'accès au microphone...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('[VoiceRecorder] Accès au microphone accordé');
+      streamRef.current = stream;
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
+      durationRef.current = 0;
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -164,7 +171,8 @@ const VoiceRecorder: React.FC<{
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        onRecordingComplete(blob, duration);
+        console.log('[VoiceRecorder] Enregistrement terminé, durée:', durationRef.current);
+        onRecordingComplete(blob, durationRef.current);
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -173,13 +181,35 @@ const VoiceRecorder: React.FC<{
       setDuration(0);
 
       timerRef.current = setInterval(() => {
-        setDuration((d) => d + 1);
+        durationRef.current += 1;
+        setDuration(durationRef.current);
       }, 1000);
-    } catch (error) {
-      console.error('Erreur lors de l\'accès au microphone:', error);
-      alert('Impossible d\'accéder au microphone. Vérifiez les permissions.');
+    } catch (error: any) {
+      console.error('[VoiceRecorder] Erreur lors de l\'accès au microphone:', error);
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        setPermissionDenied(true);
+        alert('Permission microphone refusée. Veuillez autoriser l\'accès au microphone dans les paramètres de votre navigateur.');
+      } else {
+        alert('Impossible d\'accéder au microphone. Vérifiez que votre appareil dispose d\'un microphone.');
+      }
+      onCancel();
     }
   };
+
+  // Démarrer l'enregistrement automatiquement au montage du composant
+  useEffect(() => {
+    startRecording();
+    
+    // Cleanup au démontage
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
@@ -193,11 +223,17 @@ const VoiceRecorder: React.FC<{
 
   const cancelRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
+      // Ne pas appeler onRecordingComplete lors de l'annulation
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = null;
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
     }
     onCancel();
   };
@@ -208,23 +244,33 @@ const VoiceRecorder: React.FC<{
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  if (permissionDenied) {
+    return (
+      <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg">
+        <span className="text-red-600">Permission microphone refusée</span>
+        <div className="flex-1" />
+        <Button onClick={onCancel} variant="secondary">
+          <XMarkIcon className="w-5 h-5" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg">
       <div className="flex items-center space-x-2">
-        <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-        <span className="text-red-600 font-medium">{formatTime(duration)}</span>
+        {isRecording && <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />}
+        <span className="text-red-600 font-medium">
+          {isRecording ? formatTime(duration) : 'Démarrage...'}
+        </span>
       </div>
       <div className="flex-1" />
-      {!isRecording ? (
-        <Button onClick={startRecording} className="bg-red-500 hover:bg-red-600">
-          <MicrophoneIcon className="w-5 h-5" />
-        </Button>
-      ) : (
+      {isRecording && (
         <>
-          <Button onClick={stopRecording} className="bg-green-500 hover:bg-green-600">
+          <Button onClick={stopRecording} className="bg-green-500 hover:bg-green-600" title="Envoyer">
             <StopIcon className="w-5 h-5" />
           </Button>
-          <Button onClick={cancelRecording} variant="secondary">
+          <Button onClick={cancelRecording} variant="secondary" title="Annuler">
             <XMarkIcon className="w-5 h-5" />
           </Button>
         </>
