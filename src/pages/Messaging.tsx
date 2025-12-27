@@ -50,16 +50,76 @@ const ReadIndicator: React.FC<{ message: Message; isCoach: boolean }> = ({ messa
 const VoiceMessagePlayer: React.FC<{ url: string; duration?: number; isMe: boolean }> = ({ url, duration, isMe }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const togglePlay = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play();
+  // Extraire le chemin du fichier depuis l'URL (pour régénérer l'URL signée)
+  const getFilePath = (fullUrl: string): string | null => {
+    try {
+      // L'URL peut être une URL signée ou une URL publique
+      // Format: .../voice-messages/clientId/filename.webm?token=...
+      const match = fullUrl.match(/voice-messages\/([^?]+)/);
+      return match ? match[1] : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const loadAudio = async () => {
+    setIsLoading(true);
+    try {
+      const filePath = getFilePath(url);
+      if (filePath) {
+        // Régénérer une URL signée fraîche
+        const { data, error } = await supabase.storage
+          .from('voice-messages')
+          .createSignedUrl(filePath, 3600);
+        
+        if (!error && data?.signedUrl) {
+          setAudioUrl(data.signedUrl);
+          return data.signedUrl;
+        }
       }
-      setIsPlaying(!isPlaying);
+      // Fallback: utiliser l'URL d'origine
+      setAudioUrl(url);
+      return url;
+    } catch (error) {
+      console.error('Erreur lors du chargement de l\'audio:', error);
+      setAudioUrl(url);
+      return url;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const togglePlay = async () => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      // Charger l'audio si pas encore fait
+      if (!audioUrl) {
+        const newUrl = await loadAudio();
+        if (audioRef.current) {
+          audioRef.current.src = newUrl;
+        }
+      }
+      try {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch (error) {
+        console.error('Erreur de lecture:', error);
+        // Essayer de recharger l'URL
+        const newUrl = await loadAudio();
+        if (audioRef.current) {
+          audioRef.current.src = newUrl;
+          await audioRef.current.play();
+          setIsPlaying(true);
+        }
+      }
     }
   };
 
@@ -73,15 +133,24 @@ const VoiceMessagePlayer: React.FC<{ url: string; duration?: number; isMe: boole
     <div className={`flex items-center space-x-2 ${isMe ? 'text-white' : 'text-gray-700'}`}>
       <audio
         ref={audioRef}
-        src={url}
+        src={audioUrl || undefined}
         onTimeUpdate={(e) => setCurrentTime((e.target as HTMLAudioElement).currentTime)}
         onEnded={() => setIsPlaying(false)}
+        onError={() => {
+          // Si erreur de lecture, essayer de recharger
+          if (audioUrl) {
+            loadAudio();
+          }
+        }}
       />
       <button
         onClick={togglePlay}
-        className={`p-2 rounded-full ${isMe ? 'bg-violet-600 hover:bg-violet-700' : 'bg-gray-200 hover:bg-gray-300'}`}
+        disabled={isLoading}
+        className={`p-2 rounded-full ${isMe ? 'bg-violet-600 hover:bg-violet-700' : 'bg-gray-200 hover:bg-gray-300'} ${isLoading ? 'opacity-50' : ''}`}
       >
-        {isPlaying ? (
+        {isLoading ? (
+          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+        ) : isPlaying ? (
           <PauseIcon className="w-4 h-4" />
         ) : (
           <PlayIcon className="w-4 h-4" />
@@ -406,12 +475,17 @@ const Messaging: React.FC = () => {
 
       if (error) throw error;
 
-      const { data: urlData } = supabase.storage
+      // Créer une URL signée pour le bucket privé (1 heure d'expiration)
+      const { data: urlData, error: urlError } = await supabase.storage
         .from('voice-messages')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 3600);
+
+      if (urlError || !urlData?.signedUrl) {
+        throw new Error('Impossible de générer l\'URL du message vocal');
+      }
 
       await handleSendMessage('voice', '🎤 Message vocal', {
-        url: urlData.publicUrl,
+        url: urlData.signedUrl,
         name: fileName,
         type: 'audio/webm',
         duration,
