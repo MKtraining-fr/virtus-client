@@ -129,7 +129,14 @@ const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
       <hr className="my-4" />
 
       <h3 className="font-semibold mb-2 text-gray-700">Résultats ({filteredResults.length})</h3>
-      <div className="space-y-3 overflow-y-auto flex-grow pr-2">
+      <div 
+        className="space-y-3 overflow-y-scroll flex-grow" 
+        style={{ 
+          scrollbarWidth: 'thin', 
+          scrollbarColor: '#9ca3af #f3f4f6',
+          paddingRight: '8px'
+        }}
+      >
         {filteredResults.map((item, index) => {
           const isMealOrRecipe = 'items' in item;
           return (
