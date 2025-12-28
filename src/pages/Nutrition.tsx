@@ -1202,9 +1202,11 @@ const Nutrition: React.FC = () => {
         className={`fixed top-[88px] right-6 h-[calc(100vh-112px)] transition-all duration-300 ease-in-out ${isFilterSidebarVisible ? 'w-[400px]' : 'w-0'}`}
       >
         <div
-          className={`transition-opacity duration-300 ${isFilterSidebarVisible ? 'opacity-100' : 'opacity-0'}`}
+          className={`transition-opacity duration-300 h-full ${isFilterSidebarVisible ? 'opacity-100' : 'opacity-0'}`}
         >
-          <FoodFilterSidebar db={foodAndRecipeDb} />
+          <div className="h-full overflow-y-auto pr-2">
+            <FoodFilterSidebar db={foodAndRecipeDb} />
+          </div>
         </div>
       </div>
       <button
