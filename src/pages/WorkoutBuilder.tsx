@@ -1771,30 +1771,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
  />
               ))}
               
-              {/* Barre de recherche en haut */}
-              <div className="mt-4 mb-2">
-                <Input
-                  type="text"
-                  placeholder="🔍 Rechercher un exercice"
-                  className="w-full max-w-md"
-                  value={dropZoneSearchTerm}
-                  onChange={(e) => {
-                    setDropZoneSearchTerm(e.target.value);
-                    setShowDropZoneResults(e.target.value.trim().length > 0);
-                  }}
-                  onFocus={() => {
-                    if (dropZoneSearchTerm.trim().length > 0) {
-                      setShowDropZoneResults(true);
-                    }
-                  }}
-                />
-              </div>
-              
-              {/* Zone de drag and drop persistante */}
+              {/* Zone de drag and drop avec recherche intégrée */}
               {
-                <div className="relative" ref={dropZoneRef}>
+                <div className="relative mt-4" ref={dropZoneRef}>
                   <div 
-                    className="text-center text-gray-500 py-12 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors relative z-10"
+                    className="text-center text-gray-500 py-8 px-4 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors relative z-10"
                     onDragOver={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -1808,7 +1789,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     onDragLeave={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      e.currentTarget.classList.remove('border-primary', 'bg-primary-light');
+                      // Ne pas retirer les classes si on entre dans un enfant
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        e.currentTarget.classList.remove('border-primary', 'bg-primary-light');
+                      }
                     }}
                     onDrop={(e) => {
                       e.preventDefault();
@@ -1825,7 +1809,25 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                       }
                     }}
                   >
-                    <p className="text-sm">Glissez-déposez un exercice ici</p>
+                    <p className="text-sm mb-3">Glissez-déposez un exercice ici ou recherchez</p>
+                    <div className="flex justify-center">
+                      <Input
+                        type="text"
+                        placeholder="🔍 Rechercher un exercice"
+                        className="w-full max-w-md bg-white"
+                        value={dropZoneSearchTerm}
+                        onChange={(e) => {
+                          setDropZoneSearchTerm(e.target.value);
+                          setShowDropZoneResults(e.target.value.trim().length > 0);
+                        }}
+                        onFocus={() => {
+                          if (dropZoneSearchTerm.trim().length > 0) {
+                            setShowDropZoneResults(true);
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
                   </div>
                   
                   {/* Liste des résultats de recherche */}
