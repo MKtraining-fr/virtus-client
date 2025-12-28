@@ -7,6 +7,9 @@ import Input from '../components/Input';
 import { useAuth } from '../context/AuthContext';
 import PerformanceHistoryModal from '../components/PerformanceHistoryModal';
 import { useSortableData } from '../hooks/useSortableData';
+import MessageDrawer from '../components/coach/MessageDrawer';
+import MessageBadge from '../components/coach/MessageBadge';
+import { useAllUnreadCounts } from '../hooks/useUnreadCount';
 
 // --- ICONS ---
 const EyeIcon = ({ title, ...props }: React.SVGProps<SVGSVGElement> & { title?: string }) => (
@@ -106,6 +109,13 @@ const Dashboard: React.FC = () => {
   const [filter, setFilter] = useState('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [selectedClientForHistory, setSelectedClientForHistory] = useState<string | null>(null);
+  
+  // État pour le drawer de messagerie
+  const [isMessageDrawerOpen, setIsMessageDrawerOpen] = useState(false);
+  const [selectedClientForMessage, setSelectedClientForMessage] = useState<Client | null>(null);
+  
+  // Hook pour obtenir les compteurs de messages non lus
+  const { byClient: unreadCountsByClient } = useAllUnreadCounts();
 
   const clients = useMemo(() => {
     const activeClients = allClients.filter((p) => p.status === 'active' && p.role === 'client');
@@ -144,21 +154,12 @@ const Dashboard: React.FC = () => {
   }, [sortedClients, filter]);
 
   const clientsWithStatus = useMemo(() => {
-    const newMessagesByClient = messages.reduce(
-      (acc, msg) => {
-        if (user && msg.senderId !== user.id && !msg.seenByCoach) {
-          acc[msg.clientId] = true;
-        }
-        return acc;
-      },
-      {} as Record<string, boolean>
-    );
-
     return filteredClients.map((client) => ({
       ...client,
-      hasNewMessage: !!newMessagesByClient[client.id],
+      hasNewMessage: (unreadCountsByClient[client.id] || 0) > 0,
+      unreadCount: unreadCountsByClient[client.id] || 0,
     }));
-  }, [filteredClients, messages, user]);
+  }, [filteredClients, unreadCountsByClient]);
 
   const renderHeader = (label: string, key: keyof Client) => (
     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -183,6 +184,19 @@ const Dashboard: React.FC = () => {
       await loadData(user.id);
     }
     setSelectedClientForHistory(null);
+  };
+
+  // Handler pour ouvrir le drawer de messagerie
+  const handleOpenMessageDrawer = (client: Client) => {
+    setSelectedClientForMessage(client);
+    setIsMessageDrawerOpen(true);
+  };
+
+  // Handler pour fermer le drawer de messagerie
+  const handleCloseMessageDrawer = () => {
+    setIsMessageDrawerOpen(false);
+    // On garde selectedClientForMessage pour l'animation de fermeture
+    setTimeout(() => setSelectedClientForMessage(null), 300);
   };
 
   return (
@@ -231,7 +245,11 @@ const Dashboard: React.FC = () => {
                 return (
                   <tr
                     key={client.id}
-                    className="hover:bg-gray-50 cursor-pointer"
+                    className={`hover:bg-gray-50 cursor-pointer transition-colors ${
+                      selectedClientForMessage?.id === client.id && isMessageDrawerOpen
+                        ? 'bg-violet-50'
+                        : ''
+                    }`}
                     onClick={() => handleRowClick(client.id)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -285,14 +303,10 @@ const Dashboard: React.FC = () => {
                       className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Button
-                        variant={client.hasNewMessage ? 'primary' : 'secondary'}
-                        size="sm"
-                        onClick={() => navigate(`/app/messagerie?clientId=${client.id}`)}
-                        className="!text-xs"
-                      >
-                        {client.hasNewMessage ? 'Nouveau Message' : 'Ouvrir'}
-                      </Button>
+                      <MessageBadge
+                        unreadCount={client.unreadCount}
+                        onClick={() => handleOpenMessageDrawer(client)}
+                      />
                     </td>
                     <td
                       className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center"
@@ -377,10 +391,23 @@ const Dashboard: React.FC = () => {
           )}
         </div>
       </Card>
+      
+      {/* Modal historique de performance */}
       <PerformanceHistoryModal
         isOpen={!!selectedClientForHistory}
         onClose={closeHistoryModal}
         clientId={selectedClientForHistory}
+      />
+      
+      {/* Drawer de messagerie */}
+      <MessageDrawer
+        isOpen={isMessageDrawerOpen}
+        onClose={handleCloseMessageDrawer}
+        client={selectedClientForMessage}
+        onClientChange={(clientId) => {
+          const newClient = clients.find((c) => c.id === clientId);
+          if (newClient) setSelectedClientForMessage(newClient);
+        }}
       />
     </div>
   );
