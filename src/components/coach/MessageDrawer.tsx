@@ -239,23 +239,14 @@ const MessageDrawer: React.FC<MessageDrawerProps> = ({
   if (!isOpen || !container) return null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-40 flex justify-end"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="drawer-title"
-    >
-      {/* Overlay semi-transparent (optionnel - cliquer pour fermer) */}
+    <>
+      {/* Drawer - positionné à droite, sans overlay bloquant */}
       <div
-        className="absolute inset-0 bg-black bg-opacity-25 transition-opacity"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Drawer */}
-      <div
-        className="relative w-full max-w-md bg-white shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out"
+        className="fixed top-0 right-0 z-40 w-full max-w-md bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out"
         style={{ height: '100vh' }}
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="drawer-title"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
@@ -338,7 +329,7 @@ const MessageDrawer: React.FC<MessageDrawerProps> = ({
           </div>
         )}
       </div>
-    </div>,
+    </>,
     container
   );
 };
