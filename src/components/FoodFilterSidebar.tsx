@@ -103,7 +103,7 @@ const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
   };
 
   return (
-    <Card className="p-4 h-full flex flex-col">
+    <Card className="p-4 h-full flex flex-col overflow-hidden">
       <h2 className="text-xl font-bold mb-4">Aliments</h2>
       <Input
         placeholder="Rechercher..."
@@ -128,9 +128,9 @@ const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
 
       <hr className="my-4" />
 
-      <h3 className="font-semibold mb-2 text-gray-700">Résultats ({filteredResults.length})</h3>
+      <h3 className="font-semibold mb-2 text-gray-700 flex-shrink-0">Résultats ({filteredResults.length})</h3>
       <div 
-        className="space-y-3 overflow-y-scroll flex-grow" 
+        className="space-y-3 overflow-y-auto min-h-0 flex-1" 
         style={{ 
           scrollbarWidth: 'thin', 
           scrollbarColor: '#9ca3af #f3f4f6',
