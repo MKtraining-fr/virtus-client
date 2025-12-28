@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Card from './Card';
 import Input from './Input';
+import FilterChip from './FilterChip';
 import { FoodItem, Meal, MealItem } from '../types';
 
 type SidebarItem = FoodItem | (Meal & { type: 'Repas' | 'Recette' });
@@ -9,26 +10,10 @@ interface FoodFilterSidebarProps {
   db: SidebarItem[];
 }
 
-const FilterChip = ({
-  label,
-  selected,
-  onClick,
-}: {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    className={`px-3 py-1 text-sm rounded-full border transition-all ${selected ? 'bg-primary text-white border-primary' : 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200'}`}
-  >
-    {label}
-  </button>
-);
-
 const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(true);
 
   const foodCategories = useMemo(() => {
     const categories = new Set<string>();
@@ -63,6 +48,17 @@ const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
       data: item,
     };
     e.dataTransfer.setData('text/plain', JSON.stringify(transferData));
+    // Ajouter un feedback visuel
+    if (e.currentTarget) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    // Restaurer l'opacité
+    if (e.currentTarget) {
+      e.currentTarget.style.opacity = '1';
+    }
   };
 
   const filteredResults = useMemo(() => {
@@ -103,48 +99,73 @@ const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
   };
 
   return (
-    <Card className="p-4 h-full flex flex-col overflow-hidden">
-      <h2 className="text-xl font-bold mb-4">Aliments</h2>
+    <Card className="p-4 h-full flex flex-col min-h-0 text-sm">
+      <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+        <h2 className="text-base font-semibold mb-1">Aliments</h2>
+      </div>
       <Input
-        placeholder="Rechercher..."
+        placeholder="Rechercher un aliment..."
         className="mb-4"
+        aria-label="Rechercher un aliment"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
       />
 
-      <div className="mb-4">
-        <h3 className="font-semibold mb-2 text-gray-700">Catégories :</h3>
-        <div className="flex flex-wrap gap-2">
-          {foodCategories.map((category) => (
-            <FilterChip
-              key={category}
-              label={category}
-              selected={selectedCategories.includes(category)}
-              onClick={() => toggleSelection(category)}
-            />
-          ))}
+      {db.length === 0 && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            Aucun aliment chargé. Veuillez vérifier votre connexion à la base de données.
+          </p>
         </div>
-      </div>
+      )}
+
+      {foodCategories.length > 0 && (
+        <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center justify-between mb-1 gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+              Catégories
+            </h3>
+            <button
+              type="button"
+              className="text-[11px] font-medium text-blue-700 hover:text-blue-900"
+              aria-expanded={isCategoryOpen}
+              onClick={() => setIsCategoryOpen((prev) => !prev)}
+            >
+              {isCategoryOpen ? 'Masquer' : 'Afficher'}
+            </button>
+          </div>
+          {isCategoryOpen && (
+            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+              {foodCategories.map((category) => (
+                <FilterChip
+                  key={category}
+                  label={category}
+                  selected={selectedCategories.includes(category)}
+                  onClick={() => toggleSelection(category)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <hr className="my-4" />
 
-      <h3 className="font-semibold mb-2 text-gray-700 flex-shrink-0">Résultats ({filteredResults.length})</h3>
-      <div 
-        className="space-y-3 overflow-y-auto min-h-0 flex-1" 
-        style={{ 
-          scrollbarWidth: 'thin', 
-          scrollbarColor: '#9ca3af #f3f4f6',
-          paddingRight: '8px'
-        }}
-      >
+      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+        <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">
+          Résultats ({filteredResults.length})
+        </h3>
+      </div>
+      <div className="space-y-3 overflow-y-auto flex-grow pr-2 mt-2 min-h-0">
         {filteredResults.map((item, index) => {
           const isMealOrRecipe = 'items' in item;
           return (
             <div
               key={`${item.name}-${index}`}
-              className="cursor-grab group flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100"
+              className="cursor-grab active:cursor-grabbing group flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-opacity"
               draggable
               onDragStart={(e) => handleDragStart(e, item)}
+              onDragEnd={(e) => handleDragEnd(e)}
             >
               <div className="font-semibold text-gray-800 group-hover:text-primary flex-grow">
                 <p>{item.name}</p>
