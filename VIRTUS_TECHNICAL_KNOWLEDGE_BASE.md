@@ -1,7 +1,7 @@
 # Base de Connaissance Technique - Projet Virtus
 
 **Auteur:** Manus AI  
-**Dernière mise à jour:** 24 décembre 2025  
+**Dernière mise à jour:** 28 décembre 2025  
 **Version:** 2.0
 
 ---
@@ -736,3 +736,84 @@ Une **refonte de l'architecture de duplication** pourrait être étudiée pour �
   - La vue non sécurisée `unified_users` a été supprimée.
 - **Fonctions:**
   - Toutes les fonctions critiques ont été recréées avec **`SET search_path = public`** pour prévenir les attaques par injection de schéma.
+
+## Intervention #12 - Correction de la Messagerie Client (Messages Vocaux & Documents)
+
+**Date:** 28 décembre 2025  
+**Type:** Correctif / UX / Messagerie  
+**Statut:** ✅ Résolu et déployé
+
+### Contexte
+
+Suite à la mise en place des messages vocaux et du partage de documents, des problèmes ont été remontés côté client :
+1.  Impossibilité de lire les messages vocaux envoyés par le coach.
+2.  Impossibilité de lire les documents (PDF) partagés par le coach.
+3.  L'expérience utilisateur pour la consultation des documents partagés via la messagerie n'était pas optimale.
+
+### Problèmes Identifiés
+
+| Problème | Cause | Impact |
+| :--- | :--- | :--- |
+| **Lecture vocaux impossible (client)** | Le composant `VoiceMessagePlayer` n'était pas implémenté dans l'interface de messagerie du client (`ClientMessaging.tsx`). | Le client voyait une bulle de message vide ou un texte simple au lieu du lecteur audio. |
+| **Lecture documents impossible (client)** | Le composant `AttachmentDisplay` n'était pas implémenté et la logique de création d'URL signée pour les buckets privés manquait côté client. | Le client voyait un lien brisé ou un message d'erreur en cliquant sur le document. |
+| **UX Documents** | La question s'est posée de savoir si un clic sur un document devait rediriger vers le profil ou ouvrir le document directement. | Potentiel de confusion pour l'utilisateur. |
+
+### Pull Requests Réalisées
+
+| PR | Titre | Description |
+| :--- | :--- | :--- |
+| **#316** | fix: add voice message player and document download support in ClientMessaging | Intégration complète des composants `VoiceMessagePlayer` et `AttachmentDisplay` dans l'interface client. |
+
+### Solutions Appliquées
+
+#### 1. Intégration des composants dans `ClientMessaging.tsx`
+
+**Fichier:** `src/pages/client/ClientMessaging.tsx`
+
+Le fichier a été entièrement réécrit pour inclure la logique de rendu conditionnel des messages, similaire à celle de l'interface coach (`Messaging.tsx`).
+
+-   **`VoiceMessagePlayer`** : A été ajouté. Il gère la lecture des messages vocaux et la régénération des URLs signées expirées, assurant que les anciens messages restent lisibles.
+-   **`AttachmentDisplay`** : A été ajouté. Il gère l'affichage des pièces jointes et le téléchargement via une URL signée.
+
+```typescript
+// src/pages/client/ClientMessaging.tsx
+
+// ... imports des composants et icônes ...
+
+// Rendu d'un message
+const renderMessage = (msg: Message) => {
+  const isMe = msg.senderId === user?.id;
+
+  return (
+    // ...
+    <div>
+      {/* Contenu selon le type de message */}
+      {msg.messageType === 'voice' && msg.voiceUrl ? (
+        <VoiceMessagePlayer url={msg.voiceUrl} duration={msg.voiceDuration} isMe={isMe} />
+      ) : msg.messageType === 'document' && msg.attachmentUrl ? (
+        <>
+          <AttachmentDisplay message={msg} isMe={isMe} />
+          {/* ... */}
+        </>
+      ) : (
+        <p>{msg.content || msg.text}</p>
+      )}
+      {/* ... */}
+    </div>
+  );
+};
+```
+
+#### 2. Amélioration de l'UX pour les documents
+
+La décision a été prise d'améliorer l'expérience utilisateur en permettant une consultation directe des documents.
+
+-   **Ouverture dans un nouvel onglet** : Un clic sur un document dans la messagerie ouvre désormais le fichier directement dans un nouvel onglet du navigateur.
+
+### Points Techniques Importants
+
+1.  **Cohérence des composants** : Il est crucial de maintenir la cohérence des composants (ex: `VoiceMessagePlayer`) entre les interfaces coach et client pour garantir une expérience utilisateur uniforme et éviter les régressions.
+2.  **Gestion des URLs signées** : Toute ressource stockée dans un bucket Supabase privé (`voice-messages`, `client-documents`) doit être accédée via une URL signée (`createSignedUrl`) qui doit être régénérée si elle a expiré.
+
+---
+
