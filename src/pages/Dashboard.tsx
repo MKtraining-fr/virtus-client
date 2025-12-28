@@ -178,11 +178,9 @@ const Dashboard: React.FC = () => {
     setSelectedClientForHistory(clientId);
   };
 
-  const closeHistoryModal = async () => {
-    // Recharger les clients depuis useDataStore pour recalculer client.viewed
-    if (user?.role === 'coach') {
-      await loadData(user.id);
-    }
+  const closeHistoryModal = () => {
+    // Ne pas recharger toutes les données, juste fermer la modale
+    // Le statut 'viewed' sera mis à jour via le realtime ou au prochain chargement
     setSelectedClientForHistory(null);
   };
 
