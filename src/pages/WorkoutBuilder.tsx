@@ -1695,11 +1695,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           </div>
           {workoutMode === 'program' && (
             <div className="mb-4">
-              <div className="flex items-center gap-3 border-b pb-2">
+              <div className="flex items-center gap-2 border-b pb-2 overflow-x-auto">
                 {(sessions || []).map((session) => (
                   <div
                     key={session.id}
-                    className="relative flex items-center"
+                    className="relative group flex-shrink-0"
                     draggable
                     onDragStart={(e) => handleDragSessionStart(e, session.id)}
                     onDragEnter={(e) => handleDragSessionEnter(e, session.id)}
@@ -1708,7 +1708,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   >
                     <button
                       onClick={() => setActiveSessionId(session.id)}
-                      className={`pl-4 pr-6 py-2 rounded-md text-sm font-medium transition-colors ${
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                         activeSessionId === session.id
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-gray-100'
@@ -1716,31 +1716,30 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     >
                       {session.name}
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteSession(session.id);
-                      }}
-                      className="absolute top-0.5 right-0.5 p-0.5 text-gray-400 hover:text-red-500 transition-colors opacity-60 hover:opacity-100"
-                      title="Supprimer la séance"
-                    >
-                      <XMarkIcon className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDuplicateSession();
-                      }}
-                      className="ml-0.5 p-0.5 text-gray-400 hover:text-primary transition-colors"
-                      title="Dupliquer la séance"
-                    >
-                      <DocumentDuplicateIcon className="w-3 h-3" />
-                    </button>
+                    {(sessions || []).length > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSession(session.id);
+                        }}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-gray-400 rounded-full flex items-center justify-center text-white hover:bg-red-500 opacity-0 group-hover:opacity-100"
+                        title="Supprimer la séance"
+                      >
+                        <XMarkIcon className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 ))}
                 <button
+                  onClick={handleDuplicateSession}
+                  title="Copier la séance active"
+                  className="ml-4 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-primary hover:text-white flex-shrink-0"
+                >
+                  <DocumentDuplicateIcon className="w-5 h-5" />
+                </button>
+                <button
                   onClick={handleAddSession}
-                  className="p-1.5 text-gray-500 hover:text-primary transition-colors"
+                  className="ml-2 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-primary hover:text-white flex-shrink-0"
                   title="Ajouter une séance"
                 >
                   <PlusIcon className="w-5 h-5" />
