@@ -31,6 +31,8 @@ const Modal: React.FC<ModalProps> = ({
   
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
+  // Capturer l'état isInBackground au moment du mousedown pour éviter les race conditions
+  const wasInBackgroundOnMouseDownRef = useRef<boolean>(false);
 
   useEffect(() => {
     // This effect runs on the client after the component mounts,
@@ -65,22 +67,28 @@ const Modal: React.FC<ModalProps> = ({
   // Gérer le mousedown pour enregistrer où le clic a commencé
   const handleMouseDown = (e: React.MouseEvent) => {
     mouseDownTargetRef.current = e.target;
+    // Capturer l'état isInBackground AVANT que onFocus ne soit appelé
+    wasInBackgroundOnMouseDownRef.current = isInBackground;
   };
 
   // Gérer le click pour fermer uniquement si le mousedown et le mouseup sont sur le backdrop
-  // Ne pas fermer si la modale est en arrière-plan (isInBackground)
+  // Ne pas fermer si la modale était en arrière-plan au moment du mousedown
   const handleBackdropClick = (e: React.MouseEvent) => {
-    // Si la modale est en arrière-plan, ne pas la fermer sur clic du backdrop
-    // Elle ne doit se fermer que via le bouton X
-    if (isInBackground) {
+    // Utiliser l'état capturé au moment du mousedown, pas l'état actuel
+    // Car onFocus peut avoir changé isInBackground entre mousedown et click
+    if (wasInBackgroundOnMouseDownRef.current) {
+      // Réinitialiser les références
+      mouseDownTargetRef.current = null;
+      wasInBackgroundOnMouseDownRef.current = false;
       return;
     }
     // Vérifier que le clic a commencé ET s'est terminé sur le backdrop
     if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
       onClose();
     }
-    // Réinitialiser la référence
+    // Réinitialiser les références
     mouseDownTargetRef.current = null;
+    wasInBackgroundOnMouseDownRef.current = false;
   };
 
   // Quand la modale est en arrière-plan, réduire l'opacité de l'overlay pour garder le contenu visible
