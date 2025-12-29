@@ -25,33 +25,20 @@ const Modal: React.FC<ModalProps> = ({
   onFocus,
   isInBackground = false,
 }) => {
-  console.log('[Modal] Rendu du composant');
-  console.log('[Modal] isOpen:', isOpen);
-  console.log('[Modal] title:', title);
-  
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
-  // Capturer l'état isInBackground au moment du mousedown pour éviter les race conditions
-  const wasInBackgroundOnMouseDownRef = useRef<boolean>(false);
 
   useEffect(() => {
-    // This effect runs on the client after the component mounts,
-    // ensuring that `document` is available and the modal root element exists.
     const modalRoot = document.getElementById('modal-root');
     if (!modalRoot) {
       console.error("Modal root element '#modal-root' not found in the DOM.");
     }
     setContainer(modalRoot);
-  }, []); // The empty dependency array ensures this effect runs only once on mount.
+  }, []);
 
-  console.log('[Modal] container:', container);
-  
   if (!isOpen || !container) {
-    console.log('[Modal] Modal ne s\'affiche pas - isOpen:', isOpen, 'container:', !!container);
     return null;
   }
-  
-  console.log('[Modal] ✅ Modal va s\'afficher');
 
   const sizeClass = size === 'xl' ? 'max-w-7xl' : 'max-w-2xl';
 
@@ -67,41 +54,54 @@ const Modal: React.FC<ModalProps> = ({
   // Gérer le mousedown pour enregistrer où le clic a commencé
   const handleMouseDown = (e: React.MouseEvent) => {
     mouseDownTargetRef.current = e.target;
-    // Capturer l'état isInBackground AVANT que onFocus ne soit appelé
-    wasInBackgroundOnMouseDownRef.current = isInBackground;
   };
 
   // Gérer le click pour fermer uniquement si le mousedown et le mouseup sont sur le backdrop
-  // Ne pas fermer si la modale était en arrière-plan au moment du mousedown
   const handleBackdropClick = (e: React.MouseEvent) => {
-    // Utiliser l'état capturé au moment du mousedown, pas l'état actuel
-    // Car onFocus peut avoir changé isInBackground entre mousedown et click
-    if (wasInBackgroundOnMouseDownRef.current) {
-      // Réinitialiser les références
-      mouseDownTargetRef.current = null;
-      wasInBackgroundOnMouseDownRef.current = false;
-      return;
-    }
     // Vérifier que le clic a commencé ET s'est terminé sur le backdrop
     if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
       onClose();
     }
-    // Réinitialiser les références
     mouseDownTargetRef.current = null;
-    wasInBackgroundOnMouseDownRef.current = false;
   };
 
-  // Quand la modale est en arrière-plan, réduire l'opacité de l'overlay pour garder le contenu visible
-  const overlayOpacity = isInBackground ? 'bg-opacity-25' : 'bg-opacity-75';
+  // Quand la modale est en arrière-plan, ne pas afficher le backdrop (fond noir)
+  // La modale reste visible mais sans overlay qui bloque les interactions
+  if (isInBackground) {
+    return createPortal(
+      <div
+        className="fixed inset-0 flex justify-center items-center md:p-4 pointer-events-none"
+        style={{ zIndex }}
+      >
+        <div
+          className={`rounded-none md:rounded-lg shadow-xl w-full h-full md:h-auto ${sizeClass} md:mx-4 flex flex-col md:max-h-[90vh] ${themeClasses} pointer-events-auto`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onFocus?.();
+          }}
+          role="document"
+        >
+          <div className={`flex justify-between items-center p-4 ${headerBorderClass} flex-shrink-0`}>
+            <h2 id="modal-title" className="text-xl font-bold">
+              {title}
+            </h2>
+            <button onClick={onClose} className={closeButtonClass} aria-label="Fermer">
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
+          <div className="p-4 md:p-6 overflow-y-auto flex-grow">{children}</div>
+        </div>
+      </div>,
+      container
+    );
+  }
 
+  // Mode normal : avec backdrop
   return createPortal(
     <div
-      className={`fixed inset-0 bg-black ${overlayOpacity} flex justify-center items-center md:p-4 transition-all duration-200`}
+      className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center md:p-4 transition-all duration-200"
       style={{ zIndex }}
-      onMouseDown={(e) => {
-        handleMouseDown(e);
-        onFocus?.();
-      }}
+      onMouseDown={handleMouseDown}
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
