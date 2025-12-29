@@ -405,6 +405,7 @@ const Dashboard: React.FC = () => {
         clientId={selectedClientForHistory}
         zIndex={modalZIndex}
         onFocus={() => setFocusedPanel('modal')}
+        isInBackground={focusedPanel === 'drawer'}
       />
       
       {/* Drawer de messagerie */}

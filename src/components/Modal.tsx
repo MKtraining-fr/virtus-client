@@ -11,6 +11,7 @@ interface ModalProps {
   theme?: 'light' | 'dark';
   zIndex?: number;
   onFocus?: () => void;
+  isInBackground?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -22,6 +23,7 @@ const Modal: React.FC<ModalProps> = ({
   theme = 'light',
   zIndex = 50,
   onFocus,
+  isInBackground = false,
 }) => {
   console.log('[Modal] Rendu du composant');
   console.log('[Modal] isOpen:', isOpen);
@@ -75,9 +77,12 @@ const Modal: React.FC<ModalProps> = ({
     mouseDownTargetRef.current = null;
   };
 
+  // Quand la modale est en arrière-plan, réduire l'opacité de l'overlay pour garder le contenu visible
+  const overlayOpacity = isInBackground ? 'bg-opacity-25' : 'bg-opacity-75';
+
   return createPortal(
     <div
-      className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center md:p-4"
+      className={`fixed inset-0 bg-black ${overlayOpacity} flex justify-center items-center md:p-4 transition-all duration-200`}
       style={{ zIndex }}
       onMouseDown={(e) => {
         handleMouseDown(e);
