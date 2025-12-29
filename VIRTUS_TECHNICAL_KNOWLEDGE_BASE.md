@@ -1,8 +1,8 @@
 # Base de Connaissance Technique - Projet Virtus
 
 **Auteur:** Manus AI  
-**Dernière mise à jour:** 28 décembre 2025  
-**Version:** 2.0
+**Dernière mise à jour:** 29 décembre 2025  
+**Version:** 2.1
 
 ---
 
@@ -13,6 +13,85 @@ Ce document constitue le **journal technique central** du projet Virtus. Il sert
 ---
 
 # HISTORIQUE DES INTERVENTIONS
+
+## Intervention #12 - Drawer de Messagerie dans le Dashboard Coach
+
+**Date:** 29 décembre 2025  
+**Type:** Fonctionnalité / UX / Dashboard  
+**Statut:** ✅ Résolu et déployé
+
+### Contexte
+
+L'objectif était d'intégrer la messagerie directement dans le tableau de bord du coach, permettant de répondre aux clients tout en visualisant le tableau récapitulatif des élèves. La solution retenue est un **drawer latéral** qui s'ouvre à droite sans bloquer l'interaction avec le reste de la page.
+
+### Problèmes Identifiés et Résolus
+
+| Problème | Cause | Solution |
+| :--- | :--- | :--- |
+| **Overlay bloquant l'interaction** | Overlay semi-transparent couvrant toute la page | Suppression de l'overlay, drawer non-modal |
+| **Superposition avec modale historique** | z-index trop élevé du drawer | Réduction du z-index à 30 |
+| **Rechargement de page à la fermeture de la modale** | Appel `loadData()` dans `closeHistoryModal` | Suppression de l'appel `loadData()` |
+| **Fonction vocale absente** | Non implémentée dans le drawer | Ajout complet de l'enregistrement vocal |
+
+### Pull Request Réalisée
+
+| PR | Titre | Description |
+| :--- | :--- | :--- |
+| **#316** | ✨ Drawer de messagerie dans le dashboard coach | Intégration complète avec messages texte, vocaux et realtime |
+
+### Fichiers Créés
+
+| Fichier | Description |
+| :--- | :--- |
+| `src/components/coach/MessageDrawer.tsx` | Drawer latéral avec conversation complète, enregistrement vocal et réponse rapide |
+| `src/components/coach/MessageBadge.tsx` | Badge avec compteur de messages non lus |
+| `src/hooks/useUnreadCount.ts` | Hook pour calculer les messages non lus par client |
+
+### Fichiers Modifiés
+
+| Fichier | Modification |
+| :--- | :--- |
+| `src/pages/Dashboard.tsx` | Intégration du MessageDrawer et MessageBadge, suppression du `loadData()` dans `closeHistoryModal` |
+| `src/pages/WorkoutBuilder.tsx` | Harmonisation des boutons de jours avec le créateur de repas |
+| `src/pages/Nutrition.tsx` | Ajout du wrapper scrollable pour FoodFilterSidebar |
+| `src/components/FoodFilterSidebar.tsx` | Refonte complète basée sur ExerciseFilterSidebar, recherche multi-mots-clés |
+
+### Fonctionnalités Implémentées
+
+#### 1. MessageDrawer (Drawer Latéral)
+
+- **Largeur :** 384px (`max-w-sm`)
+- **Position :** Fixed à droite, z-index 30
+- **Non-modal :** Permet l'interaction avec le tableau et les modales
+- **Conversation complète :** Affiche tous les messages avec scroll
+- **Réponse rapide :** Champ de saisie avec envoi via Entrée
+- **Messages vocaux :** Enregistrement et lecture avec indicateur de durée
+- **Realtime :** Mise à jour automatique via l'abonnement Supabase existant
+
+#### 2. MessageBadge (Compteur de Messages Non Lus)
+
+- **Position :** À gauche de l'icône de messagerie
+- **Style :** Cercle rouge avec compteur blanc
+- **Affichage :** Masqué si aucun message non lu
+
+#### 3. Amélioration de la Recherche d'Aliments
+
+- **Avant :** Recherche par sous-chaîne exacte ("filet poulet" ne trouvait rien)
+- **Après :** Recherche par mots-clés multiples avec logique AND
+- **Exemple :** "filet poulet" trouve "Filet de poulet grillé"
+
+```typescript
+const searchTerms = searchTerm.toLowerCase().split(/\s+/).filter((term) => term.length > 0);
+const matchesSearch = searchTerms.every((term) => itemNameLower.includes(term));
+```
+
+#### 4. Harmonisation des Boutons de Jours (WorkoutBuilder)
+
+- **Boutons de séance :** Style aligné avec Nutrition.tsx
+- **Bouton supprimer :** Visible uniquement au survol
+- **Boutons copier/ajouter :** Cercles gris avec hover violet
+
+---
 
 ## Intervention #11 - Scanner de Code-Barres avec Open Food Facts
 
@@ -641,6 +720,55 @@ Une **refonte de l'architecture de duplication** pourrait être étudiée pour �
 
 
 # ARCHITECTURE TECHNIQUE DU PROJET
+
+## Dashboard Coach - Messagerie Intégrée (Mise à jour du 29 décembre 2025 - PR #316)
+
+### Avant (28 décembre 2025)
+
+- **Dashboard.tsx :** Tableau des élèves avec icône messagerie redirigeant vers la page Messaging
+- **closeHistoryModal :** Appelait `loadData(user.id)` provoquant un rechargement complet
+- **Composants messagerie :** Uniquement dans `src/pages/Messaging.tsx`
+
+### Après (29 décembre 2025)
+
+- **Dashboard.tsx :**
+  - Intégration du `MessageDrawer` et `MessageBadge`
+  - Suppression de l'appel `loadData()` dans `closeHistoryModal`
+  - Highlight violet de la ligne sélectionnée
+
+- **Nouveaux composants :**
+  - `src/components/coach/MessageDrawer.tsx` : Drawer latéral 384px, z-index 30, non-modal
+  - `src/components/coach/MessageBadge.tsx` : Badge compteur rouge
+  - `src/hooks/useUnreadCount.ts` : Hook calcul messages non lus
+
+- **Fonctionnalités :**
+  - Messages texte avec envoi via Entrée
+  - Enregistrement vocal avec upload Supabase Storage
+  - Lecture des messages vocaux avec `VoiceMessagePlayer`
+  - Realtime via abonnement existant `initializeMessagesRealtime()`
+
+---
+
+## Recherche d'Aliments (Mise à jour du 29 décembre 2025 - PR #316)
+
+### Avant (28 décembre 2025)
+
+- **FoodFilterSidebar.tsx :** Recherche par sous-chaîne exacte (`includes`)
+- **Problème :** "filet poulet" ne trouvait pas "Filet de poulet grillé"
+
+### Après (29 décembre 2025)
+
+- **FoodFilterSidebar.tsx :**
+  - Recherche par mots-clés multiples (logique AND)
+  - Séparation des termes via `split(/\s+/)`
+  - Chaque mot-clé doit être présent dans le nom
+  - Refonte complète basée sur `ExerciseFilterSidebar`
+
+- **Nutrition.tsx :**
+  - Ajout wrapper scrollable `h-full overflow-y-auto pr-2`
+  - Propagation correcte de la hauteur pour le scroll
+
+---
 
 ## Base de Données Alimentaire (Mise à jour du 24 décembre 2025 - PR #306, #310, #313)
 
