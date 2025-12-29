@@ -114,8 +114,16 @@ const Dashboard: React.FC = () => {
   const [isMessageDrawerOpen, setIsMessageDrawerOpen] = useState(false);
   const [selectedClientForMessage, setSelectedClientForMessage] = useState<Client | null>(null);
   
+  // État pour gérer le focus entre la modale et le drawer (celui au premier plan)
+  // 'modal' = modale d'historique au premier plan, 'drawer' = drawer de messagerie au premier plan
+  const [focusedPanel, setFocusedPanel] = useState<'modal' | 'drawer'>('modal');
+  
   // Hook pour obtenir les compteurs de messages non lus
   const { byClient: unreadCountsByClient } = useAllUnreadCounts();
+  
+  // Calculer les z-index en fonction du panel focusé
+  const modalZIndex = focusedPanel === 'modal' ? 50 : 40;
+  const drawerZIndex = focusedPanel === 'drawer' ? 50 : 30;
 
   const clients = useMemo(() => {
     const activeClients = allClients.filter((p) => p.status === 'active' && p.role === 'client');
@@ -395,6 +403,8 @@ const Dashboard: React.FC = () => {
         isOpen={!!selectedClientForHistory}
         onClose={closeHistoryModal}
         clientId={selectedClientForHistory}
+        zIndex={modalZIndex}
+        onFocus={() => setFocusedPanel('modal')}
       />
       
       {/* Drawer de messagerie */}
@@ -406,6 +416,8 @@ const Dashboard: React.FC = () => {
           const newClient = clients.find((c) => c.id === clientId);
           if (newClient) setSelectedClientForMessage(newClient);
         }}
+        zIndex={drawerZIndex}
+        onFocus={() => setFocusedPanel('drawer')}
       />
     </div>
   );

@@ -9,6 +9,8 @@ interface ModalProps {
   children: React.ReactNode;
   size?: 'md' | 'xl';
   theme?: 'light' | 'dark';
+  zIndex?: number;
+  onFocus?: () => void;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -18,6 +20,8 @@ const Modal: React.FC<ModalProps> = ({
   children,
   size = 'md',
   theme = 'light',
+  zIndex = 50,
+  onFocus,
 }) => {
   console.log('[Modal] Rendu du composant');
   console.log('[Modal] isOpen:', isOpen);
@@ -73,8 +77,12 @@ const Modal: React.FC<ModalProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center md:p-4"
-      onMouseDown={handleMouseDown}
+      className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center md:p-4"
+      style={{ zIndex }}
+      onMouseDown={(e) => {
+        handleMouseDown(e);
+        onFocus?.();
+      }}
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"

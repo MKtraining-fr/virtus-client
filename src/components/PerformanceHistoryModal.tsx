@@ -7,12 +7,16 @@ interface PerformanceHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   clientId: string | null;
+  zIndex?: number;
+  onFocus?: () => void;
 }
 
 const PerformanceHistoryModal: React.FC<PerformanceHistoryModalProps> = ({
   isOpen,
   onClose,
   clientId,
+  zIndex = 50,
+  onFocus,
 }) => {
   const [programData, setProgramData] = useState<{
     program: any;
@@ -66,7 +70,7 @@ const PerformanceHistoryModal: React.FC<PerformanceHistoryModalProps> = ({
     : 'Historique de performance';
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={modalTitle} size="xl">
+    <Modal isOpen={isOpen} onClose={handleClose} title={modalTitle} size="xl" zIndex={zIndex} onFocus={onFocus}>
       {isLoading ? (
         <div className="text-center py-10">
           <p className="text-gray-500">Chargement de l'historique...</p>

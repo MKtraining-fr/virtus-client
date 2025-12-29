@@ -329,6 +329,8 @@ interface MessageDrawerProps {
   onClose: () => void;
   client: Client | null;
   onClientChange?: (clientId: string) => void;
+  zIndex?: number;
+  onFocus?: () => void;
 }
 
 const MessageDrawer: React.FC<MessageDrawerProps> = ({
@@ -336,6 +338,8 @@ const MessageDrawer: React.FC<MessageDrawerProps> = ({
   onClose,
   client,
   onClientChange,
+  zIndex = 30,
+  onFocus,
 }) => {
   const { user, messages, addMessage, markMessageAsRead } = useAuth();
   const [newMessage, setNewMessage] = useState('');
@@ -541,12 +545,13 @@ const MessageDrawer: React.FC<MessageDrawerProps> = ({
 
   return createPortal(
     <>
-      {/* Drawer - positionné à droite avec z-index inférieur aux modales */}
+      {/* Drawer - positionné à droite avec z-index dynamique */}
       <div
-        className="fixed top-0 right-0 z-30 w-full max-w-sm bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out border-l border-gray-200"
-        style={{ height: '100vh' }}
+        className="fixed top-0 right-0 w-full max-w-sm bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out border-l border-gray-200"
+        style={{ height: '100vh', zIndex }}
         role="complementary"
         aria-labelledby="drawer-title"
+        onMouseDown={onFocus}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-white">
