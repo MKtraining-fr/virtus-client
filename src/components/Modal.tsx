@@ -68,7 +68,13 @@ const Modal: React.FC<ModalProps> = ({
   };
 
   // Gérer le click pour fermer uniquement si le mousedown et le mouseup sont sur le backdrop
+  // Ne pas fermer si la modale est en arrière-plan (isInBackground)
   const handleBackdropClick = (e: React.MouseEvent) => {
+    // Si la modale est en arrière-plan, ne pas la fermer sur clic du backdrop
+    // Elle ne doit se fermer que via le bouton X
+    if (isInBackground) {
+      return;
+    }
     // Vérifier que le clic a commencé ET s'est terminé sur le backdrop
     if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
       onClose();
