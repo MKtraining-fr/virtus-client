@@ -62,8 +62,18 @@ const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
   };
 
   const filteredResults = useMemo(() => {
+    // Séparer les mots-clés de recherche et filtrer les mots vides
+    const searchTerms = searchTerm
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((term) => term.length > 0);
+
     return db.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const itemNameLower = item.name.toLowerCase();
+      
+      // Tous les mots-clés doivent être présents dans le nom (recherche AND)
+      const matchesSearch = searchTerms.length === 0 || 
+        searchTerms.every((term) => itemNameLower.includes(term));
 
       let itemCategory: string;
       if ('items' in item) {
