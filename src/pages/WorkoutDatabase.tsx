@@ -1,4 +1,7 @@
 import React, { useState, useMemo } from 'react';
+import { useFavorites } from '../hooks/useFavorites';
+import { StarIcon } from '@heroicons/react/24/outline';
+import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { Exercise } from '../types';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
@@ -111,10 +114,12 @@ const initialNewExerciseState: Omit<Exercise, 'id'> = {
 
 const WorkoutDatabase: React.FC = () => {
   const { user, exercises, setExercises } = useAuth();
+  const { favorites, isFavorite, toggleFavorite, isLoading: favoritesLoading } = useFavorites(user?.id, 'exercise');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [filter, setFilter] = useState('All');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   // State for the "add exercise" form
   const [newExercise, setNewExercise] = useState<Omit<Exercise, 'id'>>(initialNewExerciseState);
@@ -387,8 +392,27 @@ const WorkoutDatabase: React.FC = () => {
     );
   }, [exercises, user]);
 
-  const filteredExercises =
-    filter === 'All' ? availableExercises : availableExercises.filter((e) => e.category === filter);
+  const filteredExercises = useMemo(() => {
+    let result = filter === 'All' ? availableExercises : availableExercises.filter((e) => e.category === filter);
+    if (showFavoritesOnly) {
+      result = result.filter((e) => isFavorite(e.id));
+    }
+    return result;
+  }, [availableExercises, filter, showFavoritesOnly, isFavorite]);
+
+  const favoritesCount = useMemo(() => {
+    return availableExercises.filter((e) => isFavorite(e.id)).length;
+  }, [availableExercises, isFavorite]);
+
+  const handleToggleFavorite = async (e: React.MouseEvent, exerciseId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    try {
+      await toggleFavorite(exerciseId);
+    } catch (err) {
+      console.error('[WorkoutDatabase] Erreur lors du toggle favori:', err);
+    }
+  };
 
   const filteredAlternativeSuggestions = availableExercises.filter(
     (ex) =>
@@ -473,7 +497,7 @@ const WorkoutDatabase: React.FC = () => {
         </div>
       )}
 
-      <div className="mb-6 flex space-x-2">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         {categories.map((cat) => (
           <button
             key={cat}
@@ -483,6 +507,22 @@ const WorkoutDatabase: React.FC = () => {
             {cat === 'All' ? 'Tous' : cat}
           </button>
         ))}
+        <div className="h-6 w-px bg-gray-300 mx-2" />
+        <button
+          onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+          className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors flex items-center gap-2 ${
+            showFavoritesOnly
+              ? 'bg-yellow-500 text-white'
+              : 'bg-white text-gray-700 hover:bg-yellow-50 border border-yellow-300'
+          }`}
+        >
+          {showFavoritesOnly ? (
+            <StarIconSolid className="w-4 h-4" />
+          ) : (
+            <StarIcon className="w-4 h-4 text-yellow-500" />
+          )}
+          Favoris ({favoritesCount})
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -523,14 +563,30 @@ const WorkoutDatabase: React.FC = () => {
                 </div>
               </div>
             )}
-            {!selectionMode && (user?.role === 'admin' || user?.id === exercise.coachId) && (
-              <button
-                onClick={(e) => handleDeleteExercise(e, exercise.id)}
-                className="absolute top-2 right-2 z-10 p-1.5 bg-white/70 rounded-full text-gray-500 hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
-                title="Supprimer l'exercice"
-              >
-                <TrashIcon className="w-5 h-5" />
-              </button>
+            {!selectionMode && (
+              <div className="absolute top-2 right-2 z-10 flex gap-1">
+                <button
+                  onClick={(e) => handleToggleFavorite(e, exercise.id)}
+                  className="p-1.5 bg-white/70 rounded-full transition-colors hover:bg-yellow-100"
+                  title={isFavorite(exercise.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                  disabled={favoritesLoading}
+                >
+                  {isFavorite(exercise.id) ? (
+                    <StarIconSolid className="w-5 h-5 text-yellow-500" />
+                  ) : (
+                    <StarIcon className="w-5 h-5 text-gray-400 hover:text-yellow-500" />
+                  )}
+                </button>
+                {(user?.role === 'admin' || user?.id === exercise.coachId) && (
+                  <button
+                    onClick={(e) => handleDeleteExercise(e, exercise.id)}
+                    className="p-1.5 bg-white/70 rounded-full text-gray-500 hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+                    title="Supprimer l'exercice"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
             )}
             <img
               src={exercise.illustrationUrl}
