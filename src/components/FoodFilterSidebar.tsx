@@ -3,6 +3,10 @@ import Card from './Card';
 import Input from './Input';
 import FilterChip from './FilterChip';
 import { FoodItem, Meal, MealItem } from '../types';
+import { useFavorites } from '../hooks/useFavorites';
+import { useAuthStore } from '../stores/useAuthStore';
+import { StarIcon } from '@heroicons/react/24/outline';
+import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 
 type SidebarItem = FoodItem | (Meal & { type: 'Repas' | 'Recette' });
 
@@ -11,8 +15,12 @@ interface FoodFilterSidebarProps {
 }
 
 const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
+  const { user } = useAuthStore();
+  const { favorites, isFavorite, toggleFavorite, isLoading: favoritesLoading } = useFavorites(user?.id, 'food');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(true);
 
   const foodCategories = useMemo(() => {
@@ -61,6 +69,16 @@ const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
     }
   };
 
+  const handleToggleFavorite = async (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    try {
+      await toggleFavorite(itemId);
+    } catch (err) {
+      console.error('[FoodFilterSidebar] Erreur lors du toggle favori:', err);
+    }
+  };
+
   const filteredResults = useMemo(() => {
     // Séparer les mots-clés de recherche et filtrer les mots vides
     const searchTerms = searchTerm
@@ -84,9 +102,13 @@ const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
 
       const matchesCategory =
         selectedCategories.length === 0 || selectedCategories.includes(itemCategory);
-      return matchesSearch && matchesCategory;
+      
+      // Filtrer par favoris si activé
+      const matchesFavorites = !showFavoritesOnly || isFavorite(item.id);
+
+      return matchesSearch && matchesCategory && matchesFavorites;
     });
-  }, [db, searchTerm, selectedCategories]);
+  }, [db, searchTerm, selectedCategories, showFavoritesOnly, isFavorite]);
 
   const calculateMealMacros = (items: MealItem[]) => {
     const totals = items.reduce(
@@ -108,6 +130,10 @@ const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
     };
   };
 
+  const favoritesCount = useMemo(() => {
+    return db.filter((item) => isFavorite(item.id)).length;
+  }, [db, isFavorite]);
+
   return (
     <Card className="p-4 h-full flex flex-col min-h-0 text-sm">
       <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
@@ -120,6 +146,24 @@ const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
       />
+
+      {/* Filtre Favoris */}
+      <div className="mb-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+        <button
+          type="button"
+          onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+          className={`flex items-center gap-2 w-full text-left ${
+            showFavoritesOnly ? 'text-yellow-700 font-semibold' : 'text-gray-700'
+          }`}
+        >
+          {showFavoritesOnly ? (
+            <StarIconSolid className="w-5 h-5 text-yellow-500" />
+          ) : (
+            <StarIcon className="w-5 h-5 text-yellow-500" />
+          )}
+          <span>Favoris uniquement ({favoritesCount})</span>
+        </button>
+      </div>
 
       {db.length === 0 && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -191,6 +235,19 @@ const FoodFilterSidebar: React.FC<FoodFilterSidebarProps> = ({ db }) => {
                       })()}
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={(e) => handleToggleFavorite(e, item.id)}
+                className="p-1 rounded-full hover:bg-yellow-100 transition-colors flex-shrink-0"
+                aria-label={isFavorite(item.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                disabled={favoritesLoading}
+              >
+                {isFavorite(item.id) ? (
+                  <StarIconSolid className="w-5 h-5 text-yellow-500" />
+                ) : (
+                  <StarIcon className="w-5 h-5 text-gray-400 group-hover:text-yellow-500" />
+                )}
+              </button>
             </div>
           );
         })}
