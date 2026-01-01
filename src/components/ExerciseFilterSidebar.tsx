@@ -3,6 +3,10 @@ import Card from './Card.tsx';
 import Input from './Input.tsx';
 import { Exercise } from '../types.ts';
 import FilterChip from './FilterChip.tsx';
+import { useFavorites } from '../hooks/useFavorites';
+import { useAuthStore } from '../stores/useAuthStore';
+import { StarIcon } from '@heroicons/react/24/outline';
+import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 
 interface ExerciseFilterSidebarProps {
   db: Exercise[];
@@ -10,9 +14,13 @@ interface ExerciseFilterSidebarProps {
 }
 
 const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDropExercise }) => {
+  const { user } = useAuthStore();
+  const { favorites, isFavorite, toggleFavorite, isLoading: favoritesLoading } = useFavorites(user?.id, 'exercise');
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEquipments, setSelectedEquipments] = useState<string[]>([]);
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [isEquipmentOpen, setIsEquipmentOpen] = useState(true);
   const [isMuscleGroupOpen, setIsMuscleGroupOpen] = useState(true);
 
@@ -57,6 +65,16 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
     }
   };
 
+  const handleToggleFavorite = async (e: React.MouseEvent, exerciseId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    try {
+      await toggleFavorite(exerciseId);
+    } catch (err) {
+      console.error('[ExerciseFilterSidebar] Erreur lors du toggle favori:', err);
+    }
+  };
+
   const filteredResults = useMemo(() => {
     return db.filter((ex) => {
       const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -66,14 +84,19 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
       const matchesMuscleGroups =
         selectedMuscleGroups.length === 0 ||
         (ex.muscleGroups && selectedMuscleGroups.some((smg) => ex.muscleGroups!.includes(smg)));
+      const matchesFavorites = !showFavoritesOnly || isFavorite(ex.id);
 
-      return matchesSearch && matchesEquipment && matchesMuscleGroups;
+      return matchesSearch && matchesEquipment && matchesMuscleGroups && matchesFavorites;
     });
-  }, [db, searchTerm, selectedEquipments, selectedMuscleGroups]);
+  }, [db, searchTerm, selectedEquipments, selectedMuscleGroups, showFavoritesOnly, isFavorite]);
 
   // Image par défaut locale ou data URI pour éviter les erreurs réseau
   const DEFAULT_ILLUSTRATION =
     'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext x="50" y="50" font-family="Arial" font-size="14" fill="%239ca3af" text-anchor="middle" dominant-baseline="middle"%3EExercice%3C/text%3E%3C/svg%3E';
+
+  const favoritesCount = useMemo(() => {
+    return db.filter((ex) => isFavorite(ex.id)).length;
+  }, [db, isFavorite]);
 
   return (
     <Card className="p-4 h-full flex flex-col min-h-0 text-sm">
@@ -87,6 +110,24 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
       />
+
+      {/* Filtre Favoris */}
+      <div className="mb-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+        <button
+          type="button"
+          onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+          className={`flex items-center gap-2 w-full text-left ${
+            showFavoritesOnly ? 'text-yellow-700 font-semibold' : 'text-gray-700'
+          }`}
+        >
+          {showFavoritesOnly ? (
+            <StarIconSolid className="w-5 h-5 text-yellow-500" />
+          ) : (
+            <StarIcon className="w-5 h-5 text-yellow-500" />
+          )}
+          <span>Favoris uniquement ({favoritesCount})</span>
+        </button>
+      </div>
 
       {db.length === 0 && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -180,6 +221,19 @@ const ExerciseFilterSidebar: React.FC<ExerciseFilterSidebarProps> = ({ db, onDro
             <p className="font-semibold text-gray-800 group-hover:text-primary flex-grow">
               {ex.name}
             </p>
+            <button
+              type="button"
+              onClick={(e) => handleToggleFavorite(e, ex.id)}
+              className="p-1 rounded-full hover:bg-yellow-100 transition-colors flex-shrink-0"
+              aria-label={isFavorite(ex.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+              disabled={favoritesLoading}
+            >
+              {isFavorite(ex.id) ? (
+                <StarIconSolid className="w-5 h-5 text-yellow-500" />
+              ) : (
+                <StarIcon className="w-5 h-5 text-gray-400 group-hover:text-yellow-500" />
+              )}
+            </button>
           </div>
         ))}
       </div>
