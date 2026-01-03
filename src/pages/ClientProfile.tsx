@@ -1130,7 +1130,7 @@ const ClientProfile: React.FC = () => {
             </div>
           </Accordion>
 
-          <Accordion title="Entraînements assignés" isOpenDefault={true}>
+          <Accordion title="Entraînements assignés" isOpenDefault={false}>
             <div className="space-y-3">
               {isLoadingPrograms ? (
                 <p className="text-gray-500 text-center py-4">Chargement des programmes...</p>

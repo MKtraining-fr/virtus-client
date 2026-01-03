@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Calculator, TrendingUp, BarChart2, Info } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { ExerciseList } from './ExerciseList';
+import { ExerciseDetail } from './ExerciseDetail';
 import { PerformanceEntry } from './PerformanceEntry';
-import { ProjectionsDisplay } from './ProjectionsDisplay';
-import { PerformanceCharts } from './PerformanceCharts';
 
 interface PerformanceSectionProps {
   clientId: string;
@@ -13,78 +13,104 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({
   clientId,
   isCoach = false
 }) => {
-  const [activeTab, setActiveTab] = useState<'entry' | 'projections' | 'charts'>('projections');
+  const [view, setView] = useState<'list' | 'detail' | 'entry'>('list');
+  const [selectedExercise, setSelectedExercise] = useState<{ id: string; name: string } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleSelectExercise = (exerciseId: string, exerciseName: string) => {
+    setSelectedExercise({ id: exerciseId, name: exerciseName });
+    setView('detail');
+  };
+
+  const handleBackToList = () => {
+    setView('list');
+    setSelectedExercise(null);
+    setRefreshKey(prev => prev + 1); // Rafraîchir la liste
+  };
 
   const handlePerformanceAdded = () => {
     setRefreshKey(prev => prev + 1);
-    setActiveTab('projections');
+    setView('list');
   };
 
   return (
     <div className="space-y-6">
-      {/* Navigation interne */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex gap-1">
+      {/* Header avec bouton d'ajout */}
+      {view === 'list' && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Performances & Évolution</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Suivez vos records et visualisez votre progression
+            </p>
+          </div>
           <button
-            onClick={() => setActiveTab('projections')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'projections'
-                ? 'bg-primary/10 text-primary'
-                : 'text-gray-500 hover:bg-gray-50'
-            }`}
+            onClick={() => setView('entry')}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-medium"
           >
-            <Target className="h-4 w-4" />
-            Projections & Profil
-          </button>
-          <button
-            onClick={() => setActiveTab('charts')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'charts'
-                ? 'bg-primary/10 text-primary'
-                : 'text-gray-500 hover:bg-gray-50'
-            }`}
-          >
-            <BarChart2 className="h-4 w-4" />
-            Évolution
-          </button>
-          <button
-            onClick={() => setActiveTab('entry')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'entry'
-                ? 'bg-primary/10 text-primary'
-                : 'text-gray-500 hover:bg-gray-50'
-            }`}
-          >
-            <Calculator className="h-4 w-4" />
-            Saisir une perf
+            <Plus className="h-4 w-4" />
+            Ajouter une perf
           </button>
         </div>
+      )}
 
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg text-[10px] font-bold text-blue-600 uppercase tracking-wider">
-          <Info className="h-3 w-3" />
-          Données synchronisées en temps réel
-        </div>
-      </div>
-
-      {/* Contenu des onglets */}
-      <div key={refreshKey} className="animate-in fade-in duration-500">
-        {activeTab === 'entry' && (
-          <PerformanceEntry 
-            clientId={clientId} 
-            onPerformanceAdded={handlePerformanceAdded} 
+      {/* Contenu principal */}
+      <div className="bg-white p-6 rounded-xl border border-gray-100">
+        {view === 'list' && (
+          <ExerciseList
+            key={refreshKey}
+            clientId={clientId}
+            onSelectExercise={handleSelectExercise}
           />
         )}
-        {activeTab === 'projections' && (
-          <ProjectionsDisplay clientId={clientId} />
+
+        {view === 'detail' && selectedExercise && (
+          <ExerciseDetail
+            clientId={clientId}
+            exerciseId={selectedExercise.id}
+            exerciseName={selectedExercise.name}
+            onBack={handleBackToList}
+          />
         )}
-        {activeTab === 'charts' && (
-          <PerformanceCharts clientId={clientId} />
+
+        {view === 'entry' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-lg font-semibold">Saisir une nouvelle performance</h4>
+              <button
+                onClick={handleBackToList}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Annuler
+              </button>
+            </div>
+            <PerformanceEntry
+              clientId={clientId}
+              onPerformanceAdded={handlePerformanceAdded}
+            />
+          </div>
         )}
       </div>
+
+      {/* Info box */}
+      {view === 'list' && (
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <span className="text-blue-600 text-lg">💡</span>
+            </div>
+            <div className="flex-1">
+              <h4 className="font-semibold text-blue-900 mb-1">Comment ça marche ?</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• Cliquez sur un exercice pour voir son évolution et ses projections</li>
+                <li>• Le 1RM est calculé automatiquement selon la formule de Brzycki</li>
+                <li>• Le profil nerveux compare vos performances réelles aux projections</li>
+                <li>• Ajoutez régulièrement vos performances pour suivre votre progression</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-// Import manquant pour Target
-import { Target } from 'lucide-react';
