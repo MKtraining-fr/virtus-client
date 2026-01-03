@@ -6,7 +6,9 @@ import Select from '../components/Select';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import { useAuth } from '../context/AuthContext';
-import { Client, BilanField, BilanTemplate, BilanResult } from '../types';
+import { Client, BilanField, BilanTemplate, BilanResult, ExerciseRecord } from '../types';
+import { PerformanceEntry } from '../components/performance/PerformanceEntry';
+import { TrendingUp, Trash2 } from 'lucide-react';
 
 const DynamicField: React.FC<{
   field: BilanField;
@@ -171,6 +173,7 @@ const NewBilan: React.FC = () => {
 
   // Vérifier si c'est un template système (coachId null ou 'system')
   const isInitialBilanSelected = !selectedTemplate?.coachId || selectedTemplate?.coachId === 'system';
+  const [performances, setPerformances] = useState<Partial<ExerciseRecord>[]>([]);
 
   const handleAnswerChange = (fieldId: string, value: unknown) => {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }));
@@ -290,7 +293,20 @@ const NewBilan: React.FC = () => {
     };
 
     try {
-      await addUser({ ...dataToSubmit, role: 'client', status, coachId: user?.id });
+      const newClient = await addUser({ ...dataToSubmit, role: 'client', status, coachId: user?.id });
+      
+      // Enregistrer les performances si présentes
+      if (newClient && performances.length > 0) {
+        const { supabase } = await import('../lib/supabase');
+        await supabase.from('client_exercise_records').insert(
+          performances.map(p => ({
+            ...p,
+            client_id: newClient.id,
+            source: 'initial_assessment'
+          }))
+        );
+      }
+
       alert(status === 'active' ? 'Client validé avec succès !' : 'Prospect archivé avec succès !');
       navigate(status === 'active' ? '/app/clients' : '/app/bilan/archive');
     } catch (error: unknown) {
@@ -351,6 +367,47 @@ const NewBilan: React.FC = () => {
                     );
                   })}
                 </div>
+
+                {/* Ajouter la saisie des performances dans la section Objectif et Conditions d'Entraînement */}
+                {section.title === "Objectif et Conditions d'Entraînement" && (
+                  <div className="mt-8 pt-8 border-t border-gray-100">
+                    <h4 className="text-md font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                      Performances de référence (Optionnel)
+                    </h4>
+                    <p className="text-sm text-gray-500 mb-6">
+                      Saisissez les meilleures performances actuelles du client pour établir son profil nerveux et ses projections.
+                    </p>
+                    
+                    <div className="space-y-4">
+                      {performances.map((perf, index) => (
+                        <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                          <div className="flex-1 font-medium text-gray-900">
+                            Performance #{index + 1}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {perf.weight}kg × {perf.reps} reps (RIR {perf.rir})
+                          </div>
+                          <button 
+                            onClick={() => setPerformances(prev => prev.filter((_, i) => i !== index))}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                      
+                      <div className="bg-white border border-gray-200 rounded-xl p-4">
+                        <PerformanceEntry 
+                          clientId="temp" 
+                          onPerformanceAdded={() => {}} 
+                          isManualMode={true}
+                          onManualAdd={(perf) => setPerformances(prev => [...prev, perf])}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </Accordion>
             );
           })}

@@ -462,3 +462,64 @@ export interface IntensificationTechnique {
   createdAt?: string;
   updatedAt?: string;
 }
+
+// ---- PERFORMANCE & TRAINING INFO TYPES ----
+
+export interface ForbiddenMovement {
+  exerciseId: string;
+  exerciseName: string;
+  reason: string;
+}
+
+export interface ClientTrainingInfo {
+  id: string;
+  clientId: string;
+  experience?: string;
+  trainingSince?: string;
+  sessionsPerWeek?: number;
+  sessionDuration?: number;
+  trainingType?: string;
+  issues?: string;
+  forbiddenMovements: ForbiddenMovement[];
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+export interface ExerciseRecord {
+  id: string;
+  clientId: string;
+  exerciseId: string;
+  exerciseName?: string; // Jointure optionnelle
+  weight: number;
+  reps: number;
+  sets: number;
+  rir: number;
+  oneRmCalculated?: number;
+  source: 'manual' | 'session' | 'initial_assessment';
+  sessionId?: string;
+  notes?: string;
+  recordedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+export interface ExerciseProjection {
+  id: string;
+  clientId: string;
+  exerciseId: string;
+  exerciseName?: string; // Jointure optionnelle
+  targetReps: number;
+  projectedWeight: number;
+  basedOnPerformanceId: string;
+  actualWeight?: number;
+  actualPerformanceId?: string;
+  difference?: number;
+  differencePercent?: number;
+  nervousProfile?: 'force' | 'endurance' | 'balanced';
+  createdAt: string;
+  updatedAt: string;
+}

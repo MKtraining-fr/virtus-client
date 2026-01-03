@@ -33,6 +33,7 @@ import SimpleLineChart from '../components/charts/SimpleLineChart';
 import MeasurementsLineChart from '../components/charts/MeasurementsLineChart';
 import ClientBilanHistory from '../components/ClientBilanHistory';
 import CoachClientDocuments from '../components/coach/CoachClientDocuments';
+import { PerformanceSection } from '../components/performance/PerformanceSection';
 import { supabase } from '../services/supabase';
 
 /* ------------------------- ICONS ------------------------- */
@@ -1057,7 +1058,11 @@ const ClientProfile: React.FC = () => {
             </div>
           </Accordion>
 
-          <Accordion title="Mes bilans" isOpenDefault={true}>
+          <Accordion title="Objectif et Conditions d'Entraînement" isOpenDefault={false}>
+            <PerformanceSection clientId={client.id} isCoach={true} />
+          </Accordion>
+
+          <Accordion title="Mes bilans" isOpenDefault={false}>
             <ClientBilanHistory
               clientId={client.id}
               coachId={user.id}
