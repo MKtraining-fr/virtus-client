@@ -487,7 +487,7 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({
               </div>
               
               {currentProjections.length > 0 ? (
-                <div className="divide-y divide-gray-50">
+                <div className="divide-y divide-gray-50 max-h-[320px] overflow-y-auto">
                   {currentProjections.map((p) => (
                     <div key={p.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
                       <div className="flex items-center gap-4">
