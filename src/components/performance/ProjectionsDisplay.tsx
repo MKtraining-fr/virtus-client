@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TrendingUp, Target, Activity, ChevronRight, AlertCircle, Search, X } from 'lucide-react';
+import { TrendingUp, Target, Activity, ChevronRight, AlertCircle, Search, X, Trophy, ArrowUp, ArrowDown, Minus, Calendar } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { ExerciseProjection } from '../../types';
 
@@ -12,20 +12,43 @@ interface Exercise {
   name: string;
 }
 
+interface ExerciseRecord {
+  id: string;
+  exercise_id: string;
+  weight: number;
+  reps: number;
+  one_rm_calculated: number;
+  source: string;
+  recorded_at: string;
+}
+
+interface PerformanceStats {
+  currentOneRM: number | null;
+  currentDate: string | null;
+  personalRecord: number | null;
+  prDate: string | null;
+  previousOneRM: number | null;
+  trend: 'up' | 'down' | 'stable' | null;
+  trendPercent: number | null;
+}
+
 export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId }) => {
   const [projections, setProjections] = useState<ExerciseProjection[]>([]);
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
+  const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedExerciseName, setSelectedExerciseName] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [hasNoData, setHasNoData] = useState(false);
+  const [performanceStats, setPerformanceStats] = useState<PerformanceStats | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchProjections();
     fetchAllExercises();
+    fetchExerciseRecords();
   }, [clientId]);
 
   // Fermer le dropdown quand on clique en dehors
@@ -38,6 +61,13 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Calculer les stats quand l'exercice sélectionné change
+  useEffect(() => {
+    if (selectedExerciseId) {
+      calculatePerformanceStats(selectedExerciseId);
+    }
+  }, [selectedExerciseId, exerciseRecords]);
 
   const fetchProjections = async () => {
     setIsLoading(true);
@@ -53,7 +83,6 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
 
       if (error) throw error;
       
-      // Mapper les noms d'exercices
       const formattedData = (data || []).map(p => ({
         ...p,
         exerciseName: p.exercises?.name
@@ -86,6 +115,83 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
     }
   };
 
+  const fetchExerciseRecords = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('client_exercise_records')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('recorded_at', { ascending: false });
+
+      if (error) throw error;
+      setExerciseRecords(data || []);
+    } catch (error) {
+      console.error('Error fetching exercise records:', error);
+    }
+  };
+
+  const calculatePerformanceStats = (exerciseId: string) => {
+    const records = exerciseRecords
+      .filter(r => r.exercise_id === exerciseId)
+      .sort((a, b) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime());
+
+    if (records.length === 0) {
+      setPerformanceStats(null);
+      return;
+    }
+
+    // 1RM actuel = dernière performance
+    const latestRecord = records[0];
+    const currentOneRM = parseFloat(latestRecord.one_rm_calculated?.toString() || '0');
+    const currentDate = latestRecord.recorded_at;
+
+    // Record Personnel (PR) = meilleur 1RM historique
+    let personalRecord = 0;
+    let prDate: string | null = null;
+    records.forEach(r => {
+      const oneRM = parseFloat(r.one_rm_calculated?.toString() || '0');
+      if (oneRM > personalRecord) {
+        personalRecord = oneRM;
+        prDate = r.recorded_at;
+      }
+    });
+
+    // Tendance = comparaison avec la performance précédente
+    let previousOneRM: number | null = null;
+    let trend: 'up' | 'down' | 'stable' | null = null;
+    let trendPercent: number | null = null;
+
+    if (records.length > 1) {
+      previousOneRM = parseFloat(records[1].one_rm_calculated?.toString() || '0');
+      const diff = currentOneRM - previousOneRM;
+      trendPercent = previousOneRM > 0 ? (diff / previousOneRM) * 100 : 0;
+      
+      if (Math.abs(trendPercent) < 2) {
+        trend = 'stable';
+      } else if (diff > 0) {
+        trend = 'up';
+      } else {
+        trend = 'down';
+      }
+    }
+
+    setPerformanceStats({
+      currentOneRM,
+      currentDate,
+      personalRecord,
+      prDate,
+      previousOneRM,
+      trend,
+      trendPercent
+    });
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   const getProjectionsForExercise = (exerciseId: string) => {
     return projections
       .filter(p => p.exerciseId === exerciseId)
@@ -116,18 +222,19 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
     setSearchTerm('');
     setShowDropdown(false);
     
-    // Vérifier si cet exercice a des données de projection
+    // Vérifier si cet exercice a des données
     const exerciseProjections = projections.filter(p => p.exerciseId === exerciseId);
-    setHasNoData(exerciseProjections.length === 0);
+    const exerciseRecs = exerciseRecords.filter(r => r.exercise_id === exerciseId);
+    setHasNoData(exerciseProjections.length === 0 && exerciseRecs.length === 0);
   };
 
   const handleClearSelection = () => {
     setSelectedExerciseId(null);
     setSelectedExerciseName(null);
     setHasNoData(false);
+    setPerformanceStats(null);
   };
 
-  // Filtrer les exercices de la BDD selon la recherche
   const filteredExercises = allExercises.filter(ex => 
     ex.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -211,16 +318,73 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune donnée disponible</h3>
           <p className="text-sm text-gray-500 max-w-xs mx-auto">
-            Aucune performance n'a été enregistrée pour <strong>{selectedExerciseName}</strong>. Ajoutez une performance dans l'onglet "Saisir une perf".
+            Aucune performance n'a été enregistrée pour <strong>{selectedExerciseName}</strong>. Ajoutez une performance dans l'onglet "Saisir une perf" ou validez une séance.
           </p>
         </div>
       )}
 
-      {/* Contenu des projections (affiché seulement si des données existent) */}
-      {!hasNoData && selectedExerciseId && currentProjections.length > 0 && (
+      {/* Contenu des performances et projections */}
+      {!hasNoData && selectedExerciseId && (performanceStats || currentProjections.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Résumé du profil */}
-          <div className="lg:col-span-1 space-y-6">
+          {/* Colonne gauche : Stats de performance */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* Carte 1RM Actuel */}
+            <div className="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-6 text-white shadow-xl shadow-primary/20">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <TrendingUp className="h-5 w-5 opacity-80" />
+                  <span className="text-sm font-medium opacity-90">1RM Actuel</span>
+                </div>
+                {performanceStats?.trend && (
+                  <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
+                    performanceStats.trend === 'up' ? 'bg-green-500/20 text-green-200' :
+                    performanceStats.trend === 'down' ? 'bg-red-500/20 text-red-200' :
+                    'bg-white/20 text-white/80'
+                  }`}>
+                    {performanceStats.trend === 'up' && <ArrowUp className="h-3 w-3" />}
+                    {performanceStats.trend === 'down' && <ArrowDown className="h-3 w-3" />}
+                    {performanceStats.trend === 'stable' && <Minus className="h-3 w-3" />}
+                    {performanceStats.trendPercent !== null && (
+                      <span>{performanceStats.trendPercent > 0 ? '+' : ''}{performanceStats.trendPercent.toFixed(1)}%</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="text-4xl font-bold mb-1">
+                {performanceStats?.currentOneRM?.toFixed(1) || mainProjection?.projectedWeight?.toFixed(1) || 'N/A'} <span className="text-lg font-normal opacity-80">kg</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs opacity-70">
+                <Calendar className="h-3 w-3" />
+                <span>{formatDate(performanceStats?.currentDate || null)}</span>
+              </div>
+            </div>
+
+            {/* Carte Record Personnel (PR) */}
+            {performanceStats?.personalRecord && performanceStats.personalRecord > 0 && (
+              <div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl p-6 text-white shadow-xl shadow-yellow-500/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <Trophy className="h-5 w-5 opacity-80" />
+                  <span className="text-sm font-medium opacity-90">Record Personnel (PR)</span>
+                </div>
+                <div className="text-3xl font-bold mb-1">
+                  {performanceStats.personalRecord.toFixed(1)} <span className="text-lg font-normal opacity-80">kg</span>
+                </div>
+                <div className="flex items-center gap-1 text-xs opacity-70">
+                  <Calendar className="h-3 w-3" />
+                  <span>{formatDate(performanceStats.prDate)}</span>
+                </div>
+                {performanceStats.currentOneRM && performanceStats.currentOneRM < performanceStats.personalRecord && (
+                  <div className="mt-3 text-xs bg-white/20 rounded-lg px-3 py-2">
+                    <span className="opacity-80">Écart avec l'actuel : </span>
+                    <span className="font-bold">
+                      {(performanceStats.personalRecord - performanceStats.currentOneRM).toFixed(1)} kg
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Profil Nerveux */}
             <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center">
@@ -236,19 +400,6 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
               <p className="text-xs text-gray-500 leading-relaxed">
                 Le profil nerveux est déterminé par l'écart entre les performances réelles et les projections théoriques sur différentes plages de répétitions.
               </p>
-            </div>
-
-            <div className="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-6 text-white shadow-xl shadow-primary/20">
-              <div className="flex items-center gap-3 mb-4">
-                <TrendingUp className="h-5 w-5 opacity-80" />
-                <span className="text-sm font-medium opacity-90">1RM Estimé</span>
-              </div>
-              <div className="text-4xl font-bold mb-1">
-                {mainProjection?.projectedWeight?.toFixed(1) || 'N/A'} <span className="text-lg font-normal opacity-80">kg</span>
-              </div>
-              <div className="text-xs opacity-70">
-                Basé sur la dernière performance enregistrée
-              </div>
             </div>
           </div>
 
@@ -267,44 +418,51 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
                 </div>
               </div>
               
-              <div className="divide-y divide-gray-50">
-                {currentProjections.map((p) => (
-                  <div key={p.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-600">
-                        {p.targetReps}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">Répétitions</div>
-                        <div className="text-xs text-gray-500">Objectif de série</div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-8">
-                      <div className="text-right">
-                        <div className="text-xs text-gray-400 mb-0.5">Projection</div>
-                        <div className="text-sm font-bold text-primary">{p.projectedWeight?.toFixed(1) || 'N/A'} kg</div>
+              {currentProjections.length > 0 ? (
+                <div className="divide-y divide-gray-50">
+                  {currentProjections.map((p) => (
+                    <div key={p.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-600">
+                          {p.targetReps}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">Répétitions</div>
+                          <div className="text-xs text-gray-500">Objectif de série</div>
+                        </div>
                       </div>
                       
-                      <div className="text-right min-w-[80px]">
-                        <div className="text-xs text-gray-400 mb-0.5">Réel</div>
-                        {p.actualWeight ? (
-                          <div className="flex flex-col items-end">
-                            <div className="text-sm font-bold text-green-600">{p.actualWeight.toFixed(1)} kg</div>
-                            <div className={`text-[10px] font-bold ${p.difference && p.difference > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              {p.difference && p.difference > 0 ? '+' : ''}{p.difference?.toFixed(1)} kg ({p.differencePercent?.toFixed(1)}%)
+                      <div className="flex items-center gap-8">
+                        <div className="text-right">
+                          <div className="text-xs text-gray-400 mb-0.5">Projection</div>
+                          <div className="text-sm font-bold text-primary">{p.projectedWeight?.toFixed(1) || 'N/A'} kg</div>
+                        </div>
+                        
+                        <div className="text-right min-w-[80px]">
+                          <div className="text-xs text-gray-400 mb-0.5">Réel</div>
+                          {p.actualWeight ? (
+                            <div className="flex flex-col items-end">
+                              <div className="text-sm font-bold text-green-600">{p.actualWeight.toFixed(1)} kg</div>
+                              <div className={`text-[10px] font-bold ${p.difference && p.difference > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {p.difference && p.difference > 0 ? '+' : ''}{p.difference?.toFixed(1)} kg ({p.differencePercent?.toFixed(1)}%)
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="text-sm font-medium text-gray-300 italic">N/A</div>
-                        )}
+                          ) : (
+                            <div className="text-sm font-medium text-gray-300 italic">N/A</div>
+                          )}
+                        </div>
+                        
+                        <ChevronRight className="h-4 w-4 text-gray-300" />
                       </div>
-                      
-                      <ChevronRight className="h-4 w-4 text-gray-300" />
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  <p className="text-sm">Aucune projection disponible pour cet exercice.</p>
+                  <p className="text-xs mt-1">Les projections seront calculées après l'ajout de performances.</p>
+                </div>
+              )}
             </div>
             
             <div className="mt-4 flex items-start gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
@@ -318,7 +476,7 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
       )}
 
       {/* Message si aucun exercice sélectionné */}
-      {!selectedExerciseId && projections.length === 0 && (
+      {!selectedExerciseId && projections.length === 0 && exerciseRecords.length === 0 && (
         <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-12 text-center">
           <div className="h-16 w-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
             <Target className="h-8 w-8 text-gray-300" />
