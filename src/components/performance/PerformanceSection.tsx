@@ -3,6 +3,7 @@ import { Calculator, TrendingUp, BarChart2, Info, Target } from 'lucide-react';
 import { PerformanceEntry } from './PerformanceEntry';
 import { ProjectionsDisplay } from './ProjectionsDisplay';
 import { PerformanceCharts } from './PerformanceCharts';
+import { useFormPersistence } from '../../hooks/useFormPersistence';
 
 interface PerformanceSectionProps {
   clientId: string;
@@ -15,9 +16,19 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'entry' | 'projections' | 'charts'>('projections');
   const [refreshKey, setRefreshKey] = useState(0);
-  // État partagé pour la sélection d'exercice entre les onglets
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-  const [selectedExerciseName, setSelectedExerciseName] = useState<string | null>(null);
+  
+  // Persistance de la sélection d'exercice entre les onglets et les rechargements de page
+  const [exerciseSelection, setExerciseSelection] = useFormPersistence<{
+    exerciseId: string | null;
+    exerciseName: string | null;
+  }>(
+    `performance_exercise_selection_${clientId}`,
+    { exerciseId: null, exerciseName: null },
+    { debounceMs: 100, expirationMs: 24 * 60 * 60 * 1000 } // 24h
+  );
+  
+  const selectedExerciseId = exerciseSelection.exerciseId;
+  const selectedExerciseName = exerciseSelection.exerciseName;
 
   const handlePerformanceAdded = () => {
     setRefreshKey(prev => prev + 1);
@@ -25,8 +36,7 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({
   };
 
   const handleExerciseSelect = (exerciseId: string | null, exerciseName: string | null) => {
-    setSelectedExerciseId(exerciseId);
-    setSelectedExerciseName(exerciseName);
+    setExerciseSelection({ exerciseId, exerciseName });
   };
 
   return (

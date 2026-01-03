@@ -144,6 +144,20 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({
     }
   };
 
+  // Générer les projections (1-15 reps) à partir du 1RM
+  const generateProjectionsFromOneRM = (oneRM: number): { targetReps: number; projectedWeight: number }[] => {
+    const projections = [];
+    for (let reps = 1; reps <= 15; reps++) {
+      // Formule inverse de Brzycki: weight = 1RM * (1.0278 - 0.0278 * reps)
+      const projectedWeight = oneRM * (1.0278 - 0.0278 * reps);
+      projections.push({
+        targetReps: reps,
+        projectedWeight: Math.max(0, projectedWeight)
+      });
+    }
+    return projections;
+  };
+
   const calculatePerformanceStats = (exerciseId: string) => {
     const records = exerciseRecords
       .filter(r => r.exercise_id === exerciseId)
@@ -273,7 +287,29 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({
     );
   }
 
-  const currentProjections = selectedExerciseId ? getProjectionsForExercise(selectedExerciseId) : [];
+  // Projections depuis la BDD
+  const dbProjections = selectedExerciseId ? getProjectionsForExercise(selectedExerciseId) : [];
+  
+  // Générer les projections à partir du 1RM si pas de projections en BDD
+  const generatedProjections = performanceStats?.currentOneRM 
+    ? generateProjectionsFromOneRM(performanceStats.currentOneRM)
+    : [];
+  
+  // Utiliser les projections BDD si disponibles, sinon les projections générées
+  const currentProjections = dbProjections.length > 0 ? dbProjections : generatedProjections.map((p, index) => ({
+    id: `generated-${index}`,
+    clientId: clientId,
+    exerciseId: selectedExerciseId || '',
+    targetReps: p.targetReps,
+    projectedWeight: p.projectedWeight,
+    basedOnPerformanceId: '',
+    actualWeight: undefined,
+    actualPerformanceId: undefined,
+    difference: undefined,
+    differencePercent: undefined,
+    nervousProfile: undefined
+  }));
+  
   const mainProjection = currentProjections.find(p => p.targetReps === 1) || currentProjections[0];
 
   return (
