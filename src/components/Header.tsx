@@ -4,6 +4,7 @@ import Button from './Button';
 import ViewSwitcherModal from './ViewSwitcherModal';
 import { useNavigate } from 'react-router-dom';
 import { BellIcon, ArrowLeftOnRectangleIcon } from '../constants/icons';
+import { getUserAvatarUrl } from '../utils/avatarUtils';
 
 const Header: React.FC = () => {
   const { user, logout, originalUser, notifications, setNotifications } = useAuth();
@@ -120,7 +121,7 @@ const Header: React.FC = () => {
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               <img
-                src={`https://i.pravatar.cc/40?u=${user.id}`}
+                src={getUserAvatarUrl(user, 40)}
                 alt={user.firstName}
                 className="w-10 h-10 rounded-full"
               />

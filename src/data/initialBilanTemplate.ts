@@ -16,7 +16,7 @@ export const INITIAL_BILAN_TEMPLATE: BilanTemplate = {
         { id: 'email', label: 'Email', type: 'text', placeholder: 'Email du prospect/client' },
         { id: 'telephone', label: 'Téléphone', type: 'text', placeholder: 'Numéro de téléphone' },
         { id: 'date_naissance', label: 'Date de Naissance', type: 'date', placeholder: '' },
-        { id: 'sexe', label: 'Sexe', type: 'select', options: ['Homme', 'Femme', 'Autre'] },
+        { id: 'sexe', label: 'Sexe', type: 'select', options: ['Homme', 'Femme'] },
       ],
     },
     {

@@ -57,7 +57,7 @@ export const SignUpSchema = z.object({
     .max(120, "L'âge maximum est de 120 ans")
     .optional(),
 
-  sex: z.enum(['Homme', 'Femme', 'Autre']).optional(),
+  sex: z.enum(['Homme', 'Femme']).optional(),
 
   coachId: z.string().optional(),
 
@@ -92,7 +92,7 @@ export const UpdateClientProfileSchema = z.object({
     .optional()
     .or(z.literal('')),
   age: z.number().int().min(13).max(120).optional(),
-  sex: z.enum(['Homme', 'Femme', 'Autre']).optional(),
+  sex: z.enum(['Homme', 'Femme']).optional(),
   address: z.string().max(200).optional(),
   objective: z.string().max(500).optional(),
   notes: z.string().max(2000).optional(),

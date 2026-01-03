@@ -28,6 +28,7 @@ import {
 } from '../services/coachClientProgramService';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { getUserAvatarUrl } from '../utils/avatarUtils';
 import SimpleLineChart from '../components/charts/SimpleLineChart';
 import MeasurementsLineChart from '../components/charts/MeasurementsLineChart';
 import ClientBilanHistory from '../components/ClientBilanHistory';
@@ -975,10 +976,7 @@ const ClientProfile: React.FC = () => {
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div className="flex items-center space-x-4">
           <img
-            src={
-              (client as any).avatar ||
-              `https://i.pravatar.cc/80?u=${client.id}`
-            }
+            src={getUserAvatarUrl(client as any, 80)}
             alt={`${client.firstName} ${client.lastName}`}
             className="w-20 h-20 rounded-full"
           />

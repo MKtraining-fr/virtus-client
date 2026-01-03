@@ -166,7 +166,7 @@ export interface Client {
   affiliationCode?: string;
   dob?: string;
   age?: number;
-  sex?: string;
+  sex?: 'Homme' | 'Femme';
   height?: number;
   weight?: number;
   address?: string;

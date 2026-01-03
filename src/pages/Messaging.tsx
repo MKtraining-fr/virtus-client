@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import Select from '../components/Select';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { getUserAvatarUrl } from '../utils/avatarUtils';
 import { 
   PaperAirplaneIcon, 
   PlusIcon, 
@@ -623,7 +624,7 @@ const Messaging: React.FC = () => {
                 }`}
               >
                 <img
-                  src={client.avatar || `https://i.pravatar.cc/40?u=${client.id}`}
+                  src={getUserAvatarUrl(client, 40)}
                   alt={client.firstName}
                   className="w-10 h-10 rounded-full"
                 />
@@ -661,7 +662,7 @@ const Messaging: React.FC = () => {
           <>
             <div className="p-4 border-b flex items-center space-x-3">
               <img
-                src={selectedClient.avatar || `https://i.pravatar.cc/40?u=${selectedClient.id}`}
+                src={getUserAvatarUrl(selectedClient, 40)}
                 alt={selectedClient.firstName}
                 className="w-10 h-10 rounded-full"
               />
