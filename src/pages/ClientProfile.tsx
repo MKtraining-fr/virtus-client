@@ -554,9 +554,17 @@ const ClientProfile: React.FC = () => {
 
       // Calculer les macros d'origine basés sur le TDEE (répartition standard 30/40/30)
       const targetTdee = baseMetabolicData.baseTdee;
+      
+      // Calculer protéines et glucides normalement
       const originP = Math.round((targetTdee * 0.3) / 4);
-      const originF = Math.round((targetTdee * 0.3) / 9);
       const originC = Math.round((targetTdee * 0.4) / 4);
+      
+      // Ajuster les lipides pour compenser l'erreur d'arrondi et garantir que le total = TDEE
+      // Cela évite l'affichage de "+1 kcal" ou "-1 kcal" dû aux arrondis successifs
+      const caloriesFromProteinAndCarbs = (originP * 4) + (originC * 4);
+      const remainingCalories = targetTdee - caloriesFromProteinAndCarbs;
+      const originF = Math.round(remainingCalories / 9);
+      
       const tdeeMacros = { protein: originP, carbs: originC, fat: originF };
       
       // Définir les macros d'origine une seule fois (basés sur le TDEE)
@@ -1517,7 +1525,8 @@ const ClientProfile: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                {editableCalculatedData.surplusDeficit !== 0 && (
+                {editableCalculatedData.surplusDeficit !== 0 && 
+                 Math.abs(editableCalculatedData.surplusDeficit) >= 5 && (
                   <span
                     className={`font-bold text-sm px-2 py-0.5 rounded-md ${editableCalculatedData.surplusDeficit > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
                   >
