@@ -297,7 +297,7 @@ const NewBilan: React.FC = () => {
       
       // Enregistrer les performances si présentes
       if (newClient && performances.length > 0) {
-        const { supabase } = await import('../lib/supabase');
+        const { supabase } = await import('../services/supabase');
         await supabase.from('client_exercise_records').insert(
           performances.map(p => ({
             ...p,

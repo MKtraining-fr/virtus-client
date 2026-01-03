@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Calculator, Info } from 'lucide-react';
 import { Exercise, ExerciseRecord } from '../../types';
 import { ExerciseSelector } from './ExerciseSelector';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../services/supabase';
 
 interface PerformanceEntryProps {
   clientId: string;

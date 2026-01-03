@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, Dumbbell } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../services/supabase';
 import { Exercise } from '../../types';
 
 interface ExerciseSelectorProps {
