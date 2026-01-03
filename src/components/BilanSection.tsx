@@ -6,8 +6,9 @@
  * Date: 2025-12-14
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useBilanAssignments } from '../hooks/useBilanAssignments';
+import { useFormPersistence, FormRestoredNotification } from '../hooks/useFormPersistence';
 import { BilanAssignment } from '../services/bilanAssignmentService';
 import Button from './Button';
 import Modal from './Modal';
@@ -21,7 +22,19 @@ const BilanSection: React.FC<BilanSectionProps> = ({ userId, theme = 'dark' }) =
   const { assignments, loading, complete } = useBilanAssignments(userId, 'client');
   const [selectedBilan, setSelectedBilan] = useState<BilanAssignment | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  
+  // Utiliser la persistance pour les réponses du bilan
+  const [answers, setAnswers, clearAnswers, hasRestoredAnswers] = useFormPersistence<Record<string, any>>(
+    `bilan_answers_${userId}`,
+    {},
+    {
+      debounceMs: 1000,
+      expirationMs: 7 * 24 * 60 * 60 * 1000, // 7 jours
+    }
+  );
+  
+  // État pour la notification de restauration
+  const [showRestoredNotification, setShowRestoredNotification] = useState(hasRestoredAnswers && Object.keys(answers).length > 0);
 
   const isDark = theme === 'dark';
 
@@ -49,7 +62,13 @@ const BilanSection: React.FC<BilanSectionProps> = ({ userId, theme = 'dark' }) =
 
   const handleCloseBilan = () => {
     setSelectedBilan(null);
+    // Ne pas effacer les réponses pour permettre la récupération
+  };
+  
+  const handleDiscardRestoredData = () => {
     setAnswers({});
+    clearAnswers();
+    setShowRestoredNotification(false);
   };
 
   const handleAnswerChange = (fieldId: string, value: any) => {
@@ -88,6 +107,9 @@ const BilanSection: React.FC<BilanSectionProps> = ({ userId, theme = 'dark' }) =
     console.log('[BilanSection] Résultat de la soumission:', success);
 
     if (success) {
+      // Nettoyer les données persistées après soumission réussie
+      clearAnswers();
+      setAnswers({});
       alert('Bilan complété avec succès !');
       handleCloseBilan();
     } else {
@@ -434,6 +456,13 @@ const BilanSection: React.FC<BilanSectionProps> = ({ userId, theme = 'dark' }) =
           )}
         </Modal>
       )}
+      
+      {/* Notification de données restaurées */}
+      <FormRestoredNotification
+        show={showRestoredNotification}
+        onDismiss={() => setShowRestoredNotification(false)}
+        onDiscard={handleDiscardRestoredData}
+      />
     </>
   );
 };

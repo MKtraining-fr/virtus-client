@@ -107,12 +107,7 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({
       }));
       
       setProjections(formattedData);
-      // Sélectionner le premier exercice seulement si aucun n'est sélectionné
-      if (formattedData.length > 0 && !selectedExerciseId) {
-        const firstExercise = formattedData[0];
-        const displayName = getExerciseDisplayName(firstExercise.exerciseName, firstExercise.exerciseEquipment);
-        handleSelectExercise(firstExercise.exerciseId, displayName);
-      }
+      // Ne pas sélectionner automatiquement un exercice - l'utilisateur doit choisir
     } catch (error) {
       console.error('Error fetching projections:', error);
     } finally {

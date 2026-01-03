@@ -3,6 +3,7 @@ import { Plus, Trash2, Calculator, Info } from 'lucide-react';
 import { Exercise, ExerciseRecord } from '../../types';
 import { ExerciseSelector } from './ExerciseSelector';
 import { supabase } from '../../services/supabase';
+import { useFormPersistence } from '../../hooks/useFormPersistence';
 
 interface PerformanceEntryProps {
   clientId: string;
@@ -17,13 +18,36 @@ export const PerformanceEntry: React.FC<PerformanceEntryProps> = ({
   isManualMode = false,
   onManualAdd
 }) => {
+  // Utiliser la persistance pour les données du formulaire
+  const [formData, setFormData, clearFormData] = useFormPersistence<{
+    exerciseId?: string;
+    exerciseName?: string;
+    weight: string;
+    reps: string;
+    sets: string;
+    rir: string;
+    notes: string;
+  }>(
+    `performance_entry_${clientId}`,
+    { weight: '', reps: '', sets: '1', rir: '0', notes: '' },
+    { debounceMs: 500, expirationMs: 24 * 60 * 60 * 1000 }
+  );
+  
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
-  const [weight, setWeight] = useState<string>('');
-  const [reps, setReps] = useState<string>('');
-  const [sets, setSets] = useState<string>('1');
-  const [rir, setRir] = useState<string>('0');
-  const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Synchroniser les champs avec formData
+  const weight = formData.weight;
+  const reps = formData.reps;
+  const sets = formData.sets;
+  const rir = formData.rir;
+  const notes = formData.notes;
+  
+  const setWeight = (value: string) => setFormData(prev => ({ ...prev, weight: value }));
+  const setReps = (value: string) => setFormData(prev => ({ ...prev, reps: value }));
+  const setSets = (value: string) => setFormData(prev => ({ ...prev, sets: value }));
+  const setRir = (value: string) => setFormData(prev => ({ ...prev, rir: value }));
+  const setNotes = (value: string) => setFormData(prev => ({ ...prev, notes: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,13 +63,10 @@ export const PerformanceEntry: React.FC<PerformanceEntryProps> = ({
         notes: notes
       });
       
-      // Reset form
+      // Reset form et nettoyer les données persistées
       setSelectedExercise(null);
-      setWeight('');
-      setReps('');
-      setSets('1');
-      setRir('0');
-      setNotes('');
+      setFormData({ weight: '', reps: '', sets: '1', rir: '0', notes: '' });
+      clearFormData();
       return;
     }
 
@@ -66,13 +87,10 @@ export const PerformanceEntry: React.FC<PerformanceEntryProps> = ({
 
       if (error) throw error;
 
-      // Reset form
+      // Reset form et nettoyer les données persistées
       setSelectedExercise(null);
-      setWeight('');
-      setReps('');
-      setSets('1');
-      setRir('0');
-      setNotes('');
+      setFormData({ weight: '', reps: '', sets: '1', rir: '0', notes: '' });
+      clearFormData();
       
       if (onPerformanceAdded) onPerformanceAdded();
     } catch (error) {

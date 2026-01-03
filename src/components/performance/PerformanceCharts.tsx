@@ -32,7 +32,7 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
   const selectedExerciseId = externalSelectedId !== undefined ? externalSelectedId : localSelectedId;
   const selectedExerciseName = externalSelectedName !== undefined ? externalSelectedName : localSelectedName;
   
-  const [timeRange, setTimeRange] = useState<'1m' | '3m' | '6m' | 'all'>('3m');
+  const [timeRange, setTimeRange] = useState<'1m' | '3m' | '6m' | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -76,12 +76,7 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
       }));
       
       setRecords(formattedData);
-      // Sélectionner le premier exercice seulement si aucun n'est sélectionné
-      if (formattedData.length > 0 && !selectedExerciseId) {
-        const firstRecord = formattedData[0];
-        const displayName = getExerciseDisplayName(firstRecord.exerciseName, firstRecord.exerciseEquipment);
-        handleSelectExercise(firstRecord.exerciseId, displayName);
-      }
+      // Ne pas sélectionner automatiquement un exercice - l'utilisateur doit choisir
     } catch (error) {
       console.error('Error fetching records:', error);
     } finally {
@@ -113,8 +108,8 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
   const getUniqueExercises = () => {
     const exercises = new Map();
     records.forEach(r => {
-      if (!exercises.has(r.exerciseId)) {
-        exercises.set(r.exerciseId, {
+      if (!exercises.has(r.exercise_id)) {
+        exercises.set(r.exercise_id, {
           name: r.exerciseName,
           equipment: r.exerciseEquipment
         });
@@ -126,7 +121,7 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
   const getChartData = () => {
     if (!selectedExerciseId) return [];
     
-    let filteredRecords = records.filter(r => r.exerciseId === selectedExerciseId);
+    let filteredRecords = records.filter(r => r.exercise_id === selectedExerciseId);
     
     // Appliquer le filtre de période
     if (timeRange !== 'all') {
