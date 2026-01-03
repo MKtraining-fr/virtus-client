@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Target, Activity, ChevronRight, AlertCircle } from 'lucide-react';
-import { supabase } from '../../services/supabase';
+import { supabase } from '../../lib/supabase';
 import { ExerciseProjection } from '../../types';
 
 interface ProjectionsDisplayProps {

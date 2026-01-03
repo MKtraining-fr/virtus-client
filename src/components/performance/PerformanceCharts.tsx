@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from 'recharts';
 import { Calendar, TrendingUp, BarChart2 } from 'lucide-react';
-import { supabase } from '../../services/supabase';
+import { supabase } from '../../lib/supabase';
 import { ExerciseRecord } from '../../types';
 
 interface PerformanceChartsProps {
