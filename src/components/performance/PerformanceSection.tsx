@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calculator, TrendingUp, BarChart2, Info } from 'lucide-react';
+import { Calculator, TrendingUp, BarChart2, Info, Target } from 'lucide-react';
 import { PerformanceEntry } from './PerformanceEntry';
 import { ProjectionsDisplay } from './ProjectionsDisplay';
 import { PerformanceCharts } from './PerformanceCharts';
@@ -86,5 +86,3 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({
   );
 };
 
-// Import manquant pour Target
-import { Target } from 'lucide-react';
