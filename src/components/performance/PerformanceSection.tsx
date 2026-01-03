@@ -15,10 +15,18 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'entry' | 'projections' | 'charts'>('projections');
   const [refreshKey, setRefreshKey] = useState(0);
+  // État partagé pour la sélection d'exercice entre les onglets
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [selectedExerciseName, setSelectedExerciseName] = useState<string | null>(null);
 
   const handlePerformanceAdded = () => {
     setRefreshKey(prev => prev + 1);
     setActiveTab('projections');
+  };
+
+  const handleExerciseSelect = (exerciseId: string | null, exerciseName: string | null) => {
+    setSelectedExerciseId(exerciseId);
+    setSelectedExerciseName(exerciseName);
   };
 
   return (
@@ -76,13 +84,22 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({
           />
         )}
         {activeTab === 'projections' && (
-          <ProjectionsDisplay clientId={clientId} />
+          <ProjectionsDisplay 
+            clientId={clientId}
+            selectedExerciseId={selectedExerciseId}
+            selectedExerciseName={selectedExerciseName}
+            onExerciseSelect={handleExerciseSelect}
+          />
         )}
         {activeTab === 'charts' && (
-          <PerformanceCharts clientId={clientId} />
+          <PerformanceCharts 
+            clientId={clientId}
+            selectedExerciseId={selectedExerciseId}
+            selectedExerciseName={selectedExerciseName}
+            onExerciseSelect={handleExerciseSelect}
+          />
         )}
       </div>
     </div>
   );
 };
-

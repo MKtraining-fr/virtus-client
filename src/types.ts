@@ -492,6 +492,7 @@ export interface ExerciseRecord {
   clientId: string;
   exerciseId: string;
   exerciseName?: string; // Jointure optionnelle
+  exerciseEquipment?: string; // Jointure optionnelle
   weight: number;
   reps: number;
   sets: number;

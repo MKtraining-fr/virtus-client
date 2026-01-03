@@ -5,11 +5,15 @@ import { ExerciseProjection } from '../../types';
 
 interface ProjectionsDisplayProps {
   clientId: string;
+  selectedExerciseId?: string | null;
+  selectedExerciseName?: string | null;
+  onExerciseSelect?: (exerciseId: string | null, exerciseName: string | null) => void;
 }
 
 interface Exercise {
   id: string;
   name: string;
+  equipment?: string | null;
 }
 
 interface ExerciseRecord {
@@ -32,13 +36,22 @@ interface PerformanceStats {
   trendPercent: number | null;
 }
 
-export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId }) => {
+export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ 
+  clientId,
+  selectedExerciseId: externalSelectedId,
+  selectedExerciseName: externalSelectedName,
+  onExerciseSelect
+}) => {
   const [projections, setProjections] = useState<ExerciseProjection[]>([]);
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-  const [selectedExerciseName, setSelectedExerciseName] = useState<string | null>(null);
+  // Utiliser les props externes si disponibles, sinon état local
+  const [localSelectedId, setLocalSelectedId] = useState<string | null>(null);
+  const [localSelectedName, setLocalSelectedName] = useState<string | null>(null);
+  const selectedExerciseId = externalSelectedId !== undefined ? externalSelectedId : localSelectedId;
+  const selectedExerciseName = externalSelectedName !== undefined ? externalSelectedName : localSelectedName;
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [hasNoData, setHasNoData] = useState(false);
@@ -66,8 +79,12 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
   useEffect(() => {
     if (selectedExerciseId) {
       calculatePerformanceStats(selectedExerciseId);
+      // Vérifier si cet exercice a des données
+      const exerciseProjections = projections.filter(p => p.exerciseId === selectedExerciseId);
+      const exerciseRecs = exerciseRecords.filter(r => r.exercise_id === selectedExerciseId);
+      setHasNoData(exerciseProjections.length === 0 && exerciseRecs.length === 0);
     }
-  }, [selectedExerciseId, exerciseRecords]);
+  }, [selectedExerciseId, exerciseRecords, projections]);
 
   const fetchProjections = async () => {
     setIsLoading(true);
@@ -76,7 +93,7 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
         .from('client_exercise_projections')
         .select(`
           *,
-          exercises (name)
+          exercises (name, equipment)
         `)
         .eq('client_id', clientId)
         .order('updated_at', { ascending: false });
@@ -85,14 +102,16 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
       
       const formattedData = (data || []).map(p => ({
         ...p,
-        exerciseName: p.exercises?.name
+        exerciseName: p.exercises?.name,
+        exerciseEquipment: p.exercises?.equipment
       }));
       
       setProjections(formattedData);
+      // Sélectionner le premier exercice seulement si aucun n'est sélectionné
       if (formattedData.length > 0 && !selectedExerciseId) {
-        setSelectedExerciseId(formattedData[0].exerciseId);
-        setSelectedExerciseName(formattedData[0].exerciseName);
-        setHasNoData(false);
+        const firstExercise = formattedData[0];
+        const displayName = getExerciseDisplayName(firstExercise.exerciseName, firstExercise.exerciseEquipment);
+        handleSelectExercise(firstExercise.exerciseId, displayName);
       }
     } catch (error) {
       console.error('Error fetching projections:', error);
@@ -105,7 +124,7 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
     try {
       const { data, error } = await supabase
         .from('exercises')
-        .select('id, name')
+        .select('id, name, equipment')
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -192,6 +211,13 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  const getExerciseDisplayName = (name: string, equipment?: string | null) => {
+    if (equipment) {
+      return `${name} (${equipment})`;
+    }
+    return name;
+  };
+
   const getProjectionsForExercise = (exerciseId: string) => {
     return projections
       .filter(p => p.exerciseId === exerciseId)
@@ -217,27 +243,32 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
   };
 
   const handleSelectExercise = (exerciseId: string, exerciseName: string) => {
-    setSelectedExerciseId(exerciseId);
-    setSelectedExerciseName(exerciseName);
+    if (onExerciseSelect) {
+      onExerciseSelect(exerciseId, exerciseName);
+    } else {
+      setLocalSelectedId(exerciseId);
+      setLocalSelectedName(exerciseName);
+    }
     setSearchTerm('');
     setShowDropdown(false);
-    
-    // Vérifier si cet exercice a des données
-    const exerciseProjections = projections.filter(p => p.exerciseId === exerciseId);
-    const exerciseRecs = exerciseRecords.filter(r => r.exercise_id === exerciseId);
-    setHasNoData(exerciseProjections.length === 0 && exerciseRecs.length === 0);
   };
 
   const handleClearSelection = () => {
-    setSelectedExerciseId(null);
-    setSelectedExerciseName(null);
+    if (onExerciseSelect) {
+      onExerciseSelect(null, null);
+    } else {
+      setLocalSelectedId(null);
+      setLocalSelectedName(null);
+    }
     setHasNoData(false);
     setPerformanceStats(null);
   };
 
-  const filteredExercises = allExercises.filter(ex => 
-    ex.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrer les exercices de la BDD selon la recherche
+  const filteredExercises = allExercises.filter(ex => {
+    const displayName = getExerciseDisplayName(ex.name, ex.equipment);
+    return displayName.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   if (isLoading) {
     return (
@@ -273,18 +304,24 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
         {showDropdown && searchTerm && (
           <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
             {filteredExercises.length > 0 ? (
-              filteredExercises.map((exercise) => (
-                <button
-                  key={exercise.id}
-                  type="button"
-                  onClick={() => handleSelectExercise(exercise.id, exercise.name)}
-                  className={`w-full px-4 py-3 text-left hover:bg-primary/5 transition-colors border-b border-gray-100 last:border-b-0 ${
-                    selectedExerciseId === exercise.id ? 'bg-primary/10 text-primary font-medium' : 'text-gray-900'
-                  }`}
-                >
-                  {exercise.name}
-                </button>
-              ))
+              filteredExercises.map((exercise) => {
+                const displayName = getExerciseDisplayName(exercise.name, exercise.equipment);
+                return (
+                  <button
+                    key={exercise.id}
+                    type="button"
+                    onClick={() => handleSelectExercise(exercise.id, displayName)}
+                    className={`w-full px-4 py-3 text-left hover:bg-primary/5 transition-colors border-b border-gray-100 last:border-b-0 ${
+                      selectedExerciseId === exercise.id ? 'bg-primary/10 text-primary font-medium' : 'text-gray-900'
+                    }`}
+                  >
+                    <span>{exercise.name}</span>
+                    {exercise.equipment && (
+                      <span className="text-gray-500 ml-1">({exercise.equipment})</span>
+                    )}
+                  </button>
+                );
+              })
             ) : (
               <div className="px-4 py-3 text-gray-500 text-center">
                 Aucun exercice trouvé

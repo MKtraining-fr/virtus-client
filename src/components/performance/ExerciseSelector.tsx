@@ -107,7 +107,12 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                     <Dumbbell className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">{exercise.name}</div>
+                    <div className="font-medium text-gray-900">
+                      {exercise.name}
+                      {exercise.equipment && (
+                        <span className="text-gray-500 font-normal"> ({exercise.equipment})</span>
+                      )}
+                    </div>
                     {exercise.category && (
                       <div className="text-xs text-gray-500">{exercise.category}</div>
                     )}

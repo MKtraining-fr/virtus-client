@@ -594,7 +594,12 @@ const WorkoutDatabase: React.FC = () => {
               className="w-full h-40 object-contain bg-gray-100"
             />
             <div className="p-4 flex flex-col flex-grow">
-              <h3 className="font-bold text-lg">{exercise.name}</h3>
+              <h3 className="font-bold text-lg">
+                {exercise.name}
+                {exercise.equipment && (
+                  <span className="text-gray-500 font-normal text-sm"> ({exercise.equipment})</span>
+                )}
+              </h3>
               <p
                 className="text-sm text-gray-600 my-2 flex-grow min-h-[40px]"
                 title={exercise.description}

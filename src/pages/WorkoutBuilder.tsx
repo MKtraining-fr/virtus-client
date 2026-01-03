@@ -1848,7 +1848,12 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                             alt={ex.name}
                             className="w-12 h-12 object-cover rounded-md bg-gray-100 flex-shrink-0"
                           />
-                          <p className="font-medium text-gray-800">{ex.name}</p>
+                          <p className="font-medium text-gray-800">
+                            {ex.name}
+                            {ex.equipment && (
+                              <span className="text-gray-500 font-normal"> ({ex.equipment})</span>
+                            )}
+                          </p>
                         </div>
                       ))}
                     </div>

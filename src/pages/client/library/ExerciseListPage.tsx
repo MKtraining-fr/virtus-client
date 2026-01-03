@@ -164,7 +164,12 @@ const ExerciseListPage: React.FC<ExerciseListPageProps> = ({ title, exercises, c
               className="w-16 h-16 object-contain rounded-md bg-white dark:bg-client-card flex-shrink-0"
             />
             <div className="flex-grow">
-              <p className="font-semibold text-gray-900 dark:text-client-light">{exercise.name}</p>
+              <p className="font-semibold text-gray-900 dark:text-client-light">
+                {exercise.name}
+                {exercise.equipment && (
+                  <span className="text-gray-500 dark:text-client-subtle font-normal"> ({exercise.equipment})</span>
+                )}
+              </p>
               <p className="text-xs text-gray-500 dark:text-client-subtle">
                 {exercise.muscleGroups?.join(', ')}
               </p>
