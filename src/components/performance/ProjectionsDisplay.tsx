@@ -139,33 +139,30 @@ export const ProjectionsDisplay: React.FC<ProjectionsDisplayProps> = ({ clientId
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setShowDropdown(true);
               }}
-              onFocus={() => setShowDropdown(true)}
               className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-base"
             />
           </div>
           
-          {/* Dropdown des exercices */}
-          {showDropdown && (
-            <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
-              {filteredExercises.length > 0 ? (
-                filteredExercises.map((exercise) => (
-                  <button
-                    key={exercise.id}
-                    onClick={() => handleSelectExercise(exercise.id)}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
-                  >
-                    <span className="font-medium text-gray-900">{exercise.name}</span>
-                  </button>
-                ))
-              ) : (
-                <div className="px-4 py-3 text-gray-500 text-center">
-                  Aucun exercice trouvé
-                </div>
-              )}
-            </div>
-          )}
+          {/* Liste des exercices (toujours visible) */}
+          <div className="mt-3 bg-white border border-gray-200 rounded-xl shadow-sm max-h-64 overflow-y-auto">
+            {filteredExercises.length > 0 ? (
+              filteredExercises.map((exercise) => (
+                <button
+                  key={exercise.id}
+                  type="button"
+                  onClick={() => handleSelectExercise(exercise.id)}
+                  className="w-full px-4 py-3 text-left hover:bg-primary/5 hover:text-primary transition-colors border-b border-gray-100 last:border-b-0 cursor-pointer"
+                >
+                  <span className="font-medium">{exercise.name}</span>
+                </button>
+              ))
+            ) : (
+              <div className="px-4 py-3 text-gray-500 text-center">
+                Aucun exercice trouvé
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div className="flex items-center gap-3">
