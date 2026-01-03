@@ -189,42 +189,90 @@ export const ProjectionsTab: React.FC<ProjectionsTabProps> = ({ clientId }) => {
         </div>
       </div>
 
-      {/* Liste compacte des exercices */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {filteredExercises.map((exercise) => (
-          <button
-            key={exercise.exerciseId}
-            onClick={() => setSelectedExerciseId(exercise.exerciseId)}
-            className={`p-4 rounded-lg border-2 transition-all text-left ${
-              selectedExerciseId === exercise.exerciseId
-                ? 'border-primary bg-primary/5'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h4 className="font-semibold text-gray-900">{exercise.exerciseName}</h4>
-                <p className="text-sm text-gray-500 mt-1">
-                  {exercise.recordCount} performance{exercise.recordCount > 1 ? 's' : ''}
+      {/* Sélecteur d'exercice avec dropdown */}
+      <div className="relative">
+        <select
+          value={selectedExerciseId || ''}
+          onChange={(e) => setSelectedExerciseId(e.target.value)}
+          className="w-full p-4 border-2 border-gray-200 rounded-lg appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary text-base font-medium"
+        >
+          {filteredExercises.map((exercise) => (
+            <option key={exercise.exerciseId} value={exercise.exerciseId}>
+              {exercise.exerciseName} - {exercise.recordCount} performance{exercise.recordCount > 1 ? 's' : ''} - 1RM: {exercise.lastRecord.estimated_1rm ? `${Math.round(exercise.lastRecord.estimated_1rm)}kg` : 'N/A'}
+            </option>
+          ))}
+        </select>
+        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+          <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Carte de l'exercice sélectionné */}
+      {selectedExercise && (
+        <div className="p-4 rounded-lg border-2 border-primary bg-primary/5">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h4 className="font-semibold text-gray-900">{selectedExercise.exerciseName}</h4>
+              <p className="text-sm text-gray-500 mt-1">
+                {selectedExercise.recordCount} performance{selectedExercise.recordCount > 1 ? 's' : ''}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-gray-500">1RM estimé</div>
+              <div className="text-lg font-bold text-primary">
+                {selectedExercise.lastRecord.estimated_1rm
+                  ? `${Math.round(selectedExercise.lastRecord.estimated_1rm)}kg`
+                  : 'N/A'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profil nerveux */}
+      {nerveProfileData.length > 0 && (
+        <div className="bg-gray-50 p-6 rounded-xl">
+          <h4 className="text-md font-semibold mb-4 flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            Profil Nerveux
+          </h4>
+          <div className="flex items-start gap-4">
+            <ResponsiveContainer width="50%" height={300}>
+              <RadarChart data={nerveProfileData}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="reps" />
+                <PolarRadiusAxis angle={90} domain={[0, 120]} />
+                <Radar name="Performance" dataKey="score" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
+              </RadarChart>
+            </ResponsiveContainer>
+            <div className="flex-1 space-y-2 text-sm">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-gray-600">
+                  Le profil nerveux compare vos performances réelles aux projections théoriques.
                 </p>
               </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-500">1RM estimé</div>
-                <div className="text-lg font-bold text-primary">
-                  {exercise.lastRecord.estimated_1rm
-                    ? `${Math.round(exercise.lastRecord.estimated_1rm)}kg`
-                    : 'N/A'}
+              <ul className="space-y-1 text-gray-600 ml-6">
+                <li>• <strong>Score &gt; 100%</strong> : Force nerveuse élevée</li>
+                <li>• <strong>Score ≈ 100%</strong> : Profil équilibré</li>
+                <li>• <strong>Score &lt; 100%</strong> : Potentiel d'amélioration</li>
+              </ul>
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-purple-500"></div>
+                  <span className="text-xs text-gray-600">Performance</span>
                 </div>
               </div>
             </div>
-          </button>
-        ))}
-      </div>
+          </div>
+        </div>
+      )}
 
       {/* Détail de l'exercice sélectionné */}
       {selectedExercise && projections.length > 0 && (
         <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-900">{selectedExercise.exerciseName}</h3>
 
           {/* Tableau des projections */}
           <div className="bg-gray-50 p-6 rounded-xl">
@@ -274,48 +322,6 @@ export const ProjectionsTab: React.FC<ProjectionsTabProps> = ({ clientId }) => {
             </div>
           </div>
 
-          {/* Profil nerveux */}
-          {nerveProfileData.length > 0 && (
-            <div className="bg-gray-50 p-6 rounded-xl">
-              <h4 className="text-md font-semibold mb-4 flex items-center gap-2">
-                <Activity className="h-5 w-5 text-primary" />
-                Profil Nerveux
-              </h4>
-              <div className="flex items-start gap-4">
-                <ResponsiveContainer width="50%" height={300}>
-                  <RadarChart data={nerveProfileData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="reps" />
-                    <PolarRadiusAxis angle={90} domain={[0, 120]} />
-                    <Radar name="Performance" dataKey="score" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
-                  </RadarChart>
-                </ResponsiveContainer>
-                <div className="flex-1 space-y-2 text-sm">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-                    <p className="text-gray-600">
-                      Le profil nerveux compare vos performances réelles aux projections théoriques.
-                    </p>
-                  </div>
-                  <ul className="space-y-1 text-gray-600 ml-6">
-                    <li>• <strong>Score &gt; 100%</strong> : Force nerveuse élevée</li>
-                    <li>• <strong>Score ≈ 100%</strong> : Profil équilibré</li>
-                    <li>• <strong>Score &lt; 100%</strong> : Potentiel d'amélioration</li>
-                  </ul>
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                      <span className="text-xs text-gray-600">Score Réel</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="h-3 w-3 rounded-full bg-orange-500"></div>
-                      <span className="text-xs text-gray-600">Projections</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

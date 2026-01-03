@@ -188,42 +188,51 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = ({ clientId }) => {
         </div>
       </div>
 
-      {/* Liste compacte des exercices */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {filteredExercises.map((exercise) => (
-          <button
-            key={exercise.exerciseId}
-            onClick={() => setSelectedExerciseId(exercise.exerciseId)}
-            className={`p-4 rounded-lg border-2 transition-all text-left ${
-              selectedExerciseId === exercise.exerciseId
-                ? 'border-primary bg-primary/5'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h4 className="font-semibold text-gray-900">{exercise.exerciseName}</h4>
-                <p className="text-sm text-gray-500 mt-1">
-                  {exercise.recordCount} performance{exercise.recordCount > 1 ? 's' : ''}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-500">1RM estimé</div>
-                <div className="text-lg font-bold text-primary">
-                  {exercise.lastRecord.estimated_1rm
-                    ? `${Math.round(exercise.lastRecord.estimated_1rm)}kg`
-                    : 'N/A'}
-                </div>
+      {/* Sélecteur d'exercice avec dropdown */}
+      <div className="relative">
+        <select
+          value={selectedExerciseId || ''}
+          onChange={(e) => setSelectedExerciseId(e.target.value)}
+          className="w-full p-4 border-2 border-gray-200 rounded-lg appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary text-base font-medium"
+        >
+          {filteredExercises.map((exercise) => (
+            <option key={exercise.exerciseId} value={exercise.exerciseId}>
+              {exercise.exerciseName} - {exercise.recordCount} performance{exercise.recordCount > 1 ? 's' : ''} - 1RM: {exercise.lastRecord.estimated_1rm ? `${Math.round(exercise.lastRecord.estimated_1rm)}kg` : 'N/A'}
+            </option>
+          ))}
+        </select>
+        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+          <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Carte de l'exercice sélectionné */}
+      {selectedExercise && (
+        <div className="p-4 rounded-lg border-2 border-primary bg-primary/5">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h4 className="font-semibold text-gray-900">{selectedExercise.exerciseName}</h4>
+              <p className="text-sm text-gray-500 mt-1">
+                {selectedExercise.recordCount} performance{selectedExercise.recordCount > 1 ? 's' : ''}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-gray-500">1RM estimé</div>
+              <div className="text-lg font-bold text-primary">
+                {selectedExercise.lastRecord.estimated_1rm
+                  ? `${Math.round(selectedExercise.lastRecord.estimated_1rm)}kg`
+                  : 'N/A'}
               </div>
             </div>
-          </button>
-        ))}
-      </div>
+          </div>
+        </div>
+      )}
 
       {/* Graphiques d'évolution */}
       {selectedExercise && chartData.length > 0 && (
         <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-900">{selectedExercise.exerciseName}</h3>
 
           {/* Graphique d'évolution du 1RM */}
           <div className="bg-gray-50 p-6 rounded-xl">
