@@ -17,6 +17,7 @@ import Input from '../../components/Input';
 import Button from '../../components/Button';
 import MeasurementsLineChart from '../../components/charts/MeasurementsLineChart';
 import BilanSection from '../../components/BilanSection';
+import { PerformanceSection } from '../../components/performance/PerformanceSection';
 import AccountSettingsModal from '../../components/AccountSettingsModal';
 import { supabase } from '../../services/supabase';
 import { useDataStore } from '../../stores/useDataStore';
@@ -553,6 +554,10 @@ const ClientProfile: React.FC = () => {
               <InfoRow label="Date d'inscription" value={formatDate(user.createdAt)} />
             </div>
           ) : null}
+        </ClientAccordion>
+
+        <ClientAccordion title="Objectif et Conditions d'Entraînement">
+          {user && <PerformanceSection clientId={user.id} isCoach={false} />}
         </ClientAccordion>
 
         <ClientAccordion title="Mes bilans">
