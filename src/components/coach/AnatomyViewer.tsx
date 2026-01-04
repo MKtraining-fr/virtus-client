@@ -101,9 +101,18 @@ const AnatomyViewer: React.FC<AnatomyViewerProps> = ({
   };
 
   // Muscles à afficher en surbrillance (survolé + sélectionnés)
-  const musclesToHighlight = new Set<string>();
-  if (hoveredMuscle) musclesToHighlight.add(hoveredMuscle);
-  selectedMuscleIds.forEach(id => musclesToHighlight.add(id));
+  // On utilise un tableau pour contrôler l'ordre d'affichage (le dernier est au premier plan)
+  const musclesToHighlight: string[] = [];
+  
+  // 1. D'abord les muscles déjà blessés (arrière-plan)
+  selectedMuscleIds.forEach(id => {
+    if (id !== hoveredMuscle) musclesToHighlight.push(id);
+  });
+  
+  // 2. Ensuite le muscle survolé (premier plan)
+  if (hoveredMuscle) {
+    musclesToHighlight.push(hoveredMuscle);
+  }
 
   return (
     <>
@@ -671,7 +680,7 @@ const AnatomyViewer: React.FC<AnatomyViewerProps> = ({
             </svg>
             
             {/* Superposition des muscles survolés et sélectionnés */}
-            {Array.from(musclesToHighlight).map(muscleId => {
+            {musclesToHighlight.map(muscleId => {
               const svgPath = getMuscleSvgPath(muscleId);
               if (!svgPath) return null;
               
@@ -685,13 +694,16 @@ const AnatomyViewer: React.FC<AnatomyViewerProps> = ({
                   alt={getMuscleById(muscleId)?.nameFr || muscleId}
                   className="absolute top-0 left-0 w-full h-full object-contain pointer-events-none"
                   style={{
-                    opacity: isSelected ? 1 : isHovered ? 0.8 : 0.6,
-                    filter: isSelected 
-                      ? 'drop-shadow(0 0 8px rgba(99, 102, 241, 0.8))' 
-                      : isHovered 
-                      ? 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.6))'
+                    // Les muscles déjà blessés sont plus discrets (opacité 0.4)
+                    // Le muscle survolé est bien visible (opacité 0.9)
+                    opacity: isHovered ? 0.9 : isSelected ? 0.4 : 0.6,
+                    filter: isHovered 
+                      ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.8))'
+                      : isSelected 
+                      ? 'sepia(100%) saturate(300%) brightness(70%) hue-rotate(-50deg)' // Effet discret pour les blessures existantes
                       : 'none',
                     transition: 'opacity 0.2s ease-out, filter 0.2s ease-out',
+                    zIndex: isHovered ? 10 : 1,
                   }}
                   onError={(e) => {
                     console.error(`Erreur chargement SVG muscle ${muscleId}:`, svgPath);
