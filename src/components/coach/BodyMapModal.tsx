@@ -269,6 +269,22 @@ const BodyMapModal: React.FC<BodyMapModalProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-3">
+                    {/* Bouton pour ajouter une nouvelle blessure */}
+                    <button
+                      onClick={() => setActiveTab(0)}
+                      className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 md:hidden ${
+                        isDark 
+                          ? 'bg-primary/20 text-primary hover:bg-primary/30' 
+                          : 'bg-primary/10 text-primary hover:bg-primary/20'
+                      }`}
+                    >
+                      <PlusIcon className="w-4 h-4" />
+                      Ajouter une blessure
+                    </button>
+                    <p className={`text-xs hidden md:block mb-2 ${isDark ? 'text-client-subtle' : 'text-gray-500'}`}>
+                      Cliquez sur un muscle dans la liste à gauche pour ajouter une nouvelle blessure.
+                    </p>
+                    
                     {localInjuries.map((injury) => (
                       <div
                         key={injury.id}
