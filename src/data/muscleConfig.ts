@@ -78,6 +78,7 @@ export const MUSCLES: MuscleDefinition[] = [
     svgPost: '/anatomy/muscles/deltoid_posterior_post.svg',
     group: 'shoulders',
     subGroup: 'deltoid',
+    preferredView: 'posterior',
   },
   
   // === BRAS ===

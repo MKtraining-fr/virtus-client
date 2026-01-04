@@ -361,10 +361,11 @@ const AnatomyViewer: React.FC<AnatomyViewerProps> = ({
                 strokeWidth="2"
                 className="hover:fill-red-500 hover:fill-opacity-30 transition-all cursor-pointer"
                 onClick={() => {
-                  const muscle = getMuscleById('deltoid_anterior');
+                  const muscleId = view === 'anterior' ? 'deltoid_anterior' : 'deltoid_posterior';
+                  const muscle = getMuscleById(muscleId);
                   if (muscle && onMuscleSelect) onMuscleSelect(muscle);
                 }}
-                onMouseEnter={() => setHoveredMuscle('deltoid_anterior')}
+                onMouseEnter={() => setHoveredMuscle(view === 'anterior' ? 'deltoid_anterior' : 'deltoid_posterior')}
                 onMouseLeave={() => setHoveredMuscle(null)}
               />
               {/* Épaules - Deltoïdes droit */}
@@ -375,10 +376,11 @@ const AnatomyViewer: React.FC<AnatomyViewerProps> = ({
                 strokeWidth="2"
                 className="hover:fill-red-500 hover:fill-opacity-30 transition-all cursor-pointer"
                 onClick={() => {
-                  const muscle = getMuscleById('deltoid_anterior');
+                  const muscleId = view === 'anterior' ? 'deltoid_anterior' : 'deltoid_posterior';
+                  const muscle = getMuscleById(muscleId);
                   if (muscle && onMuscleSelect) onMuscleSelect(muscle);
                 }}
-                onMouseEnter={() => setHoveredMuscle('deltoid_anterior')}
+                onMouseEnter={() => setHoveredMuscle(view === 'anterior' ? 'deltoid_anterior' : 'deltoid_posterior')}
                 onMouseLeave={() => setHoveredMuscle(null)}
               />
               
