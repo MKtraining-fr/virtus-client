@@ -336,8 +336,10 @@ const AnatomyViewer: React.FC<AnatomyViewerProps> = ({
             <img
               src={view === 'anterior' ? fullBodySvgAnt : fullBodySvgPost}
               alt="Corps humain"
-              className="absolute top-0 left-0 w-full h-full object-contain"
-              style={{ opacity: 0.4 }}
+              className={`absolute top-0 left-0 w-full h-full object-contain transition-opacity duration-500 ${highlightList ? 'opacity-100 ring-4 ring-primary ring-inset rounded-full' : 'opacity-80'}`}
+              style={{ 
+                filter: highlightList ? 'drop-shadow(0 0 15px rgba(99, 102, 241, 0.6))' : 'none'
+              }}
               onError={(e) => {
                 console.error('Erreur chargement SVG base:', e);
               }}
