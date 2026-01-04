@@ -12,6 +12,7 @@ import {
 import Modal from '../../../components/Modal';
 import SessionStatsModal from '../../../components/client/SessionStatsModal';
 import Button from '../../../components/Button';
+import ExerciseVideoModal from '../../../components/client/ExerciseVideoModal';
 import { savePerformanceLog } from '../../../services/performanceLogService';
 import { updateClientProgress, markSessionAsCompleted } from '../../../services/clientProgramService';
 import { createClientSession, createClientSessionExercise, getClientProgramIdFromAssignment, findExistingClientSession, updateSessionStatus } from '../../../services/clientSessionService';
@@ -29,6 +30,7 @@ import {
   PlayIcon,
   PauseIcon,
   TrophyIcon,
+  VideoCameraIcon,
 } from '../../../constants/icons';
 
 const INTENSIFICATION_DEFINITIONS: Record<string, string> = {
@@ -130,6 +132,10 @@ const ClientCurrentProgram: React.FC = () => {
     setIndex: number;
   } | null>(null);
   const [currentComment, setCurrentComment] = useState('');
+
+  // Video recording
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [currentPerformanceId, setCurrentPerformanceId] = useState<string | null>(null);
 
   // Timer
   const [isTimerFullscreen, setIsTimerFullscreen] = useState(false);
@@ -715,9 +721,16 @@ const ClientCurrentProgram: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="fixed bottom-20 right-4 z-20">
-          <button onClick={handleStartTimer} className="w-16 h-16 bg-white text-client-dark rounded-full shadow-lg flex items-center justify-center"><ClockIcon className="w-8 h-8" /></button>
-        </div>
+        <>
+          <div className="fixed bottom-20 right-4 z-20">
+            <button onClick={handleStartTimer} className="w-16 h-16 bg-white text-client-dark rounded-full shadow-lg flex items-center justify-center"><ClockIcon className="w-8 h-8" /></button>
+          </div>
+          <div className="fixed bottom-20 left-4 z-20">
+            <button onClick={() => setIsVideoModalOpen(true)} className="w-16 h-16 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:bg-violet-700 transition-colors">
+              <VideoCameraIcon className="w-8 h-8" />
+            </button>
+          </div>
+        </>
       )}
 
       <Modal isOpen={isCongratsModalOpen} onClose={handleCloseCongratsModal} title="Félicitations !">
@@ -755,6 +768,23 @@ const ClientCurrentProgram: React.FC = () => {
           )) : <p className="text-center p-4">Aucune alternative.</p>}
         </div>
       </Modal>
+
+      {isVideoModalOpen && currentExercise && user && (
+        <ExerciseVideoModal
+          isOpen={isVideoModalOpen}
+          clientId={user.id}
+          coachId={user.coach_id || ''}
+          performanceId={currentPerformanceId || ('perf-' + currentExercise.id + '-' + activeSetIndex + '-' + Date.now())}
+          exerciseName={currentExercise.name}
+          setIndex={activeSetIndex}
+          onClose={() => setIsVideoModalOpen(false)}
+          onSuccess={(videoUrl, videoId) => {
+            console.log('✅ Vidéo uploadée:', videoId);
+            setIsVideoModalOpen(false);
+            addNotification?.('Vidéo enregistrée avec succès !', 'success');
+          }}
+        />
+      )}
 
       <Modal isOpen={isCommentModalOpen} onClose={() => setIsCommentModalOpen(false)} title="Note">
         <div className="space-y-4">

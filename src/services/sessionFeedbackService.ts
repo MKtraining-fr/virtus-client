@@ -21,6 +21,11 @@ export interface SessionFeedback {
   // Métadonnées
   submittedAt?: string;
   createdAt?: string;
+  
+  // Nouvelles colonnes pour le coach
+  viewedByCoach?: boolean;
+  viewedAt?: string;
+  coachResponse?: string;
 }
 
 /**
@@ -198,5 +203,128 @@ export async function calculateFeedbackAverages(
   } catch (error) {
     console.error('Erreur lors du calcul des moyennes de feedback:', error);
     return null;
+  }
+}
+
+/**
+ * Marquer un feedback comme vu par le coach
+ */
+export async function markFeedbackAsViewed(
+  feedbackId: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('session_feedback')
+      .update({ 
+        viewed_by_coach: true, 
+        viewed_at: new Date().toISOString() 
+      })
+      .eq('id', feedbackId);
+
+    if (error) {
+      console.error('Erreur marquage feedback vu:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erreur globale marquage feedback:', error);
+    return false;
+  }
+}
+
+/**
+ * Ajouter une réponse coach au feedback
+ */
+export async function addCoachResponseToFeedback(
+  feedbackId: string,
+  response: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('session_feedback')
+      .update({ 
+        coach_response: response,
+        viewed_by_coach: true,
+        viewed_at: new Date().toISOString()
+      })
+      .eq('id', feedbackId);
+
+    if (error) {
+      console.error('Erreur ajout réponse coach:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erreur globale ajout réponse:', error);
+    return false;
+  }
+}
+
+/**
+ * Récupérer le feedback pour un performance_log_id
+ */
+export async function getFeedbackByPerformanceLogId(
+  performanceLogId: string
+): Promise<SessionFeedback | null> {
+  try {
+    const { data, error } = await supabase
+      .from('session_feedback')
+      .select('*')
+      .eq('performance_log_id', performanceLogId)
+      .single();
+
+    if (error) {
+      console.error('Erreur récupération feedback par performance_log_id:', error);
+      return null;
+    }
+
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      clientId: data.client_id,
+      sessionId: data.session_id,
+      performanceLogId: data.performance_log_id,
+      preFatigue: data.pre_fatigue,
+      sleepQuality: data.sleep_quality,
+      perceivedDifficulty: data.perceived_difficulty,
+      enjoyment: data.enjoyment,
+      comment: data.comment,
+      submittedAt: data.submitted_at,
+      createdAt: data.created_at,
+      viewedByCoach: data.viewed_by_coach,
+      viewedAt: data.viewed_at,
+      coachResponse: data.coach_response
+    };
+  } catch (error) {
+    console.error('Erreur globale récupération feedback:', error);
+    return null;
+  }
+}
+
+/**
+ * Compter les feedbacks non vus pour un coach
+ */
+export async function countUnviewedFeedbacksForCoach(
+  coachId: string
+): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from('session_feedback')
+      .select('*, clients!inner(coach_id)', { count: 'exact', head: true })
+      .eq('clients.coach_id', coachId)
+      .eq('viewed_by_coach', false);
+
+    if (error) {
+      console.error('Erreur comptage feedbacks non vus:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (error) {
+    console.error('Erreur globale comptage feedbacks:', error);
+    return 0;
   }
 }
