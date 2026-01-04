@@ -174,6 +174,7 @@ export interface Client {
   objective?: string;
   notes?: string;
   status?: 'active' | 'prospect' | 'archived';
+  archived_at?: string; // Date d'archivage (ISO string) pour gérer le délai de grâce de 7 jours
   lifestyle?: Json;
   medicalInfo?: Json;
   nutrition?: Json;

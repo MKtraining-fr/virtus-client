@@ -67,6 +67,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logger.info('Navigation check', { currentPath, hasUser: !!user, currentViewRole, userRole: user?.role });
 
     if (user) {
+      // Vérifier si le client archivé a dépassé le délai de grâce de 7 jours
+      if (user.role === 'client' && user.status === 'archived' && !originalUser) {
+        if (user.archived_at) {
+          const archivedDate = new Date(user.archived_at);
+          const now = new Date();
+          const daysSinceArchived = Math.floor((now.getTime() - archivedDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysSinceArchived >= 7) {
+            logger.warn('Accès refusé : délai de grâce dépassé', { userId: user.id, daysSinceArchived });
+            useAuthStore.getState().logout();
+            navigate('/login', { 
+              replace: true, 
+              state: { error: "Votre compte a été archivé et le délai de 7 jours est expiré. Vous n'avez plus accès à votre interface." } 
+            });
+            return;
+          }
+        }
+      }
+
       // Déterminer le currentViewRole basé sur le rôle réel de l'utilisateur si non défini
       let effectiveViewRole = currentViewRole;
       

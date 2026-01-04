@@ -30,6 +30,12 @@ const AuthPage: React.FC = () => {
   const isFormDisabled = isLoading || isDataLoading;
 
   useEffect(() => {
+    if (location.state?.error) {
+      setError(location.state.error);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const roleFromQuery = params.get('role');
     if (roleFromQuery === 'coach' || roleFromQuery === 'client') {

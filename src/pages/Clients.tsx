@@ -97,9 +97,26 @@ const Clients: React.FC = () => {
 
     if (window.confirm(`Êtes-vous sûr de vouloir ${action} ${count} client(s) ?`)) {
       try {
-        const { updateUser } = useDataStore.getState();
+        const { updateUser, addNotification } = useDataStore.getState();
         for (const clientId of selectedClients) {
-          await updateUser(clientId, { status: newStatus });
+          const updateData: any = { status: newStatus };
+          if (newStatus === 'archived') {
+            updateData.archived_at = new Date().toISOString();
+          } else if (newStatus === 'active') {
+            updateData.archived_at = null;
+          }
+          await updateUser(clientId, updateData);
+          
+          if (newStatus === 'archived') {
+            // Envoyer une notification au client archivé
+            await addNotification({
+              userId: clientId,
+              title: 'Compte archivé',
+              message: 'Votre compte a été archivé par votre coach. Vous perdrez l\'accès à votre interface dans 7 jours. Vous pouvez choisir de passer en statut indépendant ou de supprimer définitivement votre profil.',
+              type: 'warning',
+              fromName: 'Virtus'
+            });
+          }
         }
         setSelectedClients([]);
         alert(`${count} client(s) ${activeTab === 'active' ? 'archivé(s)' : 'désarchivé(s)'} avec succès.`);
@@ -159,20 +176,32 @@ const Clients: React.FC = () => {
           >
             {isDataLoading ? 'Actualisation...' : '🔄 Actualiser'}
           </Button>
-          <Button
-            variant="secondary"
-            onClick={handleArchiveSelected}
-            disabled={selectedClients.length === 0}
-          >
-            {activeTab === 'active' ? 'Archiver' : 'Désarchiver'}
-          </Button>
-          <Button
-            variant="danger"
-            onClick={handleDeleteSelected}
-            disabled={selectedClients.length === 0}
-          >
-            Supprimer
-          </Button>
+          {activeTab === 'active' ? (
+            <Button
+              variant="secondary"
+              onClick={handleArchiveSelected}
+              disabled={selectedClients.length === 0}
+            >
+              Archiver
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="secondary"
+                onClick={handleArchiveSelected}
+                disabled={selectedClients.length === 0}
+              >
+                Réintégrer
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleDeleteSelected}
+                disabled={selectedClients.length === 0}
+              >
+                Supprimer
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -235,9 +264,11 @@ const Clients: React.FC = () => {
                 {renderHeader('Sexe', 'sex')}
                 {renderHeader('Email', 'email')}
                 {renderHeader('Téléphone', 'phone')}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                {activeTab === 'active' && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -272,56 +303,58 @@ const Clients: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {client.phone}
                   </td>
-                  <td
-                    className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Button
-                      variant="secondary"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (!client.email) {
-                          alert("L'adresse email du client est manquante.");
-                          return;
-                        }
-
-                        try {
-                          await resendInvitation(client.email);
-                          alert(
-                            `✅ Email d'invitation envoyé avec succès à ${client.email}\n\nLe client recevra un email lui permettant de définir son mot de passe.`
-                          );
-                        } catch (error: unknown) {
-                          const err =
-                            error instanceof Error
-                              ? error
-                              : new Error('Une erreur inconnue est survenue.');
-                          console.error("Erreur lors du renvoi de l'invitation:", err);
-
-                          // Gérer les erreurs spécifiques
-                          let errorMessage = "Une erreur est survenue lors de l'envoi de l'email.";
-
-                          if (err.message) {
-                            if (err.message.includes('rate limit')) {
-                              errorMessage =
-                                "⚠️ Trop de tentatives d'envoi.\n\nVeuillez réessayer dans quelques minutes.";
-                            } else if (err.message.includes('SMTP')) {
-                              errorMessage =
-                                "⚠️ Erreur de configuration email.\n\nLe service SMTP n'est pas configuré. Veuillez consulter le guide CONFIGURATION_BREVO_SMTP.md pour configurer Brevo SMTP dans Supabase.";
-                            } else if (err.message.includes('not found')) {
-                              errorMessage =
-                                "⚠️ Utilisateur non trouvé.\n\nCette adresse email n'est pas enregistrée dans le système d'authentification.";
-                            } else {
-                              errorMessage = `❌ Erreur: ${err.message}`;
-                            }
+                  {activeTab === 'active' && (
+                    <td
+                      className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        variant="secondary"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!client.email) {
+                            alert("L'adresse email du client est manquante.");
+                            return;
                           }
 
-                          alert(errorMessage);
-                        }
-                      }}
-                    >
-                      Renvoyer l'invitation
-                    </Button>
-                  </td>
+                          try {
+                            await resendInvitation(client.email);
+                            alert(
+                              `✅ Email d'invitation envoyé avec succès à ${client.email}\n\nLe client recevra un email lui permettant de définir son mot de passe.`
+                            );
+                          } catch (error: unknown) {
+                            const err =
+                              error instanceof Error
+                                ? error
+                                : new Error('Une erreur inconnue est survenue.');
+                            console.error("Erreur lors du renvoi de l'invitation:", err);
+
+                            // Gérer les erreurs spécifiques
+                            let errorMessage = "Une erreur est survenue lors de l'envoi de l'email.";
+
+                            if (err.message) {
+                              if (err.message.includes('rate limit')) {
+                                errorMessage =
+                                  "⚠️ Trop de tentatives d'envoi.\n\nVeuillez réessayer dans quelques minutes.";
+                              } else if (err.message.includes('SMTP')) {
+                                errorMessage =
+                                  "⚠️ Erreur de configuration email.\n\nLe service SMTP n'est pas configuré. Veuillez consulter le guide CONFIGURATION_BREVO_SMTP.md pour configurer Brevo SMTP dans Supabase.";
+                              } else if (err.message.includes('not found')) {
+                                errorMessage =
+                                  "⚠️ Utilisateur non trouvé.\n\nCette adresse email n'est pas enregistrée dans le système d'authentification.";
+                              } else {
+                                errorMessage = `❌ Erreur: ${err.message}`;
+                              }
+                            }
+
+                            alert(errorMessage);
+                          }
+                        }}
+                      >
+                        Renvoyer l'invitation
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

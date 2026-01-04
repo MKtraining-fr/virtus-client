@@ -244,7 +244,7 @@ const BodyMapModal: React.FC<BodyMapModalProps> = ({
             </div>
 
             {/* Panneau latéral - Liste des blessures - visible sur desktop ou onglet 1 sur mobile */}
-            <div className={`w-full md:w-80 border-l ${isDark ? 'border-client-dark bg-client-card' : 'border-gray-200 bg-white'} overflow-y-auto flex-shrink-0 ${activeTab === 1 ? 'block' : 'hidden md:block'}`}>
+            <div className={`w-full md:w-80 border-l ${isDark ? 'border-client-dark bg-client-card' : 'border-gray-200 bg-white'} overflow-y-auto custom-scrollbar flex-shrink-0 ${activeTab === 1 ? 'block' : 'hidden md:block'}`}>
               <div className="p-4">
                 <h3 className="font-semibold text-lg mb-4">
                   Blessures enregistrées ({localInjuries.length})

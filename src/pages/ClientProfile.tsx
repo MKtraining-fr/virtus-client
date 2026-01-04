@@ -1038,9 +1038,75 @@ const ClientProfile: React.FC = () => {
             <EnvelopeIcon className="w-5 h-5 mr-2" /> Messagerie
           </Button>
           {isCoach && (
-            <Button onClick={() => setShowBilanAssignmentModal(true)} variant="primary">
-              Assigner un Bilan
-            </Button>
+            <>
+              <Button onClick={() => setShowBilanAssignmentModal(true)} variant="primary">
+                Assigner un Bilan
+              </Button>
+              {client.status === 'active' ? (
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    if (window.confirm(`Êtes-vous sûr de vouloir archiver ce client ?`)) {
+                      try {
+                        const { updateUser, addNotification } = useDataStore.getState();
+                        await updateUser(client.id, { status: 'archived', archived_at: new Date().toISOString() });
+                        await addNotification({
+                          userId: client.id,
+                          title: 'Compte archivé',
+                          message: 'Votre compte a été archivé par votre coach. Vous perdrez l\'accès à votre interface dans 7 jours. Vous pouvez choisir de passer en statut indépendant ou de supprimer définitivement votre profil.',
+                          type: 'warning',
+                          fromName: 'Virtus'
+                        });
+                        alert('Client archivé avec succès.');
+                        navigate('/app/clients');
+                      } catch (error) {
+                        console.error('Erreur lors de l\'archivage:', error);
+                        alert('Une erreur est survenue lors de l\'archivage.');
+                      }
+                    }
+                  }}
+                >
+                  Archiver
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    if (window.confirm(`Êtes-vous sûr de vouloir réintégrer ce client ?`)) {
+                      try {
+                        const { updateUser } = useDataStore.getState();
+                        await updateUser(client.id, { status: 'active', archived_at: null });
+                        alert('Client réintégré avec succès.');
+                        navigate('/app/clients');
+                      } catch (error) {
+                        console.error('Erreur lors de la réintégration:', error);
+                        alert('Une erreur est survenue lors de la réintégration.');
+                      }
+                    }
+                  }}
+                >
+                  Réintégrer
+                </Button>
+              )}
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  if (window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement ce client ? Cette action est irréversible.`)) {
+                    try {
+                      const { deleteUser } = useAuthStore.getState();
+                      await deleteUser(client.id);
+                      alert('Client supprimé avec succès.');
+                      navigate('/app/clients');
+                    } catch (error) {
+                      console.error('Erreur lors de la suppression:', error);
+                      alert('Erreur lors de la suppression du client.');
+                    }
+                  }
+                }}
+              >
+                Supprimer
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -1094,7 +1160,7 @@ const ClientProfile: React.FC = () => {
 
           <Accordion title="Objectif et Conditions d'Entraînement" isOpenDefault={false}>
             <PerformanceSection clientId={client.id} isCoach={true} />
-          </Accordion>
+          </Accordion>>
 
           <Accordion title="Mes bilans" isOpenDefault={false}>
             <ClientBilanHistory

@@ -371,7 +371,7 @@ const NewBilan: React.FC = () => {
               return null;
             }
             return (
-              <Accordion key={section.id} title={section.title} isOpenDefault={section.isCivility === true}>
+              <Accordion key={section.id} title={section.title} isOpenDefault={section.isCivility === true || section.title === 'Informations générales'}>
                 <div
                   className={`grid grid-cols-1 ${section.isCivility ? 'md:grid-cols-2' : ''} gap-4`}
                 >

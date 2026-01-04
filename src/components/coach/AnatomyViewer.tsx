@@ -328,8 +328,8 @@ const AnatomyViewer: React.FC<AnatomyViewerProps> = ({
               transform: `scale(${zoom})`,
               transformOrigin: 'center center',
               transition: 'transform 0.2s ease-out',
-              width: isMobile ? '180px' : '220px',
-              height: isMobile ? '360px' : '450px',
+              width: isMobile ? '200px' : '240px',
+              height: isMobile ? '400px' : '480px',
             }}
           >
             {/* Corps entier comme base */}
