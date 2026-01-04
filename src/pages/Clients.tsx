@@ -32,6 +32,7 @@ const Clients: React.FC = () => {
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [filter, setFilter] = useState('');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
 
   const handleInviteClient = async (data: InviteClientData) => {
     try {
@@ -46,12 +47,12 @@ const Clients: React.FC = () => {
   const navigate = useNavigate();
 
   const clients = useMemo(() => {
-    const activeClients = allClients.filter((p) => p.status === 'active' && p.role === 'client');
+    const filteredByStatus = allClients.filter((p) => p.status === activeTab && p.role === 'client');
     if (user?.role === 'coach') {
-      return activeClients.filter((c) => c.coachId === user.id);
+      return filteredByStatus.filter((c) => c.coachId === user.id);
     }
-    return activeClients;
-  }, [allClients, user]);
+    return filteredByStatus;
+  }, [allClients, user, activeTab]);
 
   const {
     items: sortedClients,
@@ -88,16 +89,24 @@ const Clients: React.FC = () => {
     navigate(`/app/client/${clientId}`);
   };
 
-  const handleArchiveSelected = () => {
+  const handleArchiveSelected = async () => {
     if (selectedClients.length === 0) return;
     const count = selectedClients.length;
-    if (window.confirm(`Êtes-vous sûr de vouloir archiver ${count} client(s) ?`)) {
-      const updatedClients = allClients.map(
-        (c): Client => (selectedClients.includes(c.id) ? { ...c, status: 'archived' } : c)
-      );
-      setClients(updatedClients);
-      setSelectedClients([]);
-      alert(`${count} client(s) archivé(s) avec succès.`);
+    const action = activeTab === 'active' ? 'archiver' : 'désarchiver';
+    const newStatus = activeTab === 'active' ? 'archived' : 'active';
+
+    if (window.confirm(`Êtes-vous sûr de vouloir ${action} ${count} client(s) ?`)) {
+      try {
+        const { updateUser } = useDataStore.getState();
+        for (const clientId of selectedClients) {
+          await updateUser(clientId, { status: newStatus });
+        }
+        setSelectedClients([]);
+        alert(`${count} client(s) ${activeTab === 'active' ? 'archivé(s)' : 'désarchivé(s)'} avec succès.`);
+      } catch (error) {
+        console.error(`Erreur lors de l'action ${action}:`, error);
+        alert(`Une erreur est survenue lors de l'action ${action}.`);
+      }
     }
   };
 
@@ -136,17 +145,15 @@ const Clients: React.FC = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Mes Clients</h1>
-        <div>
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="primary"
-            className="mr-2"
             onClick={() => setIsInviteModalOpen(true)}
           >
             + Inviter un client
           </Button>
           <Button
             variant="secondary"
-            className="mr-2"
             onClick={() => reloadData()}
             disabled={isDataLoading}
           >
@@ -154,11 +161,10 @@ const Clients: React.FC = () => {
           </Button>
           <Button
             variant="secondary"
-            className="mr-2"
             onClick={handleArchiveSelected}
             disabled={selectedClients.length === 0}
           >
-            Archiver
+            {activeTab === 'active' ? 'Archiver' : 'Désarchiver'}
           </Button>
           <Button
             variant="danger"
@@ -169,6 +175,36 @@ const Clients: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          className={`py-2 px-4 font-medium text-sm transition-colors duration-200 ${
+            activeTab === 'active'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => {
+            setActiveTab('active');
+            setSelectedClients([]);
+          }}
+        >
+          Clients Actifs
+        </button>
+        <button
+          className={`py-2 px-4 font-medium text-sm transition-colors duration-200 ${
+            activeTab === 'archived'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => {
+            setActiveTab('archived');
+            setSelectedClients([]);
+          }}
+        >
+          Archives
+        </button>
+      </div>
+
       <div className="mb-4">
         <Input
           type="text"
