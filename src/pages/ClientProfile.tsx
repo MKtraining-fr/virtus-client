@@ -1160,7 +1160,7 @@ const ClientProfile: React.FC = () => {
 
           <Accordion title="Objectif et Conditions d'Entraînement" isOpenDefault={false}>
             <PerformanceSection clientId={client.id} isCoach={true} />
-          </Accordion>>
+          </Accordion>
 
           <Accordion title="Mes bilans" isOpenDefault={false}>
             <ClientBilanHistory
