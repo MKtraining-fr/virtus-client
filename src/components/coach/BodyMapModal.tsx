@@ -234,7 +234,7 @@ const BodyMapModal: React.FC<BodyMapModalProps> = ({
           {/* Contenu principal */}
           <div className="flex flex-1 overflow-hidden min-h-0">
             {/* Visualiseur anatomique - visible sur desktop ou onglet 0 sur mobile */}
-            <div className={`flex-1 overflow-hidden h-full ${activeTab === 0 ? 'block' : 'hidden md:block'} ${highlightMuscleList ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : ''}`}>
+            <div className={`flex-1 overflow-hidden h-full ${activeTab === 0 ? 'block' : 'hidden md:block'}`}>
               <AnatomyViewer
                 onMuscleSelect={handleMuscleSelect}
                 selectedMuscleIds={injuredMuscleIds}

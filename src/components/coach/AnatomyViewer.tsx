@@ -166,7 +166,7 @@ const AnatomyViewer: React.FC<AnatomyViewerProps> = ({
 
         {/* Liste des muscles avec scrollbar visible - hauteur limitée */}
         <div 
-          className={`overflow-y-scroll p-2 custom-scrollbar transition-all duration-500 ${highlightList ? 'bg-indigo-50 ring-2 ring-indigo-500 ring-inset' : ''}`}
+          className={`overflow-y-scroll p-2 custom-scrollbar transition-all duration-500 ${highlightList ? 'bg-indigo-50' : ''}`}
           style={{ 
             scrollbarWidth: 'thin', 
             scrollbarColor: '#94a3b8 #e2e8f0',
@@ -336,9 +336,9 @@ const AnatomyViewer: React.FC<AnatomyViewerProps> = ({
             <img
               src={view === 'anterior' ? fullBodySvgAnt : fullBodySvgPost}
               alt="Corps humain"
-              className={`absolute top-0 left-0 w-full h-full object-contain transition-opacity duration-500 ${highlightList ? 'opacity-100 ring-4 ring-primary ring-inset rounded-full' : 'opacity-80'}`}
+              className={`absolute top-0 left-0 w-full h-full object-contain transition-opacity duration-500 ${highlightList ? 'opacity-100' : 'opacity-80'}`}
               style={{ 
-                filter: highlightList ? 'drop-shadow(0 0 15px rgba(99, 102, 241, 0.6))' : 'none'
+                filter: 'none'
               }}
               onError={(e) => {
                 console.error('Erreur chargement SVG base:', e);
