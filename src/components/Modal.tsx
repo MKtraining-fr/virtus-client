@@ -7,7 +7,7 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  size?: 'md' | 'xl';
+  size?: 'md' | 'xl' | 'full';
   theme?: 'light' | 'dark';
   zIndex?: number;
   onFocus?: () => void;
@@ -40,7 +40,8 @@ const Modal: React.FC<ModalProps> = ({
     return null;
   }
 
-  const sizeClass = size === 'xl' ? 'max-w-7xl' : 'max-w-2xl';
+  const sizeClass = size === 'full' ? 'w-[85vw] max-w-[1400px]' : size === 'xl' ? 'max-w-7xl' : 'max-w-2xl';
+  const heightClass = size === 'full' ? 'h-[90vh] max-h-[900px]' : 'md:max-h-[90vh]';
 
   const themeClasses =
     theme === 'dark' ? 'bg-client-card text-client-light' : 'bg-white dark:bg-client-card text-dark-gray dark:text-client-light';
@@ -74,7 +75,7 @@ const Modal: React.FC<ModalProps> = ({
         style={{ zIndex }}
       >
         <div
-          className={`rounded-none md:rounded-lg shadow-xl w-full h-full md:h-auto ${sizeClass} md:mx-4 flex flex-col md:max-h-[90vh] ${themeClasses} pointer-events-auto`}
+          className={`rounded-none md:rounded-lg shadow-xl w-full h-full md:h-auto ${sizeClass} md:mx-4 flex flex-col ${heightClass} ${themeClasses} pointer-events-auto`}
           onClick={(e) => {
             e.stopPropagation();
             onFocus?.();
@@ -108,7 +109,7 @@ const Modal: React.FC<ModalProps> = ({
       aria-labelledby="modal-title"
     >
       <div
-        className={`rounded-none md:rounded-lg shadow-xl w-full h-full md:h-auto ${sizeClass} md:mx-4 flex flex-col md:max-h-[90vh] ${themeClasses}`}
+        className={`rounded-none md:rounded-lg shadow-xl w-full h-full md:h-auto ${sizeClass} md:mx-4 flex flex-col ${heightClass} ${themeClasses}`}
         onClick={(e) => e.stopPropagation()}
         role="document"
       >

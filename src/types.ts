@@ -524,3 +524,70 @@ export interface ExerciseProjection {
   createdAt: string;
   updatedAt: string;
 }
+
+
+// ---- INJURY & PAIN TYPES ----
+
+/**
+ * Type de blessure ou douleur
+ */
+export type InjuryType = 'injury' | 'chronic_pain' | 'surgery' | 'limitation';
+
+/**
+ * Sévérité de la blessure ou douleur
+ */
+export type InjurySeverity = 'mild' | 'moderate' | 'severe';
+
+/**
+ * Statut actuel de la blessure
+ */
+export type InjuryStatus = 'active' | 'recovering' | 'healed' | 'chronic';
+
+/**
+ * Parties du corps supportées par react-body-highlighter
+ */
+export type BodyPart =
+  | 'head'
+  | 'neck'
+  | 'trapezius'
+  | 'upper-back'
+  | 'lower-back'
+  | 'chest'
+  | 'abs'
+  | 'obliques'
+  | 'front-deltoids'
+  | 'back-deltoids'
+  | 'biceps'
+  | 'triceps'
+  | 'forearm'
+  | 'gluteal'
+  | 'adductor'
+  | 'abductors'
+  | 'quadriceps'
+  | 'hamstring'
+  | 'calves';
+
+/**
+ * Données d'une blessure ou douleur chronique
+ */
+export interface InjuryData {
+  id: string;
+  bodyPart: BodyPart;
+  type: InjuryType;
+  description: string;
+  severity: InjurySeverity;
+  status: InjuryStatus;
+  since?: string; // Date de début (ISO string)
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Informations médicales étendues avec blessures
+ */
+export interface MedicalInfoExtended {
+  history?: string;
+  allergies?: string;
+  injuries?: InjuryData[];
+}

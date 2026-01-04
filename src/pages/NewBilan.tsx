@@ -8,7 +8,11 @@ import Card from '../components/Card';
 import { useAuth } from '../context/AuthContext';
 import { Client, BilanField, BilanTemplate, BilanResult, ExerciseRecord } from '../types';
 import { PerformanceEntry } from '../components/performance/PerformanceEntry';
-import { TrendingUp, Trash2 } from 'lucide-react';
+import { TrendingUp, Trash2, HeartPulse } from 'lucide-react';
+import BodyMapModal from '../components/coach/BodyMapModal';
+import { InjuryData } from '../types';
+import { createMultipleInjuries, CreateInjuryData } from '../services/injuryService';
+import { getMuscleById } from '../data/muscleConfig';
 
 const DynamicField: React.FC<{
   field: BilanField;
@@ -175,6 +179,10 @@ const NewBilan: React.FC = () => {
   const isInitialBilanSelected = !selectedTemplate?.coachId || selectedTemplate?.coachId === 'system';
   const [performances, setPerformances] = useState<Partial<ExerciseRecord>[]>([]);
 
+  // État pour les blessures et douleurs chroniques
+  const [injuries, setInjuries] = useState<InjuryData[]>([]);
+  const [isBodyMapModalOpen, setIsBodyMapModalOpen] = useState(false);
+
   const handleAnswerChange = (fieldId: string, value: unknown) => {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }));
   };
@@ -264,6 +272,7 @@ const NewBilan: React.FC = () => {
           allergiesList.length > 0
             ? allergiesList.join(', ') + (allergiesAutre ? ', ' + allergiesAutre : '')
             : (answers.fld_allergies || '') as string,
+        injuries: injuries, // Blessures et douleurs chroniques
       },
       notes: (answers.notes_coach || '') as string,
 
@@ -307,6 +316,28 @@ const NewBilan: React.FC = () => {
         );
       }
 
+      // Enregistrer les blessures dans la table client_injuries
+      if (newClient && injuries.length > 0) {
+        const injuriesToCreate: CreateInjuryData[] = injuries.map(injury => {
+          const muscle = getMuscleById(injury.bodyPart);
+          return {
+            client_id: newClient.id,
+            body_part: injury.bodyPart,
+            body_part_name_fr: muscle?.nameFr || injury.bodyPart,
+            muscle_group: muscle?.group,
+            type: injury.type,
+            description: injury.description,
+            notes: injury.notes,
+            severity: injury.severity,
+            status: injury.status,
+            since: injury.since,
+            created_by: user?.id || '',
+            created_by_role: 'coach' as const,
+          };
+        });
+        await createMultipleInjuries(injuriesToCreate);
+      }
+
       alert(status === 'active' ? 'Client validé avec succès !' : 'Prospect archivé avec succès !');
       navigate(status === 'active' ? '/app/clients' : '/app/bilan/archive');
     } catch (error: unknown) {
@@ -340,7 +371,7 @@ const NewBilan: React.FC = () => {
               return null;
             }
             return (
-              <Accordion key={section.id} title={section.title} isOpenDefault={true}>
+              <Accordion key={section.id} title={section.title} isOpenDefault={section.isCivility === true}>
                 <div
                   className={`grid grid-cols-1 ${section.isCivility ? 'md:grid-cols-2' : ''} gap-4`}
                 >
@@ -367,6 +398,62 @@ const NewBilan: React.FC = () => {
                     );
                   })}
                 </div>
+
+                {/* Ajouter la section Blessures et douleurs chroniques dans la section Antécédents et Notes Coach */}
+                {(section.id === 'medical' || section.title === 'Antécédents et Notes Coach' || section.title === 'Notes et Médical') && (
+                  <div className="mt-8 pt-8 border-t border-gray-100">
+                    <h4 className="text-md font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <HeartPulse className="h-5 w-5 text-red-500" />
+                      Blessures et Douleurs Chroniques
+                    </h4>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Cliquez sur le bouton ci-dessous pour ouvrir la carte corporelle interactive et enregistrer les blessures ou douleurs chroniques du client.
+                    </p>
+                    
+                    {/* Affichage des blessures enregistrées */}
+                    {injuries.length > 0 && (
+                      <div className="mb-4 space-y-2">
+                        <p className="text-sm font-medium text-gray-700">
+                          {injuries.length} blessure(s) enregistrée(s) :
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {injuries.map((injury) => (
+                            <span
+                              key={injury.id}
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
+                                injury.severity === 'severe'
+                                  ? 'bg-red-100 text-red-800'
+                                  : injury.severity === 'moderate'
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}
+                            >
+                              <span
+                                className={`w-2 h-2 rounded-full mr-2 ${
+                                  injury.severity === 'severe'
+                                    ? 'bg-red-500'
+                                    : injury.severity === 'moderate'
+                                    ? 'bg-orange-500'
+                                    : 'bg-yellow-500'
+                                }`}
+                              />
+                              {injury.bodyPart} - {injury.description}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <Button
+                      variant="secondary"
+                      onClick={() => setIsBodyMapModalOpen(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <HeartPulse className="h-4 w-4" />
+                      {injuries.length > 0 ? 'Modifier les blessures' : 'Ajouter des blessures'}
+                    </Button>
+                  </div>
+                )}
 
                 {/* Ajouter la saisie des performances dans la section Objectif et Conditions d'Entraînement */}
                 {section.title === "Objectif et Conditions d'Entraînement" && (
@@ -420,6 +507,15 @@ const NewBilan: React.FC = () => {
           <Button onClick={() => handleSubmit('active')}>Valider le Bilan</Button>
         </div>
       </Card>
+
+      {/* Modale de carte corporelle pour les blessures */}
+      <BodyMapModal
+        isOpen={isBodyMapModalOpen}
+        onClose={() => setIsBodyMapModalOpen(false)}
+        injuries={injuries}
+        onSave={setInjuries}
+        theme="light"
+      />
     </div>
   );
 };

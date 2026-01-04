@@ -35,6 +35,21 @@ import ClientBilanHistory from '../components/ClientBilanHistory';
 import CoachClientDocuments from '../components/coach/CoachClientDocuments';
 import { PerformanceSection } from '../components/performance/PerformanceSection';
 import { supabase } from '../services/supabase';
+import BodyMapModal from '../components/coach/BodyMapModal';
+import { InjuryData } from '../types';
+import { 
+  getClientInjuries, 
+  createMultipleInjuries, 
+  deleteInjury,
+  ClientInjury,
+  CreateInjuryData,
+  INJURY_TYPE_LABELS,
+  INJURY_SEVERITY_LABELS,
+  INJURY_STATUS_LABELS,
+  INJURY_SEVERITY_COLORS
+} from '../services/injuryService';
+import { getMuscleById } from '../data/muscleConfig';
+import { HeartPulse } from 'lucide-react';
 
 /* ------------------------- ICONS ------------------------- */
 const EnvelopeIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -444,6 +459,11 @@ const ClientProfile: React.FC = () => {
     },
   });
 
+  // États pour les blessures
+  const [injuries, setInjuries] = useState<ClientInjury[]>([]);
+  const [isBodyMapModalOpen, setIsBodyMapModalOpen] = useState(false);
+  const [isLoadingInjuries, setIsLoadingInjuries] = useState(false);
+
   // Editable states for macros
   const [editableMacros, setEditableMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
   const [initialMacros, setInitialMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
@@ -510,6 +530,20 @@ const ClientProfile: React.FC = () => {
           coachShop: clientAccess.shopAccess?.coachShop ?? true,
         },
       });
+
+      // Charger les blessures du client
+      const loadInjuries = async () => {
+        setIsLoadingInjuries(true);
+        try {
+          const clientInjuries = await getClientInjuries(client.id);
+          setInjuries(clientInjuries);
+        } catch (error) {
+          console.error('Erreur lors du chargement des blessures:', error);
+        } finally {
+          setIsLoadingInjuries(false);
+        }
+      };
+      loadInjuries();
     }
   }, [client]);
 
@@ -1123,6 +1157,83 @@ const ClientProfile: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Section Blessures et Douleurs Chroniques */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <HeartPulse className="h-5 w-5 text-red-500" />
+                  Blessures et Douleurs Chroniques
+                </h3>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsBodyMapModalOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <HeartPulse className="h-4 w-4" />
+                  {injuries.length > 0 ? 'Modifier' : 'Ajouter'}
+                </Button>
+              </div>
+
+              {isLoadingInjuries ? (
+                <p className="text-gray-500 text-center py-4">Chargement des blessures...</p>
+              ) : injuries.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {injuries.map((injury) => (
+                    <div
+                      key={injury.id}
+                      className="p-3 rounded-lg border bg-white shadow-sm"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: INJURY_SEVERITY_COLORS[injury.severity] }}
+                            />
+                            <span className="font-medium text-sm text-gray-800">
+                              {injury.body_part_name_fr || getMuscleById(injury.body_part)?.nameFr || injury.body_part}
+                            </span>
+                          </div>
+                          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 inline-block mb-2">
+                            {INJURY_TYPE_LABELS[injury.type]}
+                          </span>
+                          <p className="text-sm text-gray-600 line-clamp-2">
+                            {injury.description}
+                          </p>
+                          <div className="text-xs text-gray-500 mt-2">
+                            {INJURY_SEVERITY_LABELS[injury.severity]} • {INJURY_STATUS_LABELS[injury.status]}
+                            {injury.since && (
+                              <span className="block mt-1">
+                                Depuis {new Date(injury.since).toLocaleDateString('fr-FR')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (confirm('Supprimer cette blessure ?')) {
+                              await deleteInjury(injury.id);
+                              setInjuries(injuries.filter(i => i.id !== injury.id));
+                            }
+                          }}
+                          className="p-1 text-red-500 hover:text-red-700 flex-shrink-0"
+                          title="Supprimer"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                  Aucune blessure enregistrée pour ce client.
+                </p>
+              )}
+            </div>
+
             <div className="mt-6 flex justify-end">
               <Button onClick={handleSaveInfoChanges} disabled={!hasInfoChanges}>
                 Enregistrer les modifications
@@ -1757,6 +1868,66 @@ const ClientProfile: React.FC = () => {
             })}
           </div>
         </Modal>
+      )}
+
+      {/* Modale de carte corporelle pour les blessures */}
+      {client && (
+        <BodyMapModal
+          isOpen={isBodyMapModalOpen}
+          onClose={() => setIsBodyMapModalOpen(false)}
+          injuries={injuries.map(inj => ({
+            id: inj.id,
+            bodyPart: inj.body_part as any,
+            type: inj.type,
+            description: inj.description,
+            severity: inj.severity,
+            status: inj.status,
+            since: inj.since,
+            notes: inj.notes,
+            createdAt: inj.created_at,
+            updatedAt: inj.updated_at,
+          }))}
+          onSave={async (newInjuries) => {
+            // Convertir et sauvegarder les blessures
+            const injuriesToCreate: CreateInjuryData[] = newInjuries
+              .filter(inj => !injuries.find(existing => existing.id === inj.id))
+              .map(injury => {
+                const muscle = getMuscleById(injury.bodyPart);
+                return {
+                  client_id: client.id,
+                  body_part: injury.bodyPart,
+                  body_part_name_fr: muscle?.nameFr || injury.bodyPart,
+                  muscle_group: muscle?.group,
+                  type: injury.type,
+                  description: injury.description,
+                  notes: injury.notes,
+                  severity: injury.severity,
+                  status: injury.status,
+                  since: injury.since,
+                  created_by: user?.id || '',
+                  created_by_role: 'coach' as const,
+                };
+              });
+
+            // Supprimer les blessures retirées
+            const injuriesToDelete = injuries.filter(
+              existing => !newInjuries.find(inj => inj.id === existing.id)
+            );
+            for (const injury of injuriesToDelete) {
+              await deleteInjury(injury.id);
+            }
+
+            // Créer les nouvelles blessures
+            if (injuriesToCreate.length > 0) {
+              await createMultipleInjuries(injuriesToCreate);
+            }
+
+            // Recharger les blessures
+            const updatedInjuries = await getClientInjuries(client.id);
+            setInjuries(updatedInjuries);
+          }}
+          theme="light"
+        />
       )}
     </div>
   );
