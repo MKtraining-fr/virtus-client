@@ -84,6 +84,9 @@ const BodyMapModal: React.FC<BodyMapModalProps> = ({
   // Onglet actif pour mobile (0 = corps, 1 = liste)
   const [activeTab, setActiveTab] = useState(0);
   
+  // État pour mettre en surbrillance la liste des muscles (pour guider l'utilisateur)
+  const [highlightMuscleList, setHighlightMuscleList] = useState(false);
+  
   // Formulaire de nouvelle blessure
   const [newInjury, setNewInjury] = useState<Partial<InjuryData>>({
     type: 'injury',
@@ -231,11 +234,12 @@ const BodyMapModal: React.FC<BodyMapModalProps> = ({
           {/* Contenu principal */}
           <div className="flex flex-1 overflow-hidden min-h-0">
             {/* Visualiseur anatomique - visible sur desktop ou onglet 0 sur mobile */}
-            <div className={`flex-1 overflow-hidden h-full ${activeTab === 0 ? 'block' : 'hidden md:block'}`}>
+            <div className={`flex-1 overflow-hidden h-full ${activeTab === 0 ? 'block' : 'hidden md:block'} ${highlightMuscleList ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : ''}`}>
               <AnatomyViewer
                 onMuscleSelect={handleMuscleSelect}
                 selectedMuscleIds={injuredMuscleIds}
                 isMobile={true}
+                highlightList={highlightMuscleList}
               />
             </div>
 
@@ -271,7 +275,13 @@ const BodyMapModal: React.FC<BodyMapModalProps> = ({
                   <div className="space-y-3">
                     {/* Bouton pour ajouter une nouvelle blessure - visible sur toutes les tailles */}
                     <button
-                      onClick={() => setActiveTab(0)}
+                      onClick={() => {
+                        // Sur mobile, basculer vers l'onglet du corps
+                        setActiveTab(0);
+                        // Sur desktop, mettre en surbrillance la liste des muscles
+                        setHighlightMuscleList(true);
+                        setTimeout(() => setHighlightMuscleList(false), 3000);
+                      }}
                       className={`w-full py-3 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 border-2 border-dashed ${
                         isDark 
                           ? 'border-primary/50 text-primary hover:bg-primary/10 hover:border-primary' 
@@ -281,6 +291,15 @@ const BodyMapModal: React.FC<BodyMapModalProps> = ({
                       <PlusIcon className="w-5 h-5" />
                       Ajouter une nouvelle blessure
                     </button>
+                    
+                    {/* Message d'aide quand le highlight est actif */}
+                    {highlightMuscleList && (
+                      <div className={`p-3 rounded-lg text-sm animate-pulse ${
+                        isDark ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'
+                      }`}>
+                        ← Sélectionnez un muscle dans la liste à gauche ou cliquez sur le corps
+                      </div>
+                    )}
                     
                     {localInjuries.map((injury) => (
                       <div

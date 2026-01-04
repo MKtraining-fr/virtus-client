@@ -9,6 +9,7 @@ interface AnatomyViewerProps {
   selectedMuscleIds?: string[];
   highlightColor?: string;
   isMobile?: boolean;
+  highlightList?: boolean;
 }
 
 // Styles CSS pour la scrollbar visible
@@ -33,7 +34,8 @@ const AnatomyViewer: React.FC<AnatomyViewerProps> = ({
   onMuscleSelect,
   selectedMuscleIds = [],
   highlightColor = '#ef4444',
-  isMobile = false
+  isMobile = false,
+  highlightList = false
 }) => {
   const [view, setView] = useState<ViewType>('anterior');
   const [zoom, setZoom] = useState(1);
@@ -155,7 +157,7 @@ const AnatomyViewer: React.FC<AnatomyViewerProps> = ({
 
         {/* Liste des muscles avec scrollbar visible - hauteur limitée */}
         <div 
-          className="overflow-y-scroll p-2 custom-scrollbar"
+          className={`overflow-y-scroll p-2 custom-scrollbar transition-all duration-500 ${highlightList ? 'bg-indigo-50 ring-2 ring-indigo-500 ring-inset' : ''}`}
           style={{ 
             scrollbarWidth: 'thin', 
             scrollbarColor: '#94a3b8 #e2e8f0',
