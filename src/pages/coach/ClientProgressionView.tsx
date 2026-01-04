@@ -5,6 +5,7 @@ import { getClientPerformanceLogsWithDetails } from '../../services/coachClientP
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { ArrowLeftIcon } from '../../constants/icons';
+import ClientVideosTab from '../../components/coach/ClientVideosTab';
 
 interface PerformanceLogDetail {
   id: string;
@@ -37,6 +38,7 @@ const ClientProgressionView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedLog, setSelectedLog] = useState<PerformanceLogDetail | null>(null);
   const [filterProgram, setFilterProgram] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<'history' | 'videos'>('history');
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -119,6 +121,35 @@ const ClientProgressionView: React.FC = () => {
         </Card>
       </div>
 
+      {/* Onglets */}
+      <div className="mb-6 border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'history'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            📊 Historique des séances
+          </button>
+          <button
+            onClick={() => setActiveTab('videos')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'videos'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            🎥 Vidéos d'exercices
+          </button>
+        </nav>
+      </div>
+
+      {/* Contenu onglet Historique */}
+      {activeTab === 'history' && (
+        <>
       {/* Filtre par programme */}
       {uniquePrograms.length > 1 && (
         <div className="mb-6">
@@ -282,6 +313,13 @@ const ClientProgressionView: React.FC = () => {
         </div>
       )}
     </div>
+        </>
+      )}
+
+      {/* Contenu onglet Vidéos */}
+      {activeTab === 'videos' && clientId && user && (
+        <ClientVideosTab clientId={clientId} coachId={user.id} />
+      )}
   );
 };
 

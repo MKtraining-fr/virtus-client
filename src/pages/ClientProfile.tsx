@@ -34,6 +34,7 @@ import MeasurementsLineChart from '../components/charts/MeasurementsLineChart';
 import ClientBilanHistory from '../components/ClientBilanHistory';
 import CoachClientDocuments from '../components/coach/CoachClientDocuments';
 import { PerformanceSection } from '../components/performance/PerformanceSection';
+import ClientVideosTab from '../components/coach/ClientVideosTab';
 import { supabase } from '../services/supabase';
 import BodyMapModal from '../components/coach/BodyMapModal';
 import { InjuryData } from '../types';
@@ -462,6 +463,7 @@ const ClientProfile: React.FC = () => {
   // États pour les blessures
   const [injuries, setInjuries] = useState<ClientInjury[]>([]);
   const [isBodyMapModalOpen, setIsBodyMapModalOpen] = useState(false);
+  const [activePerformanceTab, setActivePerformanceTab] = useState<'history' | 'videos'>('history');
   const [isLoadingInjuries, setIsLoadingInjuries] = useState(false);
 
   // Editable states for macros
@@ -1345,35 +1347,70 @@ const ClientProfile: React.FC = () => {
           </Accordion>
 
           <Accordion title="Historique des performances" isOpenDefault={false}>
-            <div className="space-y-3">
-              {historicalPrograms.length > 0 ? (
-                historicalPrograms.map(({ program, logs }) => (
-                  <Card
-                    key={program.id}
-                    className="p-4 flex justify-between items-center !shadow-none border"
-                  >
-                    <div>
-                      <p className="font-semibold text-gray-800">{program.name}</p>
-                      <p className="text-sm text-gray-500">
-                        {logs.length} séance(s) enregistrée(s)
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => openHistoryModal({ program, logs })}
-                    >
-                      Consulter l'historique
-                    </Button>
-                  </Card>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center py-4">
-                  Aucun historique d'entraînement.
-                </p>
-              )}
+            {/* Onglets */}
+            <div className="mb-4 border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActivePerformanceTab('history')}
+                  className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                    activePerformanceTab === 'history'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  📊 Historique des séances
+                </button>
+                <button
+                  onClick={() => setActivePerformanceTab('videos')}
+                  className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                    activePerformanceTab === 'videos'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  🎥 Vidéos d'exercices
+                </button>
+              </nav>
             </div>
+
+            {/* Contenu onglet Historique */}
+            {activePerformanceTab === 'history' && (
+              <div className="space-y-3">
+                {historicalPrograms.length > 0 ? (
+                  historicalPrograms.map(({ program, logs }) => (
+                    <Card
+                      key={program.id}
+                      className="p-4 flex justify-between items-center !shadow-none border"
+                    >
+                      <div>
+                        <p className="font-semibold text-gray-800">{program.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {logs.length} séance(s) enregistrée(s)
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => openHistoryModal({ program, logs })}
+                      >
+                        Consulter l'historique
+                      </Button>
+                    </Card>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center py-4">
+                    Aucun historique d'entraînement.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Contenu onglet Vidéos */}
+            {activePerformanceTab === 'videos' && clientId && user && (
+              <ClientVideosTab clientId={clientId} coachId={user.id} />
+            )}
           </Accordion>
+
 
           <Accordion title="Suivi Nutritionnel" isOpenDefault={false}>
             <Accordion title="Plan Alimentaire" isOpenDefault={false}>
