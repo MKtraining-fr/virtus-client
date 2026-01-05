@@ -750,7 +750,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         const program = await getProgramById(programId);
         if (!program) {
           addNotification({ message: 'Programme non trouvé dans Supabase.', type: 'error' });
-          navigate('/app/programs');
+          navigate('/app');
           return;
         }
 
@@ -796,7 +796,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       } catch (error) {
         console.error('Erreur lors du chargement du programme depuis Supabase:', error);
         addNotification({ message: 'Erreur lors du chargement du programme.', type: 'error' });
-        navigate('/app/programs');
+        navigate('/app');
       } finally {
         setIsLoading(false);
       }
@@ -810,11 +810,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             'Chargement de session individuelle non implémenté. Chargez via le programme parent.',
           type: 'warning',
         });
-        navigate('/app/programs');
+        navigate('/app');
       } catch (error) {
         console.error('Erreur lors du chargement de la session depuis Supabase:', error);
         addNotification({ message: 'Erreur lors du chargement de la session.', type: 'error' });
-        navigate('/app/programs');
+        navigate('/app');
       } finally {
         setIsLoading(false);
       }
