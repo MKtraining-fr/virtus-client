@@ -730,6 +730,19 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     const clientIdFromUrl = searchParams.get('clientId');
     const programIdToEdit = searchParams.get('editProgramId');
     const sessionIdToEdit = searchParams.get('editSessionId');
+    
+    // Debug: log des paramètres URL
+    console.log('[WorkoutBuilder] URL params:', { clientIdFromUrl, programIdToEdit, sessionIdToEdit });
+    
+    // Vérifier si programIdToEdit est invalide
+    if (programIdToEdit && (programIdToEdit === 'undefined' || programIdToEdit === 'null')) {
+      console.error('[WorkoutBuilder] ID de programme invalide détecté:', programIdToEdit);
+      addNotification({ message: 'Aucun programme à modifier pour ce client.', type: 'error' });
+      navigate('/app');
+      setIsLoading(false);
+      setHasLoadedInitialData(true);
+      return;
+    }
 
     const loadProgramFromSupabase = async (programId: string) => {
       setIsLoading(true);
@@ -737,7 +750,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         const program = await getProgramById(programId);
         if (!program) {
           addNotification({ message: 'Programme non trouvé dans Supabase.', type: 'error' });
-          navigate('/programmes');
+          navigate('/app/programs');
           return;
         }
 
@@ -783,7 +796,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       } catch (error) {
         console.error('Erreur lors du chargement du programme depuis Supabase:', error);
         addNotification({ message: 'Erreur lors du chargement du programme.', type: 'error' });
-        navigate('/programmes');
+        navigate('/app/programs');
       } finally {
         setIsLoading(false);
       }
@@ -797,11 +810,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             'Chargement de session individuelle non implémenté. Chargez via le programme parent.',
           type: 'warning',
         });
-        navigate('/programmes');
+        navigate('/app/programs');
       } catch (error) {
         console.error('Erreur lors du chargement de la session depuis Supabase:', error);
         addNotification({ message: 'Erreur lors du chargement de la session.', type: 'error' });
-        navigate('/programmes');
+        navigate('/app/programs');
       } finally {
         setIsLoading(false);
       }

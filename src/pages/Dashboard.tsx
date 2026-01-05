@@ -242,6 +242,12 @@ const Dashboard: React.FC = () => {
                 const latestNote = getLatestNote(client.notes);
                 const currentProgram = client.assignedPrograms?.[0];
                 
+                // Debug: log du programme actuel
+                if (client.id === 'roncin' || !currentProgram || !currentProgram.id) {
+                  console.log('[Dashboard] Client:', client.id, 'assignedPrograms:', client.assignedPrograms);
+                  console.log('[Dashboard] currentProgram:', currentProgram);
+                }
+                
                 // Calculer le nombre de séances complétées et totales pour la semaine actuelle
                 const currentWeek = client.programWeek || 1;
                 const sessionsThisWeek = currentProgram?.sessionsByWeek?.[currentWeek] || [];
@@ -346,9 +352,13 @@ const Dashboard: React.FC = () => {
                               >
                                 Nouveau programme
                               </button>
-                              {currentProgram && (
+                              {currentProgram && currentProgram.id && (
                                 <button
                                   onClick={() => {
+                                    if (!currentProgram.id) {
+                                      console.error('ID du programme manquant:', currentProgram);
+                                      return;
+                                    }
                                     navigate(
                                       `/app/musculation/createur?clientId=${client.id}&editProgramId=${currentProgram.id}`
                                     );
