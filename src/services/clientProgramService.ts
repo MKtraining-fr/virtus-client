@@ -554,3 +554,216 @@ export const getClientProgramById = async (
     return null;
   }
 };
+
+/**
+ * Met à jour un programme client existant
+ * 
+ * @param clientProgramId - ID du programme client
+ * @param updates - Données à mettre à jour
+ * @returns Le programme mis à jour ou null
+ */
+export const updateClientProgram = async (
+  clientProgramId: string,
+  updates: {
+    name?: string;
+    objective?: string;
+    week_count?: number;
+  }
+): Promise<any> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_programs')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', clientProgramId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erreur lors de la mise à jour du programme client:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Erreur globale lors de la mise à jour du programme client:', error);
+    return null;
+  }
+};
+
+/**
+ * Met à jour une séance client existante
+ * 
+ * @param sessionId - ID de la séance client
+ * @param updates - Données à mettre à jour
+ * @returns La séance mise à jour ou null
+ */
+export const updateClientSession = async (
+  sessionId: string,
+  updates: {
+    name?: string;
+    week_number?: number;
+    session_order?: number;
+  }
+): Promise<any> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_sessions')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erreur lors de la mise à jour de la séance client:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Erreur globale lors de la mise à jour de la séance client:', error);
+    return null;
+  }
+};
+
+/**
+ * Crée une nouvelle séance client
+ * 
+ * @param sessionData - Données de la séance
+ * @returns La séance créée ou null
+ */
+export const createClientSession = async (sessionData: {
+  client_program_id: string;
+  name: string;
+  week_number: number;
+  session_order: number;
+}): Promise<any> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_sessions')
+      .insert({
+        ...sessionData,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erreur lors de la création de la séance client:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Erreur globale lors de la création de la séance client:', error);
+    return null;
+  }
+};
+
+/**
+ * Supprime une séance client
+ * 
+ * @param sessionId - ID de la séance client
+ * @returns true si succès, false sinon
+ */
+export const deleteClientSession = async (sessionId: string): Promise<boolean> => {
+  try {
+    // Supprimer d'abord les exercices de la séance
+    await supabase
+      .from('client_session_exercises')
+      .delete()
+      .eq('client_session_id', sessionId);
+
+    // Puis supprimer la séance
+    const { error } = await supabase
+      .from('client_sessions')
+      .delete()
+      .eq('id', sessionId);
+
+    if (error) {
+      console.error('Erreur lors de la suppression de la séance client:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erreur globale lors de la suppression de la séance client:', error);
+    return false;
+  }
+};
+
+/**
+ * Crée plusieurs exercices pour une séance client en batch
+ * 
+ * @param exercises - Liste des exercices à créer
+ * @returns true si succès, false sinon
+ */
+export const createClientSessionExercisesBatch = async (
+  exercises: Array<{
+    client_session_id: string;
+    exercise_id: string;
+    sets?: string;
+    reps?: string;
+    load?: string;
+    tempo?: string;
+    rest_time?: string;
+    intensification?: string;
+    notes?: string;
+    details?: any;
+    exercise_order: number;
+  }>
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('client_session_exercises')
+      .insert(
+        exercises.map((ex) => ({
+          ...ex,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }))
+      );
+
+    if (error) {
+      console.error('Erreur lors de la création des exercices client en batch:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erreur globale lors de la création des exercices client:', error);
+    return false;
+  }
+};
+
+/**
+ * Supprime tous les exercices d'une séance client
+ * 
+ * @param sessionId - ID de la séance client
+ * @returns true si succès, false sinon
+ */
+export const deleteAllClientSessionExercises = async (sessionId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('client_session_exercises')
+      .delete()
+      .eq('client_session_id', sessionId);
+
+    if (error) {
+      console.error('Erreur lors de la suppression des exercices client:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erreur globale lors de la suppression des exercices client:', error);
+    return false;
+  }
+};

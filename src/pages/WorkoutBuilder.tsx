@@ -32,7 +32,15 @@ import {
   createProgram,
   updateProgram as updateProgramService,
 } from '../services/programService.ts';
-import { getClientSessionExercises } from '../services/clientProgramService.ts';
+import { 
+  getClientSessionExercises,
+  updateClientProgram,
+  updateClientSession,
+  createClientSession,
+  deleteClientSession,
+  createClientSessionExercisesBatch,
+  deleteAllClientSessionExercises,
+} from '../services/clientProgramService.ts';
 
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -509,6 +517,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   const [selectedClient, setSelectedClient] = useState('0');
   const [isEditMode, setIsEditMode] = useState(false);
   const [editProgramId, setEditProgramId] = useState<string | null>(null);
+  const [isEditingClientProgram, setIsEditingClientProgram] = useState(false);
   const [lockedUntil, setLockedUntil] = useState<{ week: number; sessionIndex: number } | null>(
     null
   );
@@ -794,6 +803,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           setSelectedClient(clientIdFromUrl || '0');
           setEditProgramId(programId);
           setIsEditMode(true);
+          setIsEditingClientProgram(true); // Marquer qu'on édite un programme client
           setWorkoutMode('program'); // Positionner sur Programme par défaut
           
           // Positionner sur la semaine en cours
@@ -1408,10 +1418,25 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       };
 
       // Étape 3 : Sauvegarde du programme
-      console.log('[onSave] Sauvegarde du programme...', programData);
-      const savedProgram = editProgramId
-        ? await updateProgramService(editProgramId, programData)
-        : await createProgram(programData);
+      console.log('[onSave] Sauvegarde du programme...', programData, 'Type:', isEditingClientProgram ? 'client' : 'template');
+      
+      let savedProgram;
+      if (isEditingClientProgram) {
+        // Sauvegarder dans client_programs
+        if (!editProgramId) {
+          throw new Error('Impossible de créer un nouveau programme client depuis le créateur.');
+        }
+        savedProgram = await updateClientProgram(editProgramId, {
+          name: programData.name,
+          objective: programData.objective,
+          week_count: programData.week_count,
+        });
+      } else {
+        // Sauvegarder dans program_templates (comportement existant)
+        savedProgram = editProgramId
+          ? await updateProgramService(editProgramId, programData)
+          : await createProgram(programData);
+      }
       
       if (!savedProgram) {
         throw new Error('La sauvegarde du programme a échoué. Vérifiez les permissions et la connexion à la base de données.');
@@ -1430,7 +1455,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
       // Étape 5 : Suppression des sessions obsolètes
       const existingSessionIds = (storedSessions || [])
-        .filter((s) => s.program_template_id === savedProgram.id)
+        .filter((s) => isEditingClientProgram ? s.client_program_id === savedProgram.id : s.program_template_id === savedProgram.id)
         .map((s) => s.id);
       const sessionsToDelete = existingSessionIds.filter(
         (id) => !currentProgramSessions.some((s) => s.session.dbId === id)
@@ -1438,7 +1463,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       
       if (sessionsToDelete.length > 0) {
         console.log('[onSave] Suppression de', sessionsToDelete.length, 'sessions obsolètes');
-        await Promise.all(sessionsToDelete.map((id) => deleteSession(id)));
+        if (isEditingClientProgram) {
+          await Promise.all(sessionsToDelete.map((id) => deleteClientSession(id)));
+        } else {
+          await Promise.all(sessionsToDelete.map((id) => deleteSession(id)));
+        }
       }
 
       // Étape 6 : Sauvegarde des sessions et exercices
@@ -1448,16 +1477,30 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           console.log(`[onSave] Sauvegarde session ${sessionIndex + 1}/${currentProgramSessions.length}: ${session.name} (Semaine ${weekNumber})`);
           
           // Étape 6a : Sauvegarder la session (SANS les exercices)
-          const sessionData = {
-            program_template_id: savedProgram.id,
-            name: session.name,
-            week_number: weekNumber,
-            session_order: session.id,
-          };
-
-          const savedSession = session.dbId
-            ? await updateSession(session.dbId, sessionData)
-            : await createSession(sessionData);
+          let savedSession;
+          if (isEditingClientProgram) {
+            // Sauvegarder dans client_sessions
+            const sessionData = {
+              client_program_id: savedProgram.id,
+              name: session.name,
+              week_number: weekNumber,
+              session_order: session.id,
+            };
+            savedSession = session.dbId
+              ? await updateClientSession(session.dbId, sessionData)
+              : await createClientSession(sessionData);
+          } else {
+            // Sauvegarder dans session_templates (comportement existant)
+            const sessionData = {
+              program_template_id: savedProgram.id,
+              name: session.name,
+              week_number: weekNumber,
+              session_order: session.id,
+            };
+            savedSession = session.dbId
+              ? await updateSession(session.dbId, sessionData)
+              : await createSession(sessionData);
+          }
 
           if (!savedSession) {
             throw new Error(`La sauvegarde de la session ${session.name} (semaine ${weekNumber}) a échoué.`);
@@ -1466,7 +1509,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
           // Étape 6b : Si mise à jour, supprimer les anciens exercices
           if (session.dbId) {
-            await deleteAllSessionExercises(savedSession.id);
+            if (isEditingClientProgram) {
+              await deleteAllClientSessionExercises(savedSession.id);
+            } else {
+              await deleteAllSessionExercises(savedSession.id);
+            }
             console.log(`[onSave] Anciens exercices supprimés pour la session ${session.name}`);
           }
 
@@ -1482,10 +1529,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 const parsedSets = parseInt(String(normalized.sets), 10);
                 const sets = Number.isNaN(parsedSets) ? details.length : parsedSets;
 
-                return {
-                  session_template_id: savedSession.id,
+                const baseExercise = {
                   exercise_id: normalized.exerciseId,
-                  coach_id: user.id,
                   exercise_order: index + 1,
                   sets: sets,
                   reps: mainDetail.reps || '',
@@ -1496,12 +1541,29 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   rest_time: mainDetail.rest || '',
                   intensification: JSON.stringify(normalized.intensification || []),
                   notes: normalized.notes || '',
-                  details: JSON.stringify(details), // Nouveau: sauvegarder tous les détails par série
+                  details: JSON.stringify(details), // Sauvegarder tous les détails par série
                 };
+
+                if (isEditingClientProgram) {
+                  return {
+                    ...baseExercise,
+                    client_session_id: savedSession.id,
+                  };
+                } else {
+                  return {
+                    ...baseExercise,
+                    session_template_id: savedSession.id,
+                    coach_id: user.id,
+                  };
+                }
               });
 
             if (exercisesToInsert.length > 0) {
-              await createSessionExercisesBatch(exercisesToInsert);
+              if (isEditingClientProgram) {
+                await createClientSessionExercisesBatch(exercisesToInsert);
+              } else {
+                await createSessionExercisesBatch(exercisesToInsert);
+              }
               console.log(`[onSave] ${exercisesToInsert.length} exercices enregistrés dans la session ${session.name}`);
             }
           }
