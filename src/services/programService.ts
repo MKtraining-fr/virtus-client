@@ -17,7 +17,7 @@ export const getProgramById = async (programId: string): Promise<Program | null>
       .from('program_templates')
       .select('*')
       .eq('id', programId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Erreur lors de la récupération du programme:', error);

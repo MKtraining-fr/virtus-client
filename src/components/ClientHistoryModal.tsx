@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Client, WorkoutProgram } from '../types';
 import ProgramDetailView from './ProgramDetailView';
 import { useAuth } from '../context/AuthContext';
+import { markProgramAsViewedByCoach } from '../services/coachProgramViewService';
 
 // --- ICONS ---
 const XMarkIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -67,6 +68,17 @@ const ClientHistoryModal: React.FC<ClientHistoryModalProps> = ({
   const { clients } = useAuth();
   const client = useMemo(() => clients.find((c) => c.id === clientId), [clientId, clients]);
   const [selectedProgramIds, setSelectedProgramIds] = useState<string[]>([]);
+
+  // Marquer tous les programmes du client comme vus quand le modal s'ouvre
+  useEffect(() => {
+    if (isOpen && !isMinimized && client?.assignedPrograms) {
+      client.assignedPrograms.forEach(async (program) => {
+        if (!program.viewedByCoach) {
+          await markProgramAsViewedByCoach(program.id);
+        }
+      });
+    }
+  }, [isOpen, isMinimized, client]);
 
   const handleSelectProgram = (programId: string) => {
     setSelectedProgramIds((prev) => {
