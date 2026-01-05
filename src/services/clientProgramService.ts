@@ -460,6 +460,9 @@ export const getClientProgramById = async (
   clientProgramId: string
 ): Promise<WorkoutProgram | null> => {
   try {
+    console.time('[Performance] getClientProgramById - Total');
+    console.time('[Performance] Fetch program + assignment');
+    
     const { data: clientProgram, error: programError } = await supabase
       .from('client_programs')
       .select('id, name, objective, week_count, assignment_id')
@@ -477,6 +480,9 @@ export const getClientProgramById = async (
       .select('id, current_week, current_session_order, status')
       .eq('id', clientProgram.assignment_id)
       .single();
+    
+    console.timeEnd('[Performance] Fetch program + assignment');
+    console.time('[Performance] Fetch sessions with exercises');
 
     // Récupérer les séances
     const { data: sessions, error: sessionsError } = await supabase
@@ -499,6 +505,7 @@ export const getClientProgramById = async (
           intensification,
           notes,
           details,
+          exercise_order,
           exercises (
             id,
             name,
@@ -509,12 +516,15 @@ export const getClientProgramById = async (
       .eq('client_program_id', clientProgram.id)
       .order('week_number', { ascending: true })
       .order('session_order', { ascending: true });
+    
+    console.timeEnd('[Performance] Fetch sessions with exercises');
 
     if (sessionsError) {
       console.error('Erreur lors de la récupération des séances:', sessionsError);
       return null;
     }
 
+    console.time('[Performance] Map sessions to WorkoutProgram');
     const sessionsByWeek: Record<number, WorkoutSession[]> = {};
 
     for (const session of sessions || []) {
@@ -525,6 +535,8 @@ export const getClientProgramById = async (
 
       sessionsByWeek[weekNumber].push(mapClientSessionToWorkoutSession(session));
     }
+    console.timeEnd('[Performance] Map sessions to WorkoutProgram');
+    console.timeEnd('[Performance] getClientProgramById - Total');
 
     return {
       id: clientProgram.id,
