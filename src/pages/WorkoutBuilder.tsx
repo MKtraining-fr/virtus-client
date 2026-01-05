@@ -753,7 +753,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         let sessions;
         
         if (isClientProgram) {
-          // Charger depuis client_programs
+          // Charger depuis client_programs (tout en une seule requête optimisée)
           const { getClientProgramById } = await import('../services/clientProgramService');
           const clientProgram = await getClientProgramById(programId);
           
@@ -763,28 +763,33 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             return;
           }
           
-          // Convertir le format client_programs vers le format attendu
-          program = {
-            id: clientProgram.id,
-            name: clientProgram.name,
-            objective: clientProgram.objective,
-            week_count: clientProgram.weekCount,
-          };
+          // Les données sont déjà complètement chargées, on les utilise directement
+          setProgramName(clientProgram.name);
+          setObjective(clientProgram.objective);
+          setWeekCount(clientProgram.weekCount);
+          setSessionsByWeek(normalizeSessionsByWeek(clientProgram.sessionsByWeek));
+          setSelectedClient(clientIdFromUrl || '0');
+          setEditProgramId(programId);
+          setIsEditMode(true);
+          setWorkoutMode('program'); // Positionner sur Programme par défaut
           
-          // Les sessions sont déjà chargées dans clientProgram.sessionsByWeek
-          // On les convertit en format plat pour la suite du traitement
-          sessions = [];
-          Object.entries(clientProgram.sessionsByWeek).forEach(([weekNum, weekSessions]) => {
-            weekSessions.forEach((session: any) => {
-              sessions.push({
-                id: session.id,
-                name: session.name,
-                week_number: parseInt(weekNum),
-                session_order: session.sessionOrder || session.id,
-                status: session.status,
-              });
+          // Positionner sur la semaine en cours
+          if (clientProgram.currentWeek) {
+            setSelectedWeek(clientProgram.currentWeek);
+          }
+          
+          // Bloquer les semaines précédentes
+          if (clientProgram.currentWeek && clientProgram.currentSession) {
+            setLockedUntil({ 
+              week: clientProgram.currentWeek, 
+              sessionIndex: clientProgram.currentSession - 1 
             });
-          });
+          }
+          
+          addNotification({ message: 'Programme client chargé.', type: 'info' });
+          setIsLoading(false);
+          setHasLoadedInitialData(true);
+          return; // Sortir ici pour éviter le traitement supplémentaire
         } else {
           // Charger depuis program_templates (comportement existant)
           program = await getProgramById(programId);
