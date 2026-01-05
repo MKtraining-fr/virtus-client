@@ -423,3 +423,122 @@ export const getCompletedSessionsCountForWeek = async (
     return 0;
   }
 };
+
+/**
+ * Récupère les exercices d'une séance client spécifique
+ * 
+ * @param sessionId - ID de la séance client
+ * @returns Liste des exercices de la séance
+ */
+export const getClientSessionExercises = async (sessionId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_session_exercises')
+      .select('*')
+      .eq('client_session_id', sessionId)
+      .order('exercise_order', { ascending: true });
+
+    if (error) {
+      console.error('Erreur lors de la récupération des exercices de séance client:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Erreur globale lors de la récupération des exercices:', error);
+    return [];
+  }
+};
+
+/**
+ * Récupère un programme client par son ID avec tous ses détails
+ * 
+ * @param clientProgramId - ID du programme client
+ * @returns Le programme complet ou null
+ */
+export const getClientProgramById = async (
+  clientProgramId: string
+): Promise<WorkoutProgram | null> => {
+  try {
+    const { data: clientProgram, error: programError } = await supabase
+      .from('client_programs')
+      .select('id, name, objective, week_count, assignment_id')
+      .eq('id', clientProgramId)
+      .single();
+
+    if (programError || !clientProgram) {
+      console.error('Erreur lors de la récupération du programme client:', programError);
+      return null;
+    }
+
+    // Récupérer l'assignation pour avoir le statut et la progression
+    const { data: assignment } = await supabase
+      .from('program_assignments')
+      .select('id, current_week, current_session_order, status')
+      .eq('id', clientProgram.assignment_id)
+      .single();
+
+    // Récupérer les séances
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('client_sessions')
+      .select(`
+        id,
+        client_program_id,
+        name,
+        week_number,
+        session_order,
+        status,
+        client_session_exercises (
+          id,
+          exercise_id,
+          sets,
+          reps,
+          load,
+          tempo,
+          rest_time,
+          intensification,
+          notes,
+          details,
+          exercises (
+            id,
+            name,
+            image_url
+          )
+        )
+      `)
+      .eq('client_program_id', clientProgram.id)
+      .order('week_number', { ascending: true })
+      .order('session_order', { ascending: true });
+
+    if (sessionsError) {
+      console.error('Erreur lors de la récupération des séances:', sessionsError);
+      return null;
+    }
+
+    const sessionsByWeek: Record<number, WorkoutSession[]> = {};
+
+    for (const session of sessions || []) {
+      const weekNumber = session.week_number ?? 1;
+      if (!sessionsByWeek[weekNumber]) {
+        sessionsByWeek[weekNumber] = [];
+      }
+
+      sessionsByWeek[weekNumber].push(mapClientSessionToWorkoutSession(session));
+    }
+
+    return {
+      id: clientProgram.id,
+      name: clientProgram.name || 'Programme',
+      objective: clientProgram.objective || '',
+      weekCount: clientProgram.week_count || 0,
+      sessionsByWeek,
+      assignmentId: assignment?.id,
+      currentWeek: assignment?.current_week ?? 1,
+      currentSession: assignment?.current_session_order ?? 1,
+      status: assignment?.status,
+    } as WorkoutProgram;
+  } catch (error) {
+    console.error('Erreur globale lors de la récupération du programme client:', error);
+    return null;
+  }
+};

@@ -360,7 +360,7 @@ const Dashboard: React.FC = () => {
                                       return;
                                     }
                                     navigate(
-                                      `/app/musculation/createur?clientId=${client.id}&editProgramId=${currentProgram.id}`
+                                      `/app/musculation/createur?clientId=${client.id}&editProgramId=${currentProgram.id}&programType=client`
                                     );
                                     setOpenDropdown(null);
                                   }}

@@ -32,6 +32,7 @@ import {
   createProgram,
   updateProgram as updateProgramService,
 } from '../services/programService.ts';
+import { getClientSessionExercises } from '../services/clientProgramService.ts';
 
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -730,9 +731,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     const clientIdFromUrl = searchParams.get('clientId');
     const programIdToEdit = searchParams.get('editProgramId');
     const sessionIdToEdit = searchParams.get('editSessionId');
+    const programType = searchParams.get('programType'); // 'client' ou 'template'
     
     // Debug: log des paramètres URL
-    console.log('[WorkoutBuilder] URL params:', { clientIdFromUrl, programIdToEdit, sessionIdToEdit });
+    console.log('[WorkoutBuilder] URL params:', { clientIdFromUrl, programIdToEdit, sessionIdToEdit, programType });
     
     // Vérifier si programIdToEdit est invalide
     if (programIdToEdit && (programIdToEdit === 'undefined' || programIdToEdit === 'null')) {
@@ -744,22 +746,69 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       return;
     }
 
-    const loadProgramFromSupabase = async (programId: string) => {
+    const loadProgramFromSupabase = async (programId: string, isClientProgram: boolean = false) => {
       setIsLoading(true);
       try {
-        const program = await getProgramById(programId);
+        let program;
+        let sessions;
+        
+        if (isClientProgram) {
+          // Charger depuis client_programs
+          const { getClientProgramById } = await import('../services/clientProgramService');
+          const clientProgram = await getClientProgramById(programId);
+          
+          if (!clientProgram) {
+            addNotification({ message: 'Programme client non trouvé.', type: 'error' });
+            navigate('/app');
+            return;
+          }
+          
+          // Convertir le format client_programs vers le format attendu
+          program = {
+            id: clientProgram.id,
+            name: clientProgram.name,
+            objective: clientProgram.objective,
+            week_count: clientProgram.weekCount,
+          };
+          
+          // Les sessions sont déjà chargées dans clientProgram.sessionsByWeek
+          // On les convertit en format plat pour la suite du traitement
+          sessions = [];
+          Object.entries(clientProgram.sessionsByWeek).forEach(([weekNum, weekSessions]) => {
+            weekSessions.forEach((session: any) => {
+              sessions.push({
+                id: session.id,
+                name: session.name,
+                week_number: parseInt(weekNum),
+                session_order: session.sessionOrder || session.id,
+                status: session.status,
+              });
+            });
+          });
+        } else {
+          // Charger depuis program_templates (comportement existant)
+          program = await getProgramById(programId);
+          if (!program) {
+            addNotification({ message: 'Programme non trouvé dans Supabase.', type: 'error' });
+            navigate('/app');
+            return;
+          }
+          sessions = await getSessionsByProgramId(programId);
+        }
+        
         if (!program) {
-          addNotification({ message: 'Programme non trouvé dans Supabase.', type: 'error' });
+          addNotification({ message: 'Programme non trouvé.', type: 'error' });
           navigate('/app');
           return;
         }
 
-        const sessions = await getSessionsByProgramId(programId);
         const allSessionExercises: Map<string, SupabaseSessionExercise[]> = new Map();
         const exerciseIds = new Set<string>();
 
         for (const session of sessions) {
-          const exercises = await getSessionExercisesBySessionId(session.id);
+          const exercises = isClientProgram 
+            ? await getClientSessionExercises(session.id)
+            : await getSessionExercisesBySessionId(session.id);
           allSessionExercises.set(session.id, exercises);
           exercises.forEach((ex) => exerciseIds.add(ex.exercise_id));
         }
@@ -821,7 +870,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     };
 
     if (programIdToEdit) {
-      loadProgramFromSupabase(programIdToEdit);
+      loadProgramFromSupabase(programIdToEdit, programType === 'client');
     } else if (sessionIdToEdit) {
       loadSessionFromSupabase(sessionIdToEdit);
     } else {
