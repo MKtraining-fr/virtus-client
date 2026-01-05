@@ -101,7 +101,7 @@ export const getClientCreatedProgramsForCoach = async (
         modified_by_client,
         viewed_by_coach,
         created_at,
-        clients!client_programs_client_id_fkey (
+        clients (
           first_name,
           last_name
         )
@@ -161,7 +161,7 @@ export const getClientCreatedProgramsByClientId = async (
         modified_by_client,
         viewed_by_coach,
         created_at,
-        clients!client_programs_client_id_fkey (
+        clients (
           first_name,
           last_name
         )
@@ -246,7 +246,7 @@ export const getCoachAssignedPrograms = async (
         modified_by_client,
         viewed_by_coach,
         created_at,
-        clients!client_programs_client_id_fkey (
+        clients (
           first_name,
           last_name
         )
