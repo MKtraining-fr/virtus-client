@@ -1445,10 +1445,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
       // Étape 4 : Préparation des sessions
       console.log('[onSave] Préparation des sessions...');
-      const currentProgramSessions: Array<{ session: WorkoutSession; weekNumber: number }> = [];
+      const currentProgramSessions: Array<{ session: WorkoutSession; weekNumber: number; sessionOrder: number }> = [];
       Object.entries(sessionsByWeek).forEach(([week, sessions]) => {
-        sessions.forEach((session) => {
-          currentProgramSessions.push({ session, weekNumber: parseInt(week) });
+        sessions.forEach((session, index) => {
+          currentProgramSessions.push({ 
+            session, 
+            weekNumber: parseInt(week),
+            sessionOrder: index + 1 // L'ordre de la séance dans la semaine (1, 2, 3...)
+          });
         });
       });
       console.log('[onSave] Nombre total de sessions à sauvegarder:', currentProgramSessions.length);
@@ -1472,9 +1476,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
       // Étape 6 : Sauvegarde des sessions et exercices
       console.log('[onSave] Sauvegarde des sessions...');
-      const sessionPromises = currentProgramSessions.map(async ({ session, weekNumber }, sessionIndex) => {
+      const sessionPromises = currentProgramSessions.map(async ({ session, weekNumber, sessionOrder }, sessionIndex) => {
         try {
-          console.log(`[onSave] Sauvegarde session ${sessionIndex + 1}/${currentProgramSessions.length}: ${session.name} (Semaine ${weekNumber})`);
+          console.log(`[onSave] Sauvegarde session ${sessionIndex + 1}/${currentProgramSessions.length}: ${session.name} (Semaine ${weekNumber}, Ordre ${sessionOrder})`);
           
           // Étape 6a : Sauvegarder la session (SANS les exercices)
           let savedSession;
@@ -1484,7 +1488,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               client_program_id: savedProgram.id,
               name: session.name,
               week_number: weekNumber,
-              session_order: session.id,
+              session_order: sessionOrder, // Utiliser l'ordre correct (integer)
             };
             savedSession = session.dbId
               ? await updateClientSession(session.dbId, sessionData)
@@ -1495,7 +1499,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               program_template_id: savedProgram.id,
               name: session.name,
               week_number: weekNumber,
-              session_order: session.id,
+              session_order: sessionOrder, // Utiliser l'ordre correct (integer)
             };
             savedSession = session.dbId
               ? await updateSession(session.dbId, sessionData)
