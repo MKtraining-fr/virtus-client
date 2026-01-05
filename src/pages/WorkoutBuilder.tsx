@@ -637,6 +637,29 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     previousModeRef.current = workoutMode;
   }, [workoutMode, hasLoadedInitialData, weekCount, sessionsByWeek]);
 
+  // Fonction pour vérifier si une semaine/séance est bloquée
+  const isWeekLocked = (week: number): boolean => {
+    if (!lockedUntil) return false;
+    return week < lockedUntil.week || (week === lockedUntil.week && lockedUntil.sessionIndex === -1);
+  };
+
+  const isSessionLocked = (week: number, sessionIndex: number): boolean => {
+    if (!lockedUntil) return false;
+    // Si la semaine est avant la semaine de verrouillage, elle est complètement bloquée
+    if (week < lockedUntil.week) return true;
+    // Si c'est la semaine de verrouillage, vérifier l'index de la séance
+    if (week === lockedUntil.week) {
+      return sessionIndex <= lockedUntil.sessionIndex;
+    }
+    // Les semaines futures ne sont pas bloquées
+    return false;
+  };
+
+  const isCurrentWeekLocked = isWeekLocked(selectedWeek);
+  const currentWeekSessions = sessionsByWeek[selectedWeek] || [];
+  const activeSessionIndex = currentWeekSessions.findIndex(s => s.id === activeSessionId);
+  const isCurrentSessionLocked = isSessionLocked(selectedWeek, activeSessionIndex);
+
   // Assurer qu'une séance active existe toujours et sélectionner automatiquement la première séance
   useEffect(() => {
     const currentWeekSessions = sessionsByWeek[selectedWeek] || [];
@@ -778,12 +801,23 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             setSelectedWeek(clientProgram.currentWeek);
           }
           
-          // Bloquer les semaines précédentes
+          // Bloquer les séances validées (semaines passées + séances passées de la semaine en cours)
+          // lockedUntil.week = dernière semaine complètement bloquée
+          // lockedUntil.sessionIndex = dernière séance bloquée dans la semaine suivante (0-indexed)
           if (clientProgram.currentWeek && clientProgram.currentSession) {
-            setLockedUntil({ 
-              week: clientProgram.currentWeek, 
-              sessionIndex: clientProgram.currentSession - 1 
-            });
+            // Si on est à la première séance d'une semaine, bloquer toutes les semaines précédentes
+            if (clientProgram.currentSession === 1) {
+              setLockedUntil({ 
+                week: clientProgram.currentWeek - 1, // Bloquer jusqu'à la semaine précédente
+                sessionIndex: -1 // Toutes les séances de cette semaine sont bloquées
+              });
+            } else {
+              // Sinon, bloquer les séances précédentes de la semaine en cours
+              setLockedUntil({ 
+                week: clientProgram.currentWeek,
+                sessionIndex: clientProgram.currentSession - 2 // -2 car 0-indexed et on veut bloquer jusqu'avant la séance en cours
+              });
+            }
           }
           
           addNotification({ message: 'Programme client chargé.', type: 'info' });
@@ -1763,27 +1797,33 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           {workoutMode === 'program' && (
             <div className="mb-4">
               <div className="flex items-center gap-2 border-b pb-2 overflow-x-auto">
-                {(sessions || []).map((session) => (
+                {(sessions || []).map((session, sessionIdx) => {
+                  const sessionLocked = isSessionLocked(selectedWeek, sessionIdx);
+                  return (
                   <div
                     key={session.id}
                     className="relative group flex-shrink-0"
-                    draggable
-                    onDragStart={(e) => handleDragSessionStart(e, session.id)}
-                    onDragEnter={(e) => handleDragSessionEnter(e, session.id)}
-                    onDragEnd={handleDropSession}
+                    draggable={!sessionLocked}
+                    onDragStart={(e) => !sessionLocked && handleDragSessionStart(e, session.id)}
+                    onDragEnter={(e) => !sessionLocked && handleDragSessionEnter(e, session.id)}
+                    onDragEnd={!sessionLocked ? handleDropSession : undefined}
                     onDragOver={(e) => e.preventDefault()}
                   >
                     <button
                       onClick={() => setActiveSessionId(session.id)}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                         activeSessionId === session.id
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-gray-100'
+                      } ${
+                        sessionLocked ? 'opacity-60 cursor-not-allowed' : ''
                       }`}
+                      disabled={sessionLocked}
                     >
+                      {sessionLocked && <LockClosedIcon className="w-4 h-4" />}
                       {session.name}
                     </button>
-                    {(sessions || []).length > 1 && (
+                    {(sessions || []).length > 1 && !sessionLocked && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1796,11 +1836,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                       </button>
                     )}
                   </div>
-                ))}
+                  );
+                })}
                 <button
                   onClick={handleDuplicateSession}
                   title="Copier la séance active"
                   className="ml-4 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-primary hover:text-white flex-shrink-0"
+                  disabled={isCurrentSessionLocked}
                 >
                   <DocumentDuplicateIcon className="w-5 h-5" />
                 </button>
@@ -1808,6 +1850,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   onClick={handleAddSession}
                   className="ml-2 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-primary hover:text-white flex-shrink-0"
                   title="Ajouter une séance"
+                  disabled={isCurrentWeekLocked}
                 >
                   <PlusIcon className="w-5 h-5" />
                 </button>
@@ -1816,7 +1859,15 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           )}
           <div className="flex-1 flex mt-4">
             <div className="w-full">
-              <h2 className="text-lg font-semibold mb-4">{activeSession?.name}</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">{activeSession?.name}</h2>
+                {isCurrentSessionLocked && (
+                  <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-3 py-1 rounded-md">
+                    <LockClosedIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium">Séance validée - Lecture seule</span>
+                  </div>
+                )}
+              </div>
               {activeSession?.exercises?.map((ex, index) => (
                 <ExerciseCard
                   key={ex.id}
@@ -1824,22 +1875,22 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   exerciseNumber={index + 1}
                   availableExercises={availableExercises}
                   isSelected={selectedExerciseIds.includes(ex.id)}
-                  isDragInteractionLocked={isDragInteractionLocked}
+                  isDragInteractionLocked={isDragInteractionLocked || isCurrentSessionLocked}
                   draggedOverExerciseId={draggedOverExerciseId}
                   exerciseDragItem={exerciseDragItem}
-                  onToggleSelection={toggleExerciseSelection}
-                  onUpdateExercise={onUpdateExercise}
-                  onDeleteExercise={handleDeleteExercise}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDrop}
-                  onDragEnter={handleDragEnter}
+                  onToggleSelection={isCurrentSessionLocked ? () => {} : toggleExerciseSelection}
+                  onUpdateExercise={isCurrentSessionLocked ? () => {} : onUpdateExercise}
+                  onDeleteExercise={isCurrentSessionLocked ? () => {} : handleDeleteExercise}
+                  onDragStart={isCurrentSessionLocked ? () => {} : handleDragStart}
+                  onDragEnd={isCurrentSessionLocked ? () => {} : handleDrop}
+                  onDragEnter={isCurrentSessionLocked ? () => {} : handleDragEnter}
                   onDragOver={(e) => e.preventDefault()}
                   onOpenHistory={() => setIsHistoryModalOpen(true)}
  />
               ))}
               
               {/* Zone de drag and drop avec recherche intégrée */}
-              {
+              {!isCurrentSessionLocked &&
                 <div className="relative mt-4" ref={dropZoneRef}>
                   <div 
                     className="text-center text-gray-500 py-8 px-4 border-2 border-dashed rounded-lg bg-white hover:border-primary hover:bg-primary-light transition-colors relative z-10"
