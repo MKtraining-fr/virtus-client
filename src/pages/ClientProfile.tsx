@@ -36,6 +36,7 @@ import ClientBilanHistory from '../components/ClientBilanHistory';
 import CoachClientDocuments from '../components/coach/CoachClientDocuments';
 import { PerformanceSection } from '../components/performance/PerformanceSection';
 import ClientVideosTab from '../components/coach/ClientVideosTab';
+import PerformanceHistoryModal from '../components/PerformanceHistoryModal';
 import { supabase } from '../services/supabase';
 import BodyMapModal from '../components/coach/BodyMapModal';
 import { InjuryData } from '../types';
@@ -467,6 +468,7 @@ const ClientProfile: React.FC = () => {
   const [isLoadingInjuries, setIsLoadingInjuries] = useState(false);
   const [localPerformanceLogs, setLocalPerformanceLogs] = useState<PerformanceLog[]>([]);
   const [activePerformanceTab, setActivePerformanceTab] = useState<'history' | 'videos'>('history');
+  const [isPerformanceHistoryModalOpen, setIsPerformanceHistoryModalOpen] = useState(false);
 
   // Editable states for macros
   const [editableMacros, setEditableMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
@@ -1456,7 +1458,7 @@ const ClientProfile: React.FC = () => {
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => openHistoryModal({ program, logs })}
+                        onClick={() => setIsPerformanceHistoryModalOpen(true)}
                       >
                         Visualiser
                       </Button>
@@ -2097,6 +2099,13 @@ const ClientProfile: React.FC = () => {
           theme="light"
         />
       )}
+
+      {/* Modal historique de performance - identique à celle du Dashboard */}
+      <PerformanceHistoryModal
+        isOpen={isPerformanceHistoryModalOpen}
+        onClose={() => setIsPerformanceHistoryModalOpen(false)}
+        clientId={clientId || null}
+      />
     </div>
   );
 };
