@@ -463,6 +463,7 @@ const ClientProfile: React.FC = () => {
 
   // États pour les blessures
   const [injuries, setInjuries] = useState<ClientInjury[]>([]);
+  const [isBodyMapModalOpen, setIsBodyMapModalOpen] = useState(false);
   const [isLoadingInjuries, setIsLoadingInjuries] = useState(false);
   const [localPerformanceLogs, setLocalPerformanceLogs] = useState<PerformanceLog[]>([]);
   const [activePerformanceTab, setActivePerformanceTab] = useState<'history' | 'videos'>('history');
