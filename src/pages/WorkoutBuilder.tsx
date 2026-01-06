@@ -810,6 +810,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           }
           
           // Les données sont déjà complètement chargées, on les utilise directement
+          console.log('[WorkoutBuilder] Données chargées depuis getClientProgramById:', {
+            sessionsByWeek: clientProgram.sessionsByWeek,
+            totalSessions: Object.values(clientProgram.sessionsByWeek || {}).flat().length,
+            exercisesPerSession: Object.entries(clientProgram.sessionsByWeek || {}).map(([week, sessions]) => ({
+              week,
+              sessions: (sessions as any[]).map(s => ({ name: s.name, exerciseCount: s.exercises?.length || 0 }))
+            }))
+          });
           setProgramName(clientProgram.name);
           setObjective(clientProgram.objective);
           setWeekCount(clientProgram.weekCount);
