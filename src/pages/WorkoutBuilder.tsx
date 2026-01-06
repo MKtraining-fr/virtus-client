@@ -1836,17 +1836,25 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 />
                 {selectedClient !== '0' && clientData && (
                   <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                    {console.log('[WorkoutBuilder] clientData:', clientData)}
                     <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-2">Objectifs du Bilan</h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex flex-col">
                         <span className="text-[10px] text-gray-500 uppercase font-semibold">Fréquence</span>
                         <span className="text-sm font-bold text-gray-800">
                           {(() => {
-                            const bilans = (clientData.assigned_bilans || clientData.bilans) as any[];
+                            const bilans = (clientData.assigned_bilans || clientData.bilans || []) as any[];
                             const completedBilans = Array.isArray(bilans) ? bilans.filter(b => b.status === 'completed') : [];
                             const lastBilan = completedBilans.length > 0 ? completedBilans[completedBilans.length - 1] : null;
                             const answers = lastBilan?.data?.answers || lastBilan?.answers || lastBilan;
-                            return answers?.seances_par_semaine || answers?.SEANCES_PAR_SEMAINE || 'Non défini';
+                            
+                            // Recherche récursive simple si non trouvé
+                            let freq = answers?.seances_par_semaine || answers?.SEANCES_PAR_SEMAINE;
+                            if (!freq && clientData.bilans_initial) {
+                              freq = clientData.bilans_initial.seances_par_semaine || clientData.bilans_initial.SEANCES_PAR_SEMAINE;
+                            }
+                            
+                            return freq || 'Non défini';
                           })()} séances / sem
                         </span>
                       </div>
@@ -1854,11 +1862,18 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                         <span className="text-[10px] text-gray-500 uppercase font-semibold">Durée</span>
                         <span className="text-sm font-bold text-gray-800">
                           {(() => {
-                            const bilans = (clientData.assigned_bilans || clientData.bilans) as any[];
+                            const bilans = (clientData.assigned_bilans || clientData.bilans || []) as any[];
                             const completedBilans = Array.isArray(bilans) ? bilans.filter(b => b.status === 'completed') : [];
                             const lastBilan = completedBilans.length > 0 ? completedBilans[completedBilans.length - 1] : null;
                             const answers = lastBilan?.data?.answers || lastBilan?.answers || lastBilan;
-                            return answers?.duree_seances || answers?.DUREE_SEANCES || 'Non définie';
+                            
+                            // Recherche récursive simple si non trouvé
+                            let duree = answers?.duree_seances || answers?.DUREE_SEANCES;
+                            if (!duree && clientData.bilans_initial) {
+                              duree = clientData.bilans_initial.duree_seances || clientData.bilans_initial.DUREE_SEANCES;
+                            }
+                            
+                            return duree || 'Non définie';
                           })()} min / séance
                         </span>
                       </div>
