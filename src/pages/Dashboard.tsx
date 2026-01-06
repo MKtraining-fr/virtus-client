@@ -186,9 +186,9 @@ const Dashboard: React.FC = () => {
     setSelectedClientForHistory(clientId);
   };
 
-  const closeHistoryModal = () => {
-    // Ne pas recharger toutes les données, juste fermer la modale
-    // Le statut 'viewed' sera mis à jour via le realtime ou au prochain chargement
+  const closeHistoryModal = async () => {
+    // Recharger les données pour mettre à jour le statut 'viewed'
+    await reloadAllData();
     setSelectedClientForHistory(null);
   };
 

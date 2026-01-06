@@ -769,3 +769,29 @@ export const deleteAllClientSessionExercises = async (sessionId: string): Promis
     return false;
   }
 };
+
+/**
+ * Marque toutes les séances complétées d'un programme comme vues par le coach
+ * 
+ * @param programId - ID du programme client
+ * @returns true si succès, false sinon
+ */
+export const markCompletedSessionsAsViewed = async (programId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('client_sessions')
+      .update({ viewed_by_coach: true })
+      .eq('client_program_id', programId)
+      .eq('status', 'completed');
+
+    if (error) {
+      console.error('Erreur lors de la mise à jour du statut viewed_by_coach:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erreur globale lors de la mise à jour du statut viewed_by_coach:', error);
+    return false;
+  }
+};

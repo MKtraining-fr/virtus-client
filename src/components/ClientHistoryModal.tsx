@@ -3,6 +3,7 @@ import { Client, WorkoutProgram } from '../types';
 import ProgramDetailView from './ProgramDetailView';
 import { useAuth } from '../context/AuthContext';
 import { markProgramAsViewedByCoach } from '../services/coachProgramViewService';
+import { markCompletedSessionsAsViewed } from '../services/clientProgramService';
 
 // --- ICONS ---
 const XMarkIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -69,10 +70,13 @@ const ClientHistoryModal: React.FC<ClientHistoryModalProps> = ({
   const client = useMemo(() => clients.find((c) => c.id === clientId), [clientId, clients]);
   const [selectedProgramIds, setSelectedProgramIds] = useState<string[]>([]);
 
-  // Marquer tous les programmes du client comme vus quand le modal s'ouvre
+  // Marquer toutes les séances complétées du client comme vues quand le modal s'ouvre
   useEffect(() => {
     if (isOpen && !isMinimized && client?.assignedPrograms) {
       client.assignedPrograms.forEach(async (program) => {
+        // Marquer les séances complétées comme vues
+        await markCompletedSessionsAsViewed(program.id);
+        // Aussi marquer le programme comme vu (pour compatibilité)
         if (!program.viewedByCoach) {
           await markProgramAsViewedByCoach(program.id);
         }
