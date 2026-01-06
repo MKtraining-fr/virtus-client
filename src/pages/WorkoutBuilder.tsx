@@ -756,9 +756,19 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     );
   }, [availableExercises, dropZoneSearchTerm]);
 
-  const handleClientSelectionChange = (value: string | string[]) => {
-    const clientId = Array.isArray(value) ? (value[0] ?? '0') : value;
+  const handleClientSelectionChange = async (value: string | string[]) => {
+    const clientId = Array.isArray(value) ? value[0] : value;
     setSelectedClient(clientId);
+    
+    // Forcer le chargement des bilans si un client est sélectionné
+    if (clientId !== '0') {
+      try {
+        console.log('[WorkoutBuilder] Forcing load of assessments for client:', clientId);
+        await getClientPerformanceLogs(clientId); // Cette fonction charge aussi les données client dans le store
+      } catch (error) {
+        console.error('[WorkoutBuilder] Error loading client assessments:', error);
+      }
+    }
 
     if (clientId === '0') {
       setObjective('');
