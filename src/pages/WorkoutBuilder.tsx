@@ -1539,15 +1539,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           }
           console.log(`[onSave] Session ${session.name} sauvegardée avec succès:`, savedSession.id);
 
-          // Étape 6b : Si mise à jour, supprimer les anciens exercices
-          if (session.dbId) {
-            if (isEditingClientProgram) {
-              await deleteAllClientSessionExercises(savedSession.id);
-            } else {
-              await deleteAllSessionExercises(savedSession.id);
-            }
-            console.log(`[onSave] Anciens exercices supprimés pour la session ${session.name}`);
+          // Étape 6b : Toujours supprimer les anciens exercices avant d'insérer les nouveaux
+          // (même pour les nouvelles sessions, au cas où elles auraient déjà des exercices)
+          if (isEditingClientProgram) {
+            await deleteAllClientSessionExercises(savedSession.id);
+          } else {
+            await deleteAllSessionExercises(savedSession.id);
           }
+          console.log(`[onSave] Anciens exercices supprimés pour la session ${session.name}`);
 
           // Étape 6c : Sauvegarder les exercices dans session_exercises
           const currentSessionExercises = session.exercises;
@@ -1632,8 +1631,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       // Si on édite un programme client, rediriger vers le dashboard pour voir les changements
       if (isEditingClientProgram) {
         console.log('[onSave] Redirection vers le dashboard après sauvegarde du programme client');
-        // Attendre un peu pour s'assurer que les données sont bien rechargées
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Afficher une notification de succès spécifique pour les programmes clients
+        addNotification({ 
+          message: 'Programme client modifié avec succès ! Redirection vers le tableau de bord...', 
+          type: 'success' 
+        });
+        // Attendre un peu pour que l'utilisateur voie la notification
+        await new Promise(resolve => setTimeout(resolve, 1500));
         navigate('/app', { replace: true });
         return;
       }
