@@ -764,7 +764,7 @@ export const createClientSessionExercisesBatch = async (
           updated_at: new Date().toISOString(),
         })),
         {
-          onConflict: 'client_session_id,exercise_id,exercise_order',
+          onConflict: 'client_session_id,exercise_order',
           ignoreDuplicates: false
         }
       );
