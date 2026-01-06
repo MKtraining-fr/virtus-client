@@ -1539,6 +1539,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             throw new Error(`La sauvegarde de la session ${session.name} (semaine ${weekNumber}) a échoué.`);
           }
           console.log(`[onSave] Session ${session.name} sauvegardée avec succès:`, savedSession.id);
+          console.log(`[onSave] Comparaison: session.dbId=${(session as any).dbId}, savedSession.id=${savedSession.id}, sont égaux: ${(session as any).dbId === savedSession.id}`);
 
           // Étape 6b : Toujours supprimer les anciens exercices avant d'insérer les nouveaux
           // (même pour les nouvelles sessions, au cas où elles auraient déjà des exercices)
