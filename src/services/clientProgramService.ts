@@ -639,6 +639,7 @@ export const updateClientSession = async (
  */
 export const createClientSession = async (sessionData: {
   client_program_id: string;
+  client_id: string;
   name: string;
   week_number: number;
   session_order: number;
@@ -708,6 +709,7 @@ export const deleteClientSession = async (sessionId: string): Promise<boolean> =
 export const createClientSessionExercisesBatch = async (
   exercises: Array<{
     client_session_id: string;
+    client_id: string;
     exercise_id: string;
     sets?: string;
     reps?: string;

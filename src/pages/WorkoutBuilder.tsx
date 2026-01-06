@@ -1484,8 +1484,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           let savedSession;
           if (isEditingClientProgram) {
             // Sauvegarder dans client_sessions
+            const clientIdFromUrl = searchParams.get('clientId');
+            if (!clientIdFromUrl) {
+              throw new Error('client_id manquant pour la création de séance client');
+            }
+            
             const sessionData = {
               client_program_id: savedProgram.id,
+              client_id: clientIdFromUrl,
               name: session.name,
               week_number: weekNumber,
               session_order: sessionOrder, // Utiliser l'ordre correct (integer)
@@ -1549,9 +1555,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 };
 
                 if (isEditingClientProgram) {
+                  const clientIdFromUrl = searchParams.get('clientId');
+                  if (!clientIdFromUrl) {
+                    throw new Error('client_id manquant pour la création d\'exercice client');
+                  }
                   return {
                     ...baseExercise,
                     client_session_id: savedSession.id,
+                    client_id: clientIdFromUrl,
                   };
                 } else {
                   return {
