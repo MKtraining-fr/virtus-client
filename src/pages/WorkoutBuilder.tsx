@@ -1610,7 +1610,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       // Si on édite un programme client, rediriger vers le dashboard pour voir les changements
       if (isEditingClientProgram) {
         console.log('[onSave] Redirection vers le dashboard après sauvegarde du programme client');
-        navigate('/app');
+        // Attendre un peu pour s'assurer que les données sont bien rechargées
+        await new Promise(resolve => setTimeout(resolve, 500));
+        navigate('/app', { replace: true });
         return;
       }
 

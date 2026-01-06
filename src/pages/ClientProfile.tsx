@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Navigate, useNavigate, Link } from 'react-router-dom';
 import {
   Client,
@@ -971,21 +971,36 @@ const ClientProfile: React.FC = () => {
   }, [user]);
 
   // Load assigned programs
+  // Fonction pour charger les programmes assignés
+  const loadAssignedPrograms = useCallback(async () => {
+    if (!clientId) return;
+    setIsLoadingPrograms(true);
+    try {
+      const programs = await getClientAssignedProgramsForCoach(clientId);
+      setAssignedPrograms(programs);
+    } catch (error) {
+      console.error('Erreur lors du chargement des programmes assignés:', error);
+    } finally {
+      setIsLoadingPrograms(false);
+    }
+  }, [clientId]);
+
+  // Charger les programmes au montage
   useEffect(() => {
-    const loadAssignedPrograms = async () => {
-      if (!clientId) return;
-      setIsLoadingPrograms(true);
-      try {
-        const programs = await getClientAssignedProgramsForCoach(clientId);
-        setAssignedPrograms(programs);
-      } catch (error) {
-        console.error('Erreur lors du chargement des programmes assignés:', error);
-      } finally {
-        setIsLoadingPrograms(false);
+    loadAssignedPrograms();
+  }, [loadAssignedPrograms]);
+
+  // Recharger les programmes quand la page redevient visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[ClientProfile] Page visible, rechargement des programmes...');
+        loadAssignedPrograms();
       }
     };
-    loadAssignedPrograms();
-  }, [clientId]);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [loadAssignedPrograms]);
 
   // Modal handlers
   const openProgramModal = (program: WorkoutProgram) => {
