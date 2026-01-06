@@ -484,13 +484,6 @@ const ClientProfile: React.FC = () => {
     },
   });
 
-  // Auto-select first historical program if none selected
-  useEffect(() => {
-    if (historicalPrograms.length > 0 && !selectedHistoricalProgram) {
-      setSelectedHistoricalProgram(historicalPrograms[0]);
-    }
-  }, [historicalPrograms, selectedHistoricalProgram]);
-
   // Measurement selection for chart
   const measurementLabels: Record<keyof Measurement, string> = {
     neck: 'Cou',
@@ -970,6 +963,13 @@ const ClientProfile: React.FC = () => {
       })
       .filter((p): p is { program: WorkoutProgram; logs: PerformanceLog[] } => p !== null);
   }, [client?.performanceLogs, programs]);
+
+  // Auto-select first historical program if none selected
+  useEffect(() => {
+    if (historicalPrograms && historicalPrograms.length > 0 && !selectedHistoricalProgram) {
+      setSelectedHistoricalProgram(historicalPrograms[0]);
+    }
+  }, [historicalPrograms, selectedHistoricalProgram]);
 
   // Coach formations
   const coachFormations = useMemo(() => {
