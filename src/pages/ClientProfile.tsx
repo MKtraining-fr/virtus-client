@@ -484,6 +484,13 @@ const ClientProfile: React.FC = () => {
     },
   });
 
+  // Auto-select first historical program if none selected
+  useEffect(() => {
+    if (historicalPrograms.length > 0 && !selectedHistoricalProgram) {
+      setSelectedHistoricalProgram(historicalPrograms[0]);
+    }
+  }, [historicalPrograms, selectedHistoricalProgram]);
+
   // Measurement selection for chart
   const measurementLabels: Record<keyof Measurement, string> = {
     neck: 'Cou',
@@ -1390,28 +1397,57 @@ const ClientProfile: React.FC = () => {
 
             {/* Contenu onglet Historique */}
             {activePerformanceTab === 'history' && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {historicalPrograms.length > 0 ? (
-                  historicalPrograms.map(({ program, logs }) => (
-                    <Card
-                      key={program.id}
-                      className="p-4 flex justify-between items-center !shadow-none border"
-                    >
-                      <div>
-                        <p className="font-semibold text-gray-800">{program.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {logs.length} séance(s) enregistrée(s)
-                        </p>
+                  <>
+                    {/* Sélecteur de programme si plusieurs programmes existent */}
+                    {historicalPrograms.length > 1 && (
+                      <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <label htmlFor="program-history-select" className="text-sm font-medium text-gray-700">
+                          Choisir un programme :
+                        </label>
+                        <select
+                          id="program-history-select"
+                          className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary"
+                          value={selectedHistoricalProgram?.program.id || ''}
+                          onChange={(e) => {
+                            const found = historicalPrograms.find(p => p.program.id === e.target.value);
+                            if (found) setSelectedHistoricalProgram(found);
+                          }}
+                        >
+                          {historicalPrograms.map(({ program }) => (
+                            <option key={program.id} value={program.id}>
+                              {program.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => openHistoryModal({ program, logs })}
-                      >
-                        Consulter l'historique
-                      </Button>
-                    </Card>
-                  ))
+                    )}
+
+                    {/* Affichage du tableau pour le programme sélectionné */}
+                    {selectedHistoricalProgram ? (
+                      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                          <h4 className="font-bold text-gray-800">
+                            {selectedHistoricalProgram.program.name}
+                          </h4>
+                          <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">
+                            {selectedHistoricalProgram.logs.length} séance(s) enregistrée(s)
+                          </span>
+                        </div>
+                        <div className="p-4 overflow-x-auto">
+                          <ProgramPerformanceDetail
+                            program={selectedHistoricalProgram.program}
+                            performanceLogs={selectedHistoricalProgram.logs}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <p className="text-gray-500">Sélectionnez un programme pour voir l'historique.</p>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <p className="text-gray-500 text-center py-4">
                     Aucun historique d'entraînement.
