@@ -702,7 +702,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           ...prevWithTemplates,
           [selectedWeek]: [newSession]
         };
-        if (selectedWeek === 1) {
+        // Ne pas appliquer le mirroring pour les programmes clients
+        if (selectedWeek === 1 && !isEditingClientProgram) {
           return mirrorWeekOneStructure(updated);
         }
         return updated;
@@ -1116,14 +1117,15 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           ...prevWithTemplates,
           [selectedWeek]: performUpdate(prevWithTemplates[selectedWeek] || []),
         };
-        if (selectedWeek === 1) {
+        // Ne pas appliquer le mirroring pour les programmes clients (chaque semaine est indépendante)
+        if (selectedWeek === 1 && !isEditingClientProgram) {
           return mirrorWeekOneStructure(updated);
         }
         return updated;
       });
       setHasUnsavedChanges(true);
     },
-    [activeSessionId, selectedWeek]
+    [activeSessionId, selectedWeek, isEditingClientProgram]
   );
 
   const addExercise = () => {
@@ -1156,7 +1158,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           s.id === activeSessionId ? { ...s, exercises: [...s.exercises, newExercise] } : s
         ),
       };
-      const mirrored = selectedWeek === 1 ? mirrorWeekOneStructure(updated) : updated;
+      // Ne pas appliquer le mirroring pour les programmes clients
+      const mirrored = (selectedWeek === 1 && !isEditingClientProgram) ? mirrorWeekOneStructure(updated) : updated;
       console.log('sessionsByWeek mis à jour', mirrored);
       return mirrored;
     });
@@ -1174,7 +1177,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           return { ...s, exercises: s.exercises.filter((ex) => ex.id !== exerciseId) };
         }),
       };
-      if (selectedWeek === 1) {
+      // Ne pas appliquer le mirroring pour les programmes clients
+      if (selectedWeek === 1 && !isEditingClientProgram) {
         return mirrorWeekOneStructure(updated);
       }
       return updated;
@@ -1222,7 +1226,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         );
       }
       
-      if (selectedWeek === 1) {
+      // Ne pas appliquer le mirroring pour les programmes clients
+      if (selectedWeek === 1 && !isEditingClientProgram) {
         return mirrorWeekOneStructure(newSessionsByWeek);
       }
 
@@ -1278,7 +1283,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       });
 
       const updated = { ...newSessionsByWeek, [selectedWeek]: newSessions };
-      if (selectedWeek === 1) {
+      // Ne pas appliquer le mirroring pour les programmes clients
+      if (selectedWeek === 1 && !isEditingClientProgram) {
         return mirrorWeekOneStructure(updated);
       }
       return updated;
@@ -1286,7 +1292,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     setHasUnsavedChanges(true);
     exerciseDragItem.current = null;
     exerciseDragOverItem.current = null;
-  }, [activeSessionId, selectedWeek]);
+  }, [activeSessionId, selectedWeek, isEditingClientProgram]);
 
   const toggleExerciseSelection = useCallback((exerciseId: number) => {
     setSelectedExerciseIds((prev) => {
@@ -1332,7 +1338,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       };
       const updatedWeekSessions = [...currentWeekSessions, newSession];
       newSessionsByWeek[selectedWeek] = updatedWeekSessions;
-      if (selectedWeek === 1) {
+      // Ne pas appliquer le mirroring pour les programmes clients
+      if (selectedWeek === 1 && !isEditingClientProgram) {
         return mirrorWeekOneStructure(newSessionsByWeek);
       }
       return newSessionsByWeek;
@@ -1347,7 +1354,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       newSessionsByWeek[selectedWeek] = (newSessionsByWeek[selectedWeek] || []).filter(
         (s) => s.id !== sessionId
       );
-      if (selectedWeek === 1) {
+      // Ne pas appliquer le mirroring pour les programmes clients
+      if (selectedWeek === 1 && !isEditingClientProgram) {
         return mirrorWeekOneStructure(newSessionsByWeek);
       }
       return newSessionsByWeek;
@@ -1382,7 +1390,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       };
 
       newSessionsByWeek[selectedWeek] = [...currentWeekSessions, duplicatedSession];
-      if (selectedWeek === 1) {
+      // Ne pas appliquer le mirroring pour les programmes clients
+      if (selectedWeek === 1 && !isEditingClientProgram) {
         return mirrorWeekOneStructure(newSessionsByWeek);
       }
       return newSessionsByWeek;
@@ -1741,7 +1750,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       sessions.splice(droppedIndex, 0, reorderedItem);
 
       newSessionsByWeek[selectedWeek] = sessions;
-      if (selectedWeek === 1) {
+      // Ne pas appliquer le mirroring pour les programmes clients
+      if (selectedWeek === 1 && !isEditingClientProgram) {
         return mirrorWeekOneStructure(newSessionsByWeek);
       }
       return newSessionsByWeek;
@@ -1749,7 +1759,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     setHasUnsavedChanges(true);
     sessionDragItem.current = null;
     sessionDragOverItem.current = null;
-  }, [selectedWeek]);
+  }, [selectedWeek, isEditingClientProgram]);
 
   return (
     <div
