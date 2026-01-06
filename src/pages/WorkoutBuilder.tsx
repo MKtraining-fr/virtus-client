@@ -1842,9 +1842,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                         <span className="text-[10px] text-gray-500 uppercase font-semibold">Fréquence</span>
                         <span className="text-sm font-bold text-gray-800">
                           {(() => {
-                            const bilans = clientData.bilans as any[];
-                            const lastBilan = Array.isArray(bilans) && bilans.length > 0 ? bilans[bilans.length - 1] : null;
-                            return lastBilan?.SEANCES_PAR_SEMAINE || lastBilan?.seances_par_semaine || 'Non défini';
+                            const bilans = (clientData.assigned_bilans || clientData.bilans) as any[];
+                            const completedBilans = Array.isArray(bilans) ? bilans.filter(b => b.status === 'completed') : [];
+                            const lastBilan = completedBilans.length > 0 ? completedBilans[completedBilans.length - 1] : null;
+                            const answers = lastBilan?.data?.answers || lastBilan?.answers || lastBilan;
+                            return answers?.seances_par_semaine || answers?.SEANCES_PAR_SEMAINE || 'Non défini';
                           })()} séances / sem
                         </span>
                       </div>
@@ -1852,9 +1854,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                         <span className="text-[10px] text-gray-500 uppercase font-semibold">Durée</span>
                         <span className="text-sm font-bold text-gray-800">
                           {(() => {
-                            const bilans = clientData.bilans as any[];
-                            const lastBilan = Array.isArray(bilans) && bilans.length > 0 ? bilans[bilans.length - 1] : null;
-                            return lastBilan?.DUREE_SEANCES || lastBilan?.duree_seances || 'Non définie';
+                            const bilans = (clientData.assigned_bilans || clientData.bilans) as any[];
+                            const completedBilans = Array.isArray(bilans) ? bilans.filter(b => b.status === 'completed') : [];
+                            const lastBilan = completedBilans.length > 0 ? completedBilans[completedBilans.length - 1] : null;
+                            const answers = lastBilan?.data?.answers || lastBilan?.answers || lastBilan;
+                            return answers?.duree_seances || answers?.DUREE_SEANCES || 'Non définie';
                           })()} min / séance
                         </span>
                       </div>
