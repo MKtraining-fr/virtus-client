@@ -553,11 +553,16 @@ const ClientProfile: React.FC = () => {
 
       // Charger les logs de performance du client
       const loadPerformanceLogs = async () => {
+        console.log('[ClientProfile] 🚀 Chargement des logs pour:', client.id);
         try {
-          const logs = await getClientPerformanceLogs(client.id);
-          // Mettre à jour le client dans le store local ou via un état local
-          // Ici on va utiliser un état local pour forcer le rafraîchissement
-          setLocalPerformanceLogs(logs);
+          const data = await getClientPerformanceLogs(client.id);
+          console.log('[ClientProfile] 📥 Données reçues:', data);
+          if (data) {
+            setDirectProgramData(data);
+            if (data.performanceLogs && data.performanceLogs.length > 0) {
+              setSelectedHistoricalProgram({ program: data.program, logs: data.performanceLogs });
+            }
+          }
         } catch (error) {
           console.error('Erreur lors du chargement des logs de performance:', error);
         }
@@ -959,55 +964,15 @@ const ClientProfile: React.FC = () => {
   };
 
   // Historical programs with performance logs
+  const [directProgramData, setDirectProgramData] = useState<{ program: WorkoutProgram; performanceLogs: any[] } | null>(null);
+
+  // Historical programs with performance logs
   const historicalPrograms = useMemo(() => {
-    // Utiliser soit les logs déjà présents, soit ceux chargés explicitement
-    const clientPerformanceLogs = (localPerformanceLogs.length > 0 ? localPerformanceLogs : (client?.performanceLogs || (client as any)?.performance_logs)) as unknown as PerformanceLog[] | undefined;
-    if (!clientPerformanceLogs) return [];
-    
-    const performanceLogs = Array.isArray(clientPerformanceLogs) ? clientPerformanceLogs : [];
-    if (performanceLogs.length === 0) return [];
-
-    const logsByProgramName = performanceLogs.reduce(
-      (acc, log: PerformanceLog) => {
-        const name = log.programName || 'Programme sans nom';
-        if (!acc[name]) acc[name] = [];
-        acc[name].push(log);
-        return acc;
-      },
-      {} as Record<string, PerformanceLog[]>
-    );
-
-    return Object.entries(logsByProgramName)
-      .map(([programName, logs]) => {
-        // Chercher le programme dans la liste globale
-        let program = programs?.find((p) => p.name === programName);
-        
-        // Si non trouvé, créer un programme "virtuel" à partir des logs pour permettre l'affichage
-        if (!program && logs.length > 0) {
-          program = {
-            id: logs[0].programId || `virtual-${programName}`,
-            name: programName,
-            description: 'Programme historique',
-            weeksCount: Math.max(...logs.map(l => l.weekNumber || 0), 1),
-            sessionsPerWeek: 3, // Valeur par défaut
-            isPublic: false,
-            coachId: user?.id || '',
-            createdAt: logs[0].completedAt || new Date().toISOString(),
-            updatedAt: logs[0].completedAt || new Date().toISOString(),
-            sessionsByWeek: {} // Sera géré par le composant de performance
-          } as WorkoutProgram;
-        }
-        
-        return program ? { program, logs } : null;
-      })
-      .filter((p): p is { program: WorkoutProgram; logs: PerformanceLog[] } => p !== null)
-      .sort((a, b) => {
-        // Trier par date de la dernière séance (plus récent en premier)
-        const dateA = new Date(a.logs[0]?.completedAt || 0).getTime();
-        const dateB = new Date(b.logs[0]?.completedAt || 0).getTime();
-        return dateB - dateA;
-      });
-  }, [client?.performanceLogs, (client as any)?.performance_logs, programs, user?.id]);
+    if (directProgramData) {
+      return [{ program: directProgramData.program, logs: directProgramData.performanceLogs }];
+    }
+    return [];
+  }, [directProgramData]);
 
   // Auto-select first historical program if none selected
   useEffect(() => {
