@@ -1834,6 +1834,33 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   value={selectedClient}
                   onChange={handleClientSelectionChange}
                 />
+                {selectedClient !== '0' && clientData && (
+                  <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                    <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-2">Objectifs du Bilan</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-gray-500 uppercase font-semibold">Fréquence</span>
+                        <span className="text-sm font-bold text-gray-800">
+                          {(() => {
+                            const bilans = clientData.bilans as any[];
+                            const lastBilan = Array.isArray(bilans) && bilans.length > 0 ? bilans[bilans.length - 1] : null;
+                            return lastBilan?.SEANCES_PAR_SEMAINE || lastBilan?.seances_par_semaine || 'Non défini';
+                          })()} séances / sem
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-gray-500 uppercase font-semibold">Durée</span>
+                        <span className="text-sm font-bold text-gray-800">
+                          {(() => {
+                            const bilans = clientData.bilans as any[];
+                            const lastBilan = Array.isArray(bilans) && bilans.length > 0 ? bilans[bilans.length - 1] : null;
+                            return lastBilan?.DUREE_SEANCES || lastBilan?.duree_seances || 'Non définie';
+                          })()} min / séance
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
