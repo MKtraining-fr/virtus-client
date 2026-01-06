@@ -757,16 +757,20 @@ export const createClientSessionExercisesBatch = async (
   try {
     const { error } = await supabase
       .from('client_session_exercises')
-      .insert(
+      .upsert(
         exercises.map((ex) => ({
           ...ex,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        }))
+        })),
+        {
+          onConflict: 'client_session_id,exercise_id,exercise_order',
+          ignoreDuplicates: false
+        }
       );
 
     if (error) {
-      console.error('Erreur lors de la création des exercices client en batch:', error);
+      console.error('Erreur lors de la création/mise à jour des exercices client en batch:', error);
       return false;
     }
 
