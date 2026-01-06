@@ -71,6 +71,7 @@ interface HorizontalExerciseRowProps {
   weekCount: number;
   logsByWeekAndSession: Map<number, Map<string, PerformanceLog>>;
   sessionName: string;
+  program: WorkoutProgram;
 }
 
 const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
@@ -79,6 +80,7 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
   weekCount,
   logsByWeekAndSession,
   sessionName,
+  program,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const totalSets = Math.max(0, parseInt(exercise.sets, 10) || 0);
@@ -86,6 +88,23 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
   const isEven = exerciseIndex % 2 === 0;
   const rowBgClass = isEven ? 'bg-white' : 'bg-gray-50';
   const hoverBgClass = 'hover:bg-blue-50';
+
+  // Vérifier si l'exercice est présent dans le programme pour une semaine donnée
+  const isExerciseInProgramForWeek = (week: number) => {
+    const weekSessions = program.sessionsByWeek[week];
+    if (!weekSessions) return false;
+    const session = weekSessions.find(s => s.name === sessionName);
+    if (!session) return false;
+    return session.exercises.some(e => e.name === exercise.name);
+  };
+
+  // Trouver la première semaine où l'exercice apparaît
+  const firstWeekInProgram = useMemo(() => {
+    for (let w = 1; w <= weekCount; w++) {
+      if (isExerciseInProgramForWeek(w)) return w;
+    }
+    return 1;
+  }, [program, exercise.name, sessionName, weekCount]);
 
   return (
     <React.Fragment>
@@ -103,7 +122,14 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
                 className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
               />
             </button>
-            <span>{exercise.name}</span>
+            <div className="flex flex-col">
+              <span>{exercise.name}</span>
+              {firstWeekInProgram > 1 && (
+                <span className="text-[10px] bg-blue-100 text-blue-700 px-1 rounded w-fit mt-1">
+                  Ajouté S{firstWeekInProgram}
+                </span>
+              )}
+            </div>
           </div>
         </td>
         {[...Array(weekCount)].map((_, weekIndex) => {
@@ -116,6 +142,7 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
             (e) => e.exerciseName === exercise.name
           );
 
+          const isInProgram = isExerciseInProgramForWeek(week);
           const avgReps = calculateAverage(exerciseLogInLog?.loggedSets || [], 'reps');
           const avgLoad = calculateAverage(exerciseLogInLog?.loggedSets || [], 'load');
           const prevAvgReps = calculateAverage(prevExerciseLogInLog?.loggedSets || [], 'reps');
@@ -129,10 +156,9 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
           const hasCommentsInLog = exerciseLogInLog?.loggedSets.some((s) => !!s.comment);
 
           return (
-            <td key={week} className="p-2 text-left border-l min-w-[192px]">
+            <td key={week} className={`p-2 text-left border-l min-w-[192px] ${!isInProgram && !exerciseLogInLog ? 'bg-gray-100/50' : ''}`}>
               {exerciseLogInLog ? (
                 <div className="flex items-center w-full">
-                  {/* ✅ FIX: Pastille à gauche comme pour les détails */}
                   <div className="w-5 shrink-0 flex items-center justify-center">
                     {hasUnviewedSets && <UnviewedDot />}
                   </div>
@@ -156,7 +182,9 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
                   </div>
                 </div>
               ) : (
-                '-'
+                <span className="text-gray-400 italic text-xs">
+                  {!isInProgram ? 'N/A' : '-'}
+                </span>
               )}
             </td>
           );
@@ -191,8 +219,10 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
                 prevSet ? parseFloat(prevSet.load) : null
               );
 
+              const isInProgram = isExerciseInProgramForWeek(week);
+
               return (
-                <td key={week} className="p-2 text-left border-l align-top min-w-[192px]">
+                <td key={week} className={`p-2 text-left border-l align-top min-w-[192px] ${!isInProgram && !set ? 'bg-gray-100/50' : ''}`}>
                   {set ? (
                     <div className="flex items-center justify-between w-full gap-2">
                       <div className="flex items-center">
@@ -220,7 +250,9 @@ const HorizontalExerciseRow: React.FC<HorizontalExerciseRowProps> = ({
                       )}
                     </div>
                   ) : (
-                    '-'
+                    <span className="text-gray-400 italic text-xs">
+                      {!isInProgram ? 'N/A' : '-'}
+                    </span>
                   )}
                 </td>
               );
@@ -260,15 +292,29 @@ const ProgramPerformanceDetail: React.FC<ProgramPerformanceDetailProps> = ({
   }, [performanceLogs, program.name]);
 
   const sessions = useMemo(() => {
-    const allSessions = new Map<string, WorkoutExercise[]>();
+    const allSessions = new Map<string, Map<string, WorkoutExercise>>();
+    
+    // Parcourir toutes les semaines pour collecter tous les exercices uniques par séance
     Object.values(program.sessionsByWeek).forEach((weekSessions) => {
       weekSessions.forEach((session) => {
         if (!allSessions.has(session.name)) {
-          allSessions.set(session.name, session.exercises);
+          allSessions.set(session.name, new Map<string, WorkoutExercise>());
         }
+        
+        const sessionExercises = allSessions.get(session.name)!;
+        session.exercises.forEach((exercise) => {
+          // On garde l'exercice s'il n'existe pas encore pour cette séance
+          if (!sessionExercises.has(exercise.name)) {
+            sessionExercises.set(exercise.name, exercise);
+          }
+        });
       });
     });
-    return Array.from(allSessions, ([name, exercises]) => ({ name, exercises }));
+
+    return Array.from(allSessions, ([name, exercisesMap]) => ({
+      name,
+      exercises: Array.from(exercisesMap.values())
+    }));
   }, [program]);
 
   const filteredSessions = useMemo(() => {
@@ -331,12 +377,13 @@ const ProgramPerformanceDetail: React.FC<ProgramPerformanceDetailProps> = ({
                 )}
                 {session.exercises.map((exercise, exerciseIndex) => (
                   <HorizontalExerciseRow
-                    key={exercise.id}
+                    key={exercise.id || exercise.name}
                     exercise={exercise}
                     exerciseIndex={exerciseIndex}
                     weekCount={program.weekCount}
                     logsByWeekAndSession={logsByWeekAndSession}
                     sessionName={session.name}
+                    program={program}
                   />
                 ))}
               </React.Fragment>
