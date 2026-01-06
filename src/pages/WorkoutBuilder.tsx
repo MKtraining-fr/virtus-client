@@ -138,7 +138,7 @@ const ensureDetailsArray = (
 };
 
 // Fonction de normalisation pour garantir que les exercices ont toujours des structures valides
-const normalizeWorkoutExercise = (exercise: WorkoutExercise): WorkoutExercise => {
+const normalizeWorkoutExercise = (exercise: WorkoutExercise): EditableWorkoutExercise => {
   const detailsSource = Array.isArray(exercise.details) ? exercise.details : [];
   const normalizedDetails = detailsSource.length > 0
     ? detailsSource.map(detail => ({
@@ -152,8 +152,12 @@ const normalizeWorkoutExercise = (exercise: WorkoutExercise): WorkoutExercise =>
       }))
     : [createDefaultDetail()];
 
+  // Préserver dbId pour les exercices existants
+  const exerciseWithDbId = exercise as EditableWorkoutExercise;
+  
   return {
     ...exercise,
+    dbId: exerciseWithDbId.dbId, // Préserver l'ID de la base de données
     sets: exercise.sets ?? String(normalizedDetails.length),
     details: normalizedDetails,
     intensification: Array.isArray(exercise.intensification) ? exercise.intensification : [],
@@ -162,11 +166,20 @@ const normalizeWorkoutExercise = (exercise: WorkoutExercise): WorkoutExercise =>
 };
 
 // Fonction de normalisation pour garantir que les séances ont toujours des exercices valides
-const normalizeWorkoutSession = (session: WorkoutSession): EditableWorkoutSession => ({
-  ...session,
-  templateSessionId: (session as EditableWorkoutSession).templateSessionId,
-  exercises: (session.exercises ?? []).map(normalizeWorkoutExercise),
-} as EditableWorkoutSession);
+const normalizeWorkoutSession = (session: WorkoutSession): EditableWorkoutSession => {
+  // Pour les programmes clients, session.id est l'UUID de la base de données
+  // On le préserve dans dbId pour permettre les mises à jour
+  const sessionWithDbId = session as EditableWorkoutSession;
+  const isUUID = typeof session.id === 'string' && session.id.includes('-');
+  
+  return {
+    ...session,
+    // Préserver dbId s'il existe, sinon utiliser id s'il s'agit d'un UUID
+    dbId: sessionWithDbId.dbId ?? (isUUID ? session.id as unknown as string : undefined),
+    templateSessionId: sessionWithDbId.templateSessionId,
+    exercises: (session.exercises ?? []).map(normalizeWorkoutExercise),
+  } as EditableWorkoutSession;
+};
 
 const assignTemplateSessionIds = (state: SessionsByWeekState): SessionsByWeekState => {
   const baseWeek = state[1] || [];
