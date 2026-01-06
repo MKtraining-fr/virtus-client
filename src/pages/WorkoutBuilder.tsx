@@ -1501,6 +1501,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       const sessionPromises = currentProgramSessions.map(async ({ session, weekNumber, sessionOrder }, sessionIndex) => {
         try {
           console.log(`[onSave] Sauvegarde session ${sessionIndex + 1}/${currentProgramSessions.length}: ${session.name} (Semaine ${weekNumber}, Ordre ${sessionOrder})`);
+          console.log(`[onSave] Session dbId: ${(session as any).dbId}, id: ${session.id}`);
           
           // Étape 6a : Sauvegarder la session (SANS les exercices)
           let savedSession;
