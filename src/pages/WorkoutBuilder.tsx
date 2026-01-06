@@ -1496,9 +1496,12 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         }
       }
 
-      // Étape 6 : Sauvegarde des sessions et exercices
+      // Étape 6 : Sauvegarde des sessions et exercices (SÉQUENTIELLEMENT pour éviter les doublons)
       console.log('[onSave] Sauvegarde des sessions...');
-      const sessionPromises = currentProgramSessions.map(async ({ session, weekNumber, sessionOrder }, sessionIndex) => {
+      const savedSessions: any[] = [];
+      
+      for (let sessionIndex = 0; sessionIndex < currentProgramSessions.length; sessionIndex++) {
+        const { session, weekNumber, sessionOrder } = currentProgramSessions[sessionIndex];
         try {
           console.log(`[onSave] Sauvegarde session ${sessionIndex + 1}/${currentProgramSessions.length}: ${session.name} (Semaine ${weekNumber}, Ordre ${sessionOrder})`);
           console.log(`[onSave] Session dbId: ${(session as any).dbId}, id: ${session.id}`);
@@ -1517,10 +1520,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               client_id: clientIdFromUrl,
               name: session.name,
               week_number: weekNumber,
-              session_order: sessionOrder, // Utiliser l'ordre correct (integer)
+              session_order: sessionOrder,
             };
-            savedSession = session.dbId
-              ? await updateClientSession(session.dbId, sessionData)
+            savedSession = (session as any).dbId
+              ? await updateClientSession((session as any).dbId, sessionData)
               : await createClientSession(sessionData);
           } else {
             // Sauvegarder dans session_templates (comportement existant)
@@ -1528,10 +1531,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               program_template_id: savedProgram.id,
               name: session.name,
               week_number: weekNumber,
-              session_order: sessionOrder, // Utiliser l'ordre correct (integer)
+              session_order: sessionOrder,
             };
-            savedSession = session.dbId
-              ? await updateSession(session.dbId, sessionData)
+            savedSession = (session as any).dbId
+              ? await updateSession((session as any).dbId, sessionData)
               : await createSession(sessionData);
           }
 
@@ -1539,25 +1542,22 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             throw new Error(`La sauvegarde de la session ${session.name} (semaine ${weekNumber}) a échoué.`);
           }
           console.log(`[onSave] Session ${session.name} sauvegardée avec succès:`, savedSession.id);
-          console.log(`[onSave] Comparaison: session.dbId=${(session as any).dbId}, savedSession.id=${savedSession.id}, sont égaux: ${(session as any).dbId === savedSession.id}`);
 
-          // Étape 6b : Toujours supprimer les anciens exercices avant d'insérer les nouveaux
-          // (même pour les nouvelles sessions, au cas où elles auraient déjà des exercices)
+          // Étape 6b : Supprimer les anciens exercices
           if (isEditingClientProgram) {
-            await deleteAllClientSessionExercises(savedSession.id);
+            const deleteResult = await deleteAllClientSessionExercises(savedSession.id);
+            console.log(`[onSave] Suppression exercices pour ${session.name}: ${deleteResult ? 'OK' : 'ERREUR'}`);
           } else {
             await deleteAllSessionExercises(savedSession.id);
           }
-          console.log(`[onSave] Anciens exercices supprimés pour la session ${session.name}`);
 
-          // Étape 6c : Sauvegarder les exercices dans session_exercises
+          // Étape 6c : Sauvegarder les exercices
           const currentSessionExercises = session.exercises;
-          console.log(`[onSave] Session ${session.name} (Semaine ${weekNumber}) - Nombre d'exercices: ${currentSessionExercises.length}`);
-          console.log(`[onSave] Exercices:`, currentSessionExercises.map(ex => ({ id: ex.id, exerciseId: ex.exerciseId, name: ex.name })));
+          console.log(`[onSave] Session ${session.name} (Semaine ${weekNumber}) - ${currentSessionExercises.length} exercices à insérer`);
           
           if (currentSessionExercises.length > 0) {
             const exercisesToInsert = currentSessionExercises
-              .filter(ex => ex.exerciseId) // Ignorer les exercices sans ID
+              .filter(ex => ex.exerciseId)
               .map((exercise, index) => {
                 const normalized = normalizeWorkoutExercise(exercise);
                 const details = ensureDetailsArray(normalized.details, String(normalized.sets));
@@ -1577,7 +1577,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   rest_time: mainDetail.rest || '',
                   intensification: JSON.stringify(normalized.intensification || []),
                   notes: normalized.notes || '',
-                  details: JSON.stringify(details), // Sauvegarder tous les détails par série
+                  details: JSON.stringify(details),
                 };
 
                 if (isEditingClientProgram) {
@@ -1605,18 +1605,17 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
               } else {
                 await createSessionExercisesBatch(exercisesToInsert);
               }
-              console.log(`[onSave] ${exercisesToInsert.length} exercices enregistrés dans la session ${session.name}`);
+              console.log(`[onSave] ${exercisesToInsert.length} exercices enregistrés dans ${session.name}`);
             }
           }
 
-          return savedSession;
-        } catch (sessionError) {
+          savedSessions.push(savedSession);
+        } catch (sessionError: any) {
           console.error(`[onSave] Erreur lors de la sauvegarde de la session ${session.name}:`, sessionError);
           throw new Error(`Échec de la sauvegarde de la session "${session.name}" (semaine ${weekNumber}): ${sessionError.message}`);
         }
-      });
-
-      await Promise.all(sessionPromises);
+      }
+      
       console.log('[onSave] Toutes les sessions et exercices ont été sauvegardés avec succès');
 
       // Étape 7 : Mise à jour de l'état local
