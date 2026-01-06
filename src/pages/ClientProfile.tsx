@@ -25,6 +25,7 @@ import {
   getClientAssignedProgramsForCoach,
   getClientProgramDetails,
   getClientCompletedSessions,
+  getClientPerformanceLogs,
 } from '../services/coachClientProgramService';
 import Input from '../components/Input';
 import Button from '../components/Button';
@@ -462,9 +463,9 @@ const ClientProfile: React.FC = () => {
 
   // États pour les blessures
   const [injuries, setInjuries] = useState<ClientInjury[]>([]);
-  const [isBodyMapModalOpen, setIsBodyMapModalOpen] = useState(false);
-  const [activePerformanceTab, setActivePerformanceTab] = useState<'history' | 'videos'>('history');
   const [isLoadingInjuries, setIsLoadingInjuries] = useState(false);
+  const [localPerformanceLogs, setLocalPerformanceLogs] = useState<PerformanceLog[]>([]);
+  const [activePerformanceTab, setActivePerformanceTab] = useState<'history' | 'videos'>('history');
 
   // Editable states for macros
   const [editableMacros, setEditableMacros] = useState({ protein: 0, carbs: 0, fat: 0 });
@@ -546,6 +547,19 @@ const ClientProfile: React.FC = () => {
         }
       };
       loadInjuries();
+
+      // Charger les logs de performance du client
+      const loadPerformanceLogs = async () => {
+        try {
+          const logs = await getClientPerformanceLogs(client.id);
+          // Mettre à jour le client dans le store local ou via un état local
+          // Ici on va utiliser un état local pour forcer le rafraîchissement
+          setLocalPerformanceLogs(logs);
+        } catch (error) {
+          console.error('Erreur lors du chargement des logs de performance:', error);
+        }
+      };
+      loadPerformanceLogs();
     }
   }, [client]);
 
@@ -943,14 +957,18 @@ const ClientProfile: React.FC = () => {
 
   // Historical programs with performance logs
   const historicalPrograms = useMemo(() => {
-    const clientPerformanceLogs = client?.performanceLogs as unknown as PerformanceLog[] | undefined;
-    if (!clientPerformanceLogs || !programs) return [];
+    // Utiliser soit les logs déjà présents, soit ceux chargés explicitement
+    const clientPerformanceLogs = (localPerformanceLogs.length > 0 ? localPerformanceLogs : (client?.performanceLogs || (client as any)?.performance_logs)) as unknown as PerformanceLog[] | undefined;
+    if (!clientPerformanceLogs) return [];
+    
     const performanceLogs = Array.isArray(clientPerformanceLogs) ? clientPerformanceLogs : [];
+    if (performanceLogs.length === 0) return [];
 
     const logsByProgramName = performanceLogs.reduce(
       (acc, log: PerformanceLog) => {
-        if (!acc[log.programName]) acc[log.programName] = [];
-        acc[log.programName].push(log);
+        const name = log.programName || 'Programme sans nom';
+        if (!acc[name]) acc[name] = [];
+        acc[name].push(log);
         return acc;
       },
       {} as Record<string, PerformanceLog[]>
@@ -958,11 +976,35 @@ const ClientProfile: React.FC = () => {
 
     return Object.entries(logsByProgramName)
       .map(([programName, logs]) => {
-        const program = programs.find((p) => p.name === programName);
+        // Chercher le programme dans la liste globale
+        let program = programs?.find((p) => p.name === programName);
+        
+        // Si non trouvé, créer un programme "virtuel" à partir des logs pour permettre l'affichage
+        if (!program && logs.length > 0) {
+          program = {
+            id: logs[0].programId || `virtual-${programName}`,
+            name: programName,
+            description: 'Programme historique',
+            weeksCount: Math.max(...logs.map(l => l.weekNumber || 0), 1),
+            sessionsPerWeek: 3, // Valeur par défaut
+            isPublic: false,
+            coachId: user?.id || '',
+            createdAt: logs[0].completedAt || new Date().toISOString(),
+            updatedAt: logs[0].completedAt || new Date().toISOString(),
+            sessionsByWeek: {} // Sera géré par le composant de performance
+          } as WorkoutProgram;
+        }
+        
         return program ? { program, logs } : null;
       })
-      .filter((p): p is { program: WorkoutProgram; logs: PerformanceLog[] } => p !== null);
-  }, [client?.performanceLogs, programs]);
+      .filter((p): p is { program: WorkoutProgram; logs: PerformanceLog[] } => p !== null)
+      .sort((a, b) => {
+        // Trier par date de la dernière séance (plus récent en premier)
+        const dateA = new Date(a.logs[0]?.completedAt || 0).getTime();
+        const dateB = new Date(b.logs[0]?.completedAt || 0).getTime();
+        return dateB - dateA;
+      });
+  }, [client?.performanceLogs, (client as any)?.performance_logs, programs, user?.id]);
 
   // Auto-select first historical program if none selected
   useEffect(() => {
