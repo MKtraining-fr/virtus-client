@@ -1545,8 +1545,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
           // Étape 6b : Supprimer les anciens exercices
           if (isEditingClientProgram) {
+            console.log(`[onSave] Suppression des exercices pour session ID: ${savedSession.id}`);
             const deleteResult = await deleteAllClientSessionExercises(savedSession.id);
             console.log(`[onSave] Suppression exercices pour ${session.name}: ${deleteResult ? 'OK' : 'ERREUR'}`);
+            // Attendre un court délai pour s'assurer que la suppression est propagée
+            await new Promise(resolve => setTimeout(resolve, 100));
           } else {
             await deleteAllSessionExercises(savedSession.id);
           }
