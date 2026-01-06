@@ -186,9 +186,17 @@ const Dashboard: React.FC = () => {
     setSelectedClientForHistory(clientId);
   };
 
-  const closeHistoryModal = async () => {
-    // Recharger les données pour mettre à jour le statut 'viewed'
-    await loadData();
+  const closeHistoryModal = () => {
+    // Mettre à jour localement le statut 'viewed' du client pour éviter de recharger toutes les données
+    if (selectedClientForHistory) {
+      const updatedClients = allClients.map(client => {
+        if (client.id === selectedClientForHistory) {
+          return { ...client, viewed: true };
+        }
+        return client;
+      });
+      setClients(updatedClients);
+    }
     setSelectedClientForHistory(null);
   };
 
