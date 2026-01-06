@@ -75,68 +75,116 @@ const getLoadDisplayValue = (details: WorkoutExercise['details']) => {
   return details.map((d) => d.load.value).join(' / ') + ` ${firstLoad.unit}`;
 };
 
-const WeekContent: React.FC<{ sessions: WorkoutSession[] }> = ({ sessions }) => (
-  <div className="overflow-x-auto">
-    <table className="w-full text-sm text-left">
-      <thead className="bg-gray-100 text-black uppercase text-xs">
-        <tr>
-          <th className="py-1 px-3 w-12 font-semibold">Séance</th>
-          <th className="py-1 px-3 font-semibold">Exercice</th>
-          <th className="py-1 px-3 font-semibold">Séries</th>
-          <th className="py-1 px-3 font-semibold">Reps</th>
-          <th className="py-1 px-3 font-semibold">Charge</th>
-          <th className="py-1 px-3 font-semibold">Tempo</th>
-          <th className="py-1 px-3 font-semibold">Repos</th>
-        </tr>
-      </thead>
-      <tbody>
-        {sessions.map((session, sessionIndex) => (
-          <React.Fragment key={session.id}>
-            {session.exercises.length > 0 ? (
-              session.exercises.map((ex, exerciseIndex) => (
-                <tr
-                  key={ex.id}
-                  className={`bg-white ${exerciseIndex === 0 ? 'border-t-2 border-gray-300' : ''} ${sessionIndex === 0 && exerciseIndex === 0 ? '!border-t-0' : ''}`}
-                >
-                  {exerciseIndex === 0 ? (
-                    <td
-                      rowSpan={session.exercises.length}
-                      className="py-1 px-3 align-middle font-bold text-lg text-center text-primary border-r"
-                    >
+// Helper pour afficher les performances réalisées
+const getPerformanceDisplay = (performanceData: WorkoutExercise['performanceData']) => {
+  if (!performanceData || performanceData.length === 0) return null;
+  
+  // Trier par numéro de série
+  const sortedPerf = [...performanceData].sort((a, b) => a.setNumber - b.setNumber);
+  
+  const repsDisplay = sortedPerf.map(p => p.repsAchieved ?? '-').join(' / ');
+  const loadDisplay = sortedPerf.map(p => p.loadAchieved ?? '-').join(' / ');
+  
+  return { reps: repsDisplay, load: loadDisplay };
+};
+
+const WeekContent: React.FC<{ sessions: WorkoutSession[] }> = ({ sessions }) => {
+  // Vérifier si au moins une séance a des données de performance
+  const hasPerformanceData = sessions.some(session => 
+    session.exercises.some(ex => ex.performanceData && ex.performanceData.length > 0)
+  );
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm text-left">
+        <thead className="bg-gray-100 text-black uppercase text-xs">
+          <tr>
+            <th className="py-1 px-3 w-12 font-semibold">Séance</th>
+            <th className="py-1 px-3 font-semibold">Exercice</th>
+            <th className="py-1 px-3 font-semibold">Séries</th>
+            <th className="py-1 px-3 font-semibold">Reps</th>
+            <th className="py-1 px-3 font-semibold">Charge</th>
+            {hasPerformanceData && (
+              <>
+                <th className="py-1 px-3 font-semibold bg-green-50 text-green-800">Reps réalisées</th>
+                <th className="py-1 px-3 font-semibold bg-green-50 text-green-800">Charge réalisée</th>
+              </>
+            )}
+            <th className="py-1 px-3 font-semibold">Tempo</th>
+            <th className="py-1 px-3 font-semibold">Repos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sessions.map((session, sessionIndex) => {
+            // Indicateur de séance complétée
+            const isCompleted = session.status === 'completed';
+            
+            return (
+              <React.Fragment key={session.id}>
+                {session.exercises.length > 0 ? (
+                  session.exercises.map((ex, exerciseIndex) => {
+                    const perfDisplay = getPerformanceDisplay(ex.performanceData);
+                    
+                    return (
+                      <tr
+                        key={ex.id}
+                        className={`${isCompleted ? 'bg-green-50' : 'bg-white'} ${exerciseIndex === 0 ? 'border-t-2 border-gray-300' : ''} ${sessionIndex === 0 && exerciseIndex === 0 ? '!border-t-0' : ''}`}
+                      >
+                        {exerciseIndex === 0 ? (
+                          <td
+                            rowSpan={session.exercises.length}
+                            className={`py-1 px-3 align-middle font-bold text-lg text-center border-r ${isCompleted ? 'text-green-600' : 'text-primary'}`}
+                          >
+                            S{sessionIndex + 1}
+                            {isCompleted && (
+                              <span className="block text-xs font-normal text-green-600">✓</span>
+                            )}
+                          </td>
+                        ) : null}
+                        <td className="py-1 px-3 font-medium text-black">{ex.name}</td>
+                        <td className="py-1 px-3 text-black">{ex.sets}</td>
+                        <td className="py-1 px-3 text-black">{getDisplayValue(ex.details, 'reps')}</td>
+                        <td className="py-1 px-3 text-black">{getLoadDisplayValue(ex.details)}</td>
+                        {hasPerformanceData && (
+                          <>
+                            <td className="py-1 px-3 text-green-700 font-medium bg-green-50">
+                              {perfDisplay?.reps || '-'}
+                            </td>
+                            <td className="py-1 px-3 text-green-700 font-medium bg-green-50">
+                              {perfDisplay?.load || '-'}
+                            </td>
+                          </>
+                        )}
+                        <td className="py-1 px-3 text-black">{getDisplayValue(ex.details, 'tempo')}</td>
+                        <td className="py-1 px-3 text-black">{getDisplayValue(ex.details, 'rest')}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td className={`py-1 px-3 align-middle font-bold text-lg text-center border-r ${isCompleted ? 'text-green-600' : 'text-primary'}`}>
                       S{sessionIndex + 1}
                     </td>
-                  ) : null}
-                  <td className="py-1 px-3 font-medium text-black">{ex.name}</td>
-                  <td className="py-1 px-3 text-black">{ex.sets}</td>
-                  <td className="py-1 px-3 text-black">{getDisplayValue(ex.details, 'reps')}</td>
-                  <td className="py-1 px-3 text-black">{getLoadDisplayValue(ex.details)}</td>
-                  <td className="py-1 px-3 text-black">{getDisplayValue(ex.details, 'tempo')}</td>
-                  <td className="py-1 px-3 text-black">{getDisplayValue(ex.details, 'rest')}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td className="py-1 px-3 align-middle font-bold text-lg text-center text-primary border-r">
-                  S{sessionIndex + 1}
-                </td>
-                <td colSpan={6} className="text-center py-4 text-gray-500">
-                  Cette séance est vide.
-                </td>
-              </tr>
-            )}
-          </React.Fragment>
-        ))}
-        {sessions.length === 0 && (
-          <tr>
-            <td colSpan={7} className="text-center py-4 text-gray-500">
-              Aucune séance pour cette semaine.
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-);
+                    <td colSpan={hasPerformanceData ? 8 : 6} className="text-center py-4 text-gray-500">
+                      Cette séance est vide.
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
+          {sessions.length === 0 && (
+            <tr>
+              <td colSpan={hasPerformanceData ? 9 : 7} className="text-center py-4 text-gray-500">
+                Aucune séance pour cette semaine.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 const ProgramDetailView: React.FC<ProgramDetailViewProps> = ({ program }) => {
   const [selectedWeek, setSelectedWeek] = useState<number>(1);

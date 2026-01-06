@@ -225,6 +225,15 @@ export interface Exercise {
   isArchived?: boolean;  // Exercice archivé
 }
 
+export interface ExercisePerformanceData {
+  setNumber: number;
+  repsAchieved: number | null;
+  loadAchieved: string | null;
+  rpe: number | null;
+  notes: string | null;
+  performedAt: string | null;
+}
+
 export interface WorkoutExercise {
   id: number;
   dbId?: string;
@@ -246,6 +255,7 @@ export interface WorkoutExercise {
     tempo: string;
     rest: string;
   }>;
+  performanceData?: ExercisePerformanceData[];
 }
 
 export interface WorkoutSession {
@@ -257,6 +267,8 @@ export interface WorkoutSession {
   status?: 'pending' | 'completed' | 'skipped';
   weekNumber?: number;
   sessionOrder?: number;
+  completedAt?: string | null;
+  viewedByCoach?: boolean;
 }
 
 export interface WorkoutProgram {

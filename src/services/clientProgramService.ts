@@ -16,7 +16,12 @@ const mapClientSessionToWorkoutSession = (
     ? (session.client_session_exercises as any[])
     : [];
 
-  const mappedExercises: WorkoutExercise[] = exercises.map((exercise, idx) => {
+  // Trier les exercices par exercise_order
+  const sortedExercises = [...exercises].sort((a, b) => 
+    (a.exercise_order || 0) - (b.exercise_order || 0)
+  );
+
+  const mappedExercises: WorkoutExercise[] = sortedExercises.map((exercise, idx) => {
     // Utiliser la colonne details si disponible (nouveau format)
     let details: WorkoutExercise['details'];
     
@@ -47,6 +52,18 @@ const mapClientSessionToWorkoutSession = (
       }));
     }
 
+    // Mapper les données de performance si disponibles
+    const performanceData = Array.isArray(exercise.client_exercise_performance)
+      ? exercise.client_exercise_performance.map((perf: any) => ({
+          setNumber: perf.set_number,
+          repsAchieved: perf.reps_achieved,
+          loadAchieved: perf.load_achieved,
+          rpe: perf.rpe,
+          notes: perf.notes,
+          performedAt: perf.performed_at,
+        }))
+      : [];
+
     return {
       id: idx + 1 + indexOffset,
       dbId: exercise.id,
@@ -67,6 +84,7 @@ const mapClientSessionToWorkoutSession = (
       notes: exercise.notes ?? undefined,
       isDetailed: true,
       details,
+      performanceData, // Ajouter les données de performance
     };
   });
 
@@ -77,6 +95,8 @@ const mapClientSessionToWorkoutSession = (
     weekNumber: session.week_number ?? 1,
     sessionOrder: session.session_order ?? 1,
     status: session.status ?? 'pending',
+    completedAt: session.completed_at ?? null,
+    viewedByCoach: session.viewed_by_coach ?? false,
   } as WorkoutSession;
 };
 
@@ -165,9 +185,12 @@ export const getClientAssignedPrograms = async (
         week_number,
         session_order,
         status,
+        completed_at,
+        viewed_by_coach,
         client_session_exercises (
           id,
           exercise_id,
+          exercise_order,
           sets,
           reps,
           load,
@@ -180,6 +203,15 @@ export const getClientAssignedPrograms = async (
             id,
             name,
             image_url
+          ),
+          client_exercise_performance (
+            id,
+            set_number,
+            reps_achieved,
+            load_achieved,
+            rpe,
+            notes,
+            performed_at
           )
         )
       `);
