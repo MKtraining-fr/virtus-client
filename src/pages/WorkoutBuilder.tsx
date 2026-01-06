@@ -1603,7 +1603,16 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       addNotification({ message: 'Programme sauvegardé avec succès !', type: 'success' });
 
       // Rafraîchir les données pour que le template apparaisse immédiatement dans la bibliothèque
+      console.log('[onSave] Rechargement des données...');
       await reloadAllData();
+      console.log('[onSave] Données rechargées avec succès');
+
+      // Si on édite un programme client, rediriger vers le dashboard pour voir les changements
+      if (isEditingClientProgram) {
+        console.log('[onSave] Redirection vers le dashboard après sauvegarde du programme client');
+        navigate('/app');
+        return;
+      }
 
       // Étape 8 : Assignement automatique si un client est sélectionné
       if (selectedClient !== '0' && savedProgram.id) {
