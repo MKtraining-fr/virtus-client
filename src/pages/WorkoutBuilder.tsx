@@ -1550,6 +1550,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
           // Étape 6c : Sauvegarder les exercices dans session_exercises
           const currentSessionExercises = session.exercises;
+          console.log(`[onSave] Session ${session.name} (Semaine ${weekNumber}) - Nombre d'exercices: ${currentSessionExercises.length}`);
+          console.log(`[onSave] Exercices:`, currentSessionExercises.map(ex => ({ id: ex.id, exerciseId: ex.exerciseId, name: ex.name })));
+          
           if (currentSessionExercises.length > 0) {
             const exercisesToInsert = currentSessionExercises
               .filter(ex => ex.exerciseId) // Ignorer les exercices sans ID
