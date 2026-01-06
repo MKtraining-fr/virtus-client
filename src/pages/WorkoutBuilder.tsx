@@ -1853,18 +1853,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                         <span className="text-[10px] text-gray-500 uppercase font-semibold">Fréquence</span>
                         <span className="text-sm font-bold text-gray-800">
                           {(() => {
-                            const bilans = (clientData.assigned_bilans || clientData.bilans || []) as any[];
-                            const completedBilans = Array.isArray(bilans) ? bilans.filter(b => b.status === 'completed') : [];
-                            const lastBilan = completedBilans.length > 0 ? completedBilans[completedBilans.length - 1] : null;
-                            const answers = lastBilan?.data?.answers || lastBilan?.answers || lastBilan;
-                            
-                            // Recherche récursive simple si non trouvé
-                            let freq = answers?.seances_par_semaine || answers?.SEANCES_PAR_SEMAINE;
-                            if (!freq && clientData.bilans_initial) {
-                              freq = clientData.bilans_initial.seances_par_semaine || clientData.bilans_initial.SEANCES_PAR_SEMAINE;
-                            }
-                            
-                            return freq || 'Non défini';
+	                            const bilans = (clientData.assignedBilans || clientData.assigned_bilans || clientData.bilans || []) as any[];
+	                            const completedBilans = Array.isArray(bilans) ? bilans.filter(b => b.status === 'completed') : [];
+	                            const lastBilan = completedBilans.length > 0 ? completedBilans[0] : null;
+	                            const answers = lastBilan?.data?.answers || lastBilan?.answers || lastBilan?.data || lastBilan;
+	                            
+	                            const freq = answers?.seances_par_semaine || answers?.SEANCES_PAR_SEMAINE;
+	                            return freq || 'Non défini';
                           })()} séances / sem
                         </span>
                       </div>
@@ -1872,18 +1867,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                         <span className="text-[10px] text-gray-500 uppercase font-semibold">Durée</span>
                         <span className="text-sm font-bold text-gray-800">
                           {(() => {
-                            const bilans = (clientData.assigned_bilans || clientData.bilans || []) as any[];
-                            const completedBilans = Array.isArray(bilans) ? bilans.filter(b => b.status === 'completed') : [];
-                            const lastBilan = completedBilans.length > 0 ? completedBilans[completedBilans.length - 1] : null;
-                            const answers = lastBilan?.data?.answers || lastBilan?.answers || lastBilan;
-                            
-                            // Recherche récursive simple si non trouvé
-                            let duree = answers?.duree_seances || answers?.DUREE_SEANCES;
-                            if (!duree && clientData.bilans_initial) {
-                              duree = clientData.bilans_initial.duree_seances || clientData.bilans_initial.DUREE_SEANCES;
-                            }
-                            
-                            return duree || 'Non définie';
+	                            const bilans = (clientData.assignedBilans || clientData.assigned_bilans || clientData.bilans || []) as any[];
+	                            const completedBilans = Array.isArray(bilans) ? bilans.filter(b => b.status === 'completed') : [];
+	                            const lastBilan = completedBilans.length > 0 ? completedBilans[0] : null;
+	                            const answers = lastBilan?.data?.answers || lastBilan?.answers || lastBilan?.data || lastBilan;
+	                            
+	                            const duree = answers?.duree_seances || answers?.DUREE_SEANCES;
+	                            return duree || 'Non définie';
                           })()} min / séance
                         </span>
                       </div>

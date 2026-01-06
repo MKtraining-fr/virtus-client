@@ -291,15 +291,23 @@ export const useDataStore = create<DataState>((set, get) => {
       if (clientsData.data) {
         const mappedClients = clientsData.data.map(mapSupabaseClientToClient);
         
-        // Enrichir chaque client avec ses programmes assignés
+        // Enrichir chaque client avec ses programmes assignés et ses bilans
         const { getClientAssignedPrograms } = await import('../services/clientProgramService');
         const enrichedClients = await Promise.all(
           mappedClients.map(async (client) => {
             if (client.role === 'client') {
               try {
+                // Charger les programmes assignés
                 const assignedPrograms = await getClientAssignedPrograms(client.id);
                 const activeProgram = assignedPrograms.find((p) => p.status === 'active') || assignedPrograms[0] || null;
                 
+                // Charger les bilans assignés (pour avoir les réponses aux questions)
+                const { data: assignedBilans } = await supabase
+                  .from('bilan_assignments')
+                  .select('*')
+                  .eq('client_id', client.id)
+                  .order('completed_at', { ascending: false });
+
                 // Vérifier si le client a des séances complétées non vues
                 let hasUnviewedSessions = false;
                 if (activeProgram) {
@@ -318,12 +326,13 @@ export const useDataStore = create<DataState>((set, get) => {
                   ...client,
                   assignedPrograms,
                   assignedProgram: activeProgram,
+                  assignedBilans: assignedBilans || [],
                   programWeek: activeProgram?.currentWeek || undefined,
                   totalWeeks: activeProgram?.weekCount || undefined,
                   viewed: !hasUnviewedSessions,
                 };
               } catch (error) {
-                console.error(`Erreur lors du chargement des programmes pour le client ${client.id}:`, error);
+                console.error(`Erreur lors du chargement des données enrichies pour le client ${client.id}:`, error);
                 return client;
               }
             }
