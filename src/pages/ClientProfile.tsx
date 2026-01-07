@@ -37,6 +37,8 @@ import CoachClientDocuments from '../components/coach/CoachClientDocuments';
 import { PerformanceSection } from '../components/performance/PerformanceSection';
 import ClientVideosTab from '../components/coach/ClientVideosTab';
 import { NutritionHabitsDisplay } from '../components/nutrition/NutritionHabitsDisplay';
+import { EditGeneralInfoModal } from '../components/client/EditGeneralInfoModal';
+import { getClientGeneralInfo, ClientGeneralInfo } from '../services/clientGeneralInfoService';
 import PerformanceHistoryModal from '../components/PerformanceHistoryModal';
 import { supabase } from '../services/supabase';
 import BodyMapModal from '../components/coach/BodyMapModal';
@@ -467,6 +469,10 @@ const ClientProfile: React.FC = () => {
   const [injuries, setInjuries] = useState<ClientInjury[]>([]);
   const [isBodyMapModalOpen, setIsBodyMapModalOpen] = useState(false);
   const [isLoadingInjuries, setIsLoadingInjuries] = useState(false);
+
+  // États pour les informations générales
+  const [isGeneralInfoModalOpen, setIsGeneralInfoModalOpen] = useState(false);
+  const [generalInfo, setGeneralInfo] = useState<ClientGeneralInfo | null>(null);
   const [localPerformanceLogs, setLocalPerformanceLogs] = useState<PerformanceLog[]>([]);
   const [activePerformanceTab, setActivePerformanceTab] = useState<'history' | 'videos'>('history');
   const [isPerformanceHistoryModalOpen, setIsPerformanceHistoryModalOpen] = useState(false);
@@ -537,6 +543,17 @@ const ClientProfile: React.FC = () => {
           coachShop: clientAccess.shopAccess?.coachShop ?? true,
         },
       });
+
+      // Charger les informations générales du client
+      const loadGeneralInfo = async () => {
+        try {
+          const info = await getClientGeneralInfo(client.id);
+          setGeneralInfo(info);
+        } catch (error) {
+          console.error('Erreur lors du chargement des informations générales:', error);
+        }
+      };
+      loadGeneralInfo();
 
       // Charger les blessures du client
       const loadInjuries = async () => {
@@ -1150,6 +1167,18 @@ const ClientProfile: React.FC = () => {
         {/* --- LEFT COLUMN --- */}
         <main className="lg:col-span-2 space-y-6">
           <Accordion title="Informations générales" isOpenDefault={true}>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-500">Informations personnelles et physiques du client</p>
+              <button
+                onClick={() => setIsGeneralInfoModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Modifier
+              </button>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <InfoItem label="Âge" value={client.age ? `${client.age} ans` : undefined} />
               <InfoItem
@@ -2075,6 +2104,38 @@ const ClientProfile: React.FC = () => {
         onClose={() => setIsPerformanceHistoryModalOpen(false)}
         clientId={clientId || null}
       />
+
+      {/* Modal édition des informations générales */}
+      {client && (
+        <EditGeneralInfoModal
+          clientId={client.id}
+          info={generalInfo}
+          isOpen={isGeneralInfoModalOpen}
+          onClose={() => setIsGeneralInfoModalOpen(false)}
+          onSave={(updatedInfo) => {
+            // Mettre à jour les données locales
+            setGeneralInfo(updatedInfo);
+            // Recharger le client depuis le store
+            const updatedClients = clients.map(c =>
+              c.id === client.id
+                ? {
+                    ...c,
+                    firstName: updatedInfo.firstName,
+                    lastName: updatedInfo.lastName,
+                    email: updatedInfo.email,
+                    phone: updatedInfo.phone,
+                    dob: updatedInfo.dob,
+                    sex: updatedInfo.sex,
+                    height: updatedInfo.height,
+                    weight: updatedInfo.weight,
+                    energyExpenditureLevel: updatedInfo.energyExpenditureLevel,
+                  }
+                : c
+            );
+            setClients(updatedClients);
+          }}
+        />
+      )}
     </div>
   );
 };

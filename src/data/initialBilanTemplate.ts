@@ -11,12 +11,12 @@ export const INITIAL_BILAN_TEMPLATE: BilanTemplate = {
       isRemovable: false,
       isCivility: true,
       fields: [
-        { id: 'prenom', label: 'Prénom', type: 'text', placeholder: 'Prénom du prospect/client' },
-        { id: 'nom', label: 'Nom', type: 'text', placeholder: 'Nom du prospect/client' },
-        { id: 'email', label: 'Email', type: 'text', placeholder: 'Email du prospect/client' },
-        { id: 'telephone', label: 'Téléphone', type: 'text', placeholder: 'Numéro de téléphone' },
-        { id: 'date_naissance', label: 'Date de Naissance', type: 'date', placeholder: '' },
-        { id: 'sexe', label: 'Sexe', type: 'select', options: ['Homme', 'Femme'] },
+        { id: 'prenom', label: 'Prénom', type: 'text', placeholder: 'Prénom du prospect/client', required: true },
+        { id: 'nom', label: 'Nom', type: 'text', placeholder: 'Nom du prospect/client', required: true },
+        { id: 'email', label: 'Email', type: 'text', placeholder: 'Email du prospect/client', required: true },
+        { id: 'telephone', label: 'Téléphone', type: 'text', placeholder: 'Numéro de téléphone', required: false },
+        { id: 'date_naissance', label: 'Date de Naissance', type: 'date', placeholder: '', required: true },
+        { id: 'sexe', label: 'Sexe', type: 'select', options: ['Homme', 'Femme'], required: true },
       ],
     },
     {
@@ -24,8 +24,8 @@ export const INITIAL_BILAN_TEMPLATE: BilanTemplate = {
       title: 'Informations Physiques et Objectifs',
       isRemovable: false,
       fields: [
-        { id: 'taille', label: 'Taille (cm)', type: 'number', placeholder: 'Ex: 180' },
-        { id: 'poids', label: 'Poids (kg)', type: 'number', placeholder: 'Ex: 75' },
+        { id: 'taille', label: 'Taille (cm)', type: 'number', placeholder: 'Ex: 180', required: true },
+        { id: 'poids', label: 'Poids (kg)', type: 'number', placeholder: 'Ex: 75', required: true },
         {
           id: 'activite_physique',
           label: "Niveau d'Activité Physique",

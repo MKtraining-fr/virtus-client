@@ -29,12 +29,19 @@ const DynamicField: React.FC<{
       onChange(e.target.value),
   };
 
+  const renderLabel = (labelText: string) => (
+    <span>
+      {labelText}
+      {field.required && <span className="text-red-600 ml-1">*</span>}
+    </span>
+  );
+
   switch (field.type) {
     case 'textarea':
       return (
         <div>
           <label htmlFor={commonProps.id} className="block text-sm font-medium text-gray-700 mb-1">
-            {commonProps.label}
+            {renderLabel(commonProps.label)}
           </label>
           <textarea
             {...commonProps}
@@ -63,7 +70,7 @@ const DynamicField: React.FC<{
     case 'checkbox':
       return (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">{field.label}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{renderLabel(field.label)}</label>
           <div className="space-y-2">
             {field.options?.map((opt) => {
               const isChecked = Array.isArray(value) && value.includes(opt);
@@ -92,7 +99,7 @@ const DynamicField: React.FC<{
     case 'radio_yes_no':
       return (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">{field.label}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{renderLabel(field.label)}</label>
           <div className="flex items-center gap-x-4">
             <label className="flex items-center cursor-pointer">
               <input
@@ -122,7 +129,7 @@ const DynamicField: React.FC<{
     case 'scale':
       return (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">{field.label}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{renderLabel(field.label)}</label>
           <div className="flex items-center flex-wrap gap-x-2 gap-y-2">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
               <label
@@ -205,9 +212,18 @@ const NewBilan: React.FC = () => {
     const weight = getAnswerValue('weight', 'poids') as string;
     const activityLevel = getAnswerValue('energyExpenditureLevel', 'activite_physique') as string;
 
-    // Vérifier les champs requis
-    if (!firstName || !lastName || !email) {
-      alert('Prénom, nom et email sont requis pour créer un client.');
+    // Vérifier les champs obligatoires
+    const missingFields: string[] = [];
+    if (!firstName) missingFields.push('Prénom');
+    if (!lastName) missingFields.push('Nom');
+    if (!email) missingFields.push('Email');
+    if (!dob) missingFields.push('Date de Naissance');
+    if (!sex) missingFields.push('Sexe');
+    if (!height) missingFields.push('Taille');
+    if (!weight) missingFields.push('Poids');
+
+    if (missingFields.length > 0) {
+      alert(`Les champs suivants sont obligatoires :\n\n${missingFields.join('\n')}\n\nVeuillez les remplir avant de valider.`);
       return;
     }
 
