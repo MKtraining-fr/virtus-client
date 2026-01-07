@@ -36,6 +36,7 @@ import ClientBilanHistory from '../components/ClientBilanHistory';
 import CoachClientDocuments from '../components/coach/CoachClientDocuments';
 import { PerformanceSection } from '../components/performance/PerformanceSection';
 import ClientVideosTab from '../components/coach/ClientVideosTab';
+import { NutritionHabitsDisplay } from '../components/nutrition/NutritionHabitsDisplay';
 import PerformanceHistoryModal from '../components/PerformanceHistoryModal';
 import { supabase } from '../services/supabase';
 import BodyMapModal from '../components/coach/BodyMapModal';
@@ -1567,6 +1568,9 @@ const ClientProfile: React.FC = () => {
             </Accordion>
             <Accordion title="Journal alimentaire" isOpenDefault={false}>
               <CoachFoodJournalView client={client} />
+            </Accordion>
+            <Accordion title="Habitudes Alimentaires" isOpenDefault={false}>
+              <NutritionHabitsDisplay clientId={client.id} />
             </Accordion>
           </Accordion>
 

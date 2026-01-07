@@ -285,6 +285,14 @@ const NewBilan: React.FC = () => {
         foodAversions: combinedAllergiesAndAversions,
         generalHabits: (answers.habitudes || answers.fld_habits || '') as string,
         historyLog: [],
+        // Nouveaux champs nutrition
+        dietType: (answers.regime_alimentaire || '') as string,
+        mealsPerDay: (answers.nombre_repas || '') as string,
+        hydration: answers.hydratation ? Number(answers.hydratation) : undefined,
+        juiceSoda: answers.jus_soda ? Number(answers.jus_soda) : undefined,
+        teaCoffee: answers.the_cafe ? Number(answers.the_cafe) : undefined,
+        alcohol: answers.alcool ? Number(answers.alcool) : undefined,
+        digestiveIssues: (answers.troubles_digestifs || '') as string,
       },
 
       // Enregistrer le bilan complet
