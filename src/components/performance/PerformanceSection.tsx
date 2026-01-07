@@ -4,6 +4,7 @@ import { PerformanceEntry } from './PerformanceEntry';
 import { ProjectionsDisplay } from './ProjectionsDisplay';
 import { PerformanceCharts } from './PerformanceCharts';
 import { BilanInfoDisplay } from './BilanInfoDisplay';
+import { TrainingInfoDisplay } from './TrainingInfoDisplay';
 import { useFormPersistence } from '../../hooks/useFormPersistence';
 
 interface PerformanceSectionProps {
@@ -74,7 +75,14 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({
 
       {/* Contenu de la sous-section Bilan */}
       {activeSubSection === 'bilan' && (
-        <div className="animate-in fade-in duration-300">
+        <div className="animate-in fade-in duration-300 space-y-6">
+          {/* Section Objectifs et Conditions d'Entraînement */}
+          <TrainingInfoDisplay clientId={clientId} />
+          
+          {/* Séparateur */}
+          <div className="border-t border-gray-200"></div>
+          
+          {/* Section Informations du Bilan Initial */}
           <BilanInfoDisplay clientId={clientId} />
         </div>
       )}
