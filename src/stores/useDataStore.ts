@@ -688,12 +688,22 @@ export const useDataStore = create<DataState>((set, get) => {
             affiliationCode: userData.affiliationCode,
             status: userData.status,
             sendCredentialsEmail: true, // Envoyer les identifiants par email
-            // Champs additionnels du bilan
+            // Champs additionnels du bilan - Informations générales
             sex: userData.sex,
             dateOfBirth: userData.dob,
             height: userData.height,
             weight: userData.weight,
             activityLevel: userData.energyExpenditureLevel,
+            // Champs additionnels - Objectif et notes
+            objective: userData.objective,
+            notes: userData.notes,
+            // Champs additionnels - Données JSON
+            lifestyle: userData.lifestyle,
+            medicalInfo: userData.medicalInfo,
+            nutrition: userData.nutrition,
+            bilans: userData.bilans,
+            // Champs additionnels - Section Training (conditions d'entraînement)
+            trainingInfo: (userData as any).trainingInfo,
           },
         });
 

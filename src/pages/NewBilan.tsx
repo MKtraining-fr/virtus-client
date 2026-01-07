@@ -301,8 +301,30 @@ const NewBilan: React.FC = () => {
       ],
     };
 
+    // Préparer les données de la section Training (Objectif et Conditions d'Entraînement)
+    const trainingInfo = {
+      experience: (answers.experience_sportive || '') as string,
+      trainingSince: (answers.pratique_musculation_depuis || '') as string,
+      sessionsPerWeek: answers.seances_par_semaine ? Number(answers.seances_par_semaine) : undefined,
+      sessionDuration: answers.duree_seances ? Number(answers.duree_seances) : undefined,
+      trainingType: (answers.entrainement_type || '') as string,
+      issues: (answers.problematique || '') as string,
+    };
+
+    // Vérifier si au moins un champ de training est rempli
+    const hasTrainingInfo = trainingInfo.experience || trainingInfo.trainingSince || 
+      trainingInfo.sessionsPerWeek || trainingInfo.sessionDuration || 
+      trainingInfo.trainingType || trainingInfo.issues;
+
     try {
-      const newClient = await addUser({ ...dataToSubmit, role: 'client', status, coachId: user?.id });
+      const newClient = await addUser({ 
+        ...dataToSubmit, 
+        role: 'client', 
+        status, 
+        coachId: user?.id,
+        // Ajouter les infos d'entraînement si présentes
+        ...(hasTrainingInfo ? { trainingInfo } : {}),
+      } as any);
       
       // Enregistrer les performances si présentes
       if (newClient && performances.length > 0) {

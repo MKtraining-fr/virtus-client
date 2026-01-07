@@ -63,6 +63,7 @@ export interface BilanAssignment {
   status: 'pending' | 'completed' | 'overdue';
   completedAt?: string;
   responses?: Record<string, any>;
+  data?: Json; // Ajout du champ data pour stocker les réponses du bilan
 }
 
 export interface BilanResult {

@@ -19,12 +19,29 @@ interface CreateUserRequest {
   affiliationCode?: string;
   status?: 'active' | 'prospect';
   sendCredentialsEmail?: boolean; // Envoyer un email avec les identifiants
-  // Champs additionnels du bilan
+  // Champs additionnels du bilan - Informations générales
   sex?: string;
   dateOfBirth?: string;
   height?: number;
   weight?: number;
   activityLevel?: string;
+  // Champs additionnels - Objectif et notes
+  objective?: string;
+  notes?: string;
+  // Champs additionnels - Données JSON
+  lifestyle?: Record<string, unknown>;
+  medicalInfo?: Record<string, unknown>;
+  nutrition?: Record<string, unknown>;
+  bilans?: unknown[];
+  // Champs additionnels - Section Training (conditions d'entraînement)
+  trainingInfo?: {
+    experience?: string;
+    trainingSince?: string;
+    sessionsPerWeek?: number;
+    sessionDuration?: number;
+    trainingType?: string;
+    issues?: string;
+  };
 }
 
 /**
@@ -278,8 +295,8 @@ serve(async (req) => {
       throw new Error('No user returned from auth creation');
     }
 
-    // Créer le profil dans la table clients
-    const clientProfile = {
+    // Créer le profil dans la table clients avec TOUS les champs du bilan
+    const clientProfile: Record<string, unknown> = {
       id: authData.user.id,
       email: userData.email,
       first_name: userData.firstName,
@@ -289,12 +306,20 @@ serve(async (req) => {
       affiliation_code: userData.affiliationCode || null,
       coach_id: profile.role === 'coach' ? user.id : (userData.coachId && userData.coachId !== '' ? userData.coachId : null),
       status: userData.status || 'active',
-      // Champs additionnels du bilan (noms de colonnes Supabase)
+      // Champs additionnels du bilan - Informations générales
       sex: userData.sex || null,
       dob: userData.dateOfBirth || null,
       height: userData.height || null,
       weight: userData.weight || null,
       energy_expenditure_level: userData.activityLevel || null,
+      // Champs additionnels - Objectif et notes
+      objective: userData.objective || null,
+      notes: userData.notes || null,
+      // Champs additionnels - Données JSON
+      lifestyle: userData.lifestyle || {},
+      medical_info: userData.medicalInfo || {},
+      nutrition: userData.nutrition || {},
+      bilans: userData.bilans || [],
       must_change_password: isTemporaryPassword, // Doit changer le mot de passe si temporaire
     };
 
@@ -310,6 +335,35 @@ serve(async (req) => {
       // Si la création du profil échoue, supprimer l'utilisateur Auth créé
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       throw new Error(`Failed to create user profile: ${profileInsertError.message}`);
+    }
+
+    // Créer les informations d'entraînement dans la table client_training_info si fournies
+    if (userData.trainingInfo) {
+      const trainingData = {
+        client_id: authData.user.id,
+        experience: userData.trainingInfo.experience || null,
+        training_since: userData.trainingInfo.trainingSince || null,
+        sessions_per_week: userData.trainingInfo.sessionsPerWeek || null,
+        session_duration: userData.trainingInfo.sessionDuration || null,
+        training_type: userData.trainingInfo.trainingType || null,
+        issues: userData.trainingInfo.issues || null,
+        created_by: user.id,
+        updated_by: user.id,
+      };
+
+      console.log('Creating training info:', JSON.stringify(trainingData, null, 2));
+
+      const { error: trainingInsertError } = await supabaseAdmin
+        .from('client_training_info')
+        .insert([trainingData]);
+
+      if (trainingInsertError) {
+        console.error('Error creating training info:', trainingInsertError);
+        // Ne pas faire échouer la création du client si l'insertion des infos d'entraînement échoue
+        // On log juste l'erreur
+      } else {
+        console.log('Training info created successfully for client:', authData.user.id);
+      }
     }
 
     // Envoyer l'email avec les identifiants si c'est un mot de passe temporaire
