@@ -479,7 +479,7 @@ const ClientProfile: React.FC = () => {
     return weightChanged || measurementsChanged;
   }, [user, editableWeight, editableMeasurements]);
 
-  const handleSaveMeasurements = () => {
+  const handleSaveMeasurements = async () => {
     if (!user || !hasChanges) return;
 
     const newWeight = editableWeight === '' ? null : parseFloat(editableWeight);
@@ -497,23 +497,43 @@ const ClientProfile: React.FC = () => {
       measurements: newMeasurements,
     };
 
-    const updatedClients = clients.map((c) => {
-      if (c.id === user.id) {
-        return {
-          ...c,
-          weight: newWeight !== null ? newWeight : c.weight,
-          nutrition: {
-            ...c.nutrition,
-            measurements: newMeasurements,
-            historyLog: [newLogEntry, ...c.nutrition.historyLog],
-          },
-        };
-      }
-      return c;
-    });
+    const updatedNutrition = {
+      ...user.nutrition,
+      measurements: newMeasurements,
+      historyLog: [newLogEntry, ...(user.nutrition.historyLog || [])],
+    };
 
-    setClients(updatedClients as Client[]);
-    alert('Vos informations ont été enregistrées avec succès !');
+    try {
+      // Sauvegarder dans Supabase
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          weight: newWeight !== null ? newWeight : user.weight,
+          nutrition: updatedNutrition,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Mettre à jour le store local
+      const updatedClients = clients.map((c) => {
+        if (c.id === user.id) {
+          return {
+            ...c,
+            weight: newWeight !== null ? newWeight : c.weight,
+            nutrition: updatedNutrition,
+          };
+        }
+        return c;
+      });
+
+      setClients(updatedClients as Client[]);
+      alert('Vos informations ont été enregistrées avec succès !');
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      alert('Erreur lors de la sauvegarde. Veuillez réessayer.');
+    }
   };
 
   const handleLogout = () => {
