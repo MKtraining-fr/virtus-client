@@ -42,6 +42,7 @@ import {
   getClientPhotos,
   getClientFiles,
   deleteClientDocument,
+  uploadMultiplePhotos,
   ClientDocument as SupabaseClientDocument
 } from '../../services/clientDocumentService';
 
@@ -549,35 +550,52 @@ const ClientProfile: React.FC = () => {
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
+    const files = event.target.files;
+    if (!files || files.length === 0 || !user) return;
 
-    // Vérifier la taille du fichier (max 10 Mo)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Le fichier est trop volumineux. Taille maximum : 10 Mo');
-      return;
-    }
+    // Convertir FileList en Array
+    const fileArray = Array.from(files);
 
-    // Vérifier que c'est bien une image
-    if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner une image');
-      return;
+    // Vérifier la taille de chaque fichier (max 10 Mo)
+    for (const file of fileArray) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`Le fichier ${file.name} est trop volumineux. Taille maximum : 10 Mo`);
+        return;
+      }
+      // Vérifier que c'est bien une image
+      if (!file.type.startsWith('image/')) {
+        alert(`Le fichier ${file.name} n'est pas une image`);
+        return;
+      }
     }
 
     setIsUploadingDoc(true);
     try {
-      await uploadClientDocument({
-        file,
-        clientId: user.id,
-        coachId: user.coachId || null,
-        uploadedBy: user.id,
-        category: 'progress',
-        description: 'Photo de progression',
-      });
+      // Si plusieurs fichiers, créer une session, sinon upload simple
+      if (fileArray.length > 1) {
+        await uploadMultiplePhotos({
+          files: fileArray,
+          clientId: user.id,
+          coachId: user.coachId || '',
+          uploadedBy: user.id,
+          description: `Session de ${fileArray.length} photo${fileArray.length > 1 ? 's' : ''}`,
+        });
+        alert(`${fileArray.length} photos uploadées avec succès !`);
+      } else {
+        // Upload simple pour une seule photo
+        await uploadClientDocument({
+          file: fileArray[0],
+          clientId: user.id,
+          coachId: user.coachId || null,
+          uploadedBy: user.id,
+          category: 'progress',
+          description: 'Photo de progression',
+        });
+        alert('Photo uploadée avec succès !');
+      }
 
       // Recharger les documents
       await loadSupabaseDocuments();
-      alert('Photo uploadée avec succès !');
 
       // Réinitialiser l'input
       if (photoInputRef.current) {
@@ -585,7 +603,7 @@ const ClientProfile: React.FC = () => {
       }
     } catch (error) {
       console.error('Erreur upload photo:', error);
-      alert('Erreur lors de l\'upload de la photo. Veuillez réessayer.');
+      alert('Erreur lors de l\'upload des photos. Veuillez réessayer.');
     } finally {
       setIsUploadingDoc(false);
     }
@@ -759,9 +777,10 @@ const ClientProfile: React.FC = () => {
               onChange={handleFileChange}
               className="hidden"
               accept="image/*"
+              multiple
             />
             <Button onClick={() => photoInputRef.current?.click()} className="w-full" size="lg">
-              Téléverser une photo
+              Téléverser des photos
             </Button>
 
             {isUploadingDoc && (

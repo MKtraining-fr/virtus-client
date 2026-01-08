@@ -1,5 +1,16 @@
 import { supabase } from './supabase';
 
+export interface PhotoSession {
+  id: string;
+  client_id: string;
+  coach_id: string;
+  session_date: string;
+  description: string | null;
+  photo_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ClientDocument {
   id: string;
   client_id: string;
@@ -11,6 +22,7 @@ export interface ClientDocument {
   file_size: number | null;
   description: string | null;
   category: 'medical' | 'identity' | 'contract' | 'progress' | 'nutrition' | 'other';
+  session_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -22,13 +34,14 @@ export interface UploadDocumentParams {
   uploadedBy: string;
   category?: 'medical' | 'identity' | 'contract' | 'progress' | 'nutrition' | 'other';
   description?: string;
+  sessionId?: string | null;
 }
 
 /**
  * Upload un fichier vers Supabase Storage et enregistre les métadonnées dans la table client_documents
  */
 export async function uploadClientDocument(params: UploadDocumentParams): Promise<ClientDocument> {
-  const { file, clientId, coachId, uploadedBy, category = 'progress', description } = params;
+  const { file, clientId, coachId, uploadedBy, category = 'progress', description, sessionId = null } = params;
 
   try {
     // 1. Générer un nom de fichier unique
@@ -65,6 +78,7 @@ export async function uploadClientDocument(params: UploadDocumentParams): Promis
         file_size: file.size,
         description: description || null,
         category: category,
+        session_id: sessionId,
       })
       .select()
       .single();
@@ -221,6 +235,137 @@ export async function getClientFiles(clientId: string): Promise<ClientDocument[]
     return (data || []) as ClientDocument[];
   } catch (error) {
     console.error('Erreur getClientFiles:', error);
+    return [];
+  }
+}
+
+/**
+ * Crée une nouvelle session de photos
+ */
+export async function createPhotoSession(params: {
+  clientId: string;
+  coachId: string;
+  description?: string;
+}): Promise<PhotoSession> {
+  const { clientId, coachId, description } = params;
+
+  try {
+    const { data, error } = await supabase
+      .from('photo_sessions')
+      .insert({
+        client_id: clientId,
+        coach_id: coachId,
+        description: description || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erreur createPhotoSession:', error);
+      throw new Error(`Erreur lors de la création de la session: ${error.message}`);
+    }
+
+    return data as PhotoSession;
+  } catch (error) {
+    console.error('Erreur createPhotoSession:', error);
+    throw error;
+  }
+}
+
+/**
+ * Upload plusieurs photos dans une même session
+ */
+export async function uploadMultiplePhotos(params: {
+  files: File[];
+  clientId: string;
+  coachId: string;
+  uploadedBy: string;
+  description?: string;
+}): Promise<{ session: PhotoSession; documents: ClientDocument[] }> {
+  const { files, clientId, coachId, uploadedBy, description } = params;
+
+  try {
+    // 1. Créer une session
+    const session = await createPhotoSession({
+      clientId,
+      coachId,
+      description,
+    });
+
+    // 2. Upload toutes les photos avec le session_id
+    const uploadPromises = files.map((file) =>
+      uploadClientDocument({
+        file,
+        clientId,
+        coachId,
+        uploadedBy,
+        category: 'progress',
+        sessionId: session.id,
+      })
+    );
+
+    const documents = await Promise.all(uploadPromises);
+
+    return { session, documents };
+  } catch (error) {
+    console.error('Erreur uploadMultiplePhotos:', error);
+    throw error;
+  }
+}
+
+/**
+ * Récupère toutes les sessions de photos d'un client pour un coach
+ */
+export async function getPhotoSessions(clientId: string, coachId: string): Promise<PhotoSession[]> {
+  try {
+    const { data, error } = await supabase
+      .from('photo_sessions')
+      .select(`
+        *,
+        photo_count:client_documents(count)
+      `)
+      .eq('client_id', clientId)
+      .eq('coach_id', coachId)
+      .order('session_date', { ascending: false });
+
+    if (error) {
+      console.error('Erreur getPhotoSessions:', error);
+      throw error;
+    }
+
+    // Transformer les données pour extraire le count
+    const sessions = (data || []).map((session: any) => ({
+      ...session,
+      photo_count: session.photo_count?.[0]?.count || 0,
+    }));
+
+    return sessions as PhotoSession[];
+  } catch (error) {
+    console.error('Erreur getPhotoSessions:', error);
+    return [];
+  }
+}
+
+/**
+ * Récupère les photos d'une session spécifique
+ */
+export async function getSessionPhotos(sessionId: string): Promise<ClientDocument[]> {
+  try {
+    const { data, error } = await supabase
+      .from('client_documents')
+      .select('*')
+      .eq('session_id', sessionId)
+      .eq('category', 'progress')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Erreur getSessionPhotos:', error);
+      throw error;
+    }
+
+    return (data || []) as ClientDocument[];
+  } catch (error) {
+    console.error('Erreur getSessionPhotos:', error);
     return [];
   }
 }
