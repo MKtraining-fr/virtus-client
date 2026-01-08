@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../services/supabase';
 
 /**
  * Hook pour générer une URL signée à partir d'un chemin de fichier Storage
