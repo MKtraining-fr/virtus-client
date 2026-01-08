@@ -338,6 +338,9 @@ serve(async (req) => {
     }
 
     // Créer les informations d'entraînement dans la table client_training_info si fournies
+    let trainingInfoCreated = false;
+    let trainingInfoError: string | null = null;
+    
     if (userData.trainingInfo) {
       const trainingData = {
         client_id: authData.user.id,
@@ -359,11 +362,15 @@ serve(async (req) => {
 
       if (trainingInsertError) {
         console.error('Error creating training info:', trainingInsertError);
+        trainingInfoError = trainingInsertError.message;
         // Ne pas faire échouer la création du client si l'insertion des infos d'entraînement échoue
         // On log juste l'erreur
       } else {
         console.log('Training info created successfully for client:', authData.user.id);
+        trainingInfoCreated = true;
       }
+    } else {
+      console.log('No training info provided, skipping client_training_info creation');
     }
 
     // Envoyer l'email avec les identifiants si c'est un mot de passe temporaire
@@ -389,6 +396,11 @@ serve(async (req) => {
         },
         temporaryPassword: isTemporaryPassword,
         emailSent: isTemporaryPassword || userData.sendCredentialsEmail,
+        trainingInfo: {
+          provided: !!userData.trainingInfo,
+          created: trainingInfoCreated,
+          error: trainingInfoError,
+        },
       }),
       {
         headers: corsHeaders,
