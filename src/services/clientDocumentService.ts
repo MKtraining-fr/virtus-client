@@ -10,7 +10,7 @@ export interface ClientDocument {
   file_type: string;
   file_size: number | null;
   description: string | null;
-  category: 'photo' | 'document' | 'other';
+  category: 'medical' | 'identity' | 'contract' | 'progress' | 'nutrition' | 'other';
   created_at: string;
   updated_at: string;
 }
@@ -20,7 +20,7 @@ export interface UploadDocumentParams {
   clientId: string;
   coachId: string | null;
   uploadedBy: string;
-  category?: 'photo' | 'document' | 'other';
+  category?: 'medical' | 'identity' | 'contract' | 'progress' | 'nutrition' | 'other';
   description?: string;
 }
 
@@ -28,7 +28,7 @@ export interface UploadDocumentParams {
  * Upload un fichier vers Supabase Storage et enregistre les métadonnées dans la table client_documents
  */
 export async function uploadClientDocument(params: UploadDocumentParams): Promise<ClientDocument> {
-  const { file, clientId, coachId, uploadedBy, category = 'photo', description } = params;
+  const { file, clientId, coachId, uploadedBy, category = 'progress', description } = params;
 
   try {
     // 1. Générer un nom de fichier unique
@@ -191,7 +191,7 @@ export async function getClientPhotos(clientId: string): Promise<ClientDocument[
       .from('client_documents')
       .select('*')
       .eq('client_id', clientId)
-      .eq('category', 'photo')
+      .eq('category', 'progress')
       .order('created_at', { ascending: false });
 
     if (error) {

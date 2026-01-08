@@ -571,7 +571,7 @@ const ClientProfile: React.FC = () => {
         clientId: user.id,
         coachId: user.coachId || null,
         uploadedBy: user.id,
-        category: 'photo',
+        category: 'progress',
         description: 'Photo de progression',
       });
 
