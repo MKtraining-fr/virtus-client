@@ -20,7 +20,7 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
     try {
       const docs = await getClientDocumentsByCoach(clientId, coachId);
       // Filtrer uniquement les photos
-      const photosDocs = docs.filter((doc) => doc.category === 'photo');
+      const photosDocs = docs.filter((doc) => doc.category === 'progress');
       setPhotos(photosDocs);
     } catch (error) {
       console.error('Erreur chargement photos:', error);
