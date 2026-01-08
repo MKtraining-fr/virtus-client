@@ -34,7 +34,7 @@ export const CoachMeasurementsSection: React.FC<CoachMeasurementsSectionProps> =
   const [isLoading, setIsLoading] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   
-  // Champs sélectionnés pour le graphique
+  // Champs sélectionnés pour le graphique et le tableau
   const [selectedFields, setSelectedFields] = useState<Array<keyof MeasurementInput>>(['weight']);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export const CoachMeasurementsSection: React.FC<CoachMeasurementsSectionProps> =
     );
   };
 
-  // Préparer les données pour le graphique
+  // Préparer les données pour le graphique (uniquement les champs sélectionnés)
   const chartData = useMemo(() => {
     const sortedMeasurements = [...measurements].sort(
       (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
@@ -124,13 +124,41 @@ export const CoachMeasurementsSection: React.FC<CoachMeasurementsSectionProps> =
         </button>
       </div>
 
-      {/* Graphique */}
-      <div>
+      {/* Section de sélection des mensurations */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
         <h5 className="font-semibold text-base mb-4 text-gray-800 dark:text-gray-200">
-          Graphique des Mensurations
+          Sélectionner les mensurations à afficher
         </h5>
-        {measurements.length > 0 ? (
-          <>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {allFields.map((field) => (
+            <label
+              key={field}
+              className="flex items-center space-x-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded transition-colors"
+            >
+              <input
+                type="checkbox"
+                checked={selectedFields.includes(field)}
+                onChange={() => toggleSelectedField(field)}
+                className="rounded text-blue-500 focus:ring-blue-500 h-4 w-4"
+              />
+              <span>{measurementLabels[field]}</span>
+            </label>
+          ))}
+        </div>
+        {selectedFields.length === 0 && (
+          <p className="text-sm text-amber-600 dark:text-amber-400 mt-3 italic">
+            Veuillez sélectionner au moins une mensuration pour afficher le graphique et l'historique.
+          </p>
+        )}
+      </div>
+
+      {/* Graphique */}
+      {selectedFields.length > 0 && (
+        <div>
+          <h5 className="font-semibold text-base mb-4 text-gray-800 dark:text-gray-200">
+            Graphique des Mensurations
+          </h5>
+          {measurements.length > 0 ? (
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
               <Line
                 data={chartData}
@@ -152,74 +180,60 @@ export const CoachMeasurementsSection: React.FC<CoachMeasurementsSectionProps> =
                 }}
               />
             </div>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {allFields.map((field) => (
-                <label
-                  key={field}
-                  className="flex items-center space-x-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedFields.includes(field)}
-                    onChange={() => toggleSelectedField(field)}
-                    className="rounded text-blue-500 focus:ring-blue-500"
-                  />
-                  <span>{measurementLabels[field]}</span>
-                </label>
-              ))}
-            </div>
-          </>
-        ) : (
-          <p className="text-gray-500 dark:text-gray-400 text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            Aucune mensuration enregistrée par le client.
-          </p>
-        )}
-      </div>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              Aucune mensuration enregistrée par le client.
+            </p>
+          )}
+        </div>
+      )}
 
-      {/* Historique */}
-      <div>
-        <h5 className="font-semibold text-base mb-4 text-gray-800 dark:text-gray-200">
-          Historique des mensurations
-        </h5>
-        {measurements.length > 0 ? (
-          <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-800">
-                <tr>
-                  <th className="p-3 font-semibold sticky left-0 bg-gray-50 dark:bg-gray-800 z-10">
-                    Date
-                  </th>
-                  {allFields.map((field) => (
-                    <th key={field} className="p-3 font-semibold whitespace-nowrap">
-                      {measurementLabels[field]}
+      {/* Historique (uniquement les colonnes sélectionnées) */}
+      {selectedFields.length > 0 && (
+        <div>
+          <h5 className="font-semibold text-base mb-4 text-gray-800 dark:text-gray-200">
+            Historique des mensurations
+          </h5>
+          {measurements.length > 0 ? (
+            <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="p-3 font-semibold sticky left-0 bg-gray-50 dark:bg-gray-800 z-10">
+                      Date
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {measurements.map((measurement) => (
-                  <tr key={measurement.id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <td className="p-3 sticky left-0 bg-white dark:bg-gray-900 z-10 font-medium">
-                      {new Date(measurement.recorded_at).toLocaleDateString('fr-FR')}
-                    </td>
-                    {allFields.map((field) => (
-                      <td key={field} className="p-3 whitespace-nowrap">
-                        {measurement[field] !== null && measurement[field] !== undefined
-                          ? measurement[field]!.toFixed(field === 'body_fat' ? 1 : 1)
-                          : '-'}
-                      </td>
+                    {selectedFields.map((field) => (
+                      <th key={field} className="p-3 font-semibold whitespace-nowrap">
+                        {measurementLabels[field]}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-gray-500 dark:text-gray-400 text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            Aucun historique de mensurations enregistré.
-          </p>
-        )}
-      </div>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {measurements.map((measurement) => (
+                    <tr key={measurement.id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="p-3 sticky left-0 bg-white dark:bg-gray-900 z-10 font-medium">
+                        {new Date(measurement.recorded_at).toLocaleDateString('fr-FR')}
+                      </td>
+                      {selectedFields.map((field) => (
+                        <td key={field} className="p-3 whitespace-nowrap">
+                          {measurement[field] !== null && measurement[field] !== undefined
+                            ? measurement[field]!.toFixed(field === 'body_fat' ? 1 : 1)
+                            : '-'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              Aucun historique de mensurations enregistré.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Modal de configuration */}
       <MeasurementSettingsModal
