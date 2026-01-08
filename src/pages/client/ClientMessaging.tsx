@@ -4,7 +4,7 @@ import { useDataStore } from '../../stores/useDataStore';
 import { Message } from '../../types';
 import Input from '../../components/Input';
 import { supabase } from '../../services/supabase';
-import { User } from 'lucide-react';upabase';
+import { User } from 'lucide-react';
 
 // Icônes
 const PaperAirplaneIcon = (props: React.SVGProps<SVGSVGElement>) => (
