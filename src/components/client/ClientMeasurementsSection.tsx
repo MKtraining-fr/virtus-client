@@ -55,8 +55,9 @@ export const ClientMeasurementsSection: React.FC<ClientMeasurementsSectionProps>
 
       // Charger les paramètres de visibilité
       const settings = await getMeasurementSettings(clientId);
+      console.log('[ClientMeasurementsSection] Settings récupérés:', settings);
       if (settings) {
-        setVisibleFields({
+        const newVisibleFields = {
           weight_visible: settings.weight_visible,
           neck_visible: settings.neck_visible,
           chest_visible: settings.chest_visible,
@@ -70,7 +71,11 @@ export const ClientMeasurementsSection: React.FC<ClientMeasurementsSectionProps>
           shoulder_visible: settings.shoulder_visible,
           body_fat_visible: settings.body_fat_visible,
           muscle_mass_visible: settings.muscle_mass_visible,
-        });
+        };
+        console.log('[ClientMeasurementsSection] Nouveaux champs visibles:', newVisibleFields);
+        setVisibleFields(newVisibleFields);
+      } else {
+        console.log('[ClientMeasurementsSection] Aucun paramètre trouvé, utilisation des valeurs par défaut');
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
@@ -155,6 +160,7 @@ export const ClientMeasurementsSection: React.FC<ClientMeasurementsSectionProps>
     if (visibleFields.shoulder_visible) fields.push('shoulder');
     if (visibleFields.body_fat_visible) fields.push('body_fat');
     if (visibleFields.muscle_mass_visible) fields.push('muscle_mass');
+    console.log('[ClientMeasurementsSection] visibleFieldsList calculé:', fields);
     return fields;
   }, [visibleFields]);
 
