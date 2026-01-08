@@ -369,3 +369,83 @@ export async function getSessionPhotos(sessionId: string): Promise<ClientDocumen
     return [];
   }
 }
+
+/**
+ * Supprime une session de photos et toutes les photos associées
+ */
+export async function deletePhotoSession(sessionId: string): Promise<void> {
+  try {
+    // 1. Récupérer toutes les photos de la session
+    const photos = await getSessionPhotos(sessionId);
+
+    // 2. Supprimer tous les fichiers du Storage
+    const filePaths = photos.map(photo => photo.file_url);
+    if (filePaths.length > 0) {
+      const { error: storageError } = await supabase.storage
+        .from('client-documents')
+        .remove(filePaths);
+
+      if (storageError) {
+        console.error('Erreur suppression Storage:', storageError);
+        // On continue quand même
+      }
+    }
+
+    // 3. Supprimer les métadonnées des documents (cascade via session_id)
+    const { error: docsError } = await supabase
+      .from('client_documents')
+      .delete()
+      .eq('session_id', sessionId);
+
+    if (docsError) {
+      console.error('Erreur suppression documents:', docsError);
+      throw new Error(`Erreur lors de la suppression des documents: ${docsError.message}`);
+    }
+
+    // 4. Supprimer la session
+    const { error: sessionError } = await supabase
+      .from('photo_sessions')
+      .delete()
+      .eq('id', sessionId);
+
+    if (sessionError) {
+      console.error('Erreur suppression session:', sessionError);
+      throw new Error(`Erreur lors de la suppression de la session: ${sessionError.message}`);
+    }
+  } catch (error) {
+    console.error('Erreur deletePhotoSession:', error);
+    throw error;
+  }
+}
+
+/**
+ * Récupère les sessions de photos d'un client (pour le client lui-même)
+ */
+export async function getClientOwnPhotoSessions(clientId: string): Promise<PhotoSession[]> {
+  try {
+    const { data, error } = await supabase
+      .from('photo_sessions')
+      .select(`
+        *,
+        photo_count:client_documents(count)
+      `)
+      .eq('client_id', clientId)
+      .order('session_date', { ascending: false });
+
+    if (error) {
+      console.error('Erreur getClientOwnPhotoSessions:', error);
+      throw error;
+    }
+
+    // Transformer les données pour extraire le count
+    const sessions = (data || []).map((session: any) => ({
+      ...session,
+      photo_count: session.photo_count?.[0]?.count || 0,
+    }));
+
+    return sessions as PhotoSession[];
+  } catch (error) {
+    console.error('Erreur getClientOwnPhotoSessions:', error);
+    return [];
+  }
+}

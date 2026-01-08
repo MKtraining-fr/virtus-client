@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  getPhotoSessions, 
+  getClientOwnPhotoSessions, 
   getSessionPhotos, 
   getClientPhotos,
   deleteClientDocument,
@@ -8,15 +8,15 @@ import {
   PhotoSession, 
   ClientDocument 
 } from '../../services/clientDocumentService';
-import { PhotoImage } from './PhotoImage';
+import { PhotoImage } from '../coach/PhotoImage';
 import { ChevronDown, ChevronRight, Folder, Calendar, Image as ImageIcon, Trash2 } from 'lucide-react';
 
-interface ClientPhotosSectionProps {
+interface ClientPhotosViewProps {
   clientId: string;
-  coachId: string;
+  onPhotoDeleted?: () => void;
 }
 
-export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ clientId, coachId }) => {
+export const ClientPhotosView: React.FC<ClientPhotosViewProps> = ({ clientId, onPhotoDeleted }) => {
   const [sessions, setSessions] = useState<PhotoSession[]>([]);
   const [standalonePhotos, setStandalonePhotos] = useState<ClientDocument[]>([]);
   const [sessionPhotos, setSessionPhotos] = useState<Record<string, ClientDocument[]>>({});
@@ -27,13 +27,13 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
 
   useEffect(() => {
     loadPhotosData();
-  }, [clientId, coachId]);
+  }, [clientId]);
 
   const loadPhotosData = async () => {
     setIsLoading(true);
     try {
       // Charger les sessions
-      const sessionsData = await getPhotoSessions(clientId, coachId);
+      const sessionsData = await getClientOwnPhotoSessions(clientId);
       setSessions(sessionsData);
 
       // Charger toutes les photos
@@ -85,6 +85,8 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
       }
       
       await loadPhotosData();
+      onPhotoDeleted?.();
+      
       alert('Photo supprimée avec succès !');
     } catch (error) {
       console.error('Erreur suppression photo:', error);
@@ -119,6 +121,7 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
         return newPhotos;
       });
       
+      onPhotoDeleted?.();
       alert('Dossier supprimé avec succès !');
     } catch (error) {
       console.error('Erreur suppression session:', error);
@@ -149,8 +152,8 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
   if (isLoading) {
     return (
       <div className="p-6 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-        <p className="mt-2 text-gray-500 dark:text-gray-400">Chargement des photos...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-client-accent mx-auto"></div>
+        <p className="mt-2 text-gray-500 dark:text-client-subtle">Chargement des photos...</p>
       </div>
     );
   }
@@ -159,35 +162,10 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Photos de progression
-        </h3>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          {totalPhotos} photo{totalPhotos > 1 ? 's' : ''}
-        </span>
-      </div>
-
       {totalPhotos === 0 ? (
-        <div className="text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
-          <svg
-            className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-            />
-          </svg>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">
-            Aucune photo de progression
-          </p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-            Le client n'a pas encore uploadé de photos
+        <div className="text-center py-6">
+          <p className="text-gray-500 dark:text-client-subtle">
+            Aucune photo téléversée.
           </p>
         </div>
       ) : (
@@ -196,37 +174,37 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
           {sessions.map((session) => (
             <div
               key={session.id}
-              className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+              className="border border-gray-200 dark:border-client-card rounded-lg overflow-hidden"
             >
               {/* En-tête de session */}
-              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
+              <div className="px-4 py-3 bg-gray-50 dark:bg-client-card flex items-center justify-between">
                 <button
                   onClick={() => toggleSession(session.id)}
                   className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity"
                   disabled={isDeleting}
                 >
                   {expandedSessions.has(session.id) ? (
-                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                    <ChevronDown className="w-5 h-5 text-gray-500 dark:text-client-subtle" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 text-gray-500" />
+                    <ChevronRight className="w-5 h-5 text-gray-500 dark:text-client-subtle" />
                   )}
-                  <Folder className="w-5 h-5 text-primary" />
+                  <Folder className="w-5 h-5 text-client-accent" />
                   <div className="text-left">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <Calendar className="w-4 h-4 text-gray-400 dark:text-client-subtle" />
+                      <span className="font-medium text-gray-900 dark:text-client-light">
                         {formatDate(session.session_date)}
                       </span>
                     </div>
                     {session.description && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                      <p className="text-sm text-gray-500 dark:text-client-subtle mt-0.5">
                         {session.description}
                       </p>
                     )}
                   </div>
                 </button>
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-client-subtle">
                     <ImageIcon className="w-4 h-4" />
                     <span>{session.photo_count || 0} photo{(session.photo_count || 0) > 1 ? 's' : ''}</span>
                   </div>
@@ -243,7 +221,7 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
 
               {/* Contenu de session (photos) */}
               {expandedSessions.has(session.id) && (
-                <div className="p-4 bg-white dark:bg-gray-900">
+                <div className="p-4 bg-white dark:bg-client-bg">
                   {sessionPhotos[session.id] ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {sessionPhotos[session.id].map((photo) => (
@@ -258,7 +236,7 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
                             <PhotoImage
                               filePath={photo.file_url}
                               alt={photo.file_name}
-                              className="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary transition-colors"
+                              className="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-client-card hover:border-client-accent transition-colors"
                             />
                           </div>
                           <button
@@ -277,8 +255,8 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
                     </div>
                   ) : (
                     <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                      <p className="mt-2 text-sm text-gray-500">Chargement...</p>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-client-accent mx-auto"></div>
+                      <p className="mt-2 text-sm text-gray-500 dark:text-client-subtle">Chargement...</p>
                     </div>
                   )}
                 </div>
@@ -288,13 +266,13 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
 
           {/* Photos standalone (sans session) */}
           {standalonePhotos.length > 0 && (
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div className="border border-gray-200 dark:border-client-card rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
-                <ImageIcon className="w-5 h-5 text-gray-500" />
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                <ImageIcon className="w-5 h-5 text-gray-500 dark:text-client-subtle" />
+                <h4 className="font-medium text-gray-900 dark:text-client-light">
                   Photos individuelles
                 </h4>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <span className="text-sm text-gray-500 dark:text-client-subtle">
                   ({standalonePhotos.length})
                 </span>
               </div>
@@ -311,7 +289,7 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
                       <PhotoImage
                         filePath={photo.file_url}
                         alt={photo.file_name}
-                        className="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary transition-colors"
+                        className="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-client-card hover:border-client-accent transition-colors"
                       />
                     </div>
                     <button
@@ -350,24 +328,24 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
           onClick={() => setSelectedPhoto(null)}
         >
           <div
-            className="relative max-w-4xl max-h-[90vh] bg-white dark:bg-gray-800 rounded-lg overflow-hidden"
+            className="relative max-w-4xl max-h-[90vh] bg-white dark:bg-client-card rounded-lg overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div className="p-4 border-b border-gray-200 dark:border-client-card flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="font-semibold text-gray-900 dark:text-client-light">
                   {selectedPhoto.file_name}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-client-subtle">
                   {formatDateTime(selectedPhoto.created_at)}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedPhoto(null)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-client-bg rounded-full transition-colors"
               >
                 <svg
-                  className="w-6 h-6 text-gray-600 dark:text-gray-400"
+                  className="w-6 h-6 text-gray-600 dark:text-client-subtle"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -388,8 +366,8 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
                 className="w-full h-auto rounded-lg"
               />
               {selectedPhoto.description && (
-                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-client-bg rounded-lg">
+                  <p className="text-sm text-gray-700 dark:text-client-light">
                     {selectedPhoto.description}
                   </p>
                 </div>

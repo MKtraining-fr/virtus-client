@@ -37,6 +37,7 @@ import {
 import { getMuscleById } from '../../data/muscleConfig';
 import { HeartPulse, User } from 'lucide-react';
 import { ClientMeasurementsSection } from '../../components/client/ClientMeasurementsSection';
+import { ClientPhotosView } from '../../components/client/ClientPhotosView';
 import {
   uploadClientDocument,
   getClientPhotos,
@@ -789,39 +790,12 @@ const ClientProfile: React.FC = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-6">
-              {photoFiles.map((file) => (
-                <div key={file.id} className="relative group aspect-square">
-                  <img
-                    src={file.file_url}
-                    alt={file.file_name}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-between p-2 text-white">
-                    <p className="text-xs font-semibold break-words">{file.file_name}</p>
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs">
-                        {new Date(file.created_at).toLocaleDateString('fr-FR')}
-                      </p>
-                      <button
-                        onClick={() => handleDeleteFile(file.id)}
-                        className="p-1 bg-red-500 rounded-full hover:bg-red-600"
-                        disabled={isUploadingDoc}
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="mt-6">
+              <ClientPhotosView 
+                clientId={user.id} 
+                onPhotoDeleted={loadSupabaseDocuments}
+              />
             </div>
-            {photoFiles.length === 0 && (
-              <div className="text-center py-6">
-                <p className="text-gray-500 dark:text-client-subtle mt-1">
-                  Aucune photo téléversée.
-                </p>
-              </div>
-            )}
           </div>
         </ClientAccordion>
         <ClientAccordion title="Mes Documents">
