@@ -217,6 +217,8 @@ const NewBilan: React.FC = () => {
     if (!firstName) missingFields.push('Prénom');
     if (!lastName) missingFields.push('Nom');
     if (!email) missingFields.push('Email');
+    // Pour le Bilan Initial, le téléphone est obligatoire
+    if (isInitialBilanSelected && !phone) missingFields.push('Téléphone');
     if (!dob) missingFields.push('Date de Naissance');
     if (!sex) missingFields.push('Sexe');
     if (!height) missingFields.push('Taille');
