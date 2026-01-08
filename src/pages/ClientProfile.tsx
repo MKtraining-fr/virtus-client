@@ -37,6 +37,7 @@ import CoachClientDocuments from '../components/coach/CoachClientDocuments';
 import { PerformanceSection } from '../components/performance/PerformanceSection';
 import ClientVideosTab from '../components/coach/ClientVideosTab';
 import { NutritionHabitsDisplay } from '../components/nutrition/NutritionHabitsDisplay';
+import { CoachMeasurementsSection } from '../components/coach/CoachMeasurementsSection';
 import { EditGeneralInfoModal } from '../components/client/EditGeneralInfoModal';
 import { getClientGeneralInfo, ClientGeneralInfo } from '../services/clientGeneralInfoService';
 import PerformanceHistoryModal from '../components/PerformanceHistoryModal';
@@ -1604,64 +1605,7 @@ const ClientProfile: React.FC = () => {
           </Accordion>
 
           <Accordion title="Suivi Mensurations & Photos" isOpenDefault={false}>
-            <h4 className="font-semibold text-lg mb-4">Graphique d'évolution</h4>
-            <MeasurementsLineChart
-              data={measurementHistoryForChart}
-              selectedMeasurements={selectedMeasurements}
-            />
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {availableMeasurementsForSelect.map((key) => (
-                <label
-                  key={String(key)}
-                  className="flex items-center space-x-2 cursor-pointer text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedMeasurements.includes(key)}
-                    onChange={() => handleToggleMeasurement(key)}
-                    className="rounded text-primary focus:ring-primary"
-                  />
-                  <span>{measurementLabels[key]}</span>
-                </label>
-              ))}
-            </div>
-            <div className="pt-6 mt-6 border-t border-gray-200">
-              <h4 className="font-semibold text-lg mb-4">Historique des données</h4>
-              {measurementHistoryTable.data.length > 0 ? (
-                <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-60">
-                  <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-gray-500 uppercase bg-gray-50 sticky top-0">
-                      <tr>
-                        <th className="p-2 font-semibold sticky left-0 bg-gray-50 z-10">Date</th>
-                        <th className="p-2 font-semibold">Poids (kg)</th>
-                        {measurementHistoryTable.headers.map((key) => (
-                          <th key={key} className="p-2 font-semibold">
-                            {measurementLabels[key]}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {measurementHistoryTable.data.map((row: any, index: number) => (
-                        <tr key={index} className="bg-white hover:bg-gray-50">
-                          <td className="p-2 sticky left-0 bg-white">{row.date}</td>
-                          <td className="p-2">{row.weight ? row.weight.toFixed(1) : '-'}</td>
-                          {measurementHistoryTable.headers.map((key) => (
-                            <td key={key} className="p-2">
-                              {row[key as keyof typeof row] || '-'}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-4">
-                  Aucun historique de mensurations.
-                </p>
-              )}
-            </div>
+            <CoachMeasurementsSection clientId={client.id} coachId={user?.id || ''} />
             <div className="pt-6 mt-6 border-t border-gray-200">
               <h4 className="font-semibold text-lg mb-2">Photos de suivi</h4>
               {photoFiles.length > 0 ? (

@@ -36,6 +36,7 @@ import {
 } from '../../services/injuryService';
 import { getMuscleById } from '../../data/muscleConfig';
 import { HeartPulse } from 'lucide-react';
+import { ClientMeasurementsSection } from '../../components/client/ClientMeasurementsSection';
 
 // Type pour les documents Supabase
 interface ClientDocument {
@@ -711,105 +712,7 @@ const ClientProfile: React.FC = () => {
         </ClientAccordion>
 
         <ClientAccordion title="Mensurations & Photos">
-          <h4 className="font-semibold text-lg mb-4 text-gray-900 dark:text-client-light">
-            Graphique des Mensurations
-          </h4>
-          <MeasurementsLineChart
-            data={measurementHistoryForChart}
-            selectedMeasurements={selectedMeasurements}
-          />
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {availableMeasurementsForSelect.map((key) => (
-              <label
-                key={String(key)}
-                className="flex items-center space-x-2 cursor-pointer text-sm text-gray-700 dark:text-client-subtle"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedMeasurements.includes(key)}
-                  onChange={() => handleToggleMeasurement(key)}
-                  className="rounded text-primary focus:ring-primary dark:bg-client-dark dark:border-gray-600"
-                />
-                <span>{measurementLabels[key].replace(' (cm)', '')}</span>
-              </label>
-            ))}
-          </div>
-
-          <div className="pt-6 mt-6 border-t border-gray-200 dark:border-client-card">
-            <h4 className="font-semibold text-lg mb-4 text-gray-900 dark:text-client-light">
-              Historique des mensurations
-            </h4>
-            {measurementHistoryTable.data.length > 0 ? (
-              <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-                <table className="w-full text-sm text-left">
-                  <thead className="text-xs text-gray-500 dark:text-client-subtle uppercase bg-gray-50 dark:bg-client-dark">
-                    <tr>
-                      <th className="p-2 font-semibold sticky left-0 bg-gray-50 dark:bg-client-dark">
-                        Date
-                      </th>
-                      <th className="p-2 font-semibold">Poids (kg)</th>
-                      {measurementHistoryTable.headers.map((key) => (
-                        <th key={key} className="p-2 font-semibold">
-                          {measurementLabels[key] || key}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {measurementHistoryTable.data.map((row, index) => (
-                      <tr key={index} className="bg-white dark:bg-client-card">
-                        <td className="p-2 sticky left-0 bg-white dark:bg-client-card">
-                          {row.date}
-                        </td>
-                        <td className="p-2">{row.weight ? row.weight.toFixed(1) : '-'}</td>
-                        {measurementHistoryTable.headers.map((key) => (
-                          <td key={key} className="p-2">
-                            {row[key] || '-'}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-gray-500 dark:text-client-subtle text-center py-4">
-                Aucun historique de mensurations enregistré.
-              </p>
-            )}
-          </div>
-
-          <div className="pt-6 mt-6 border-t border-gray-200 dark:border-client-card">
-            <h4 className="font-semibold text-lg text-gray-900 dark:text-client-light mb-4">
-              Enregistrer de nouvelles données
-            </h4>
-            <div className="space-y-4">
-              <Input
-                label="Poids (kg)"
-                type="number"
-                value={editableWeight}
-                onChange={(e) => setEditableWeight(e.target.value)}
-                className="!bg-gray-100 dark:!bg-client-dark !border-gray-300 dark:!border-gray-700 focus:!ring-primary text-gray-800 dark:text-client-light"
-              />
-              <div className="grid grid-cols-2 gap-4">
-                {(Object.keys(measurementLabels) as Array<keyof MeasurementType>).map((key) => (
-                  <Input
-                    key={key}
-                    label={measurementLabels[key]}
-                    type="number"
-                    value={editableMeasurements[key] || ''}
-                    onChange={(e) => handleMeasurementChange(key, e.target.value)}
-                    className="!bg-gray-100 dark:!bg-client-dark !border-gray-300 dark:!border-gray-700 focus:!ring-primary text-gray-800 dark:text-client-light"
-                  />
-                ))}
-              </div>
-              <div className="flex justify-end pt-2">
-                <Button onClick={handleSaveMeasurements} disabled={!hasChanges}>
-                  Enregistrer
-                </Button>
-              </div>
-            </div>
-          </div>
+          <ClientMeasurementsSection clientId={user?.id || ''} />
 
           <div className="pt-6 mt-6 border-t border-gray-200 dark:border-client-card">
             <h4 className="font-semibold text-lg text-gray-900 dark:text-client-light mb-4">
