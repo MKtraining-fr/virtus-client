@@ -38,6 +38,7 @@ import { PerformanceSection } from '../components/performance/PerformanceSection
 import ClientVideosTab from '../components/coach/ClientVideosTab';
 import { NutritionHabitsDisplay } from '../components/nutrition/NutritionHabitsDisplay';
 import { CoachMeasurementsSection } from '../components/coach/CoachMeasurementsSection';
+import { ClientPhotosSection } from '../components/coach/ClientPhotosSection';
 import { EditGeneralInfoModal } from '../components/client/EditGeneralInfoModal';
 import { getClientGeneralInfo, ClientGeneralInfo } from '../services/clientGeneralInfoService';
 import PerformanceHistoryModal from '../components/PerformanceHistoryModal';
@@ -1607,33 +1608,7 @@ const ClientProfile: React.FC = () => {
           <Accordion title="Suivi Mensurations & Photos" isOpenDefault={false}>
             <CoachMeasurementsSection clientId={client.id} coachId={user?.id || ''} />
             <div className="pt-6 mt-6 border-t border-gray-200">
-              <h4 className="font-semibold text-lg mb-2">Photos de suivi</h4>
-              {photoFiles.length > 0 ? (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                  {photoFiles.map((file: SharedFile) => (
-                    <div key={file.id} className="relative group aspect-square">
-                      <img
-                        src={file.fileContent || file.url}
-                        alt={file.fileName || file.name}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-end p-2 text-white">
-                        <button
-                          onClick={() => handleDeleteFile(file.id)}
-                          className="absolute top-1 right-1 p-1 bg-red-500 rounded-full hover:bg-red-600"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                        <p className="text-xs font-semibold break-words">{file.fileName || file.name}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-4 bg-gray-50 rounded-md">
-                  Aucune photo partagée.
-                </p>
-              )}
+              <ClientPhotosSection clientId={client.id} coachId={user?.id || ''} />
             </div>
           </Accordion>
 

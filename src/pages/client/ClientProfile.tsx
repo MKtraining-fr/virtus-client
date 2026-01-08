@@ -37,6 +37,13 @@ import {
 import { getMuscleById } from '../../data/muscleConfig';
 import { HeartPulse, User } from 'lucide-react';
 import { ClientMeasurementsSection } from '../../components/client/ClientMeasurementsSection';
+import {
+  uploadClientDocument,
+  getClientPhotos,
+  getClientFiles,
+  deleteClientDocument,
+  ClientDocument as SupabaseClientDocument
+} from '../../services/clientDocumentService';
 
 // Type pour les documents Supabase
 interface ClientDocument {
@@ -228,9 +235,8 @@ const ClientProfile: React.FC = () => {
   }, [selectedBilan, bilanTemplates]);
 
   const photoFiles = useMemo(() => {
-    if (!user?.sharedFiles) return [];
-    return user.sharedFiles.filter((file) => file.fileType.startsWith('image/'));
-  }, [user?.sharedFiles]);
+    return supabaseDocuments.filter((doc) => doc.category === 'photo');
+  }, [supabaseDocuments]);
 
   const documentFiles = useMemo(() => {
     if (!user?.sharedFiles) return [];
@@ -542,38 +548,61 @@ const ClientProfile: React.FC = () => {
     navigate('/');
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const newFile: SharedFile = {
-        id: `file-${Date.now()}`,
-        fileName: file.name,
-        fileType: file.type,
-        fileContent: e.target?.result as string, // base64
-        uploadedAt: new Date().toISOString(),
-        size: file.size,
-      };
+    // Vérifier la taille du fichier (max 10 Mo)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Le fichier est trop volumineux. Taille maximum : 10 Mo');
+      return;
+    }
 
-      const updatedClients = clients.map((c) =>
-        c.id === user.id ? { ...c, sharedFiles: [...(c.sharedFiles || []), newFile] } : c
-      );
-      setClients(updatedClients as Client[]);
-    };
-    reader.readAsDataURL(file);
+    // Vérifier que c'est bien une image
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner une image');
+      return;
+    }
+
+    setIsUploadingDoc(true);
+    try {
+      await uploadClientDocument({
+        file,
+        clientId: user.id,
+        coachId: user.coachId || null,
+        uploadedBy: user.id,
+        category: 'photo',
+        description: 'Photo de progression',
+      });
+
+      // Recharger les documents
+      await loadSupabaseDocuments();
+      alert('Photo uploadée avec succès !');
+
+      // Réinitialiser l'input
+      if (photoInputRef.current) {
+        photoInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Erreur upload photo:', error);
+      alert('Erreur lors de l\'upload de la photo. Veuillez réessayer.');
+    } finally {
+      setIsUploadingDoc(false);
+    }
   };
 
-  const handleDeleteFile = (fileId: string) => {
+  const handleDeleteFile = async (fileId: string) => {
     if (!user || !window.confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) return;
 
-    const updatedClients = clients.map((c) =>
-      c.id === user.id
-        ? { ...c, sharedFiles: (c.sharedFiles || []).filter((f) => f.id !== fileId) }
-        : c
-    );
-    setClients(updatedClients as Client[]);
+    try {
+      await deleteClientDocument(fileId);
+      // Recharger les documents
+      await loadSupabaseDocuments();
+      alert('Fichier supprimé avec succès !');
+    } catch (error) {
+      console.error('Erreur suppression fichier:', error);
+      alert('Erreur lors de la suppression du fichier. Veuillez réessayer.');
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -735,23 +764,30 @@ const ClientProfile: React.FC = () => {
               Téléverser une photo
             </Button>
 
+            {isUploadingDoc && (
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-blue-600 dark:text-blue-400 text-center">Upload en cours...</p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-6">
               {photoFiles.map((file) => (
                 <div key={file.id} className="relative group aspect-square">
                   <img
-                    src={file.fileContent}
-                    alt={file.fileName}
+                    src={file.file_url}
+                    alt={file.file_name}
                     className="w-full h-full object-cover rounded-lg"
                   />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-between p-2 text-white">
-                    <p className="text-xs font-semibold break-words">{file.fileName}</p>
+                    <p className="text-xs font-semibold break-words">{file.file_name}</p>
                     <div className="flex justify-between items-center">
                       <p className="text-xs">
-                        {new Date(file.uploadedAt).toLocaleDateString('fr-FR')}
+                        {new Date(file.created_at).toLocaleDateString('fr-FR')}
                       </p>
                       <button
                         onClick={() => handleDeleteFile(file.id)}
                         className="p-1 bg-red-500 rounded-full hover:bg-red-600"
+                        disabled={isUploadingDoc}
                       >
                         <TrashIcon className="w-4 h-4" />
                       </button>
