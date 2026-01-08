@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useDataStore } from '../../stores/useDataStore';
 import { Message } from '../../types';
 import Input from '../../components/Input';
 import { supabase } from '../../services/supabase';
+import { User } from 'lucide-react';upabase';
 
 // Icônes
 const PaperAirplaneIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -375,11 +376,17 @@ const ClientMessaging: React.FC = () => {
     <div className="flex flex-col h-[calc(100vh-140px)] bg-white dark:bg-client-card rounded-lg overflow-hidden">
       <div className="flex-1 flex flex-col">
         <div className="p-4 border-b border-gray-200 dark:border-client-dark flex items-center space-x-3 sticky top-0 bg-white dark:bg-client-card z-10">
-          <img
-            src={coach.avatar || `https://i.pravatar.cc/40?u=${coach.id}`}
-            alt={coach.firstName}
-            className="w-10 h-10 rounded-full"
-          />
+          {coach.avatar ? (
+            <img
+              src={coach.avatar}
+              alt={coach.firstName}
+              className="w-10 h-10 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            </div>
+          )}
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-client-light">
               {coach.firstName} {coach.lastName}

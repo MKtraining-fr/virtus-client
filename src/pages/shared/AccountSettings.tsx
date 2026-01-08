@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import { supabase } from '../../services/supabase';
 import { logger } from '../../utils/logger';
+import { User } from 'lucide-react';
 
 // Icons
 const UserCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -187,11 +188,17 @@ const AccountSettings: React.FC = () => {
         </h2>
         <div className="flex items-center space-x-6">
           <div className="relative">
-            <img
-              src={user?.avatar || `https://i.pravatar.cc/150?u=${user?.id}`}
-              alt={`${user?.firstName} ${user?.lastName}`}
-              className="w-32 h-32 rounded-full object-cover border-4 border-primary"
-            />
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={`${user?.firstName} ${user?.lastName}`}
+                className="w-32 h-32 rounded-full object-cover border-4 border-primary"
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-full border-4 border-primary bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <User className="w-16 h-16 text-gray-500 dark:text-gray-400" />
+              </div>
+            )}
             {isUploadingAvatar && (
               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { User } from 'lucide-react';
 
 const InfoRow: React.FC<{ label: string; value?: string }> = ({ label, value }) => (
   <div className="flex justify-between items-center py-3 border-b border-client-card">
@@ -14,11 +15,17 @@ const ClientAccount: React.FC = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col items-center">
-        <img
-          src={user?.avatar || `https://i.pravatar.cc/80?u=${user?.id}`}
-          alt={user?.firstName}
-          className="w-24 h-24 rounded-full border-2 border-primary"
-        />
+        {user?.avatar ? (
+          <img
+            src={user.avatar}
+            alt={user?.firstName}
+            className="w-24 h-24 rounded-full border-2 border-primary object-cover"
+          />
+        ) : (
+          <div className="w-24 h-24 rounded-full border-2 border-primary bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+            <User className="w-12 h-12 text-gray-500 dark:text-gray-400" />
+          </div>
+        )}
         <h2 className="mt-4 text-2xl font-bold text-client-light">
           {user?.firstName} {user?.lastName}
         </h2>
