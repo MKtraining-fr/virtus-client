@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getClientDocumentsByCoach, ClientDocument } from '../../services/clientDocumentService';
+import { PhotoImage } from './PhotoImage';
 
 interface ClientPhotosSectionProps {
   clientId: string;
@@ -79,8 +80,8 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
               className="relative group aspect-square cursor-pointer"
               onClick={() => setSelectedPhoto(photo)}
             >
-              <img
-                src={photo.file_url}
+              <PhotoImage
+                filePath={photo.file_url}
                 alt={photo.file_name}
                 className="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary transition-colors"
               />
@@ -144,8 +145,8 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
               </button>
             </div>
             <div className="p-4 overflow-auto max-h-[calc(90vh-100px)]">
-              <img
-                src={selectedPhoto.file_url}
+              <PhotoImage
+                filePath={selectedPhoto.file_url}
                 alt={selectedPhoto.file_name}
                 className="w-full h-auto rounded-lg"
               />

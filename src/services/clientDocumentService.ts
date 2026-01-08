@@ -48,14 +48,9 @@ export async function uploadClientDocument(params: UploadDocumentParams): Promis
       throw new Error(`Erreur lors de l'upload du fichier: ${uploadError.message}`);
     }
 
-    // 3. Obtenir l'URL publique
-    const { data: urlData } = supabase.storage
-      .from('client-documents')
-      .getPublicUrl(fileName);
-
-    if (!urlData?.publicUrl) {
-      throw new Error('Impossible d\'obtenir l\'URL du fichier');
-    }
+    // 3. L'URL sera générée dynamiquement côté client avec createSignedUrl
+    // On stocke juste le chemin du fichier
+    const fileUrl = fileName;
 
     // 4. Enregistrer les métadonnées dans la table client_documents
     const { data: docData, error: docError } = await supabase
@@ -65,7 +60,7 @@ export async function uploadClientDocument(params: UploadDocumentParams): Promis
         coach_id: coachId,
         uploaded_by: uploadedBy,
         file_name: file.name,
-        file_url: urlData.publicUrl,
+        file_url: fileUrl,
         file_type: file.type,
         file_size: file.size,
         description: description || null,
