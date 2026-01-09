@@ -160,10 +160,24 @@ export async function deleteClientDocument(documentId: string): Promise<void> {
       throw new Error('Document introuvable');
     }
 
-    // 2. Extraire le chemin du fichier depuis l'URL
-    const url = new URL(doc.file_url);
-    const pathParts = url.pathname.split('/');
-    const filePath = pathParts.slice(pathParts.indexOf('client-documents') + 1).join('/');
+    // 2. Extraire le chemin du fichier
+    // file_url peut être soit un chemin direct (clientId/file.jpg) soit une URL complète
+    let filePath = doc.file_url;
+    
+    // Si c'est une URL complète, extraire le chemin
+    if (doc.file_url.startsWith('http://') || doc.file_url.startsWith('https://')) {
+      try {
+        const url = new URL(doc.file_url);
+        const pathParts = url.pathname.split('/');
+        const bucketIndex = pathParts.indexOf('client-documents');
+        if (bucketIndex !== -1) {
+          filePath = pathParts.slice(bucketIndex + 1).join('/');
+        }
+      } catch (urlError) {
+        console.error('Erreur parsing URL:', urlError);
+        // Si l'URL est invalide, on suppose que c'est déjà un chemin
+      }
+    }
 
     // 3. Supprimer le fichier du Storage
     const { error: storageError } = await supabase.storage
