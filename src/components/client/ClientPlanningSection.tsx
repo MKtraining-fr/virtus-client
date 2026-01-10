@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, ChevronDown, ChevronUp, Plus, Loader2, Video } from 'lucide-react';
+import { Calendar, Plus, Loader2, Video } from 'lucide-react';
 import { AppointmentCard, CalendarView, TimeSlotPicker } from '../calendar';
 import {
   getClientAppointments,
@@ -36,7 +36,7 @@ export const ClientPlanningSection: React.FC<ClientPlanningSectionProps> = ({
   clientId,
   coachId,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
   
@@ -52,17 +52,7 @@ export const ClientPlanningSection: React.FC<ClientPlanningSectionProps> = ({
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (isExpanded) {
-      loadAppointments();
-    }
-  }, [isExpanded]);
 
-  useEffect(() => {
-    if (showBooking) {
-      loadConfig();
-    }
-  }, [showBooking]);
 
   const loadAppointments = async () => {
     try {
@@ -163,32 +153,14 @@ export const ClientPlanningSection: React.FC<ClientPlanningSectionProps> = ({
   const selectedType = appointmentTypes.find(t => t.id === selectedTypeId);
   const duration = selectedType?.default_duration || 60;
 
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      {/* En-tête */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <Calendar className="w-5 h-5 text-primary-600" />
-          <div className="text-left">
-            <div className="font-semibold text-gray-900">Planning</div>
-            <div className="text-sm text-gray-600">
-              {upcomingAppointments.length} rendez-vous à venir
-            </div>
-          </div>
-        </div>
-        {isExpanded ? (
-          <ChevronUp className="w-5 h-5 text-gray-400" />
-        ) : (
-          <ChevronDown className="w-5 h-5 text-gray-400" />
-        )}
-      </button>
+  // Charger automatiquement au montage
+  useEffect(() => {
+    loadAppointments();
+    loadConfig();
+  }, []);
 
-      {/* Contenu */}
-      {isExpanded && (
-        <div className="border-t border-gray-200">
+  return (
+    <div>
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
@@ -393,8 +365,6 @@ export const ClientPlanningSection: React.FC<ClientPlanningSectionProps> = ({
               )}
             </div>
           )}
-        </div>
-      )}
     </div>
   );
 };

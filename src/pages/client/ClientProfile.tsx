@@ -889,10 +889,12 @@ const ClientProfile: React.FC = () => {
 
         {/* Section Planning */}
         {user?.coachId && (
-          <ClientPlanningSection 
-            clientId={user.id} 
-            coachId={user.coachId}
-          />
+          <ClientAccordion title="Planning">
+            <ClientPlanningSection 
+              clientId={user.id} 
+              coachId={user.coachId}
+            />
+          </ClientAccordion>
         )}
 
         {/* Modal d'upload de document */}

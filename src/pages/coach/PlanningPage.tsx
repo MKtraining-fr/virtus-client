@@ -9,7 +9,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar as CalendarIcon, List, Filter, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Calendar as CalendarIcon, List, Filter, Loader2, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { CalendarView, AppointmentCard } from '../../components/calendar';
 import { CreateAppointmentModal } from '../../components/coach/CreateAppointmentModal';
@@ -20,6 +21,7 @@ import {
   cancelAppointment,
   getMeetingToken,
 } from '../../services/appointmentService';
+import { ensurePlanningInitialized } from '../../services/planningInitService';
 import { toast } from 'react-hot-toast';
 
 type ViewMode = 'calendar' | 'list';
@@ -27,6 +29,7 @@ type FilterStatus = 'all' | 'scheduled' | 'completed' | 'cancelled';
 
 const PlanningPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
@@ -39,10 +42,16 @@ const PlanningPage: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDetails | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  // Charger les rendez-vous
+  // Charger les rendez-vous et initialiser la configuration
   useEffect(() => {
     if (user?.id) {
-      loadAppointments();
+      // Initialiser la configuration par défaut si nécessaire
+      ensurePlanningInitialized(user.id).then(() => {
+        loadAppointments();
+      }).catch(error => {
+        console.error('Erreur initialisation planning:', error);
+        loadAppointments(); // Charger quand même les RDV
+      });
     }
   }, [user]);
 
@@ -174,13 +183,22 @@ const PlanningPage: React.FC = () => {
               Gérez vos rendez-vous avec vos clients et prospects
             </p>
           </div>
-          <button
-            onClick={handleCreateAppointment}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Nouveau rendez-vous
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate('/app/planning/parametres')}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <Settings className="w-5 h-5" />
+              Paramètres
+            </button>
+            <button
+              onClick={handleCreateAppointment}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              Nouveau rendez-vous
+            </button>
+          </div>
         </div>
 
         {/* Statistiques */}
