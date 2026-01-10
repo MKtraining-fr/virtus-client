@@ -146,7 +146,7 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
     );
   }
 
-  const totalPhotos = sessions.reduce((sum, s) => sum + (s.photo_count || 0), 0) + standalonePhotos.length;
+  const totalPhotos = sessions.reduce((sum, s) => sum + (s.photo_count || 0), 0);
 
   return (
     <div className="space-y-4">
