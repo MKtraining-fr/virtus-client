@@ -18,7 +18,6 @@ interface ClientPhotosSectionProps {
 
 export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ clientId, coachId }) => {
   const [sessions, setSessions] = useState<PhotoSession[]>([]);
-  const [standalonePhotos, setStandalonePhotos] = useState<ClientDocument[]>([]);
   const [sessionPhotos, setSessionPhotos] = useState<Record<string, ClientDocument[]>>({});
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
@@ -35,14 +34,6 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
       // Charger les sessions
       const sessionsData = await getPhotoSessions(clientId, coachId);
       setSessions(sessionsData);
-
-      // Charger toutes les photos
-      const allPhotos = await getClientPhotos(clientId);
-      
-      // Séparer les photos avec session_id des photos standalone
-      const standalone = allPhotos.filter(photo => !photo.session_id);
-      setStandalonePhotos(standalone);
-
     } catch (error) {
       console.error('Erreur chargement photos:', error);
     } finally {
@@ -286,60 +277,7 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
             </div>
           ))}
 
-          {/* Photos standalone (sans session) */}
-          {standalonePhotos.length > 0 && (
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <ImageIcon className="w-5 h-5 text-gray-500" />
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">
-                  Photos individuelles
-                </h4>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  ({standalonePhotos.length})
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {standalonePhotos.map((photo) => (
-                  <div
-                    key={photo.id}
-                    className="relative group aspect-square"
-                  >
-                    <div
-                      className="cursor-pointer w-full h-full"
-                      onClick={() => setSelectedPhoto(photo)}
-                    >
-                      <PhotoImage
-                        filePath={photo.file_url}
-                        alt={photo.file_name}
-                        className="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary transition-colors"
-                      />
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePhoto(photo.id);
-                      }}
-                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all"
-                      disabled={isDeleting}
-                      title="Supprimer la photo"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-b-lg p-2 text-white">
-                      <p className="text-xs truncate">{photo.file_name}</p>
-                      <p className="text-xs">
-                        {new Date(photo.created_at).toLocaleDateString('fr-FR', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
       )}
 
