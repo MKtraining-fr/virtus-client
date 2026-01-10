@@ -375,31 +375,54 @@ const PlanningSettingsPage: React.FC = () => {
                   {[0, 1, 2, 3, 4, 5, 6].map((day) => {
                     const dayAvailabilities = availabilities.filter(a => a.day_of_week === day);
                     return (
-                      <div key={day} className="border border-gray-200 rounded-lg p-4">
-                        <div className="font-medium text-gray-900 mb-2">{dayNames[day]}</div>
+                        <div key={day} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="font-medium text-gray-900">{dayNames[day]}</div>
+                          <button
+                            onClick={() => {
+                              toast.info('Fonctionnalité en cours de développement');
+                            }}
+                            className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3" />
+                            Ajouter un créneau
+                          </button>
+                        </div>
                         {dayAvailabilities.length > 0 ? (
                           <div className="space-y-2">
                             {dayAvailabilities.map((avail) => (
-                              <div key={avail.id} className="flex items-center justify-between text-sm">
+                              <div key={avail.id} className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
                                 <span className="text-gray-700">
                                   {avail.start_time.substring(0, 5)} - {avail.end_time.substring(0, 5)}
                                 </span>
-                                <button
-                                  onClick={async () => {
-                                    if (confirm('Supprimer cette disponibilité ?')) {
-                                      try {
-                                        await deleteAvailability(avail.id);
-                                        toast.success('Disponibilité supprimée');
-                                        loadData();
-                                      } catch (error) {
-                                        toast.error('Erreur lors de la suppression');
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => {
+                                      toast.info('Fonctionnalité en cours de développement');
+                                    }}
+                                    className="text-primary-600 hover:text-primary-700"
+                                    title="Modifier"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (confirm('Supprimer cette disponibilité ?')) {
+                                        try {
+                                          await deleteAvailability(avail.id);
+                                          toast.success('Disponibilité supprimée');
+                                          loadData();
+                                        } catch (error) {
+                                          toast.error('Erreur lors de la suppression');
+                                        }
                                       }
-                                    }
-                                  }}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                    }}
+                                    className="text-red-600 hover:text-red-700"
+                                    title="Supprimer"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>

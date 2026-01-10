@@ -62,7 +62,7 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !date || !time) {
+    if (!title.trim() || !date || !time || !description.trim()) {
       toast.error('Veuillez remplir tous les champs obligatoires');
       return;
     }
@@ -284,18 +284,22 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
             </div>
           </div>
 
-          {/* Description */}
+          {/* Détails */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes (optionnel)
+              Détails du rendez-vous *
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ajoutez des notes pour ce rendez-vous..."
+              placeholder="Décrivez l'objet du rendez-vous (visible par le client)..."
               rows={3}
+              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Ces détails seront visibles par le client dans son planning
+            </p>
           </div>
 
           {/* Boutons */}
