@@ -49,14 +49,14 @@ export async function initializeDefaultPlanningData(coachId: string): Promise<vo
         {
           coach_id: coachId,
           name: 'Suivi',
-          duration_minutes: 15,
+          default_duration: 15,
           color: '#3B82F6', // Bleu
           is_active: true,
         },
         {
           coach_id: coachId,
           name: 'Bilan',
-          duration_minutes: 30,
+          default_duration: 30,
           color: '#10B981', // Vert
           is_active: true,
         },
@@ -76,25 +76,25 @@ export async function initializeDefaultPlanningData(coachId: string): Promise<vo
       .insert([
         {
           coach_id: coachId,
-          name: 'Première séance',
+          label: 'Première séance',
           display_order: 1,
           is_active: true,
         },
         {
           coach_id: coachId,
-          name: 'Suivi mensuel',
+          label: 'Suivi mensuel',
           display_order: 2,
           is_active: true,
         },
         {
           coach_id: coachId,
-          name: 'Bilan de progression',
+          label: 'Bilan de progression',
           display_order: 3,
           is_active: true,
         },
         {
           coach_id: coachId,
-          name: 'Autre',
+          label: 'Autre',
           display_order: 4,
           is_active: true,
         },

@@ -37,7 +37,7 @@ export const TodayAppointmentsWidget: React.FC = () => {
     try {
       setLoading(false);
       const today = new Date().toISOString().split('T')[0];
-      const appointments = await getAppointmentsForDate(user.id, today);
+      const appointments = await getAppointmentsForDate(user.id, 'coach', today);
       setTodayAppointments(appointments.filter(a => a.status === 'scheduled'));
     } catch (error) {
       console.error('Erreur chargement RDV:', error);
