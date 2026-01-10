@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Calendar as CalendarIcon, List, Filter, Loader2, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { CalendarView, AppointmentCard } from '../../components/calendar';
-import { CreateAppointmentModal } from '../../components/coach/CreateAppointmentModal';
+import { SimpleCreateAppointmentModal } from '../../components/coach/SimpleCreateAppointmentModal';
 import { AppointmentDetailsModal } from '../../components/coach/AppointmentDetailsModal';
 import {
   getCoachAppointments,
@@ -354,7 +354,7 @@ const PlanningPage: React.FC = () => {
 
       {/* Modales */}
       {showCreateModal && (
-        <CreateAppointmentModal
+        <SimpleCreateAppointmentModal
           coachId={user!.id}
           onClose={() => setShowCreateModal(false)}
           onSuccess={handleAppointmentCreated}
