@@ -38,6 +38,7 @@ import { getMuscleById } from '../../data/muscleConfig';
 import { HeartPulse, User } from 'lucide-react';
 import { ClientMeasurementsSection } from '../../components/client/ClientMeasurementsSection';
 import { ClientPhotosView } from '../../components/client/ClientPhotosView';
+import { ClientPlanningSection } from '../../components/client/ClientPlanningSection';
 import {
   uploadClientDocument,
   getClientPhotos,
@@ -885,6 +886,14 @@ const ClientProfile: React.FC = () => {
             </div>
           </div>
         </ClientAccordion>
+
+        {/* Section Planning */}
+        {user?.coachId && (
+          <ClientPlanningSection 
+            clientId={user.id} 
+            coachId={user.coachId}
+          />
+        )}
 
         {/* Modal d'upload de document */}
         <Modal

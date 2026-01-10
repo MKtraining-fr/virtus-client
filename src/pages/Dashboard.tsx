@@ -10,6 +10,7 @@ import { useSortableData } from '../hooks/useSortableData';
 import MessageDrawer from '../components/coach/MessageDrawer';
 import MessageBadge from '../components/coach/MessageBadge';
 import { useAllUnreadCounts } from '../hooks/useUnreadCount';
+import { TodayAppointmentsWidget } from '../components/coach/TodayAppointmentsWidget';
 
 // --- ICONS ---
 const EyeIcon = ({ title, ...props }: React.SVGProps<SVGSVGElement> & { title?: string }) => (
@@ -215,6 +216,9 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Widget Rendez-vous du jour */}
+      {user && <TodayAppointmentsWidget coachId={user.id} />}
+      
       <h1 className="text-3xl font-bold text-gray-800 mb-6 shrink-0">Tableau de bord</h1>
       <div className="mb-4 shrink-0">
         <Input
