@@ -15,6 +15,7 @@ import {
   UserCircleIcon,
   ChatBubbleLeftEllipsisIcon,
   DevicePhoneMobileIcon,
+  CalendarIcon,
 } from './icons';
 import { ClientNav } from '../types';
 
@@ -75,6 +76,7 @@ export const COACH_NAV_ITEMS: NavItem[] = [
   { name: 'Formation', path: '/app/formations', icon: AcademicCapIcon, subItems: [] },
   { name: 'Boutique', path: '/app/shop', icon: ShoppingBagIcon, subItems: [] },
   { name: 'Messagerie', path: '/app/messagerie', icon: ChatBubbleLeftRightIcon, subItems: [] },
+  { name: 'Planning', path: '/app/planning', icon: CalendarIcon, subItems: [] },
   { name: 'Paramètres', path: '/app/parametres', icon: Cog6ToothIcon, subItems: [] },
 ];
 

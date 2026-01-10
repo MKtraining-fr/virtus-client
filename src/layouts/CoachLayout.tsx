@@ -24,6 +24,8 @@ import CoachShop from '../pages/coach/CoachShop.tsx';
 import ClientCreatedPrograms from '../pages/coach/ClientCreatedPrograms.tsx';
 import ProgramDetail from '../pages/coach/ProgramDetail.tsx';
 import TemplateDetail from '../pages/coach/TemplateDetail.tsx';
+import PlanningPage from '../pages/coach/PlanningPage.tsx';
+import PlanningSettingsPage from '../pages/coach/PlanningSettingsPage.tsx';
 import ScrollToTop from '../components/ScrollToTop.tsx';
 
 const CoachLayout: React.FC = () => {
@@ -67,6 +69,8 @@ const CoachLayout: React.FC = () => {
             <Route path="formations/pro/:id" element={<ProFormationDetail />} />
             <Route path="shop" element={<CoachShop />} />
             <Route path="messagerie" element={<Messaging />} />
+            <Route path="planning" element={<PlanningPage />} />
+            <Route path="planning/parametres" element={<PlanningSettingsPage />} />
             <Route path="parametres" element={<Settings />} />
             <Route path="*" element={<Navigate to="/app" replace />} />
           </Routes>
