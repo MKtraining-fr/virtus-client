@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, Calendar, Clock, User } from 'lucide-react';
 import { createAppointment } from '../../services/appointmentService';
+import { getAppointmentTypes, AppointmentType } from '../../services/appointmentConfigService';
 import { supabase } from '../../services/supabase';
 import { toast } from 'react-hot-toast';
 
@@ -28,6 +29,8 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
   const [selectedClientId, setSelectedClientId] = useState(clientId || '');
   const [clients, setClients] = useState<Array<{ id: string; full_name: string }>>([]);
   const [loadingClients, setLoadingClients] = useState(true);
+  const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
+  const [selectedTypeId, setSelectedTypeId] = useState('');
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(initialDate ? initialDate.toISOString().split('T')[0] : '');
   const [time, setTime] = useState('');
@@ -36,9 +39,10 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
   const [meetingType, setMeetingType] = useState<'video' | 'phone' | 'in_person'>('video');
   const [submitting, setSubmitting] = useState(false);
 
-  // Charger les clients du coach
+  // Charger les clients et types de RDV du coach
   useEffect(() => {
     loadClients();
+    loadAppointmentTypes();
   }, [coachId]);
 
   const loadClients = async () => {
@@ -60,6 +64,30 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
       setLoadingClients(false);
     }
   };
+
+  const loadAppointmentTypes = async () => {
+    try {
+      const types = await getAppointmentTypes(coachId, false);
+      setAppointmentTypes(types);
+      // Pré-sélectionner le premier type si disponible
+      if (types.length > 0 && !selectedTypeId) {
+        setSelectedTypeId(types[0].id);
+        setDuration(types[0].default_duration.toString());
+      }
+    } catch (error) {
+      console.error('Erreur chargement types RDV:', error);
+    }
+  };
+
+  // Mettre à jour la durée quand le type change
+  useEffect(() => {
+    if (selectedTypeId) {
+      const selectedType = appointmentTypes.find(t => t.id === selectedTypeId);
+      if (selectedType) {
+        setDuration(selectedType.default_duration.toString());
+      }
+    }
+  }, [selectedTypeId, appointmentTypes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +115,7 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
       await createAppointment({
         coach_id: coachId,
         client_id: selectedClientId,
+        appointment_type_id: selectedTypeId || undefined,
         title: title.trim(),
         description: description.trim() || undefined,
         start_time: startDateTime.toISOString(),
@@ -155,6 +184,32 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
               </select>
             )}
           </div>
+
+          {/* Type de rendez-vous */}
+          {appointmentTypes.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Type de rendez-vous
+              </label>
+              <select
+                value={selectedTypeId}
+                onChange={(e) => setSelectedTypeId(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">Aucun type spécifique</option>
+                {appointmentTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name} ({type.default_duration} min)
+                  </option>
+                ))}
+              </select>
+              {selectedTypeId && appointmentTypes.find(t => t.id === selectedTypeId)?.description && (
+                <p className="mt-2 text-sm text-gray-600">
+                  {appointmentTypes.find(t => t.id === selectedTypeId)?.description}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Titre */}
           <div>
