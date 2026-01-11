@@ -27,7 +27,7 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
   onSuccess,
 }) => {
   const [selectedClientId, setSelectedClientId] = useState(clientId || '');
-  const [clients, setClients] = useState<Array<{ id: string; full_name: string }>>([]);
+  const [clients, setClients] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
   const [selectedTypeId, setSelectedTypeId] = useState('');
@@ -50,10 +50,10 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
       setLoadingClients(true);
       const { data, error } = await supabase
         .from('clients')
-        .select('id, full_name')
+        .select('id, first_name, last_name')
         .eq('coach_id', coachId)
         .eq('role', 'client')
-        .order('full_name');
+        .order('first_name');
 
       if (error) throw error;
       setClients(data || []);
@@ -178,7 +178,7 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
                 <option value="">Sélectionnez un client</option>
                 {clients.map((client) => (
                   <option key={client.id} value={client.id}>
-                    {client.full_name}
+                    {client.first_name} {client.last_name}
                   </option>
                 ))}
               </select>
@@ -372,7 +372,7 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
             >
               {submitting ? (
                 <>
