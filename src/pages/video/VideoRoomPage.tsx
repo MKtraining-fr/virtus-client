@@ -107,7 +107,8 @@ const VideoRoomPage: React.FC = () => {
       {/* Iframe Daily.co */}
       <iframe
         src={roomUrl}
-        allow="camera; microphone; fullscreen; display-capture; autoplay"
+        allow="camera *; microphone *; fullscreen *; display-capture *; autoplay *"
+        allowFullScreen
         className="w-full h-full border-0"
         title="Visioconférence Daily.co"
       />
