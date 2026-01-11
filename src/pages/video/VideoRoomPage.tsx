@@ -39,8 +39,9 @@ const VideoRoomPage: React.FC = () => {
         const roomUrl = room.url;
 
         console.log('✅ Room trouvée:', roomUrl);
+        console.log('📋 Privacy:', room.privacy);
 
-        // Créer le call frame Daily.co
+        // Créer le call frame Daily.co avec configuration minimale
         const callFrame = DailyIframe.createFrame(containerRef.current, {
           iframeStyle: {
             position: 'absolute',
@@ -52,38 +53,63 @@ const VideoRoomPage: React.FC = () => {
           },
           showLeaveButton: true,
           showFullscreenButton: true,
+          showLocalVideo: true,
+          showParticipantsBar: true,
         });
 
         callFrameRef.current = callFrame;
 
         // Événements Daily.co
         callFrame
+          .on('loading', () => {
+            console.log('⏳ Loading...');
+          })
+          .on('loaded', () => {
+            console.log('✅ Loaded');
+          })
+          .on('started-camera', () => {
+            console.log('📹 Camera started');
+          })
+          .on('joining-meeting', () => {
+            console.log('🚪 Joining meeting...');
+          })
           .on('joined-meeting', () => {
-            console.log('✅ Joined meeting');
+            console.log('✅ Joined meeting successfully!');
             setIsLoading(false);
           })
           .on('left-meeting', () => {
             console.log('👋 Left meeting');
             navigate(-1);
           })
-          .on('error', (error: any) => {
-            console.error('❌ Daily.co error:', error);
-            setError('Erreur de connexion à la visioconférence');
+          .on('error', (event: any) => {
+            console.error('❌ Daily.co error event:', event);
+            setError(`Erreur: ${event.errorMsg || 'Impossible de rejoindre la visio'}`);
             setIsLoading(false);
           });
 
-        // Rejoindre la room
-        await callFrame.join({
-          url: roomUrl,
-          userName: user?.email?.split('@')[0] || 'Utilisateur',
-        });
+        // Rejoindre la room avec configuration minimale
+        console.log('🚀 Attempting to join:', roomUrl);
+        
+        try {
+          await callFrame.join({
+            url: roomUrl,
+            userName: user?.email?.split('@')[0] || 'Participant',
+            // Configuration minimale pour éviter les problèmes
+          });
+          
+          console.log('✅ Join command sent');
+        } catch (joinError: any) {
+          console.error('❌ Join error:', joinError);
+          throw joinError;
+        }
 
-        // Timeout de sécurité
+        // Timeout de sécurité plus long
         setTimeout(() => {
           if (isLoading) {
+            console.warn('⚠️ Timeout: forcing loading to false');
             setIsLoading(false);
           }
-        }, 5000);
+        }, 10000);
 
       } catch (err: any) {
         console.error('❌ Error initializing Daily.co:', err);
@@ -91,6 +117,8 @@ const VideoRoomPage: React.FC = () => {
         // Message d'erreur plus explicite
         if (err.message?.includes('not found') || err.message?.includes('404')) {
           setError('Cette salle de visioconférence n\'existe pas ou a expiré.');
+        } else if (err.message?.includes('not allowed')) {
+          setError('Accès refusé à cette salle de visioconférence.');
         } else {
           setError(err.message || 'Erreur lors de l\'initialisation de la visioconférence.');
         }
@@ -103,14 +131,23 @@ const VideoRoomPage: React.FC = () => {
 
     return () => {
       if (callFrameRef.current) {
-        callFrameRef.current.destroy();
+        try {
+          callFrameRef.current.destroy();
+        } catch (e) {
+          console.error('Error destroying call frame:', e);
+        }
       }
     };
-  }, [roomId, navigate, user, isLoading]);
+  }, [roomId, navigate, user]);
 
   const handleLeaveCall = () => {
     if (callFrameRef.current) {
-      callFrameRef.current.leave();
+      try {
+        callFrameRef.current.leave();
+      } catch (e) {
+        console.error('Error leaving call:', e);
+        navigate(-1);
+      }
     } else {
       navigate(-1);
     }
@@ -143,7 +180,7 @@ const VideoRoomPage: React.FC = () => {
       
       {/* Loader */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-90 z-10">
           <div className="text-center">
             <Loader2 className="w-16 h-16 text-blue-500 mx-auto mb-4 animate-spin" />
             <h2 className="text-xl font-semibold text-white mb-2">
@@ -151,6 +188,9 @@ const VideoRoomPage: React.FC = () => {
             </h2>
             <p className="text-gray-400">
               Veuillez patienter pendant le chargement de la salle
+            </p>
+            <p className="text-gray-500 text-sm mt-2">
+              Cela peut prendre quelques secondes
             </p>
           </div>
         </div>
