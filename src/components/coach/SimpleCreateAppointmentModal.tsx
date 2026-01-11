@@ -13,6 +13,7 @@ import { toast } from 'react-hot-toast';
 interface SimpleCreateAppointmentModalProps {
   coachId: string;
   clientId?: string;
+  initialDate?: Date;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -20,6 +21,7 @@ interface SimpleCreateAppointmentModalProps {
 export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModalProps> = ({
   coachId,
   clientId,
+  initialDate,
   onClose,
   onSuccess,
 }) => {
@@ -27,7 +29,7 @@ export const SimpleCreateAppointmentModal: React.FC<SimpleCreateAppointmentModal
   const [clients, setClients] = useState<Array<{ id: string; full_name: string }>>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(initialDate ? initialDate.toISOString().split('T')[0] : '');
   const [time, setTime] = useState('');
   const [duration, setDuration] = useState('30');
   const [description, setDescription] = useState('');

@@ -39,8 +39,11 @@ const PlanningPage: React.FC = () => {
   
   // Modales
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createModalDate, setCreateModalDate] = useState<Date | undefined>(undefined);
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDetails | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [lastClickTime, setLastClickTime] = useState(0);
+  const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
 
   // Charger les rendez-vous et initialiser la configuration
   useEffect(() => {
@@ -278,7 +281,23 @@ const PlanningPage: React.FC = () => {
                 <CalendarView
                   appointments={filteredAppointments}
                   selectedDate={selectedDate}
-                  onDateSelect={setSelectedDate}
+                  onDateSelect={(date) => {
+                    const now = Date.now();
+                    const isSameDate = lastClickedDate && lastClickedDate.toDateString() === date.toDateString();
+                    
+                    if (isSameDate && now - lastClickTime < 500) {
+                      // Double-clic détecté : ouvrir la modal de création
+                      setCreateModalDate(date);
+                      setShowCreateModal(true);
+                      setLastClickTime(0);
+                      setLastClickedDate(null);
+                    } else {
+                      // Simple clic : sélectionner la date
+                      setSelectedDate(date);
+                      setLastClickTime(now);
+                      setLastClickedDate(date);
+                    }
+                  }}
                   onMonthChange={setSelectedDate}
                   onAppointmentClick={handleAppointmentClick}
                 />
@@ -356,7 +375,11 @@ const PlanningPage: React.FC = () => {
       {showCreateModal && (
         <SimpleCreateAppointmentModal
           coachId={user!.id}
-          onClose={() => setShowCreateModal(false)}
+          initialDate={createModalDate}
+          onClose={() => {
+            setShowCreateModal(false);
+            setCreateModalDate(undefined);
+          }}
           onSuccess={handleAppointmentCreated}
         />
       )}
