@@ -10,11 +10,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar as CalendarIcon, List, Filter, Loader2, Settings } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, List, Filter, Loader2, Settings, Video } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { CalendarView, AppointmentCard } from '../../components/calendar';
 import { SimpleCreateAppointmentModal } from '../../components/coach/SimpleCreateAppointmentModal';
 import { AppointmentDetailsModal } from '../../components/coach/AppointmentDetailsModal';
+import { InstantVideoModal } from '../../components/coach/InstantVideoModal';
 import {
   getCoachAppointments,
   AppointmentWithDetails,
@@ -42,6 +43,7 @@ const PlanningPage: React.FC = () => {
   const [createModalDate, setCreateModalDate] = useState<Date | undefined>(undefined);
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDetails | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showInstantVideoModal, setShowInstantVideoModal] = useState(false);
   const [lastClickTime, setLastClickTime] = useState(0);
   const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
 
@@ -193,6 +195,13 @@ const PlanningPage: React.FC = () => {
             >
               <Settings className="w-5 h-5" />
               Paramètres
+            </button>
+            <button
+              onClick={() => setShowInstantVideoModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Video className="w-5 h-5" />
+              Visio instantanée
             </button>
             <button
               onClick={handleCreateAppointment}
@@ -394,6 +403,14 @@ const PlanningPage: React.FC = () => {
           onJoinMeeting={handleJoinMeeting}
           onCancel={handleCancelAppointment}
           onEdit={handleEditAppointment}
+        />
+      )}
+
+      {showInstantVideoModal && user && (
+        <InstantVideoModal
+          coachId={user.id}
+          coachName={user.email || 'Coach'}
+          onClose={() => setShowInstantVideoModal(false)}
         />
       )}
     </div>
