@@ -1,5 +1,5 @@
 /**
- * Page de salle de visioconférence
+ * Page de salle de visioconférence avec Daily.co
  * 
  * Permet au coach et au client de rejoindre une visio instantanée
  */
@@ -8,12 +8,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Video, PhoneOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-
-declare global {
-  interface Window {
-    JitsiMeetExternalAPI: any;
-  }
-}
+import DailyIframe from '@daily-co/daily-js';
 
 const VideoRoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -21,8 +16,8 @@ const VideoRoomPage: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const jitsiContainerRef = useRef<HTMLDivElement>(null);
-  const jitsiApiRef = useRef<any>(null);
+  const callFrameRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!roomId) {
@@ -30,127 +25,87 @@ const VideoRoomPage: React.FC = () => {
       return;
     }
 
-    // Attendre que le script Jitsi soit chargé
-    const initJitsi = () => {
-      if (!window.JitsiMeetExternalAPI) {
-        console.error('Jitsi Meet API not loaded');
-        setError('Impossible de charger la visioconférence. Veuillez réessayer.');
-        setIsLoading(false);
-        return;
-      }
-
-      if (!jitsiContainerRef.current) {
+    const initDaily = async () => {
+      if (!containerRef.current) {
         return;
       }
 
       try {
-        const domain = 'meet.jit.si';
-        const options = {
-          roomName: roomId,
-          width: '100%',
-          height: '100%',
-          parentNode: jitsiContainerRef.current,
-          userInfo: {
-            displayName: user?.email?.split('@')[0] || 'Utilisateur',
-          },
-          configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            prejoinPageEnabled: true,
-            disableDeepLinking: true,
-          },
-          interfaceConfigOverwrite: {
-            TOOLBAR_BUTTONS: [
-              'microphone',
-              'camera',
-              'closedcaptions',
-              'desktop',
-              'fullscreen',
-              'fodeviceselection',
-              'hangup',
-              'profile',
-              'chat',
-              'recording',
-              'livestreaming',
-              'etherpad',
-              'sharedvideo',
-              'settings',
-              'raisehand',
-              'videoquality',
-              'filmstrip',
-              'invite',
-              'feedback',
-              'stats',
-              'shortcuts',
-              'tileview',
-              'videobackgroundblur',
-              'download',
-              'help',
-              'mute-everyone',
-            ],
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false,
-          },
-        };
+        // Construire l'URL de la room Daily.co
+        const dailyDomain = import.meta.env.VITE_DAILY_DOMAIN;
+        const roomUrl = dailyDomain 
+          ? `https://${dailyDomain}/${roomId}`
+          : `https://${roomId}.daily.co/${roomId}`;
 
-        const api = new window.JitsiMeetExternalAPI(domain, options);
-        jitsiApiRef.current = api;
+        console.log('Joining Daily.co room:', roomUrl);
 
-        api.addEventListener('videoConferenceJoined', () => {
-          console.log('Conference joined');
-          setIsLoading(false);
+        // Créer le call frame Daily.co
+        const callFrame = DailyIframe.createFrame(containerRef.current, {
+          iframeStyle: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            border: 0,
+          },
+          showLeaveButton: true,
+          showFullscreenButton: true,
         });
 
-        api.addEventListener('readyToClose', () => {
-          navigate(-1);
+        callFrameRef.current = callFrame;
+
+        // Événements Daily.co
+        callFrame
+          .on('joined-meeting', () => {
+            console.log('✅ Joined meeting');
+            setIsLoading(false);
+          })
+          .on('left-meeting', () => {
+            console.log('👋 Left meeting');
+            navigate(-1);
+          })
+          .on('error', (error: any) => {
+            console.error('❌ Daily.co error:', error);
+            setError('Erreur de connexion à la visioconférence');
+            setIsLoading(false);
+          });
+
+        // Rejoindre la room
+        await callFrame.join({
+          url: roomUrl,
+          userName: user?.email?.split('@')[0] || 'Utilisateur',
         });
 
-        // Cacher le loader après 3 secondes même si l'événement ne se déclenche pas
+        // Timeout de sécurité
         setTimeout(() => {
-          setIsLoading(false);
-        }, 3000);
+          if (isLoading) {
+            setIsLoading(false);
+          }
+        }, 5000);
 
-      } catch (err) {
-        console.error('Error initializing Jitsi:', err);
-        setError('Erreur lors de l\'initialisation de la visioconférence.');
+      } catch (err: any) {
+        console.error('Error initializing Daily.co:', err);
+        setError(err.message || 'Erreur lors de l\'initialisation de la visioconférence.');
         setIsLoading(false);
       }
     };
 
-    // Vérifier si Jitsi est déjà chargé
-    if (window.JitsiMeetExternalAPI) {
-      initJitsi();
-    } else {
-      // Attendre que le script soit chargé
-      const checkJitsi = setInterval(() => {
-        if (window.JitsiMeetExternalAPI) {
-          clearInterval(checkJitsi);
-          initJitsi();
-        }
-      }, 100);
-
-      // Timeout après 10 secondes
-      setTimeout(() => {
-        clearInterval(checkJitsi);
-        if (!window.JitsiMeetExternalAPI) {
-          setError('Impossible de charger Jitsi Meet. Vérifiez votre connexion internet.');
-          setIsLoading(false);
-        }
-      }, 10000);
-    }
+    initDaily();
 
     return () => {
-      if (jitsiApiRef.current) {
-        jitsiApiRef.current.dispose();
+      if (callFrameRef.current) {
+        callFrameRef.current.destroy();
       }
     };
-  }, [roomId, navigate, user]);
+  }, [roomId, navigate, user, isLoading]);
 
   const handleLeaveCall = () => {
-    if (jitsiApiRef.current) {
-      jitsiApiRef.current.executeCommand('hangup');
+    if (callFrameRef.current) {
+      callFrameRef.current.leave();
+    } else {
+      navigate(-1);
     }
-    navigate(-1);
   };
 
   if (error) {
@@ -175,8 +130,8 @@ const VideoRoomPage: React.FC = () => {
 
   return (
     <div className="h-screen w-screen bg-gray-900 flex flex-col relative">
-      {/* Zone de vidéo */}
-      <div ref={jitsiContainerRef} className="w-full h-full" />
+      {/* Zone de vidéo Daily.co */}
+      <div ref={containerRef} className="w-full h-full relative" />
       
       {/* Loader */}
       {isLoading && (
