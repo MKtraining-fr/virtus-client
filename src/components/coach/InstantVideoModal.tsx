@@ -5,9 +5,10 @@
  * et de partager le lien avec le client
  */
 
-import React, { useState } from 'react';
-import { X, Video, Copy, Check, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Video, Copy, Check, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { dailyService } from '../../services/dailyService';
 
 interface InstantVideoModalProps {
   coachId: string;
@@ -21,17 +22,45 @@ export const InstantVideoModal: React.FC<InstantVideoModalProps> = ({
   onClose,
 }) => {
   const [copied, setCopied] = useState(false);
-  const [roomId] = useState(() => {
-    // Générer un ID de salle unique
-    return `instant-${coachId.slice(0, 8)}-${Date.now()}`;
-  });
+  const [isCreating, setIsCreating] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [roomUrl, setRoomUrl] = useState<string>('');
+  const [roomName, setRoomName] = useState<string>('');
 
-  // URL de la visio (à adapter selon votre système de visio)
-  const videoUrl = `${window.location.origin}/#/video/${roomId}`;
+  useEffect(() => {
+    createDailyRoom();
+  }, []);
+
+  const createDailyRoom = async () => {
+    try {
+      setIsCreating(true);
+      setError(null);
+
+      // Créer un nom de room unique
+      const uniqueRoomName = `instant-${coachId.slice(0, 8)}-${Date.now()}`;
+
+      // Créer la room Daily.co (expire dans 2 heures)
+      const room = await dailyService.createRoom(uniqueRoomName, 120, {
+        enable_knocking: false, // Pas de salle d'attente pour les visios instantanées
+        enable_prejoin_ui: true, // UI de pré-connexion
+        max_participants: 10, // Permettre plusieurs participants
+      });
+
+      setRoomUrl(room.url);
+      setRoomName(room.name);
+      setIsCreating(false);
+
+      console.log('✅ Room Daily.co créée:', room.url);
+    } catch (err: any) {
+      console.error('❌ Erreur création room:', err);
+      setError(err.message || 'Impossible de créer la salle de visioconférence');
+      setIsCreating(false);
+    }
+  };
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(videoUrl);
+      await navigator.clipboard.writeText(roomUrl);
       setCopied(true);
       toast.success('Lien copié !');
       setTimeout(() => setCopied(false), 2000);
@@ -42,8 +71,56 @@ export const InstantVideoModal: React.FC<InstantVideoModalProps> = ({
   };
 
   const handleJoinMeeting = () => {
-    window.open(videoUrl, '_blank');
+    // Extraire juste le nom de la room de l'URL Daily.co
+    const roomId = roomName || roomUrl.split('/').pop();
+    window.open(`${window.location.origin}/#/video/${roomId}`, '_blank');
   };
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="text-center">
+            <Video className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Erreur</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Fermer
+              </button>
+              <button
+                onClick={createDailyRoom}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Réessayer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isCreating) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="text-center">
+            <Loader2 className="w-16 h-16 text-blue-500 mx-auto mb-4 animate-spin" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Création de la salle...
+            </h2>
+            <p className="text-gray-600">
+              Veuillez patienter pendant la création de votre salle de visioconférence
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -83,7 +160,7 @@ export const InstantVideoModal: React.FC<InstantVideoModalProps> = ({
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                value={videoUrl}
+                value={roomUrl}
                 readOnly
                 className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm"
               />
@@ -106,8 +183,9 @@ export const InstantVideoModal: React.FC<InstantVideoModalProps> = ({
             <h3 className="font-medium text-blue-900 mb-2">ℹ️ Informations</h3>
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• Cette salle est accessible immédiatement</li>
-              <li>• Le lien reste valide pendant 24 heures</li>
+              <li>• Le lien reste valide pendant 2 heures</li>
               <li>• Partagez-le par email, SMS ou messagerie</li>
+              <li>• Pas de limite de temps de conversation</li>
             </ul>
           </div>
 
