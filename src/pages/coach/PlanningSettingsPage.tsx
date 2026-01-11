@@ -236,7 +236,7 @@ const PlanningSettingsPage: React.FC = () => {
                         type="color"
                         value={newTypeColor}
                         onChange={(e) => setNewTypeColor(e.target.value)}
-                        className="w-full h-10 rounded cursor-pointer"
+                        className="w-16 h-10 rounded cursor-pointer border border-gray-300"
                       />
                     </div>
                   </div>
@@ -254,7 +254,7 @@ const PlanningSettingsPage: React.FC = () => {
                   </div>
                   <button
                     onClick={handleAddType}
-                    className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-medium"
                   >
                     <Plus className="w-4 h-4" />
                     Ajouter
