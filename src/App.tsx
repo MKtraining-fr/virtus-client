@@ -16,6 +16,7 @@ const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const CoachLayout = lazy(() => import('./layouts/CoachLayout'));
 const ClientLayout = lazy(() => import('./layouts/ClientLayout'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const VideoRoomPage = lazy(() => import('./pages/video/VideoRoomPage'));
 
 const App: React.FC = () => {
   const { user, isAuthLoading, currentViewRole } = useAuth();
@@ -101,6 +102,7 @@ const App: React.FC = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={!user ? <AuthPage /> : <Navigate to="/app" replace />} />
           <Route path="/set-password" element={<SetPassword />} />
+          <Route path="/video/:roomId" element={<VideoRoomPage />} />
           <Route
             path="/app/*"
             element={
