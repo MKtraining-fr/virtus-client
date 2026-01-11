@@ -40,11 +40,41 @@ export const InstantVideoModal: React.FC<InstantVideoModalProps> = ({
       const uniqueRoomName = `instant-${coachId.slice(0, 8)}-${Date.now()}`;
 
       // Créer la room Daily.co (expire dans 2 heures)
-      const room = await dailyService.createRoom(uniqueRoomName, 120, {
-        enable_knocking: false, // Pas de salle d'attente pour les visios instantanées
-        enable_prejoin_ui: true, // UI de pré-connexion
-        max_participants: 10, // Permettre plusieurs participants
+      // Note: On passe par l'API directement pour pouvoir définir privacy: 'public'
+      const DAILY_API_KEY = import.meta.env.VITE_DAILY_API_KEY;
+      const expirationTime = Math.floor(Date.now() / 1000) + (120 * 60);
+
+      const response = await fetch('https://api.daily.co/v1/rooms', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${DAILY_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: uniqueRoomName,
+          privacy: 'public', // Room publique pour accès facile
+          properties: {
+            start_video_off: false,
+            start_audio_off: false,
+            enable_chat: true,
+            enable_screenshare: true,
+            enable_recording: 'cloud',
+            max_participants: 10,
+            enable_knocking: false,
+            enable_prejoin_ui: true,
+            exp: expirationTime,
+            eject_at_room_exp: true,
+            lang: 'fr',
+          },
+        }),
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Erreur création room: ${error.error || response.statusText}`);
+      }
+
+      const room = await response.json();
 
       setRoomUrl(room.url);
       setRoomName(room.name);
