@@ -9,6 +9,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Video, PhoneOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import DailyIframe from '@daily-co/daily-js';
+import { dailyService } from '../../services/dailyService';
 
 const VideoRoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -31,13 +32,13 @@ const VideoRoomPage: React.FC = () => {
       }
 
       try {
-        // Construire l'URL de la room Daily.co
-        const dailyDomain = import.meta.env.VITE_DAILY_DOMAIN;
-        const roomUrl = dailyDomain 
-          ? `https://${dailyDomain}/${roomId}`
-          : `https://${roomId}.daily.co/${roomId}`;
+        console.log('🔍 Récupération de la room:', roomId);
 
-        console.log('Joining Daily.co room:', roomUrl);
+        // Récupérer les informations de la room depuis l'API Daily.co
+        const room = await dailyService.getRoom(roomId);
+        const roomUrl = room.url;
+
+        console.log('✅ Room trouvée:', roomUrl);
 
         // Créer le call frame Daily.co
         const callFrame = DailyIframe.createFrame(containerRef.current, {
@@ -85,8 +86,15 @@ const VideoRoomPage: React.FC = () => {
         }, 5000);
 
       } catch (err: any) {
-        console.error('Error initializing Daily.co:', err);
-        setError(err.message || 'Erreur lors de l\'initialisation de la visioconférence.');
+        console.error('❌ Error initializing Daily.co:', err);
+        
+        // Message d'erreur plus explicite
+        if (err.message?.includes('not found') || err.message?.includes('404')) {
+          setError('Cette salle de visioconférence n\'existe pas ou a expiré.');
+        } else {
+          setError(err.message || 'Erreur lors de l\'initialisation de la visioconférence.');
+        }
+        
         setIsLoading(false);
       }
     };
@@ -111,7 +119,7 @@ const VideoRoomPage: React.FC = () => {
   if (error) {
     return (
       <div className="h-screen w-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center max-w-md">
+        <div className="text-center max-w-md px-4">
           <Video className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">
             Erreur de connexion
