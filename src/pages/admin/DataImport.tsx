@@ -83,16 +83,24 @@ const DataImport: React.FC = () => {
         text: `✅ ${result.success}/${result.total} ligne(s) importée(s) avec succès !`,
       };
     } else if (result.success > 0) {
+      const errorDetails = result.errors.slice(0, 10).map((e) => `Ligne ${e.row}: ${e.error}`);
+      if (result.errors.length > 10) {
+        errorDetails.push(`... et ${result.errors.length - 10} autre(s) erreur(s)`);
+      }
       return {
         type: 'warning',
         text: `⚠️ ${result.success}/${result.total} ligne(s) importée(s). ${result.errors.length} erreur(s).`,
-        details: result.errors.slice(0, 5).map((e) => `Ligne ${e.row}: ${e.error}`),
+        details: errorDetails,
       };
     } else {
+      const errorDetails = result.errors.slice(0, 10).map((e) => `Ligne ${e.row}: ${e.error}`);
+      if (result.errors.length > 10) {
+        errorDetails.push(`... et ${result.errors.length - 10} autre(s) erreur(s)`);
+      }
       return {
         type: 'error',
         text: `❌ Import échoué. ${result.errors.length} erreur(s).`,
-        details: result.errors.slice(0, 5).map((e) => `Ligne ${e.row}: ${e.error}`),
+        details: errorDetails,
       };
     }
   };

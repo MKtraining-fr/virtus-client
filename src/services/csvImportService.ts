@@ -199,15 +199,26 @@ export const importExercisesFromCSV = async (
               throw new Error('Champs requis manquants (name, category)');
             }
 
-            // Vérifier si l'exercice existe déjà (par nom uniquement)
-            const { data: existing } = await supabase
+            // Vérifier si l'exercice existe déjà (par nom ET équipement)
+            // Cela permet d'avoir plusieurs exercices avec le même nom mais des équipements différents
+            const equipment = row.equipment?.trim() || null;
+            
+            let query = supabase
               .from('exercises')
               .select('id')
-              .eq('name', row.name.trim())
-              .single();
+              .eq('name', row.name.trim());
+            
+            // Ajouter le filtre d'équipement s'il existe
+            if (equipment) {
+              query = query.eq('equipment', equipment);
+            } else {
+              query = query.is('equipment', null);
+            }
+            
+            const { data: existing } = await query.single();
 
             if (existing) {
-              throw new Error(`Exercice déjà existant: ${row.name}`);
+              throw new Error(`Exercice déjà existant: ${row.name}${equipment ? ` (${equipment})` : ''}`);
             }
 
             // Préparer les données (format Supabase snake_case)
