@@ -101,9 +101,8 @@ export const InstantVideoModal: React.FC<InstantVideoModalProps> = ({
   };
 
   const handleJoinMeeting = () => {
-    // Extraire juste le nom de la room de l'URL Daily.co
-    const roomId = roomName || roomUrl.split('/').pop();
-    window.open(`${window.location.origin}/#/video/${roomId}`, '_blank');
+    // Ouvrir directement l'URL Daily.co dans un nouvel onglet
+    window.open(roomUrl, '_blank');
   };
 
   if (error) {
