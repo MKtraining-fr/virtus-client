@@ -1,7 +1,7 @@
 /**
  * Page de salle de visioconférence avec Daily.co
  * 
- * Utilise createFrame pour afficher l'UI complète Daily.co
+ * Utilise callObject avec iframe UI pour afficher l'interface complète
  */
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -17,7 +17,7 @@ const VideoRoomPage: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const callFrameRef = useRef<any>(null);
+  const callObjectRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,11 +29,11 @@ const VideoRoomPage: React.FC = () => {
     initializeCall();
 
     return () => {
-      if (callFrameRef.current) {
+      if (callObjectRef.current) {
         try {
-          callFrameRef.current.destroy();
+          callObjectRef.current.destroy();
         } catch (e) {
-          console.error('Error destroying call frame:', e);
+          console.error('Error destroying call:', e);
         }
       }
     };
@@ -53,29 +53,31 @@ const VideoRoomPage: React.FC = () => {
 
       console.log('✅ Room trouvée:', roomUrl);
 
-      // Créer le frame Daily.co avec UI complète
-      const callFrame = DailyIframe.createFrame(containerRef.current, {
-        iframeStyle: {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          border: 0,
-        },
-        showLeaveButton: true,
-        showFullscreenButton: true,
+      // Créer un callObject avec iframe UI
+      const callObject = DailyIframe.createCallObject({
+        // Activer l'iframe UI
+        url: roomUrl,
       });
 
-      callFrameRef.current = callFrame;
+      callObjectRef.current = callObject;
 
       // Gérer les événements
-      callFrame
+      callObject
         .on('loading', () => {
           console.log('⏳ Loading...');
         })
         .on('loaded', () => {
           console.log('✅ Loaded');
+          // Une fois chargé, afficher l'iframe dans le container
+          if (containerRef.current) {
+            const iframe = callObject.iframe();
+            if (iframe) {
+              iframe.style.width = '100%';
+              iframe.style.height = '100%';
+              iframe.style.border = '0';
+              containerRef.current.appendChild(iframe);
+            }
+          }
         })
         .on('started-camera', () => {
           console.log('📹 Camera started');
@@ -100,12 +102,24 @@ const VideoRoomPage: React.FC = () => {
           setIsLoading(false);
         });
 
-      // Rejoindre la room directement
-      console.log('🚀 Joining:', roomUrl);
+      // Pre-auth pour obtenir les permissions
+      console.log('🔐 Pre-auth...');
+      await callObject.preAuth({ url: roomUrl });
       
-      await callFrame.join({
+      console.log('✅ Pre-auth success');
+
+      // Démarrer la caméra
+      console.log('📹 Starting camera...');
+      await callObject.startCamera();
+
+      console.log('✅ Camera started, joining...');
+
+      // Rejoindre la room
+      await callObject.join({
         url: roomUrl,
         userName: user?.email?.split('@')[0] || 'Participant',
+        showLeaveButton: true,
+        showFullscreenButton: true,
       });
 
       console.log('✅ Join initiated');
@@ -126,9 +140,9 @@ const VideoRoomPage: React.FC = () => {
   };
 
   const handleBack = () => {
-    if (callFrameRef.current) {
+    if (callObjectRef.current) {
       try {
-        callFrameRef.current.leave();
+        callObjectRef.current.leave();
       } catch (e) {
         console.error('Error leaving:', e);
       }
@@ -163,7 +177,7 @@ const VideoRoomPage: React.FC = () => {
   return (
     <div className="h-screen w-screen bg-gray-900 flex flex-col relative">
       {/* Zone de vidéo Daily.co */}
-      <div ref={containerRef} className="w-full h-full relative" />
+      <div ref={containerRef} className="w-full h-full relative bg-black" />
       
       {/* Loader */}
       {isLoading && (
@@ -180,7 +194,7 @@ const VideoRoomPage: React.FC = () => {
         </div>
       )}
 
-      {/* Bouton retour (seulement si pas encore dans la meeting) */}
+      {/* Bouton retour */}
       {isLoading && (
         <button
           onClick={handleBack}
