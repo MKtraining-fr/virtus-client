@@ -123,6 +123,7 @@ const WorkoutDatabase: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEquipments, setSelectedEquipments] = useState<string[]>([]);
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(true);
 
   // State for the "add exercise" form
   const [newExercise, setNewExercise] = useState<Omit<Exercise, 'id'>>(initialNewExerciseState);
@@ -531,22 +532,53 @@ const WorkoutDatabase: React.FC = () => {
       {/* Filtres avancés */}
       <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-700">Filtres avancés</h3>
-          {(selectedEquipments.length > 0 || selectedMuscleGroups.length > 0) && (
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-gray-700">Filtres avancés</h3>
+            {(selectedEquipments.length > 0 || selectedMuscleGroups.length > 0) && (
+              <span className="px-2 py-0.5 bg-primary text-white text-xs rounded-full">
+                {selectedEquipments.length + selectedMuscleGroups.length}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {(selectedEquipments.length > 0 || selectedMuscleGroups.length > 0) && (
+              <button
+                onClick={() => {
+                  setSelectedEquipments([]);
+                  setSelectedMuscleGroups([]);
+                }}
+                className="text-sm text-primary hover:underline"
+              >
+                Réinitialiser
+              </button>
+            )}
             <button
-              onClick={() => {
-                setSelectedEquipments([]);
-                setSelectedMuscleGroups([]);
-              }}
-              className="text-sm text-primary hover:underline"
+              onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+              className="text-sm text-gray-600 hover:text-gray-800 font-medium flex items-center gap-1"
             >
-              Réinitialiser les filtres
+              {isFiltersExpanded ? (
+                <>
+                  Réduire
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                </>
+              ) : (
+                <>
+                  Afficher
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </>
+              )}
             </button>
-          )}
+          </div>
         </div>
         
-        {/* Filtre par équipement */}
-        <div className="mb-3">
+        {isFiltersExpanded && (
+          <>
+            {/* Filtre par équipement */}
+            <div className="mb-3">
           <label className="block text-xs font-medium text-gray-600 mb-2">Équipement</label>
           <div className="flex flex-wrap gap-2">
             {EQUIPMENT_TYPES.filter(e => e !== 'Non spécifié').map((equipment) => (
@@ -596,6 +628,8 @@ const WorkoutDatabase: React.FC = () => {
             ))}
           </div>
         </div>
+          </>
+        )}
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
