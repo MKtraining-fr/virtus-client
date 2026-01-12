@@ -120,6 +120,9 @@ const WorkoutDatabase: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [filter, setFilter] = useState('All');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedEquipments, setSelectedEquipments] = useState<string[]>([]);
+  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
 
   // State for the "add exercise" form
   const [newExercise, setNewExercise] = useState<Omit<Exercise, 'id'>>(initialNewExerciseState);
@@ -393,12 +396,29 @@ const WorkoutDatabase: React.FC = () => {
   }, [exercises, user]);
 
   const filteredExercises = useMemo(() => {
-    let result = filter === 'All' ? availableExercises : availableExercises.filter((e) => e.category === filter);
-    if (showFavoritesOnly) {
-      result = result.filter((e) => isFavorite(e.id));
-    }
-    return result;
-  }, [availableExercises, filter, showFavoritesOnly, isFavorite]);
+    return availableExercises.filter((ex) => {
+      // Filtre par catégorie
+      const matchesCategory = filter === 'All' || ex.category === filter;
+      
+      // Filtre par favoris
+      const matchesFavorites = !showFavoritesOnly || isFavorite(ex.id);
+      
+      // Filtre par recherche textuelle
+      const matchesSearch = searchTerm === '' ||
+                           ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (ex.description && ex.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      // Filtre par équipement
+      const matchesEquipment = selectedEquipments.length === 0 ||
+                              (ex.equipment && selectedEquipments.includes(ex.equipment));
+      
+      // Filtre par groupe musculaire
+      const matchesMuscleGroups = selectedMuscleGroups.length === 0 ||
+                                 (ex.muscleGroups && selectedMuscleGroups.some((smg) => ex.muscleGroups!.includes(smg)));
+      
+      return matchesCategory && matchesFavorites && matchesSearch && matchesEquipment && matchesMuscleGroups;
+    });
+  }, [availableExercises, filter, showFavoritesOnly, isFavorite, searchTerm, selectedEquipments, selectedMuscleGroups]);
 
   const favoritesCount = useMemo(() => {
     return availableExercises.filter((e) => isFavorite(e.id)).length;
@@ -496,6 +516,87 @@ const WorkoutDatabase: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Barre de recherche */}
+      <div className="mb-4">
+        <Input
+          type="text"
+          placeholder="Rechercher un exercice par nom ou description..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full"
+        />
+      </div>
+
+      {/* Filtres avancés */}
+      <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-700">Filtres avancés</h3>
+          {(selectedEquipments.length > 0 || selectedMuscleGroups.length > 0) && (
+            <button
+              onClick={() => {
+                setSelectedEquipments([]);
+                setSelectedMuscleGroups([]);
+              }}
+              className="text-sm text-primary hover:underline"
+            >
+              Réinitialiser les filtres
+            </button>
+          )}
+        </div>
+        
+        {/* Filtre par équipement */}
+        <div className="mb-3">
+          <label className="block text-xs font-medium text-gray-600 mb-2">Équipement</label>
+          <div className="flex flex-wrap gap-2">
+            {EQUIPMENT_TYPES.filter(e => e !== 'Non spécifié').map((equipment) => (
+              <button
+                key={equipment}
+                onClick={() => {
+                  setSelectedEquipments(prev =>
+                    prev.includes(equipment)
+                      ? prev.filter(e => e !== equipment)
+                      : [...prev, equipment]
+                  );
+                }}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  selectedEquipments.includes(equipment)
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
+                }`}
+              >
+                {equipment}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Filtre par groupe musculaire */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-2">Groupes musculaires</label>
+          <div className="flex flex-wrap gap-2">
+            {MUSCLE_GROUPS.map((muscleGroup) => (
+              <button
+                key={muscleGroup}
+                onClick={() => {
+                  setSelectedMuscleGroups(prev =>
+                    prev.includes(muscleGroup)
+                      ? prev.filter(m => m !== muscleGroup)
+                      : [...prev, muscleGroup]
+                  );
+                }}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  selectedMuscleGroups.includes(muscleGroup)
+                    ? 'bg-indigo-500 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
+                }`}
+              >
+                {muscleGroup}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
         {categories.map((cat) => (
