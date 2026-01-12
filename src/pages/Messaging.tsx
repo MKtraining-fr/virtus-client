@@ -438,6 +438,11 @@ const Messaging: React.FC = () => {
     if ((!content && messageType === 'text') || !user || !selectedClientId) return;
 
     try {
+      // Réinitialiser le textarea avant l'envoi
+      const textarea = document.querySelector('textarea[placeholder="Écrire un message..."]') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.style.height = '60px';
+      }
       await addMessage({
         senderId: user.id,
         recipientId: selectedClientId,
@@ -711,18 +716,26 @@ const Messaging: React.FC = () => {
                   </>
                 )}
 
-                <Input
+                <textarea
                   placeholder="Écrire un message..."
-                  className="flex-1"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none min-h-[60px] max-h-[200px] overflow-y-auto"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    // Auto-resize du textarea
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleSendMessage();
+                      // Réinitialiser la hauteur après l'envoi
+                      (e.target as HTMLTextAreaElement).style.height = '60px';
                     }
                   }}
                   disabled={isUploading}
+                  rows={2}
                 />
 
                 {/* Bouton vocal (coach uniquement) */}
