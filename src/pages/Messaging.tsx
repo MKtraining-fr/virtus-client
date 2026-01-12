@@ -718,13 +718,13 @@ const Messaging: React.FC = () => {
 
                 <textarea
                   placeholder="Écrire un message..."
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none min-h-[60px] max-h-[200px] overflow-y-auto"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none min-h-[60px] max-h-[100px] overflow-y-auto"
                   value={newMessage}
                   onChange={(e) => {
                     setNewMessage(e.target.value);
                     // Auto-resize du textarea
                     e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {

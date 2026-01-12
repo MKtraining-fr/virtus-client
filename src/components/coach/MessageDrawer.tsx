@@ -634,13 +634,13 @@ const MessageDrawer: React.FC<MessageDrawerProps> = ({
                 <textarea
                   ref={inputRef as React.RefObject<HTMLTextAreaElement>}
                   placeholder="Écrire un message..."
-                  className="flex-1 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-gray-900 placeholder:text-gray-500 resize-none min-h-[40px] max-h-[150px] overflow-y-auto"
+                  className="flex-1 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-gray-900 placeholder:text-gray-500 resize-none min-h-[40px] max-h-[80px] overflow-y-auto"
                   value={newMessage}
                   onChange={(e) => {
                     setNewMessage(e.target.value);
                     // Auto-resize du textarea
                     e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px';
                   }}
                   onKeyDown={handleKeyDown}
                   disabled={isSending}
