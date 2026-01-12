@@ -1,7 +1,7 @@
 /**
  * Page de salle de visioconférence avec Daily.co
  * 
- * Utilise le SDK Daily.co avec preAuth pour gérer les permissions
+ * Utilise le SDK Daily.co avec callObject pour gérer les permissions
  */
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -18,7 +18,7 @@ const VideoRoomPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [needsPermissions, setNeedsPermissions] = useState(false);
-  const callFrameRef = useRef<any>(null);
+  const callObjectRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,11 +30,11 @@ const VideoRoomPage: React.FC = () => {
     initializeCall();
 
     return () => {
-      if (callFrameRef.current) {
+      if (callObjectRef.current) {
         try {
-          callFrameRef.current.destroy();
+          callObjectRef.current.destroy();
         } catch (e) {
-          console.error('Error destroying call frame:', e);
+          console.error('Error destroying call:', e);
         }
       }
     };
@@ -54,24 +54,12 @@ const VideoRoomPage: React.FC = () => {
 
       console.log('✅ Room trouvée:', roomUrl);
 
-      // Créer le call frame avec prejoin UI
-      const callFrame = DailyIframe.createFrame(containerRef.current, {
-        iframeStyle: {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          border: 0,
-        },
-        showLeaveButton: true,
-        showFullscreenButton: true,
-      });
-
-      callFrameRef.current = callFrame;
+      // Créer un callObject (nécessaire pour preAuth)
+      const callObject = DailyIframe.createCallObject();
+      callObjectRef.current = callObject;
 
       // Gérer les événements
-      callFrame
+      callObject
         .on('loading', () => {
           console.log('⏳ Loading...');
         })
@@ -109,23 +97,20 @@ const VideoRoomPage: React.FC = () => {
           setIsLoading(false);
         });
 
-      // Pre-auth pour demander les permissions avant de rejoindre
+      // Pre-auth pour demander les permissions
       console.log('🔐 Pre-auth...');
-      await callFrame.preAuth({ url: roomUrl });
+      await callObject.preAuth({ url: roomUrl });
       
       console.log('✅ Pre-auth success');
 
-      // Attendre un peu pour que l'UI se charge
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Démarrer la caméra
+      // Démarrer la caméra pour déclencher la demande de permissions
       console.log('📹 Starting camera...');
-      await callFrame.startCamera();
+      await callObject.startCamera();
 
       console.log('✅ Camera started, joining...');
 
       // Rejoindre la room
-      await callFrame.join({
+      await callObject.join({
         url: roomUrl,
         userName: user?.email?.split('@')[0] || 'Participant',
       });
@@ -149,9 +134,9 @@ const VideoRoomPage: React.FC = () => {
   };
 
   const handleBack = () => {
-    if (callFrameRef.current) {
+    if (callObjectRef.current) {
       try {
-        callFrameRef.current.leave();
+        callObjectRef.current.leave();
       } catch (e) {
         console.error('Error leaving:', e);
       }
@@ -165,6 +150,36 @@ const VideoRoomPage: React.FC = () => {
     setNeedsPermissions(false);
     initializeCall();
   };
+
+  // Afficher la vidéo dans le container
+  useEffect(() => {
+    if (callObjectRef.current && containerRef.current) {
+      // Créer un élément vidéo pour afficher le flux
+      const videoElement = document.createElement('video');
+      videoElement.autoplay = true;
+      videoElement.playsInline = true;
+      videoElement.style.width = '100%';
+      videoElement.style.height = '100%';
+      videoElement.style.objectFit = 'cover';
+      
+      containerRef.current.appendChild(videoElement);
+
+      // Écouter les événements de track pour afficher la vidéo
+      callObjectRef.current.on('track-started', (event: any) => {
+        console.log('🎥 Track started:', event);
+        if (event.track && event.track.kind === 'video') {
+          const stream = new MediaStream([event.track]);
+          videoElement.srcObject = stream;
+        }
+      });
+
+      return () => {
+        if (videoElement.parentNode) {
+          videoElement.parentNode.removeChild(videoElement);
+        }
+      };
+    }
+  }, []);
 
   if (error) {
     return (
@@ -216,7 +231,7 @@ const VideoRoomPage: React.FC = () => {
   return (
     <div className="h-screen w-screen bg-gray-900 flex flex-col relative">
       {/* Zone de vidéo */}
-      <div ref={containerRef} className="w-full h-full relative" />
+      <div ref={containerRef} className="w-full h-full relative bg-black" />
       
       {/* Loader */}
       {isLoading && (
@@ -228,6 +243,9 @@ const VideoRoomPage: React.FC = () => {
             </h2>
             <p className="text-gray-400">
               Initialisation de la visioconférence
+            </p>
+            <p className="text-gray-500 text-sm mt-2">
+              Vous allez être invité à autoriser l'accès à votre caméra et microphone
             </p>
           </div>
         </div>
