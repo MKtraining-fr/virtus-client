@@ -230,7 +230,17 @@ const normalizeSessionsByWeek = (
 
   const normalized: SessionsByWeekState = {};
   entries.forEach(([week, sessions]) => {
-    normalized[Number(week)] = (sessions ?? []).map(normalizeWorkoutSession);
+    // Normaliser et renuméroter automatiquement les séances génériques
+    const normalizedSessions = (sessions ?? []).map(normalizeWorkoutSession);
+    const renumberedSessions = normalizedSessions.map((session, index) => {
+      // Si le nom est générique ("Séance X"), le renuméroter
+      const isGenericName = /^Séance \d+$/.test(session.name);
+      if (isGenericName) {
+        return { ...session, name: `Séance ${index + 1}` };
+      }
+      return session;
+    });
+    normalized[Number(week)] = renumberedSessions;
   });
   return assignTemplateSessionIds(normalized);
 };
