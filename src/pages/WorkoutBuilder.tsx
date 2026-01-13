@@ -929,13 +929,19 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         const allSessionExercises: Map<string, SupabaseSessionExercise[]> = new Map();
         const exerciseIds = new Set<string>();
 
-        for (const session of sessions) {
-          const exercises = isClientProgram 
-            ? await getClientSessionExercises(session.id)
-            : await getSessionExercisesBySessionId(session.id);
+        // Charger les exercices de toutes les séances en parallèle
+        const exercisePromises = sessions.map(session =>
+          isClientProgram 
+            ? getClientSessionExercises(session.id)
+            : getSessionExercisesBySessionId(session.id)
+        );
+        const allExercisesArrays = await Promise.all(exercisePromises);
+        
+        sessions.forEach((session, index) => {
+          const exercises = allExercisesArrays[index];
           allSessionExercises.set(session.id, exercises);
           exercises.forEach((ex) => exerciseIds.add(ex.exercise_id));
-        }
+        });
 
         const exerciseDetails = await getExercisesByIds(Array.from(exerciseIds));
 
@@ -1604,12 +1610,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         }
       }
 
-      // Étape 6 : Sauvegarde des sessions et exercices (SÉQUENTIELLEMENT pour éviter les doublons)
-      console.log('[onSave] Sauvegarde des sessions...');
-      const savedSessions: any[] = [];
+      // Étape 6 : Sauvegarde des sessions et exercices (EN PARALLÈLE pour optimiser les performances)
+      console.log('[onSave] Sauvegarde des sessions en parallèle...');
       
-      for (let sessionIndex = 0; sessionIndex < currentProgramSessions.length; sessionIndex++) {
-        const { session, weekNumber, sessionOrder } = currentProgramSessions[sessionIndex];
+      const saveSessionPromises = currentProgramSessions.map(async ({ session, weekNumber, sessionOrder }, sessionIndex) => {
         try {
           console.log(`[onSave] Sauvegarde session ${sessionIndex + 1}/${currentProgramSessions.length}: ${session.name} (Semaine ${weekNumber}, Ordre ${sessionOrder})`);
           console.log(`[onSave] Session dbId: ${(session as any).dbId}, id: ${session.id}`);
@@ -1656,8 +1660,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             console.log(`[onSave] Suppression des exercices pour session ID: ${savedSession.id}`);
             const deleteResult = await deleteAllClientSessionExercises(savedSession.id);
             console.log(`[onSave] Suppression exercices pour ${session.name}: ${deleteResult ? 'OK' : 'ERREUR'}`);
-            // Attendre un court délai pour s'assurer que la suppression est propagée
-            await new Promise(resolve => setTimeout(resolve, 100));
           } else {
             await deleteAllSessionExercises(savedSession.id);
           }
@@ -1720,13 +1722,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             }
           }
 
-          savedSessions.push(savedSession);
+          return savedSession;
         } catch (sessionError: any) {
           console.error(`[onSave] Erreur lors de la sauvegarde de la session ${session.name}:`, sessionError);
           throw new Error(`Échec de la sauvegarde de la session "${session.name}" (semaine ${weekNumber}): ${sessionError.message}`);
         }
-      }
+      });
       
+      const savedSessions = await Promise.all(saveSessionPromises);
       console.log('[onSave] Toutes les sessions et exercices ont été sauvegardés avec succès');
 
       // Étape 7 : Mise à jour de l'état local
