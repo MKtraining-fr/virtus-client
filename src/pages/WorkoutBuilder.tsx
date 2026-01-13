@@ -1015,7 +1015,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       if (
         !isLoading &&
         programName &&
-        objective &&
         weekCount > 0 &&
         Object.keys(sessionsByWeek).length > 0
       ) {
@@ -1051,6 +1050,35 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       setHasUnsavedChanges(false);
     }
   }, [isSaving, lastSavedAt, hasUnsavedChanges]);
+
+  // Sauvegarder automatiquement avant de quitter la page
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Sauvegarder le brouillon avant de quitter
+      if (programName && weekCount > 0 && Object.keys(sessionsByWeek).length > 0) {
+        const currentProgram: WorkoutProgram = {
+          id: editProgramId || `draft-${Date.now()}`,
+          name: programName,
+          objective: objective,
+          weekCount: typeof weekCount === 'number' ? weekCount : 1,
+          sessionsByWeek: sanitizeSessionsByWeek(sessionsByWeek),
+          coachId: user?.id || 'unknown',
+          clientId: selectedClient === '0' ? null : selectedClient,
+        };
+        setProgramDraft(currentProgram);
+        console.log('[WorkoutBuilder] Draft saved before unload');
+      }
+      
+      // Avertir l'utilisateur s'il y a des modifications non sauvegardées
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [programName, objective, weekCount, sessionsByWeek, selectedClient, editProgramId, user, hasUnsavedChanges, setProgramDraft]);
 
   // Gérer le clic extérieur pour fermer la liste de résultats de la drop zone
   useEffect(() => {
