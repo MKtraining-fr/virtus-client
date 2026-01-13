@@ -394,17 +394,33 @@ const WorkoutDatabase: React.FC = () => {
     }
 
     try {
-      // Vérifier quels exercices sont utilisés dans des séances/programmes
-      const { data: usedExercises, error: checkError } = await supabase
+      // Vérifier quels exercices sont utilisés dans des séances/programmes/templates
+      const usedExerciseIds = new Set<string>();
+
+      // Vérifier client_session_exercises
+      const { data: usedInSessions, error: sessionsError } = await supabase
         .from('client_session_exercises')
         .select('exercise_id')
         .in('exercise_id', selectedExerciseIds);
 
-      if (checkError) {
-        throw checkError;
+      if (sessionsError) {
+        console.error('Erreur vérification sessions:', sessionsError);
+      } else {
+        usedInSessions?.forEach(e => usedExerciseIds.add(e.exercise_id));
       }
 
-      const usedExerciseIds = new Set(usedExercises?.map(e => e.exercise_id) || []);
+      // Vérifier session_exercise_templates
+      const { data: usedInTemplates, error: templatesError } = await supabase
+        .from('session_exercise_templates')
+        .select('exercise_id')
+        .in('exercise_id', selectedExerciseIds);
+
+      if (templatesError) {
+        console.error('Erreur vérification templates:', templatesError);
+      } else {
+        usedInTemplates?.forEach(e => usedExerciseIds.add(e.exercise_id));
+      }
+
       const exercisesToArchive = selectedExerciseIds.filter(id => usedExerciseIds.has(id));
       const exercisesToDelete = selectedExerciseIds.filter(id => !usedExerciseIds.has(id));
 
