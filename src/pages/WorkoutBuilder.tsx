@@ -44,6 +44,7 @@ import {
 
 import ClientHistoryModal from '../components/ClientHistoryModal.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
+import { getClientTrainingInfo } from '../services/clientTrainingInfoService.ts';
 import {
   FolderIcon,
   PlusIcon,
@@ -540,6 +541,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     return clients.find((c) => c.id === selectedClient);
   }, [selectedClient, clients]);
 
+  const [clientTrainingInfo, setClientTrainingInfo] = useState<any>(null);
+
   const [sessionsByWeek, setSessionsByWeek] = useState<SessionsByWeekState>(() => {
     const initial = programDraft?.sessionsByWeek;
     if (initial && typeof initial === 'object' && Object.keys(initial).length > 0) {
@@ -765,9 +768,16 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       try {
         console.log('[WorkoutBuilder] Forcing load of assessments for client:', clientId);
         await getClientPerformanceLogs(clientId); // Cette fonction charge aussi les données client dans le store
+        
+        // Charger les infos d'entraînement depuis client_training_info
+        const trainingInfo = await getClientTrainingInfo(clientId);
+        setClientTrainingInfo(trainingInfo);
+        console.log('[WorkoutBuilder] Loaded training info:', trainingInfo);
       } catch (error) {
         console.error('[WorkoutBuilder] Error loading client assessments:', error);
       }
+    } else {
+      setClientTrainingInfo(null);
     }
 
     if (clientId === '0') {
@@ -1852,29 +1862,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                       <div className="flex flex-col">
                         <span className="text-[10px] text-gray-500 uppercase font-semibold">Fréquence</span>
                         <span className="text-sm font-bold text-gray-800">
-                          {(() => {
-	                            const bilans = (clientData.assignedBilans || clientData.assigned_bilans || clientData.bilans || []) as any[];
-	                            const completedBilans = Array.isArray(bilans) ? bilans.filter(b => b.status === 'completed') : [];
-	                            const lastBilan = completedBilans.length > 0 ? completedBilans[0] : null;
-	                            const answers = lastBilan?.data?.answers || lastBilan?.answers || lastBilan?.data || lastBilan;
-	                            
-	                            const freq = answers?.seances_par_semaine || answers?.SEANCES_PAR_SEMAINE;
-	                            return freq || 'Non défini';
-                          })()} séances / sem
+                          {clientTrainingInfo?.sessions_per_week || 'Non défini'} séances / sem
                         </span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[10px] text-gray-500 uppercase font-semibold">Durée</span>
                         <span className="text-sm font-bold text-gray-800">
-                          {(() => {
-	                            const bilans = (clientData.assignedBilans || clientData.assigned_bilans || clientData.bilans || []) as any[];
-	                            const completedBilans = Array.isArray(bilans) ? bilans.filter(b => b.status === 'completed') : [];
-	                            const lastBilan = completedBilans.length > 0 ? completedBilans[0] : null;
-	                            const answers = lastBilan?.data?.answers || lastBilan?.answers || lastBilan?.data || lastBilan;
-	                            
-	                            const duree = answers?.duree_seances || answers?.DUREE_SEANCES;
-	                            return duree || 'Non définie';
-                          })()} min / séance
+                          {clientTrainingInfo?.session_duration || 'Non définie'} min / séance
                         </span>
                       </div>
                     </div>
