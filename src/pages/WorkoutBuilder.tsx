@@ -56,6 +56,7 @@ import {
   ChevronUpIcon,
   ListBulletIcon,
   LockClosedIcon,
+  PencilIcon,
 } from '../constants/icons.ts';
 
 type EditableWorkoutExercise = WorkoutExercise & {
@@ -571,6 +572,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
   });
   const [selectedWeek, setSelectedWeek] = useState<number>(1);
   const [activeSessionId, setActiveSessionId] = useState(DEFAULT_SESSION.id);
+  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
 
   const [draggedOverExerciseId, setDraggedOverExerciseId] = useState<number | null>(null);
   const [activeSearchBox, setActiveSearchBox] = useState<{
@@ -2067,7 +2069,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   >
                     <div
                       onClick={() => setActiveSessionId(session.id)}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
                         activeSessionId === session.id
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-gray-100'
@@ -2075,19 +2077,46 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                         sessionLocked ? 'opacity-60 cursor-not-allowed' : ''
                       }`}
                     >
-                      {sessionLocked && <LockClosedIcon className="w-4 h-4" />}
-                      <input
-                        type="text"
-                        value={session.name}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleRenameSession(session.id, e.target.value);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        disabled={sessionLocked}
-                        className="bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 min-w-[80px] disabled:cursor-not-allowed"
-                        placeholder="Nom de la séance"
-                      />
+                      {sessionLocked && <LockClosedIcon className="w-3.5 h-3.5" />}
+                      {editingSessionId === session.id ? (
+                        <input
+                          type="text"
+                          value={session.name}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleRenameSession(session.id, e.target.value);
+                          }}
+                          onBlur={() => setEditingSessionId(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              setEditingSessionId(null);
+                            }
+                            if (e.key === 'Escape') {
+                              setEditingSessionId(null);
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="bg-white border border-primary focus:outline-none focus:ring-1 focus:ring-primary rounded px-1.5 py-0.5 min-w-[80px]"
+                          placeholder="Nom de la séance"
+                        />
+                      ) : (
+                        <>
+                          <span>{session.name}</span>
+                          {!sessionLocked && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingSessionId(session.id);
+                              }}
+                              className="p-0.5 hover:bg-gray-200 rounded transition-colors"
+                              title="Renommer la séance"
+                            >
+                              <PencilIcon className="w-3 h-3" />
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
                     {(sessions || []).length > 1 && !sessionLocked && (
                       <button
