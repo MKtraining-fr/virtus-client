@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { archiveMultipleExercises } from '../services/exerciseArchiveService';
 import { createExercise } from '../services/exerciseService';
 import { uploadExerciseImage } from '../services/imageStorageService';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../services/supabase';
 
 const EQUIPMENT_TYPES = [
   'Non spécifié',
