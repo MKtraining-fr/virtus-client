@@ -834,6 +834,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
     const loadProgramFromSupabase = async (programId: string, isClientProgram: boolean = false) => {
       setIsLoading(true);
+      // Positionner immédiatement sur Programme pour un passage instantané
+      setWorkoutMode('program');
       try {
         let program;
         let sessions;
@@ -866,7 +868,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           setEditProgramId(programId);
           setIsEditMode(true);
           setIsEditingClientProgram(true); // Marquer qu'on édite un programme client
-          setWorkoutMode('program'); // Positionner sur Programme par défaut
           
           // Positionner sur la semaine en cours
           if (clientProgram.currentWeek) {
@@ -941,11 +942,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         setSelectedClient(reconstructedProgram.clientId || '0');
         setEditProgramId(programId);
         setIsEditMode(true);
-        
-        // Positionner sur Programme si weekCount > 1
-        if (reconstructedProgram.weekCount > 1) {
-          setWorkoutMode('program');
-        }
 
         addNotification({ message: 'Programme chargé depuis Supabase.', type: 'info' });
 
@@ -1823,6 +1819,28 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     }
   }, []);
 
+  const handleRenameSession = useCallback((sessionId: number, newName: string) => {
+    setSessionsByWeek((prev) => {
+      const prevWithTemplates = assignTemplateSessionIds(prev);
+      const newSessionsByWeek = { ...prevWithTemplates };
+      const currentWeekSessions = newSessionsByWeek[selectedWeek];
+
+      if (!currentWeekSessions) return prev;
+
+      const updatedSessions = currentWeekSessions.map((session) =>
+        session.id === sessionId ? { ...session, name: newName } : session
+      );
+
+      newSessionsByWeek[selectedWeek] = updatedSessions;
+      // Ne pas appliquer le mirroring pour les programmes clients
+      if (selectedWeek === 1 && !isEditingClientProgram) {
+        return mirrorWeekOneStructure(newSessionsByWeek);
+      }
+      return newSessionsByWeek;
+    });
+    setHasUnsavedChanges(true);
+  }, [selectedWeek, isEditingClientProgram]);
+
   const handleDropSession = useCallback(() => {
     const draggedSessionId = sessionDragItem.current;
     const droppedOnSessionId = sessionDragOverItem.current;
@@ -1844,6 +1862,18 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
       const [reorderedItem] = sessions.splice(draggedIndex, 1);
       sessions.splice(droppedIndex, 0, reorderedItem);
+
+      // Renuméroter automatiquement les séances après réorganisation
+      // Conserver les noms personnalisés, sinon mettre à jour avec le nouveau numéro
+      sessions = sessions.map((session, index) => {
+        // Si le nom est générique ("Séance X"), le mettre à jour
+        const isGenericName = /^Séance \d+$/.test(session.name);
+        if (isGenericName) {
+          return { ...session, name: `Séance ${index + 1}` };
+        }
+        // Sinon, conserver le nom personnalisé
+        return session;
+      });
 
       newSessionsByWeek[selectedWeek] = sessions;
       // Ne pas appliquer le mirroring pour les programmes clients
@@ -2035,7 +2065,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     onDragEnd={!sessionLocked ? handleDropSession : undefined}
                     onDragOver={(e) => e.preventDefault()}
                   >
-                    <button
+                    <div
                       onClick={() => setActiveSessionId(session.id)}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                         activeSessionId === session.id
@@ -2044,11 +2074,21 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                       } ${
                         sessionLocked ? 'opacity-60 cursor-not-allowed' : ''
                       }`}
-                      disabled={sessionLocked}
                     >
                       {sessionLocked && <LockClosedIcon className="w-4 h-4" />}
-                      {session.name}
-                    </button>
+                      <input
+                        type="text"
+                        value={session.name}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleRenameSession(session.id, e.target.value);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        disabled={sessionLocked}
+                        className="bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 min-w-[80px] disabled:cursor-not-allowed"
+                        placeholder="Nom de la séance"
+                      />
+                    </div>
                     {(sessions || []).length > 1 && !sessionLocked && (
                       <button
                         onClick={(e) => {
