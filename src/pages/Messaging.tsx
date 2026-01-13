@@ -772,7 +772,7 @@ const Messaging: React.FC = () => {
           <Select
             label="Choisir un client"
             value={clientForNewConversation}
-            onChange={(e) => setClientForNewConversation(e.target.value)}
+            onChange={(value) => setClientForNewConversation(value)}
           >
             <option value="">-- Sélectionnez --</option>
             {clientsForNewConversation.map((c) => (

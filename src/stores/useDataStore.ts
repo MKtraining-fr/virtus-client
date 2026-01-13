@@ -1320,6 +1320,28 @@ export const initializeMessagesRealtime = (userId: string) => {
     .on(
       'postgres_changes',
       {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `sender_id=eq.${userId}`,
+      },
+      (payload) => {
+        logger.info('Nouveau message envoyé via Realtime', payload);
+        const newMessage = mapSupabaseMessageToMessage(payload.new as any);
+        
+        // Ajouter le message au store s'il n'existe pas déjà
+        useDataStore.setState((state) => {
+          const exists = state.messages.some(m => m.id === newMessage.id);
+          if (exists) return state;
+          return {
+            messages: [...state.messages, newMessage],
+          };
+        });
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
         event: 'UPDATE',
         schema: 'public',
         table: 'messages',
