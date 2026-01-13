@@ -212,7 +212,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
         <div className="flex">
           {/* PARTIE GAUCHE - Image (masquée en mode réduit) */}
           {!isCollapsed && (
-            <div className="w-2/5 bg-white p-4 flex flex-col">
+            <div className="w-1/3 bg-white p-3 flex flex-col">
               {/* Numéro de l'exercice */}
               <div className="mb-3">
                 <span className="text-sm font-semibold text-gray-700">
@@ -221,15 +221,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               </div>
 
               {/* Image de l'exercice */}
-              <div className="flex-1 flex items-center justify-center">
+              <div className="flex items-center justify-center">
                 {ex.illustrationUrl ? (
                   <img
                     src={ex.illustrationUrl}
                     alt={ex.name}
-                    className="w-full h-auto rounded-xl object-cover"
+                    className="w-full h-auto max-h-48 rounded-xl object-contain"
                   />
                 ) : (
-                  <div className="w-full aspect-[4/3] bg-gray-50 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
+                  <div className="w-full h-32 bg-gray-50 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
                     <span className="text-gray-400 text-sm font-medium">Aucune image</span>
                   </div>
                 )}
@@ -238,9 +238,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           )}
 
           {/* PARTIE DROITE - Formulaire */}
-          <div className="flex-1 bg-primary/5 p-4">
+          <div className="flex-1 bg-primary/5 p-3">
             {/* Nom du mouvement avec flèche */}
-            <div className="flex items-center justify-end mb-4 gap-2">
+            <div className="flex items-center justify-end mb-3 gap-2">
               <input
                 type="text"
                 placeholder="Nom du mouvement"
@@ -264,9 +264,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 {/* Mode Simple ou Détaillé */}
                 {!isDetailedMode ? (
                   /* MODE SIMPLE - Grille 2 colonnes */
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     {/* Colonne 1 */}
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {/* Série */}
                       <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-2 transition-all focus-within:border-primary/50">
                         <span className="text-sm text-gray-600 mr-auto">série</span>
@@ -329,7 +329,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     </div>
 
                     {/* Colonne 2 */}
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {/* Répétitions */}
                       <div className={`flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-2 transition-all focus-within:border-primary/50 ${isDetailedMode ? 'opacity-50' : ''}`}>
                         <span className="text-sm text-gray-600 mr-auto">Répétitions</span>
@@ -463,16 +463,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 )}
 
                 {/* Notes explicatives */}
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Notes / Explications
                   </label>
                   <textarea
                     value={ex.notes || ''}
                     onChange={(e) => onUpdateExercise(ex.id, 'notes', e.target.value)}
                     placeholder="Ajoutez des notes ou explications pour le client (ex: technique, points d'attention, progression...)" 
-                    className="w-full px-3 py-2 border-2 border-primary/20 rounded-xl bg-white text-sm focus:outline-none focus:border-primary/50 resize-none"
-                    rows={3}
+                    className="w-full px-3 py-1.5 border-2 border-primary/20 rounded-xl bg-white text-sm focus:outline-none focus:border-primary/50 resize-none"
+                    rows={2}
                   />
                 </div>
               </>
