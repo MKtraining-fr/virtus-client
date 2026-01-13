@@ -458,8 +458,7 @@ const WorkoutDatabase: React.FC = () => {
           .from('exercises')
           .update({ 
             is_archived: true, 
-            archived_at: new Date().toISOString(),
-            archived_by: user.id
+            archived_at: new Date().toISOString()
           })
           .in('id', exercisesToArchive);
 
