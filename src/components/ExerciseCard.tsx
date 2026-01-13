@@ -423,7 +423,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                             />
                             <Select
                               value={detail.load.unit}
-                              onChange={(e) => onUpdateExercise(ex.id, 'load.unit', e.target.value, detailIndex)}
+                              onChange={(value) => onUpdateExercise(ex.id, 'load.unit', value, detailIndex)}
                               className="w-16 border-2 border-primary/20 rounded-xl focus:border-primary/50"
                             >
                               <option value="kg">kg</option>
