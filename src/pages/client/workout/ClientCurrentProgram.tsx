@@ -683,6 +683,13 @@ const ClientCurrentProgram: React.FC = () => {
           <div><p className="text-sm text-gray-500">Tempo</p><p className="font-bold text-lg">{getDisplayValue(currentExercise.details, 'tempo')}</p></div>
         </div>
 
+        {currentExercise.notes && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 rounded-r-lg">
+            <p className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-1">📝 Notes du coach</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{currentExercise.notes}</p>
+          </div>
+        )}
+
         {technique && definition && (
           <div className="relative">
             <button onClick={() => setDefinitionVisible(!isDefinitionVisible)} className="w-full bg-gray-100 dark:bg-client-dark text-gray-500 font-semibold py-2.5 px-4 rounded-md text-left flex justify-between items-center">
