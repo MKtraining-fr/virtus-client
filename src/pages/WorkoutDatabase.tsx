@@ -421,6 +421,30 @@ const WorkoutDatabase: React.FC = () => {
         usedInTemplates?.forEach(e => usedExerciseIds.add(e.exercise_id));
       }
 
+      // Vérifier client_exercise_projections
+      const { data: usedInProjections, error: projectionsError } = await supabase
+        .from('client_exercise_projections')
+        .select('exercise_id')
+        .in('exercise_id', selectedExerciseIds);
+
+      if (projectionsError) {
+        console.error('Erreur vérification projections:', projectionsError);
+      } else {
+        usedInProjections?.forEach(e => usedExerciseIds.add(e.exercise_id));
+      }
+
+      // Vérifier client_exercise_records
+      const { data: usedInRecords, error: recordsError } = await supabase
+        .from('client_exercise_records')
+        .select('exercise_id')
+        .in('exercise_id', selectedExerciseIds);
+
+      if (recordsError) {
+        console.error('Erreur vérification records:', recordsError);
+      } else {
+        usedInRecords?.forEach(e => usedExerciseIds.add(e.exercise_id));
+      }
+
       const exercisesToArchive = selectedExerciseIds.filter(id => usedExerciseIds.has(id));
       const exercisesToDelete = selectedExerciseIds.filter(id => !usedExerciseIds.has(id));
 
