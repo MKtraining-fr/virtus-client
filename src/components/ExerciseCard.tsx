@@ -287,7 +287,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       </div>
 
                       {/* Charge */}
-                      <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-2 transition-all focus-within:border-primary/50">
+                      <div className={`flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-2 transition-all focus-within:border-primary/50 ${isDetailedMode ? 'opacity-50' : ''}`}>
                         <span className="text-sm text-gray-600 mr-auto">Charge</span>
                         <input
                           type="text"
@@ -298,13 +298,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                               handleSimpleValueChange('load.value', value);
                             }
                           }}
-                          className="w-16 bg-transparent border-none focus:outline-none text-sm text-right"
+                          disabled={isDetailedMode}
+                          className="w-16 bg-transparent border-none focus:outline-none text-sm text-right disabled:cursor-not-allowed"
                           placeholder="80"
                         />
                         <select
                           value={simpleValues.load.unit}
                           onChange={(e) => handleSimpleValueChange('load.unit', e.target.value)}
-                          className="ml-2 px-2 py-1 bg-transparent border-none text-sm font-medium focus:outline-none"
+                          disabled={isDetailedMode}
+                          className="ml-2 px-2 py-1 bg-transparent border-none text-sm font-medium focus:outline-none disabled:cursor-not-allowed"
                         >
                           <option value="kg">kg</option>
                           <option value="lbs">lbs</option>
@@ -329,7 +331,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     {/* Colonne 2 */}
                     <div className="space-y-3">
                       {/* Répétitions */}
-                      <div className="flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-2 transition-all focus-within:border-primary/50">
+                      <div className={`flex items-center border-2 border-primary/20 rounded-xl bg-white px-3 py-2 transition-all focus-within:border-primary/50 ${isDetailedMode ? 'opacity-50' : ''}`}>
                         <span className="text-sm text-gray-600 mr-auto">Répétitions</span>
                         <input
                           type="text"
@@ -340,7 +342,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                               handleSimpleValueChange('reps', value);
                             }
                           }}
-                          className="w-16 bg-transparent border-none focus:outline-none text-sm text-right"
+                          disabled={isDetailedMode}
+                          className="w-16 bg-transparent border-none focus:outline-none text-sm text-right disabled:cursor-not-allowed"
                           placeholder="12"
                         />
                       </div>
