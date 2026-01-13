@@ -46,7 +46,7 @@ export const importUsersFromCSV = async (file: File): Promise<ImportResult> => {
               .from('clients')
               .select('id, email')
               .eq('email', row.email.toLowerCase())
-              .single();
+              .maybeSingle();
 
             if (existingUser) {
               throw new Error(`Email déjà existant: ${row.email}`);
@@ -215,7 +215,7 @@ export const importExercisesFromCSV = async (
               query = query.is('equipment', null);
             }
             
-            const { data: existing } = await query.single();
+            const { data: existing } = await query.maybeSingle();
 
             if (existing) {
               throw new Error(`Exercice déjà existant: ${row.name}${equipment ? ` (${equipment})` : ''}`);
