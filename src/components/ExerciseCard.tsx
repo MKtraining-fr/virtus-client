@@ -413,24 +413,31 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                             placeholder="12"
                             className="border-2 border-primary/20 rounded-xl focus:border-primary/50"
                           />
-                          <div className="flex gap-1">
-                            <Input
-                              type="text"
-                              value={detail.load.value}
-                              onChange={(e) => onUpdateExercise(ex.id, 'load.value', e.target.value, detailIndex)}
-                              placeholder="80"
-                              className="w-16 border-2 border-primary/20 rounded-xl focus:border-primary/50"
-                            />
-                            <Select
-                              value={detail.load.unit}
-                              onChange={(value) => onUpdateExercise(ex.id, 'load.unit', value, detailIndex)}
-                              className="w-16 border-2 border-primary/20 rounded-xl focus:border-primary/50"
-                            >
-                              <option value="kg">kg</option>
-                              <option value="lbs">lbs</option>
-                              <option value="%">%</option>
-                              <option value="@">@</option>
-                            </Select>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex gap-1">
+                              <Input
+                                type="text"
+                                value={detail.load.value}
+                                onChange={(e) => onUpdateExercise(ex.id, 'load.value', e.target.value, detailIndex)}
+                                placeholder="80"
+                                className="w-16 border-2 border-primary/20 rounded-xl focus:border-primary/50"
+                              />
+                              <Select
+                                value={detail.load.unit}
+                                onChange={(value) => onUpdateExercise(ex.id, 'load.unit', value, detailIndex)}
+                                className="w-16 border-2 border-primary/20 rounded-xl focus:border-primary/50"
+                              >
+                                <option value="kg">kg</option>
+                                <option value="lbs">lbs</option>
+                                <option value="%">%</option>
+                                <option value="@">@</option>
+                              </Select>
+                            </div>
+                            {detail.load.unit === '%' && (
+                              <div className="text-xs text-gray-500 italic">
+                                💡 Calculé depuis l'historique du client
+                              </div>
+                            )}
                           </div>
                           <Input
                             type="text"

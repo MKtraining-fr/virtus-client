@@ -17,6 +17,8 @@ import { savePerformanceLog } from '../../../services/performanceLogService';
 import { updateClientProgress, markSessionAsCompleted } from '../../../services/clientProgramService';
 import { createClientSession, createClientSessionExercise, getClientProgramIdFromAssignment, findExistingClientSession, updateSessionStatus } from '../../../services/clientSessionService';
 import { useSessionCompletion } from '../../../hooks/useSessionCompletion';
+import { getMultipleOneRMs } from '../../../services/performanceService';
+import { calculateLoadFromPercentage, formatLoadDisplay } from '../../../utils/loadCalculations';
 import {
   ArrowLeftIcon,
   ClockIcon,
@@ -79,6 +81,7 @@ const ClientCurrentProgram: React.FC = () => {
   const [isYouTubeModalOpen, setIsYouTubeModalOpen] = useState(false);
   const [isAlternativesModalOpen, setIsAlternativesModalOpen] = useState(false);
   const [isDefinitionVisible, setDefinitionVisible] = useState(false);
+  const [exerciseOneRMs, setExerciseOneRMs] = useState<Map<string, number>>(new Map());
 
   // Modals
   const [isCongratsModalOpen, setIsCongratsModalOpen] = useState(false);
@@ -213,6 +216,27 @@ const ClientCurrentProgram: React.FC = () => {
       setLogData({});
     }
   }, [activeSession, recapData]);
+
+  // Charger les 1RMs des exercices de la session active
+  useEffect(() => {
+    const loadOneRMs = async () => {
+      if (!activeSession || !user?.id) return;
+      
+      // Récupérer tous les exerciseIds de la session
+      const exerciseIds = activeSession.exercises
+        .map(ex => ex.exerciseId?.toString())
+        .filter((id): id is string => !!id);
+      
+      if (exerciseIds.length === 0) return;
+      
+      console.log('[ClientCurrentProgram] Loading 1RMs for exercises:', exerciseIds);
+      const oneRMs = await getMultipleOneRMs(user.id, exerciseIds);
+      console.log('[ClientCurrentProgram] Loaded 1RMs:', oneRMs);
+      setExerciseOneRMs(oneRMs);
+    };
+    
+    loadOneRMs();
+  }, [activeSession, user?.id]);
 
   const getProgressionColor = (currentValue: string, previousValue: string | undefined): string => {
     if (!previousValue || !currentValue || currentValue === '' || previousValue === '') {
@@ -682,7 +706,22 @@ const ClientCurrentProgram: React.FC = () => {
               const placeholders = previousPerformancePlaceholders?.get(currentExercise.name);
               const setPlaceholder = placeholders?.[setIndex];
               const targetReps = currentExercise.details?.[setIndex]?.reps || currentExercise.details?.[0]?.reps || '0';
-              const targetLoad = currentExercise.details?.[setIndex]?.load?.value || currentExercise.details?.[0]?.load?.value || '0';
+              const targetLoadValue = currentExercise.details?.[setIndex]?.load?.value || currentExercise.details?.[0]?.load?.value || '0';
+              const targetLoadUnit = currentExercise.details?.[setIndex]?.load?.unit || currentExercise.details?.[0]?.load?.unit || 'kg';
+              
+              // Calculer la charge si l'unité est % et qu'on a un 1RM
+              let targetLoad = targetLoadValue;
+              if (targetLoadUnit === '%' && targetLoadValue !== '0' && currentExercise.exerciseId) {
+                const oneRM = exerciseOneRMs.get(currentExercise.exerciseId.toString());
+                if (oneRM) {
+                  const percentage = parseFloat(targetLoadValue);
+                  const calculatedLoad = calculateLoadFromPercentage(percentage, oneRM);
+                  targetLoad = `${targetLoadValue}% (${calculatedLoad}kg)`;
+                  console.log(`[ClientCurrentProgram] Calculated load for ${currentExercise.name}: ${percentage}% of ${oneRM}kg = ${calculatedLoad}kg`);
+                } else {
+                  targetLoad = `${targetLoadValue}%`;
+                }
+              }
 
               return (
                 <div key={setIndex} className={`flex items-center p-2 rounded-lg cursor-pointer ${isSetSelected ? 'bg-primary' : ''}`} onClick={() => setActiveSetIndex(setIndex)}>
