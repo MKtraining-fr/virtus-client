@@ -1145,7 +1145,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             exercises: s.exercises.map((ex) => {
               if (ex.id !== exerciseId) return ex;
 
-              if (['name', 'exerciseId', 'illustrationUrl'].includes(field)) {
+              if (['name', 'exerciseId', 'illustrationUrl', 'notes'].includes(field)) {
                 const newEx = { ...ex, [field]: value };
                 if (field === 'name') {
                   newEx.exerciseId = '';
