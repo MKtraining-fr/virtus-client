@@ -228,8 +228,10 @@ export const importExercisesFromCSV = async (
               name: row.name.trim(),
               category: row.category.trim(),
               description: row.description?.trim() || null,
-              video_url: row.videoUrl?.trim() || null,
-              image_url: row.illustrationUrl?.trim() || null,
+              // Support pour 2 formats: videoUrl (camelCase) ou video_url (snake_case)
+              video_url: (row.video_url || row.videoUrl)?.trim() || null,
+              // Support pour 2 formats: illustrationUrl (camelCase) ou image_url (snake_case)
+              image_url: (row.image_url || row.illustrationUrl)?.trim() || null,
               equipment: row.equipment?.trim() || null,
               // Support pour 2 formats:
               // 1. Format avec colonnes séparées: muscle_group, muscle_group2, muscle_group3
