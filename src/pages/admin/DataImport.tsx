@@ -77,6 +77,7 @@ const DataImport: React.FC = () => {
   };
 
   const formatImportResult = (result: ImportResult): Message => {
+    console.log('📦 formatImportResult appelé avec:', result);
     if (result.errors.length === 0) {
       return {
         type: 'success',
@@ -163,8 +164,13 @@ const DataImport: React.FC = () => {
       }
 
       // Afficher le résultat
-
-      setMessages((prev) => ({ ...prev, [key]: formatImportResult(result) }));
+      const formattedMessage = formatImportResult(result);
+      console.log('📊 Rapport d\'import:', {
+        key,
+        result,
+        formattedMessage
+      });
+      setMessages((prev) => ({ ...prev, [key]: formattedMessage }));
 
       // Recharger les données depuis Supabase
       if (result.success > 0) {
