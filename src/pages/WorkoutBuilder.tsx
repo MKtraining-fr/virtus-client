@@ -1077,10 +1077,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     }
   }, [isSaving, lastSavedAt, hasUnsavedChanges]);
 
-  // Sauvegarder automatiquement avant de quitter la page
+  // Sauvegarder automatiquement avant de quitter la page ou changer d'onglet
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Sauvegarder le brouillon avant de quitter
+    const saveDraft = () => {
       if (programName && weekCount > 0 && Object.keys(sessionsByWeek).length > 0) {
         const currentProgram: WorkoutProgram = {
           id: editProgramId || `draft-${Date.now()}`,
@@ -1092,8 +1091,13 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
           clientId: selectedClient === '0' ? null : selectedClient,
         };
         setProgramDraft(currentProgram);
-        console.log('[WorkoutBuilder] Draft saved before unload');
+        console.log('[WorkoutBuilder] Draft saved');
       }
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Sauvegarder le brouillon avant de quitter
+      saveDraft();
       
       // Avertir l'utilisateur s'il y a des modifications non sauvegardées
       if (hasUnsavedChanges) {
@@ -1102,8 +1106,19 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       }
     };
 
+    const handleVisibilityChange = () => {
+      // Sauvegarder quand l'onglet devient invisible (changement d'onglet)
+      if (document.hidden) {
+        saveDraft();
+      }
+    };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [programName, objective, weekCount, sessionsByWeek, selectedClient, editProgramId, user, hasUnsavedChanges, setProgramDraft]);
 
   // Gérer le clic extérieur pour fermer la liste de résultats de la drop zone
