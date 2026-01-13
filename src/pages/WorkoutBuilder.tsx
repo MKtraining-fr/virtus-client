@@ -941,6 +941,11 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         setSelectedClient(reconstructedProgram.clientId || '0');
         setEditProgramId(programId);
         setIsEditMode(true);
+        
+        // Positionner sur Programme si weekCount > 1
+        if (reconstructedProgram.weekCount > 1) {
+          setWorkoutMode('program');
+        }
 
         addNotification({ message: 'Programme chargé depuis Supabase.', type: 'info' });
 
