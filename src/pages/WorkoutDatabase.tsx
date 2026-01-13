@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { archiveMultipleExercises } from '../services/exerciseArchiveService';
 import { createExercise } from '../services/exerciseService';
 import { uploadExerciseImage } from '../services/imageStorageService';
+import { supabase } from '../lib/supabase';
 
 const EQUIPMENT_TYPES = [
   'Non spécifié',
@@ -375,18 +376,38 @@ const WorkoutDatabase: React.FC = () => {
     }
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedExerciseIds.length === 0) return;
 
     const count = selectedExerciseIds.length;
     if (
-      window.confirm(
-        `Êtes-vous sûr de vouloir supprimer définitivement ${count} exercice(s) ? Cette action est irréversible.`
+      !window.confirm(
+        `Êtes-vous sûr de vouloir supprimer définitivement ${count} exercice(s) de la base de données ? Cette action est irréversible.`
       )
     ) {
+      return;
+    }
+
+    try {
+      // Supprimer de la base de données
+      const { error } = await supabase
+        .from('exercises')
+        .delete()
+        .in('id', selectedExerciseIds);
+
+      if (error) {
+        throw error;
+      }
+
+      // Mettre à jour la liste locale
       setExercises(exercises.filter((ex) => !selectedExerciseIds.includes(ex.id)));
       setSelectedExerciseIds([]);
       setSelectionMode(false);
+      alert(`${count} exercice(s) supprimé(s) avec succès de la base de données.`);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error('Une erreur inconnue est survenue.');
+      console.error('Error deleting exercises:', err);
+      alert(`Erreur lors de la suppression : ${err.message}`);
     }
   };
 
