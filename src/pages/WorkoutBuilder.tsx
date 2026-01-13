@@ -772,9 +772,18 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     if (!dropZoneSearchTerm.trim()) {
       return [];
     }
-    return availableExercises.filter((ex) =>
-      ex.name.toLowerCase().includes(dropZoneSearchTerm.toLowerCase())
-    );
+    
+    // Diviser le terme de recherche en mots-clés individuels
+    const keywords = dropZoneSearchTerm.toLowerCase().trim().split(/\s+/);
+    
+    return availableExercises.filter((ex) => {
+      const exerciseName = ex.name.toLowerCase();
+      const exerciseEquipment = ex.equipment?.toLowerCase() || '';
+      const searchText = `${exerciseName} ${exerciseEquipment}`;
+      
+      // Vérifier que tous les mots-clés sont présents dans le nom ou l'équipement
+      return keywords.every(keyword => searchText.includes(keyword));
+    });
   }, [availableExercises, dropZoneSearchTerm]);
 
   const handleClientSelectionChange = async (value: string | string[]) => {
@@ -983,8 +992,12 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         setWeekCount(programDraft.weekCount);
         // Normaliser sessionsByWeek pour garantir des structures valides
         setSessionsByWeek(normalizeSessionsByWeek(programDraft.sessionsByWeek));
+        
+        // Charger le client depuis l'URL ou depuis le brouillon
         if (clientIdFromUrl && clients.some((c) => c.id === clientIdFromUrl)) {
           setSelectedClient(clientIdFromUrl);
+        } else if (programDraft.clientId && clients.some((c) => c.id === programDraft.clientId)) {
+          setSelectedClient(programDraft.clientId);
         }
         addNotification({ message: 'Brouillon chargé depuis le stockage local.', type: 'info' });
       } else {
