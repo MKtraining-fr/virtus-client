@@ -543,6 +543,24 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
 
   const [clientTrainingInfo, setClientTrainingInfo] = useState<any>(null);
 
+  // Charger client_training_info quand le client change
+  useEffect(() => {
+    const loadTrainingInfo = async () => {
+      if (selectedClient !== '0') {
+        try {
+          const trainingInfo = await getClientTrainingInfo(selectedClient);
+          setClientTrainingInfo(trainingInfo);
+        } catch (error) {
+          console.error('[WorkoutBuilder] Error loading training info:', error);
+          setClientTrainingInfo(null);
+        }
+      } else {
+        setClientTrainingInfo(null);
+      }
+    };
+    loadTrainingInfo();
+  }, [selectedClient]);
+
   const [sessionsByWeek, setSessionsByWeek] = useState<SessionsByWeekState>(() => {
     const initial = programDraft?.sessionsByWeek;
     if (initial && typeof initial === 'object' && Object.keys(initial).length > 0) {
@@ -768,16 +786,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       try {
         console.log('[WorkoutBuilder] Forcing load of assessments for client:', clientId);
         await getClientPerformanceLogs(clientId); // Cette fonction charge aussi les données client dans le store
-        
-        // Charger les infos d'entraînement depuis client_training_info
-        const trainingInfo = await getClientTrainingInfo(clientId);
-        setClientTrainingInfo(trainingInfo);
-        console.log('[WorkoutBuilder] Loaded training info:', trainingInfo);
       } catch (error) {
         console.error('[WorkoutBuilder] Error loading client assessments:', error);
       }
-    } else {
-      setClientTrainingInfo(null);
     }
 
     if (clientId === '0') {
@@ -1856,7 +1867,6 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 />
                 {selectedClient !== '0' && clientData && (
                   <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-xl">
-                    {console.log('[WorkoutBuilder] clientData:', clientData)}
                     <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-2">Objectifs du Bilan</h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex flex-col">
