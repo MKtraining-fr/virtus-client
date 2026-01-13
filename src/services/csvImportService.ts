@@ -185,6 +185,7 @@ export const importExercisesFromCSV = async (
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
+      delimiter: '', // Auto-detect delimiter (comma or semicolon)
       complete: async (results) => {
         result.total = results.data.length;
         logger.info('Début import exercices', { total: result.total });
@@ -230,12 +231,50 @@ export const importExercisesFromCSV = async (
               video_url: row.videoUrl?.trim() || null,
               image_url: row.illustrationUrl?.trim() || null,
               equipment: row.equipment?.trim() || null,
-              muscle_group: row.muscleGroups
-                ? row.muscleGroups
-                    .split('|')
-                    .map((m: string) => m.trim())
-                    .join('|')
-                : null,
+              // Support pour 2 formats:
+              // 1. Format avec colonnes séparées: muscle_group, muscle_group2, muscle_group3
+              // 2. Format avec pipe: muscleGroups (ex: "Pectoraux|Triceps")
+              muscle_group: (() => {
+                // Format 1: Colonnes séparées (muscle_group, muscle_group2, muscle_group3)
+                if (row.muscle_group || row.muscle_group2 || row.muscle_group3) {
+                  const groups = [
+                    row.muscle_group?.trim(),
+                    row.muscle_group2?.trim(),
+                    row.muscle_group3?.trim()
+                  ].filter(Boolean);
+                  return groups.length > 0 ? groups[0] : null;
+                }
+                // Format 2: Pipe-separated (muscleGroups)
+                if (row.muscleGroups) {
+                  const groups = row.muscleGroups.split('|').map((m: string) => m.trim()).filter(Boolean);
+                  return groups.length > 0 ? groups[0] : null;
+                }
+                return null;
+              })(),
+              muscle_group2: (() => {
+                // Format 1: Colonnes séparées
+                if (row.muscle_group2) {
+                  return row.muscle_group2.trim();
+                }
+                // Format 2: Pipe-separated
+                if (row.muscleGroups) {
+                  const groups = row.muscleGroups.split('|').map((m: string) => m.trim()).filter(Boolean);
+                  return groups.length > 1 ? groups[1] : null;
+                }
+                return null;
+              })(),
+              muscle_group3: (() => {
+                // Format 1: Colonnes séparées
+                if (row.muscle_group3) {
+                  return row.muscle_group3.trim();
+                }
+                // Format 2: Pipe-separated
+                if (row.muscleGroups) {
+                  const groups = row.muscleGroups.split('|').map((m: string) => m.trim()).filter(Boolean);
+                  return groups.length > 2 ? groups[2] : null;
+                }
+                return null;
+              })(),
               secondary_muscle_groups: row.secondaryMuscleGroups
                 ? row.secondaryMuscleGroups.split('|').map((m: string) => m.trim())
                 : null,
