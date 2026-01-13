@@ -1,7 +1,7 @@
 // Service Worker pour Virtus PWA
-// Version: 2.0.3 - Force cache refresh
+// Version: 2.1.0 - iOS PWA Support
 
-const CACHE_NAME = 'virtus-v2.0.3';
+const CACHE_NAME = 'virtus-v2.1.0';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -10,7 +10,7 @@ const urlsToCache = [
 
 // Installation du Service Worker
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installation v2.0.3 en cours...');
+  console.log('[Service Worker] Installation v2.1.0 en cours...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -26,7 +26,7 @@ self.addEventListener('install', (event) => {
 
 // Activation du Service Worker
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activation v2.0.3 en cours...');
+  console.log('[Service Worker] Activation v2.1.0 en cours...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
