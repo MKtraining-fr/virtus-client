@@ -1933,9 +1933,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             <Button variant="danger" size="sm" onClick={handleResetBuilder}>
               Vider
             </Button>
-            {hasUnsavedChanges && (
-              <span className="text-sm text-yellow-600">Modifications non sauvegardées</span>
-            )}
+            <span className="text-sm text-yellow-600 min-w-[200px]">
+              {hasUnsavedChanges ? 'Modifications non sauvegardées' : ''}
+            </span>
           </div>
         </div>
         <CollapsibleSection
