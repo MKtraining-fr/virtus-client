@@ -382,28 +382,82 @@ const WorkoutDatabase: React.FC = () => {
     const count = selectedExerciseIds.length;
     if (
       !window.confirm(
-        `Êtes-vous sûr de vouloir supprimer définitivement ${count} exercice(s) de la base de données ? Cette action est irréversible.`
+        `Êtes-vous sûr de vouloir supprimer ${count} exercice(s) ?\n\nNote: Les exercices utilisés dans des programmes/séances seront automatiquement archivés au lieu d'être supprimés.`
       )
     ) {
       return;
     }
 
-    try {
-      // Supprimer de la base de données
-      const { error } = await supabase
-        .from('exercises')
-        .delete()
-        .in('id', selectedExerciseIds);
+    if (!user?.id) {
+      alert('Erreur : utilisateur non connecté.');
+      return;
+    }
 
-      if (error) {
-        throw error;
+    try {
+      // Vérifier quels exercices sont utilisés dans des séances/programmes
+      const { data: usedExercises, error: checkError } = await supabase
+        .from('client_session_exercises')
+        .select('exercise_id')
+        .in('exercise_id', selectedExerciseIds);
+
+      if (checkError) {
+        throw checkError;
+      }
+
+      const usedExerciseIds = new Set(usedExercises?.map(e => e.exercise_id) || []);
+      const exercisesToArchive = selectedExerciseIds.filter(id => usedExerciseIds.has(id));
+      const exercisesToDelete = selectedExerciseIds.filter(id => !usedExerciseIds.has(id));
+
+      let archivedCount = 0;
+      let deletedCount = 0;
+      const errors: string[] = [];
+
+      // Archiver les exercices utilisés
+      if (exercisesToArchive.length > 0) {
+        const { error: archiveError } = await supabase
+          .from('exercises')
+          .update({ 
+            is_archived: true, 
+            archived_at: new Date().toISOString(),
+            archived_by: user.id
+          })
+          .in('id', exercisesToArchive);
+
+        if (archiveError) {
+          errors.push(`Erreur archivage: ${archiveError.message}`);
+        } else {
+          archivedCount = exercisesToArchive.length;
+        }
+      }
+
+      // Supprimer les exercices non utilisés
+      if (exercisesToDelete.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('exercises')
+          .delete()
+          .in('id', exercisesToDelete);
+
+        if (deleteError) {
+          errors.push(`Erreur suppression: ${deleteError.message}`);
+        } else {
+          deletedCount = exercisesToDelete.length;
+        }
       }
 
       // Mettre à jour la liste locale
       setExercises(exercises.filter((ex) => !selectedExerciseIds.includes(ex.id)));
       setSelectedExerciseIds([]);
       setSelectionMode(false);
-      alert(`${count} exercice(s) supprimé(s) avec succès de la base de données.`);
+
+      // Message de résultat
+      if (errors.length > 0) {
+        alert(`Opération terminée avec des erreurs:\n${errors.join('\n')}\n\n${archivedCount} archivé(s), ${deletedCount} supprimé(s).`);
+      } else {
+        const messages = [];
+        if (archivedCount > 0) messages.push(`${archivedCount} exercice(s) archivé(s) (utilisés dans des programmes/séances)`);
+        if (deletedCount > 0) messages.push(`${deletedCount} exercice(s) supprimé(s) définitivement`);
+        alert(messages.join('\n'));
+      }
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error('Une erreur inconnue est survenue.');
       console.error('Error deleting exercises:', err);
