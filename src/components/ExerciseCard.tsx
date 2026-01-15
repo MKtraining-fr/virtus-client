@@ -4,6 +4,7 @@ import Input from './Input.tsx';
 import Button from './Button.tsx';
 import Select from './Select.tsx';
 import { Exercise } from '../types.ts';
+import { getExerciseDataForWeek, setExerciseDataForWeek } from '../utils/weekVariations.ts';
 
 interface WorkoutExercise {
   id: number;
@@ -31,6 +32,7 @@ interface ExerciseCardProps {
   isDragInteractionLocked: boolean;
   draggedOverExerciseId: number | null;
   exerciseDragItem: React.MutableRefObject<number | null>;
+  totalWeeks?: number;
   onToggleSelection: (id: number) => void;
   onUpdateExercise: (id: number, field: string, value: any, setIndex?: number) => void;
   onDeleteExercise: (id: number) => void;
@@ -95,6 +97,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   isDragInteractionLocked,
   draggedOverExerciseId,
   exerciseDragItem,
+  totalWeeks = 8,
   onToggleSelection,
   onUpdateExercise,
   onDeleteExercise,
@@ -107,6 +110,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const [isDetailedMode, setIsDetailedMode] = useState(false);
   const [showAlternativesModal, setShowAlternativesModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState(1);
+
+  // Récupérer les données de la semaine sélectionnée
+  const weekData = getExerciseDataForWeek(ex as any, selectedWeek);
 
   const toggleDetailedMode = () => {
     if (!ex.sets || parseInt(ex.sets, 10) === 0) {
@@ -117,7 +124,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   };
 
   // Valeurs du mode simple (première série ou valeurs par défaut)
-  const simpleValues = ex.details && ex.details.length > 0 ? ex.details[0] : {
+  const simpleValues = weekData.details && weekData.details.length > 0 ? weekData.details[0] : {
     reps: '12',
     load: { value: '', unit: 'kg' },
     tempo: '2010',
@@ -125,12 +132,35 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   };
 
   const handleSimpleValueChange = (field: string, value: any) => {
-    // Mettre à jour toutes les séries avec la même valeur
-    if (ex.details && ex.details.length > 0) {
-      ex.details.forEach((_, index) => {
-        onUpdateExercise(ex.id, field, value, index);
+    // Mettre à jour toutes les séries de la semaine sélectionnée avec la même valeur
+    if (weekData.details && weekData.details.length > 0) {
+      const updatedDetails = weekData.details.map((detail: any) => {
+        const fieldParts = field.split('.');
+        if (fieldParts.length === 2) {
+          // Champ imbriqué (ex: load.value)
+          return {
+            ...detail,
+            [fieldParts[0]]: {
+              ...detail[fieldParts[0]],
+              [fieldParts[1]]: value,
+            },
+          };
+        } else {
+          // Champ simple (ex: reps, tempo, rest)
+          return {
+            ...detail,
+            [field]: value,
+          };
+        }
       });
+      handleWeekFieldChange('details', updatedDetails);
     }
+  };
+
+  // Fonction pour mettre à jour un champ de la semaine sélectionnée
+  const handleWeekFieldChange = (field: string, value: any) => {
+    const updatedExercise = setExerciseDataForWeek(ex as any, selectedWeek, field, value);
+    onUpdateExercise(ex.id, 'weekVariations', updatedExercise.weekVariations);
   };
 
   return (
@@ -258,6 +288,26 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               </button>
             </div>
 
+            {/* Sélecteur de semaine */}
+            {!isCollapsed && totalWeeks > 1 && (
+              <div className="flex gap-1 mb-2 overflow-x-auto pb-1">
+                {Array.from({ length: totalWeeks }, (_, i) => i + 1).map((week) => (
+                  <button
+                    key={week}
+                    type="button"
+                    onClick={() => setSelectedWeek(week)}
+                    className={`px-2 py-0.5 text-xs rounded transition-all flex-shrink-0 ${
+                      selectedWeek === week
+                        ? 'bg-primary text-white font-semibold'
+                        : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                  >
+                    S{week}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Formulaire (masqué si réduit) */}
             {!isCollapsed && (
               <>
@@ -272,8 +322,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                         <span className="text-xs text-gray-600 mr-auto">série</span>
                         <input
                           type="number"
-                          value={ex.sets}
-                          onChange={(e) => onUpdateExercise(ex.id, 'sets', e.target.value)}
+                          value={weekData.sets}
+                          onChange={(e) => handleWeekFieldChange('sets', e.target.value)}
                           className="w-16 bg-transparent border-none focus:outline-none text-sm text-right"
                         />
                         <button
@@ -351,8 +401,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       {/* Élément d'intensification */}
                       <div className="relative">
                         <select
-                          value={ex.intensification.length > 0 ? ex.intensification[0].value : 'Aucune'}
-                          onChange={(e) => onUpdateExercise(ex.id, 'intensification', e.target.value)}
+                          value={weekData.intensification && weekData.intensification.length > 0 ? weekData.intensification[0].value : 'Aucune'}
+                          onChange={(e) => handleWeekFieldChange('intensification', e.target.value === 'Aucune' ? [] : [{ id: 1, value: e.target.value }])}
                           className="w-full px-3 py-2 border-2 border-primary/20 rounded-xl bg-white text-sm focus:outline-none focus:border-primary/50 appearance-none"
                         >
                           <option value="Aucune">Élément d'intensification</option>
@@ -404,7 +454,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                         <span>Tempo</span>
                         <span>Repos</span>
                       </div>
-                      {(ex.details ?? []).map((detail, detailIndex) => (
+                      {(weekData.details ?? []).map((detail, detailIndex) => (
                         <div key={detailIndex} className="grid grid-cols-5 gap-1.5 mb-1.5">
                           <div className="flex items-center font-semibold text-gray-800">
                             #{detailIndex + 1}
@@ -412,7 +462,11 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                           <Input
                             type="text"
                             value={detail.reps}
-                            onChange={(e) => onUpdateExercise(ex.id, 'reps', e.target.value, detailIndex)}
+                            onChange={(e) => {
+                              const updatedDetails = [...(weekData.details ?? [])];
+                              updatedDetails[detailIndex] = { ...updatedDetails[detailIndex], reps: e.target.value };
+                              handleWeekFieldChange('details', updatedDetails);
+                            }}
                             placeholder="12"
                             className="border-2 border-primary/20 rounded-xl focus:border-primary/50"
                           />
@@ -421,13 +475,27 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                               <Input
                                 type="text"
                                 value={detail.load.value}
-                                onChange={(e) => onUpdateExercise(ex.id, 'load.value', e.target.value, detailIndex)}
+                                onChange={(e) => {
+                                  const updatedDetails = [...(weekData.details ?? [])];
+                                  updatedDetails[detailIndex] = {
+                                    ...updatedDetails[detailIndex],
+                                    load: { ...updatedDetails[detailIndex].load, value: e.target.value }
+                                  };
+                                  handleWeekFieldChange('details', updatedDetails);
+                                }}
                                 placeholder="80"
                                 className="w-16 border-2 border-primary/20 rounded-xl focus:border-primary/50"
                               />
                               <Select
                                 value={detail.load.unit}
-                                onChange={(value) => onUpdateExercise(ex.id, 'load.unit', value, detailIndex)}
+                                onChange={(value) => {
+                                  const updatedDetails = [...(weekData.details ?? [])];
+                                  updatedDetails[detailIndex] = {
+                                    ...updatedDetails[detailIndex],
+                                    load: { ...updatedDetails[detailIndex].load, unit: value as any }
+                                  };
+                                  handleWeekFieldChange('details', updatedDetails);
+                                }}
                                 className="w-16 border-2 border-primary/20 rounded-xl focus:border-primary/50"
                               >
                                 <option value="kg">kg</option>
@@ -445,14 +513,22 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                           <Input
                             type="text"
                             value={detail.tempo}
-                            onChange={(e) => onUpdateExercise(ex.id, 'tempo', e.target.value, detailIndex)}
+                            onChange={(e) => {
+                              const updatedDetails = [...(weekData.details ?? [])];
+                              updatedDetails[detailIndex] = { ...updatedDetails[detailIndex], tempo: e.target.value };
+                              handleWeekFieldChange('details', updatedDetails);
+                            }}
                             placeholder="2010"
                             className="border-2 border-primary/20 rounded-xl focus:border-primary/50"
                           />
                           <Input
                             type="text"
                             value={detail.rest}
-                            onChange={(e) => onUpdateExercise(ex.id, 'rest', e.target.value, detailIndex)}
+                            onChange={(e) => {
+                              const updatedDetails = [...(weekData.details ?? [])];
+                              updatedDetails[detailIndex] = { ...updatedDetails[detailIndex], rest: e.target.value };
+                              handleWeekFieldChange('details', updatedDetails);
+                            }}
                             placeholder="60s"
                             className="border-2 border-primary/20 rounded-xl focus:border-primary/50"
                           />
@@ -468,8 +544,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     Notes / Explications
                   </label>
                   <textarea
-                    value={ex.notes || ''}
-                    onChange={(e) => onUpdateExercise(ex.id, 'notes', e.target.value)}
+                    value={weekData.notes || ''}
+                    onChange={(e) => handleWeekFieldChange('notes', e.target.value)}
                     placeholder="Notes pour le client..." 
                     className="w-full px-1.5 py-1 border-2 border-primary/20 rounded bg-white text-xs focus:outline-none focus:border-primary/50 resize-none"
                     rows={2}

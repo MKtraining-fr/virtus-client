@@ -1166,7 +1166,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
             exercises: s.exercises.map((ex) => {
               if (ex.id !== exerciseId) return ex;
 
-              if (['name', 'exerciseId', 'illustrationUrl', 'notes'].includes(field)) {
+              if (['name', 'exerciseId', 'illustrationUrl', 'notes', 'weekVariations'].includes(field)) {
                 const newEx = { ...ex, [field]: value };
                 if (field === 'name') {
                   newEx.exerciseId = '';
@@ -2201,6 +2201,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   isDragInteractionLocked={isDragInteractionLocked || isCurrentSessionLocked}
                   draggedOverExerciseId={draggedOverExerciseId}
                   exerciseDragItem={exerciseDragItem}
+                  totalWeeks={weekCount}
                   onToggleSelection={isCurrentSessionLocked ? () => {} : toggleExerciseSelection}
                   onUpdateExercise={isCurrentSessionLocked ? () => {} : onUpdateExercise}
                   onDeleteExercise={isCurrentSessionLocked ? () => {} : handleDeleteExercise}

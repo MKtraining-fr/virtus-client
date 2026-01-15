@@ -257,6 +257,22 @@ export interface WorkoutExercise {
     rest: string;
   }>;
   performanceData?: ExercisePerformanceData[];
+  weekVariations?: Record<number, {
+    sets?: number | string;
+    reps?: string;
+    load?: string;
+    tempo?: string;
+    restTime?: string;
+    notes?: string | null;
+    isDetailed?: boolean;
+    details?: Array<{
+      reps: string;
+      load: { value: string; unit: 'kg' | 'lbs' | '%' | '@' };
+      tempo: string;
+      rest: string;
+    }>;
+    intensification?: { id: number; value: string }[];
+  }>;
 }
 
 export interface WorkoutSession {
