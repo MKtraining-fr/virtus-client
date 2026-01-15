@@ -164,6 +164,7 @@ const normalizeWorkoutExercise = (exercise: WorkoutExercise): EditableWorkoutExe
     details: normalizedDetails,
     intensification: Array.isArray(exercise.intensification) ? exercise.intensification : [],
     alternatives: Array.isArray(exercise.alternatives) ? exercise.alternatives : [],
+    weekVariations: exercise.weekVariations || {},
   };
 };
 
@@ -1691,6 +1692,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   intensification: JSON.stringify(normalized.intensification || []),
                   notes: normalized.notes || '',
                   details: JSON.stringify(details),
+                  week_variations: normalized.weekVariations ? JSON.stringify(normalized.weekVariations) : null,
                 };
 
                 if (isEditingClientProgram) {

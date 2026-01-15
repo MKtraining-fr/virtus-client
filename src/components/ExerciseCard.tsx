@@ -5,6 +5,8 @@ import Button from './Button.tsx';
 import Select from './Select.tsx';
 import { Exercise } from '../types.ts';
 import { getExerciseDataForWeek, setExerciseDataForWeek } from '../utils/weekVariations.ts';
+import { DuplicateWeekModal } from './DuplicateWeekModal.tsx';
+import { WeekOverviewPanel } from './WeekOverviewPanel.tsx';
 
 interface WorkoutExercise {
   id: number;
@@ -111,6 +113,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const [showAlternativesModal, setShowAlternativesModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(1);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [isOverviewPanelOpen, setIsOverviewPanelOpen] = useState(false);
 
   // Récupérer les données de la semaine sélectionnée
   const weekData = getExerciseDataForWeek(ex as any, selectedWeek);
@@ -160,6 +164,21 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   // Fonction pour mettre à jour un champ de la semaine sélectionnée
   const handleWeekFieldChange = (field: string, value: any) => {
     const updatedExercise = setExerciseDataForWeek(ex as any, selectedWeek, field, value);
+    onUpdateExercise(ex.id, 'weekVariations', updatedExercise.weekVariations);
+  };
+
+  // Fonction pour dupliquer les modifications vers d'autres semaines
+  const handleDuplicate = (targetWeeks: number[]) => {
+    const currentWeekData = getExerciseDataForWeek(ex as any, selectedWeek);
+    let updatedExercise = { ...ex } as any;
+
+    targetWeeks.forEach(week => {
+      updatedExercise = setExerciseDataForWeek(updatedExercise, week, 'sets', currentWeekData.sets);
+      updatedExercise = setExerciseDataForWeek(updatedExercise, week, 'details', currentWeekData.details);
+      updatedExercise = setExerciseDataForWeek(updatedExercise, week, 'intensification', currentWeekData.intensification);
+      updatedExercise = setExerciseDataForWeek(updatedExercise, week, 'notes', currentWeekData.notes);
+    });
+
     onUpdateExercise(ex.id, 'weekVariations', updatedExercise.weekVariations);
   };
 
@@ -305,6 +324,20 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     S{week}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setIsDuplicateModalOpen(true)}
+                  className="px-2 py-0.5 text-xs rounded bg-green-500 text-white hover:bg-green-600 flex-shrink-0"
+                >
+                  Dupliquer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOverviewPanelOpen(true)}
+                  className="px-2 py-0.5 text-xs rounded bg-purple-500 text-white hover:bg-purple-600 flex-shrink-0"
+                >
+                  Vue globale
+                </button>
               </div>
             )}
 
@@ -556,6 +589,23 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modal de duplication */}
+      <DuplicateWeekModal
+        isOpen={isDuplicateModalOpen}
+        onClose={() => setIsDuplicateModalOpen(false)}
+        currentWeek={selectedWeek}
+        totalWeeks={totalWeeks}
+        onConfirm={handleDuplicate}
+      />
+
+      {/* Panneau latéral de vue globale */}
+      <WeekOverviewPanel
+        isOpen={isOverviewPanelOpen}
+        onClose={() => setIsOverviewPanelOpen(false)}
+        exercise={ex as any}
+        totalWeeks={totalWeeks}
+      />
 
       {/* Modal des alternatives */}
       {showAlternativesModal && (
