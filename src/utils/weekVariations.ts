@@ -18,6 +18,9 @@ interface WorkoutExerciseBase {
     rest: string;
   }>;
   intensification?: { id: number; value: string }[];
+  intensity_technique_id?: string | null;
+  intensity_config?: Record<string, any> | null;
+  intensity_applies_to?: string | null;
   weekVariations?: Record<number, Partial<WorkoutExerciseBase>>;
 }
 
@@ -47,6 +50,9 @@ export function getExerciseDataForWeek<T extends WorkoutExerciseBase>(
     isDetailed: variation.isDetailed ?? exercise.isDetailed,
     details: variation.details ?? exercise.details,
     intensification: variation.intensification ?? exercise.intensification,
+    intensity_technique_id: variation.intensity_technique_id ?? exercise.intensity_technique_id,
+    intensity_config: variation.intensity_config ?? exercise.intensity_config,
+    intensity_applies_to: variation.intensity_applies_to ?? exercise.intensity_applies_to,
   };
 }
 
@@ -112,6 +118,9 @@ export function duplicateWeekData<T extends WorkoutExerciseBase>(
       isDetailed: sourceData.isDetailed,
       details: sourceData.details ? [...sourceData.details] : undefined,
       intensification: sourceData.intensification ? [...sourceData.intensification] : undefined,
+      intensity_technique_id: sourceData.intensity_technique_id,
+      intensity_config: sourceData.intensity_config,
+      intensity_applies_to: sourceData.intensity_applies_to,
     };
   });
 

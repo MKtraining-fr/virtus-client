@@ -39,7 +39,9 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
   const [selectedTechnique, setSelectedTechnique] = useState<IntensityTechnique | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredTechnique, setHoveredTechnique] = useState<IntensityTechnique | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -89,7 +91,20 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
       setSelectedTechnique(null);
     }
     setIsOpen(false);
+    setSearchQuery('');
   };
+
+  const filteredTechniques = techniques.filter(t => 
+    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Focus sur le champ de recherche quand le dropdown s'ouvre
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isOpen]);
 
   const handleConfigChange = (newConfig: Record<string, any> | null) => {
     if (value) {
@@ -135,7 +150,22 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
 
         {/* Liste déroulante */}
         {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white border-2 border-primary/20 rounded-xl shadow-lg max-h-80 overflow-y-auto">
+          <div className="absolute z-50 w-full mt-1 bg-white border-2 border-primary/20 rounded-xl shadow-lg">
+            {/* Champ de recherche */}
+            <div className="p-3 border-b border-gray-200 sticky top-0 bg-white">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rechercher une technique..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+            
+            {/* Liste scrollable */}
+            <div className="max-h-96 overflow-y-auto">
             {/* Option "Aucune" */}
             <div
               onClick={() => handleTechniqueSelect(null)}
@@ -146,7 +176,12 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
             </div>
 
             {/* Liste des techniques */}
-            {techniques.map((technique) => (
+            {filteredTechniques.length === 0 ? (
+              <div className="px-3 py-8 text-center text-gray-500 text-sm">
+                Aucune technique trouvée
+              </div>
+            ) : (
+              filteredTechniques.map((technique) => (
               <div
                 key={technique.id}
                 onClick={() => handleTechniqueSelect(technique)}
@@ -183,18 +218,13 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
                   </div>
                 )}
               </div>
-            ))}
+            )))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Description de la technique sélectionnée */}
-      {selectedTechnique && (
-        <div className="p-3 bg-gray-50 rounded-lg text-sm">
-          <div className="font-semibold text-gray-700 mb-1">Description</div>
-          <div className="text-gray-600">{selectedTechnique.description}</div>
-        </div>
-      )}
+
 
       {/* Sélecteur de semaine d'application */}
       {selectedTechnique && (

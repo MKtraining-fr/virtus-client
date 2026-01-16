@@ -180,6 +180,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       updatedExercise = setExerciseDataForWeek(updatedExercise, week, 'sets', currentWeekData.sets);
       updatedExercise = setExerciseDataForWeek(updatedExercise, week, 'details', currentWeekData.details);
       updatedExercise = setExerciseDataForWeek(updatedExercise, week, 'intensification', currentWeekData.intensification);
+      updatedExercise = setExerciseDataForWeek(updatedExercise, week, 'intensity_technique_id', currentWeekData.intensity_technique_id);
+      updatedExercise = setExerciseDataForWeek(updatedExercise, week, 'intensity_config', currentWeekData.intensity_config);
+      updatedExercise = setExerciseDataForWeek(updatedExercise, week, 'intensity_applies_to', currentWeekData.intensity_applies_to);
       updatedExercise = setExerciseDataForWeek(updatedExercise, week, 'notes', currentWeekData.notes);
     });
 
