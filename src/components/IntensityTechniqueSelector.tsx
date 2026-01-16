@@ -111,11 +111,33 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
         <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
       </div>
 
-      {/* Afficher la description si une technique est sélectionnée */}
+      {/* Sélecteur d'application par semaine */}
       {selectedTechnique && (
-        <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-          <p className="font-medium">{selectedTechnique.name}</p>
-          <p className="mt-1">{selectedTechnique.description}</p>
+        <div className="space-y-2">
+          <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+            <p className="font-medium">{selectedTechnique.name}</p>
+            <p className="mt-1">{selectedTechnique.description}</p>
+          </div>
+          
+          <div className="relative">
+            <select
+              value={appliesTo || 'all_weeks'}
+              onChange={(e) => onChange(selectedTechnique.id, config, e.target.value)}
+              disabled={disabled}
+              className="w-full px-3 py-2 border-2 border-primary/20 rounded-xl bg-white text-sm focus:outline-none focus:border-primary/50 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="all_weeks">Appliquer à toutes les semaines</option>
+              <option value="week_1">Semaine 1 uniquement</option>
+              <option value="week_2">Semaine 2 uniquement</option>
+              <option value="week_3">Semaine 3 uniquement</option>
+              <option value="week_4">Semaine 4 uniquement</option>
+              <option value="week_5">Semaine 5 uniquement</option>
+              <option value="week_6">Semaine 6 uniquement</option>
+              <option value="week_7">Semaine 7 uniquement</option>
+              <option value="week_8">Semaine 8 uniquement</option>
+            </select>
+            <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
         </div>
       )}
 

@@ -5,6 +5,8 @@ import { supabase } from '../../services/supabase';
 interface IntensityTechniqueDisplayProps {
   techniqueId: string | null | undefined;
   config?: Record<string, any> | null;
+  appliesTo?: string | null;
+  currentWeek?: number;
   className?: string;
   collapsible?: boolean;
 }
@@ -25,6 +27,8 @@ const ChevronDownIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 const IntensityTechniqueDisplay: React.FC<IntensityTechniqueDisplayProps> = ({
   techniqueId,
   config,
+  appliesTo,
+  currentWeek,
   className = '',
   collapsible = true,
 }) => {
@@ -74,6 +78,14 @@ const IntensityTechniqueDisplay: React.FC<IntensityTechniqueDisplayProps> = ({
 
   if (!technique) {
     return null;
+  }
+
+  // Vérifier si la technique s'applique à la semaine actuelle
+  if (appliesTo && currentWeek) {
+    const techniqueApplies = appliesTo === 'all_weeks' || appliesTo === `week_${currentWeek}`;
+    if (!techniqueApplies) {
+      return null;
+    }
   }
 
   if (collapsible) {

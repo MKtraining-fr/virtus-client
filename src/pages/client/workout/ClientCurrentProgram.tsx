@@ -690,6 +690,8 @@ const ClientCurrentProgram: React.FC = () => {
           <IntensityTechniqueDisplay
             techniqueId={currentExercise.intensity_technique_id}
             config={currentExercise.intensity_config}
+            appliesTo={currentExercise.intensity_applies_to}
+            currentWeek={currentWeek}
             collapsible={true}
           />
         )}
@@ -730,8 +732,13 @@ const ClientCurrentProgram: React.FC = () => {
                 'type' in currentExercise.intensity_config &&
                 ['drop_set', 'rest_pause', 'myo_reps', 'cluster_set', 'tempo'].includes((currentExercise.intensity_config as any).type);
 
-              // Si technique adaptative, utiliser AdaptiveSetInput
-              if (hasAdaptiveTechnique) {
+              // Vérifier si la technique s'applique à la semaine actuelle
+              const techniqueApplies = !currentExercise.intensity_applies_to || 
+                currentExercise.intensity_applies_to === 'all_weeks' ||
+                currentExercise.intensity_applies_to === `week_${currentWeek}`;
+
+              // Si technique adaptative ET qu'elle s'applique à cette semaine, utiliser AdaptiveSetInput
+              if (hasAdaptiveTechnique && techniqueApplies) {
                 return (
                   <AdaptiveSetInput
                     key={setIndex}
