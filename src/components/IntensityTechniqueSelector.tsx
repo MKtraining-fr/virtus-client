@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import type { IntensityTechnique } from '../types/intensityTechnique';
+import type { IntensityConfig } from '../types/intensityConfig';
 import { getAllTechniques } from '../services/intensityTechniqueService';
 import { useAuth } from '../context/AuthContext';
+import IntensityTechniqueConfigurator from './IntensityTechniqueConfigurator';
 
 interface IntensityTechniqueSelectorProps {
   value: string | null | undefined;
@@ -70,9 +72,8 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
     } else {
       const technique = techniques.find((t) => t.id === techniqueId);
       if (technique) {
-        // Initialiser la config par défaut si nécessaire
-        const defaultConfig = technique.adaptation_type === 'extra_fields' ? {} : null;
-        onChange(techniqueId, defaultConfig, 'all_weeks');
+        // La config sera initialisée par le configurateur si nécessaire
+        onChange(techniqueId, null, 'all_weeks');
       }
     }
   };
@@ -115,12 +116,17 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
         <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
           <p className="font-medium">{selectedTechnique.name}</p>
           <p className="mt-1">{selectedTechnique.description}</p>
-          {selectedTechnique.adaptation_type === 'extra_fields' && (
-            <p className="mt-1 text-orange-600 font-medium">
-              ⚠️ Configuration requise (à implémenter)
-            </p>
-          )}
         </div>
+      )}
+
+      {/* Afficher le configurateur si la technique nécessite une configuration */}
+      {selectedTechnique && selectedTechnique.adaptation_type === 'extra_fields' && (
+        <IntensityTechniqueConfigurator
+          technique={selectedTechnique}
+          config={config as IntensityConfig | null}
+          onChange={(newConfig) => onChange(selectedTechnique.id, newConfig, appliesTo || 'all_weeks')}
+          disabled={disabled}
+        />
       )}
     </div>
   );
