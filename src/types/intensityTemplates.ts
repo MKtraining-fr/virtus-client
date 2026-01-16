@@ -78,12 +78,9 @@ export const INTENSITY_TEMPLATES: Record<TemplateType, TemplateDefinition> = {
       {
         key: 'angle',
         label: 'Angle articulaire',
-        type: 'number',
-        unit: 'degrés',
-        min: 0,
-        max: 180,
-        step: 5,
-        placeholder: 'Ex: 90'
+        type: 'text',
+        unit: 'degrés ou description',
+        placeholder: 'Ex: 90 ou "parallèle"'
       }
     ],
     useCases: [
@@ -111,12 +108,9 @@ export const INTENSITY_TEMPLATES: Record<TemplateType, TemplateDefinition> = {
       {
         key: 'angle',
         label: 'Angle articulaire',
-        type: 'number',
-        unit: 'degrés',
-        min: 0,
-        max: 180,
-        step: 5,
-        placeholder: 'Ex: 90'
+        type: 'text',
+        unit: 'degrés ou description',
+        placeholder: 'Ex: 90 ou "parallèle"'
       }
     ],
     useCases: [
@@ -227,12 +221,9 @@ export const INTENSITY_TEMPLATES: Record<TemplateType, TemplateDefinition> = {
       {
         key: 'angle',
         label: 'Angle articulaire',
-        type: 'number',
-        unit: 'degrés',
-        min: 0,
-        max: 180,
-        step: 5,
-        placeholder: 'Ex: 90'
+        type: 'text',
+        unit: 'degrés ou description',
+        placeholder: 'Ex: 90 ou "parallèle"'
       }
     ],
     useCases: [
@@ -251,12 +242,12 @@ export interface DurationConfig {
 }
 
 export interface AngleConfig {
-  angle: number; // en degrés
+  angle: string; // en degrés ou description textuelle
 }
 
 export interface DurationAngleConfig {
   duration: number; // en secondes
-  angle: number; // en degrés
+  angle: string; // en degrés ou description textuelle
 }
 
 export interface ProgressionConfig {
@@ -271,7 +262,7 @@ export interface IsoOvercomingConfig {
   iso_duration: number;
   rest_between_sets: number;
   rest_between_reps: number;
-  angle: number;
+  angle: string; // en degrés ou description textuelle
 }
 
 export type TemplateConfig = 
