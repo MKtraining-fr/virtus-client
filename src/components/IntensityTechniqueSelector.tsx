@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { IntensityTechnique } from '../types/intensityTechnique';
 import type { IntensityConfig } from '../types/intensityConfig';
 import { getAllTechniques } from '../services/intensityTechniqueService';
 import { useAuth } from '../context/AuthContext';
 import IntensityTechniqueConfigModal from './IntensityTechniqueConfigModal';
+import IntensityTechniqueSelectionModal from './IntensityTechniqueSelectionModal';
 
 interface IntensityTechniqueSelectorProps {
   value: string | null | undefined;
@@ -37,14 +38,8 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
   const [techniques, setTechniques] = useState<IntensityTechnique[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTechnique, setSelectedTechnique] = useState<IntensityTechnique | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [hoveredTechnique, setHoveredTechnique] = useState<IntensityTechnique | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -60,18 +55,6 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
       setSelectedTechnique(null);
     }
   }, [value, techniques]);
-
-  // Fermer le dropdown si on clique à l'extérieur
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const loadTechniques = async () => {
     try {
@@ -93,33 +76,7 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
       onChange(null, null, null);
       setSelectedTechnique(null);
     }
-    setIsOpen(false);
-    setSearchQuery('');
   };
-
-  const filteredTechniques = techniques.filter(t => 
-    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Focus sur le champ de recherche quand le dropdown s'ouvre
-  useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isOpen]);
-
-  // Calculer la position du dropdown
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-      });
-    }
-  }, [isOpen]);
 
   const handleConfigChange = (newConfig: Record<string, any> | null) => {
     if (value) {
@@ -145,107 +102,33 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Dropdown personnalisé */}
-      <div className="relative" ref={dropdownRef}>
+      {/* Bouton pour ouvrir le modal */}
+      <div>
         <button
-          ref={buttonRef}
           type="button"
-          onClick={() => !disabled && setIsOpen(!isOpen)}
+          onClick={() => !disabled && setIsSelectionModalOpen(true)}
           disabled={disabled}
           className={`w-full px-3 py-2 border-2 rounded-xl text-sm text-left flex items-center justify-between ${
             disabled
-              ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
-              : 'bg-white border-primary/20 hover:border-primary/40 cursor-pointer'
+              ? 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-white dark:bg-gray-800 border-primary/20 hover:border-primary/40 cursor-pointer'
           }`}
         >
-          <span className={selectedTechnique ? 'text-gray-900' : 'text-gray-400'}>
+          <span className={selectedTechnique ? 'text-gray-900 dark:text-white' : 'text-gray-400'}>
             {selectedTechnique ? selectedTechnique.name : 'Sélectionner une technique'}
           </span>
-          <ChevronDownIcon className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDownIcon className="w-5 h-5 text-gray-400" />
         </button>
-
-        {/* Liste déroulante */}
-        {isOpen && dropdownPosition && (
-          <div 
-            className="fixed z-[100] bg-white border-2 border-primary/20 rounded-xl shadow-lg"
-            style={{
-              top: `${dropdownPosition.top}px`,
-              left: `${dropdownPosition.left}px`,
-              width: `${dropdownPosition.width}px`,
-            }}
-          >
-            {/* Champ de recherche */}
-            <div className="p-3 border-b border-gray-200 sticky top-0 bg-white">
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher une technique..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-            
-            {/* Liste scrollable */}
-            <div className="max-h-96 overflow-y-auto">
-            {/* Option "Aucune" */}
-            <div
-              onClick={() => handleTechniqueSelect(null)}
-              className="px-3 py-2 hover:bg-primary/5 cursor-pointer border-b border-gray-100"
-            >
-              <div className="font-medium text-gray-900">Aucune technique</div>
-              <div className="text-xs text-gray-500 mt-0.5">Retirer la technique d'intensification</div>
-            </div>
-
-            {/* Liste des techniques */}
-            {filteredTechniques.length === 0 ? (
-              <div className="px-3 py-8 text-center text-gray-500 text-sm">
-                Aucune technique trouvée
-              </div>
-            ) : (
-              filteredTechniques.map((technique) => (
-              <div
-                key={technique.id}
-                onClick={() => handleTechniqueSelect(technique)}
-                onMouseEnter={() => setHoveredTechnique(technique)}
-                onMouseLeave={() => setHoveredTechnique(null)}
-                className={`px-3 py-2 hover:bg-primary/5 cursor-pointer border-b border-gray-100 last:border-b-0 ${
-                  value === technique.id ? 'bg-primary/10' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">{technique.name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">{technique.description}</div>
-                  </div>
-                  <div className="flex gap-1 ml-2 flex-shrink-0">
-                    {!technique.is_public && (
-                      <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded">
-                        Perso
-                      </span>
-                    )}
-                    {technique.adaptation_type === 'extra_fields' && (
-                      <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">
-                        Config
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Tooltip au survol */}
-                {hoveredTechnique?.id === technique.id && (
-                  <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
-                    <div className="font-semibold text-gray-700 mb-1">Protocole :</div>
-                    <div className="text-gray-600 whitespace-pre-wrap">{technique.protocol}</div>
-                  </div>
-                )}
-              </div>
-            )))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Modal de sélection */}
+      <IntensityTechniqueSelectionModal
+        isOpen={isSelectionModalOpen}
+        onClose={() => setIsSelectionModalOpen(false)}
+        techniques={techniques}
+        selectedTechniqueId={value}
+        onSelect={handleTechniqueSelect}
+      />
 
 
 
@@ -296,12 +179,10 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
             type="text"
             placeholder="Ex: 1,2,8"
             disabled={disabled}
-            className="w-full px-3 py-2 border-2 border-primary/20 rounded-xl text-sm focus:outline-none focus:border-primary"
+            className="w-full px-3 py-2 border-2 border-primary/20 rounded-xl text-sm focus:outline-none focus:border-primary dark:bg-gray-700 dark:text-white"
           />
         </div>
       )}
-
-
 
       {/* Modal de configuration */}
       {selectedTechnique && selectedTechnique.adaptation_type === 'extra_fields' && selectedTechnique.config_schema && (
