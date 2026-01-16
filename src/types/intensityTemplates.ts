@@ -165,29 +165,9 @@ export const INTENSITY_TEMPLATES: Record<TemplateType, TemplateDefinition> = {
 
   iso_overcoming: {
     id: 'iso_overcoming',
-    name: 'Iso Overcoming Complet',
-    description: 'Configuration complète pour isométrie surmontante',
+    name: 'Iso Overcoming',
+    description: 'Configuration pour isométrie surmontante (séries/reps déjà dans l\'exercice)',
     fields: [
-      {
-        key: 'sets',
-        label: 'Nombre de séries',
-        type: 'number',
-        unit: 'séries',
-        min: 1,
-        max: 10,
-        step: 1,
-        placeholder: 'Ex: 3'
-      },
-      {
-        key: 'reps',
-        label: 'Nombre de répétitions',
-        type: 'number',
-        unit: 'reps',
-        min: 1,
-        max: 20,
-        step: 1,
-        placeholder: 'Ex: 5'
-      },
       {
         key: 'iso_duration',
         label: 'Temps d\'isométrie',
@@ -197,16 +177,6 @@ export const INTENSITY_TEMPLATES: Record<TemplateType, TemplateDefinition> = {
         max: 60,
         step: 1,
         placeholder: 'Ex: 8'
-      },
-      {
-        key: 'rest_between_sets',
-        label: 'Repos entre séries',
-        type: 'number',
-        unit: 'secondes',
-        min: 30,
-        max: 600,
-        step: 10,
-        placeholder: 'Ex: 180'
       },
       {
         key: 'rest_between_reps',
@@ -257,11 +227,8 @@ export interface ProgressionConfig {
 }
 
 export interface IsoOvercomingConfig {
-  sets: number;
-  reps: number;
-  iso_duration: number;
-  rest_between_sets: number;
-  rest_between_reps: number;
+  iso_duration: number; // en secondes
+  rest_between_reps: number; // en secondes
   angle: string; // en degrés ou description textuelle
 }
 
