@@ -47,6 +47,40 @@ export const WeekOverviewPanel: React.FC<WeekOverviewPanelProps> = ({
     };
   };
 
+  // Fonction pour obtenir une plage de valeurs ou une valeur unique
+  const getValueRange = (details: any[], field: 'reps' | 'load' | 'tempo' | 'rest') => {
+    if (!details || details.length === 0) return '-';
+    
+    if (field === 'load') {
+      const loads = details.map(d => d.load?.value).filter(v => v !== undefined && v !== '');
+      if (loads.length === 0) return '-';
+      
+      const uniqueLoads = [...new Set(loads)];
+      if (uniqueLoads.length === 1) {
+        const unit = details[0].load?.unit || 'kg';
+        return `${uniqueLoads[0]} ${unit}`;
+      }
+      
+      const numericLoads = loads.map(l => parseFloat(l)).filter(n => !isNaN(n));
+      if (numericLoads.length === 0) return loads.join(', ');
+      
+      const min = Math.min(...numericLoads);
+      const max = Math.max(...numericLoads);
+      const unit = details[0].load?.unit || 'kg';
+      return `${min}-${max} ${unit}`;
+    }
+    
+    const values = details.map(d => d[field]).filter(v => v !== undefined && v !== '');
+    if (values.length === 0) return '-';
+    
+    const uniqueValues = [...new Set(values)];
+    if (uniqueValues.length === 1) {
+      return uniqueValues[0];
+    }
+    
+    return `${values[0]}-${values[values.length - 1]}`;
+  };
+
   return (
     <div
       className={`fixed top-0 right-0 h-full bg-white dark:bg-gray-800 shadow-2xl z-50 transition-transform duration-300 ${
@@ -101,13 +135,6 @@ export const WeekOverviewPanel: React.FC<WeekOverviewPanelProps> = ({
             <tbody>
               {Array.from({ length: totalWeeks }, (_, i) => i + 1).map((week) => {
                 const weekData = getWeekData(week);
-                const mainDetail = weekData.details[0] || {
-                  reps: '',
-                  load: { value: '', unit: 'kg' },
-                  tempo: '',
-                  rest: '',
-                };
-
                 const isModified = week !== 1 && exercise.weekVariations && exercise.weekVariations[week];
 
                 return (
@@ -129,18 +156,16 @@ export const WeekOverviewPanel: React.FC<WeekOverviewPanelProps> = ({
                       {weekData.sets}
                     </td>
                     <td className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-gray-600 dark:text-gray-400">
-                      {mainDetail.reps}
+                      {getValueRange(weekData.details, 'reps')}
                     </td>
                     <td className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-gray-600 dark:text-gray-400">
-                      {mainDetail.load?.value
-                        ? `${mainDetail.load.value} ${mainDetail.load.unit || 'kg'}`
-                        : '-'}
+                      {getValueRange(weekData.details, 'load')}
                     </td>
                     <td className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-gray-600 dark:text-gray-400">
-                      {mainDetail.tempo || '-'}
+                      {getValueRange(weekData.details, 'tempo')}
                     </td>
                     <td className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-gray-600 dark:text-gray-400">
-                      {mainDetail.rest || '-'}
+                      {getValueRange(weekData.details, 'rest')}
                     </td>
                   </tr>
                 );
