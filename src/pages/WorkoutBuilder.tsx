@@ -163,6 +163,9 @@ const normalizeWorkoutExercise = (exercise: WorkoutExercise): EditableWorkoutExe
     sets: exercise.sets ?? String(normalizedDetails.length),
     details: normalizedDetails,
     intensification: Array.isArray(exercise.intensification) ? exercise.intensification : [],
+    intensity_technique_id: exercise.intensity_technique_id ?? null,
+    intensity_config: exercise.intensity_config ?? null,
+    intensity_applies_to: exercise.intensity_applies_to ?? null,
     alternatives: Array.isArray(exercise.alternatives) ? exercise.alternatives : [],
     weekVariations: exercise.weekVariations || {},
   };
@@ -333,6 +336,9 @@ const deepCloneExercise = (exercise: EditableWorkoutExercise, newId: number): Ed
   })),
   // Cloner profondément les intensifications
   intensification: exercise.intensification ? exercise.intensification.map((int) => ({ ...int })) : [],
+  intensity_technique_id: exercise.intensity_technique_id ?? null,
+  intensity_config: exercise.intensity_config ? { ...exercise.intensity_config } : null,
+  intensity_applies_to: exercise.intensity_applies_to ?? null,
   // Cloner profondément les alternatives
   alternatives: exercise.alternatives ? exercise.alternatives.map((alt) => ({ ...alt })) : [],
 });
@@ -1263,6 +1269,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         { reps: '12', load: { value: '', unit: 'kg' }, tempo: '2010', rest: '60s' },
       ],
       intensification: [],
+      intensity_technique_id: null,
+      intensity_config: null,
+      intensity_applies_to: null,
       alternatives: [],
     };
     setSessionsByWeek((prev) => {
@@ -1315,6 +1324,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       isDetailed: false,
       details: newDetails,
       intensification: [],
+      intensity_technique_id: null,
+      intensity_config: null,
+      intensity_applies_to: null,
       alternatives: [],
     };
     
@@ -1690,6 +1702,9 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   tempo: mainDetail.tempo || '',
                   rest_time: mainDetail.rest || '',
                   intensification: JSON.stringify(normalized.intensification || []),
+                  intensity_technique_id: normalized.intensity_technique_id || null,
+                  intensity_config: normalized.intensity_config ? JSON.stringify(normalized.intensity_config) : null,
+                  intensity_applies_to: normalized.intensity_applies_to || null,
                   notes: normalized.notes || '',
                   details: JSON.stringify(details),
                   week_variations: normalized.weekVariations ? JSON.stringify(normalized.weekVariations) : null,

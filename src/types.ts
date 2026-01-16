@@ -247,6 +247,9 @@ export interface WorkoutExercise {
   tempo: string;
   restTime: string;
   intensification: { id: number; value: string }[];
+  intensity_technique_id?: string | null;
+  intensity_config?: Record<string, any> | null;
+  intensity_applies_to?: string | null;
   alternatives?: { id: string; name: string; illustrationUrl: string }[];
   notes?: string | null;
   isDetailed?: boolean;
@@ -272,6 +275,9 @@ export interface WorkoutExercise {
       rest: string;
     }>;
     intensification?: { id: number; value: string }[];
+    intensity_technique_id?: string | null;
+    intensity_config?: Record<string, any> | null;
+    intensity_applies_to?: string | null;
   }>;
 }
 

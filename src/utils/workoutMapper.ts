@@ -133,6 +133,11 @@ export const mapSessionExerciseToWorkoutExercise = (
     isDetailed: parsedDetails && Array.isArray(parsedDetails) && parsedDetails.length > 0,
     details,
     intensification: sessionExercise.intensification || [],
+    intensity_technique_id: sessionExercise.intensity_technique_id || null,
+    intensity_config: typeof sessionExercise.intensity_config === 'string' 
+      ? JSON.parse(sessionExercise.intensity_config) 
+      : sessionExercise.intensity_config || null,
+    intensity_applies_to: sessionExercise.intensity_applies_to || null,
     notes: sessionExercise.notes || null,
     alternatives: sessionExercise.alternatives || [],
   };

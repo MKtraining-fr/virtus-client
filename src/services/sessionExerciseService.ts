@@ -16,6 +16,9 @@ export interface SessionExerciseData {
   tempo?: string;
   rest_time?: string;
   intensification?: string;
+  intensity_technique_id?: string | null;
+  intensity_config?: string | null; // JSONB stringifié
+  intensity_applies_to?: string | null;
   notes?: string;
   details?: string; // JSONB stringifié contenant les détails par série
 }

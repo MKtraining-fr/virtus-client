@@ -4,6 +4,7 @@ import Input from './Input.tsx';
 import Button from './Button.tsx';
 import Select from './Select.tsx';
 import { Exercise } from '../types.ts';
+import IntensityTechniqueSelector from './IntensityTechniqueSelector.tsx';
 import { getExerciseDataForWeek, setExerciseDataForWeek } from '../utils/weekVariations.ts';
 import { DuplicateWeekModal } from './DuplicateWeekModal.tsx';
 import { WeekOverviewPanel } from './WeekOverviewPanel.tsx';
@@ -22,6 +23,9 @@ interface WorkoutExercise {
     rest: string;
   }>;
   intensification: Array<{ id: number; value: string }>;
+  intensity_technique_id?: string | null;
+  intensity_config?: Record<string, any> | null;
+  intensity_applies_to?: string | null;
   alternatives: Array<{ id: string; name: string }>;
   notes?: string;
 }
@@ -432,25 +436,23 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       </div>
 
                       {/* Élément d'intensification */}
-                      <div className="relative">
-                        <select
-                          value={weekData.intensification && weekData.intensification.length > 0 ? weekData.intensification[0].value : 'Aucune'}
-                          onChange={(e) => handleWeekFieldChange('intensification', e.target.value === 'Aucune' ? [] : [{ id: 1, value: e.target.value }])}
-                          className="w-full px-3 py-2 border-2 border-primary/20 rounded-xl bg-white text-sm focus:outline-none focus:border-primary/50 appearance-none"
-                        >
-                          <option value="Aucune">Élément d'intensification</option>
-                          <option value="Dégressif">Dégressif</option>
-                          <option value="Superset">Superset</option>
-                          <option value="Dropset">Dropset</option>
-                          <option value="Rest-Pause">Rest-Pause</option>
-                          <option value="Myo-reps">Myo-reps</option>
-                          <option value="Cluster">Cluster</option>
-                          <option value="Partielles">Partielles</option>
-                          <option value="Tempo">Tempo</option>
-                          <option value="Isometric">Isometric</option>
-                        </select>
-                        <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                      </div>
+                      <IntensityTechniqueSelector
+                        value={weekData.intensity_technique_id}
+                        config={weekData.intensity_config}
+                        appliesTo={weekData.intensity_applies_to}
+                        onChange={(techniqueId, config, appliesTo) => {
+                          handleWeekFieldChange('intensity_technique_id', techniqueId);
+                          handleWeekFieldChange('intensity_config', config);
+                          handleWeekFieldChange('intensity_applies_to', appliesTo);
+                          // Maintenir la compatibilité avec l'ancien système
+                          if (techniqueId) {
+                            handleWeekFieldChange('intensification', [{ id: 1, value: techniqueId }]);
+                          } else {
+                            handleWeekFieldChange('intensification', []);
+                          }
+                        }}
+                        disabled={isDetailedMode}
+                      />
 
                       {/* Repos */}
                       <div className="flex items-center border-2 border-primary/20 rounded bg-white px-1.5 py-1 transition-all focus-within:border-primary/50">
