@@ -47,7 +47,7 @@ export const WeekOverviewPanel: React.FC<WeekOverviewPanelProps> = ({
     };
   };
 
-  // Fonction pour obtenir une plage de valeurs ou une valeur unique
+  // Fonction pour obtenir la séquence complète des valeurs
   const getValueRange = (details: any[], field: 'reps' | 'load' | 'tempo' | 'rest') => {
     if (!details || details.length === 0) return '-';
     
@@ -61,13 +61,9 @@ export const WeekOverviewPanel: React.FC<WeekOverviewPanelProps> = ({
         return `${uniqueLoads[0]} ${unit}`;
       }
       
-      const numericLoads = loads.map(l => parseFloat(l)).filter(n => !isNaN(n));
-      if (numericLoads.length === 0) return loads.join(', ');
-      
-      const min = Math.min(...numericLoads);
-      const max = Math.max(...numericLoads);
+      // Afficher la séquence complète avec flèches
       const unit = details[0].load?.unit || 'kg';
-      return `${min}-${max} ${unit}`;
+      return `${loads.join('→')} ${unit}`;
     }
     
     const values = details.map(d => d[field]).filter(v => v !== undefined && v !== '');
@@ -78,7 +74,8 @@ export const WeekOverviewPanel: React.FC<WeekOverviewPanelProps> = ({
       return uniqueValues[0];
     }
     
-    return `${values[0]}-${values[values.length - 1]}`;
+    // Afficher la séquence complète avec flèches
+    return values.join('→');
   };
 
   return (
