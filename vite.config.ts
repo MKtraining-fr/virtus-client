@@ -28,17 +28,45 @@ export default defineConfig({
     // Chunking stratégique pour un meilleur caching
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks(id) {
           // Vendor chunks
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'supabase-vendor': ['@supabase/supabase-js'],
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@supabase')) {
+              return 'supabase-vendor';
+            }
+            if (id.includes('chart.js') || id.includes('recharts')) {
+              return 'charts-vendor';
+            }
+            if (id.includes('@heroicons') || id.includes('lucide')) {
+              return 'icons-vendor';
+            }
+            if (id.includes('@daily-co')) {
+              return 'daily-vendor';
+            }
+            // Autres dépendances dans un chunk séparé
+            return 'vendor';
+          }
+          
+          // Séparer les layouts
+          if (id.includes('/src/layouts/') || id.includes('/src/pages/')) {
+            if (id.includes('Coach')) return 'coach';
+            if (id.includes('Client')) return 'client';
+            if (id.includes('Admin')) return 'admin';
+          }
         },
       },
     },
     
     // Optimisation des assets
     assetsInlineLimit: 4096, // Inline les assets < 4kb
-    chunkSizeWarningLimit: 1000, // Warning si chunk > 1000kb
+    chunkSizeWarningLimit: 500, // Warning si chunk > 500kb
+    
+    // Optimisations supplémentaires
+    sourcemap: false, // Désactiver les sourcemaps en production
+    cssCodeSplit: true, // Séparer le CSS en chunks
   },
 
   // Optimisation du serveur de développement
