@@ -13,6 +13,7 @@ import { archiveMultipleExercises } from '../services/exerciseArchiveService';
 import { createExercise } from '../services/exerciseService';
 import { uploadExerciseImage } from '../services/imageStorageService';
 import { supabase } from '../services/supabase';
+import IntensityTechniquesTab from '../components/IntensityTechniquesTab';
 
 const EQUIPMENT_TYPES = [
   'Non spécifié',
@@ -577,7 +578,7 @@ const WorkoutDatabase: React.FC = () => {
       .filter((ex): ex is Exercise => !!ex);
   }, [selectedExercise, exercises]);
 
-  const categories = ['All', 'Musculation', 'Mobilité', 'Échauffement'];
+  const categories = ['All', 'Musculation', 'Mobilité', 'Échauffement', 'Techniques'];
 
   return (
     <div>
@@ -774,8 +775,11 @@ const WorkoutDatabase: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredExercises.map((exercise) => (
+      {filter === 'Techniques' ? (
+        <IntensityTechniquesTab />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredExercises.map((exercise) => (
           <Card
             key={exercise.id}
             onClick={() =>
@@ -876,8 +880,9 @@ const WorkoutDatabase: React.FC = () => {
               </div>
             </div>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* View Exercise Modal */}
       {selectedExercise && (
