@@ -34,11 +34,7 @@ import {
   TrophyIcon,
   VideoCameraIcon,
 } from '../../../constants/icons';
-
-const INTENSIFICATION_DEFINITIONS: Record<string, string> = {
-  'Drop Set':
-    "Technique consistant à effectuer une série jusqu'à l'échec, puis à réduire immédiatement le poids et à continuer avec plus de répétitions jusqu'à l'échec à nouveau.",
-};
+import IntensityTechniqueDisplay from '../../../components/client/IntensityTechniqueDisplay';
 
 const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tempo' | 'rest') => {
   if (!details || details.length === 0) return 'N/A';
@@ -614,8 +610,6 @@ const ClientCurrentProgram: React.FC = () => {
   if (!currentExercise) return <div className="text-center py-10">Séance vide.</div>;
 
   const totalSets = Math.max(0, parseInt(currentExercise.sets, 10) || 0);
-  const technique = currentExercise?.intensification?.[0]?.value;
-  const definition = technique ? INTENSIFICATION_DEFINITIONS[technique] : undefined;
 
   return (
     <div className="relative pb-20">
@@ -690,14 +684,12 @@ const ClientCurrentProgram: React.FC = () => {
           </div>
         )}
 
-        {technique && definition && (
-          <div className="relative">
-            <button onClick={() => setDefinitionVisible(!isDefinitionVisible)} className="w-full bg-gray-100 dark:bg-client-dark text-gray-500 font-semibold py-2.5 px-4 rounded-md text-left flex justify-between items-center">
-              <span>Technique : <strong>{technique}</strong></span>
-              <ChevronDownIcon className={`w-4 h-4 transition-transform ${isDefinitionVisible ? 'rotate-180' : ''}`} />
-            </button>
-            {isDefinitionVisible && <div className="p-3 mt-1 bg-gray-100 rounded-md text-sm text-gray-500">{definition}</div>}
-          </div>
+        {currentExercise.intensity_technique_id && (
+          <IntensityTechniqueDisplay
+            techniqueId={currentExercise.intensity_technique_id}
+            config={currentExercise.intensity_config}
+            collapsible={true}
+          />
         )}
 
         <div className="pt-2">
