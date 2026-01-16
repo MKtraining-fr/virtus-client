@@ -35,6 +35,8 @@ import {
   VideoCameraIcon,
 } from '../../../constants/icons';
 import IntensityTechniqueDisplay from '../../../components/client/IntensityTechniqueDisplay';
+import AdaptiveSetInput from '../../../components/client/AdaptiveSetInput';
+import type { IntensityConfig } from '../../../types/intensityConfig';
 
 const getDisplayValue = (details: WorkoutExercise['details'], key: 'reps' | 'tempo' | 'rest') => {
   if (!details || details.length === 0) return 'N/A';
@@ -722,20 +724,49 @@ const ClientCurrentProgram: React.FC = () => {
                 }
               }
 
+              // Vérifier si l'exercice a une technique adaptative
+              const hasAdaptiveTechnique = currentExercise.intensity_config && 
+                typeof currentExercise.intensity_config === 'object' &&
+                'type' in currentExercise.intensity_config &&
+                ['drop_set', 'rest_pause', 'myo_reps', 'cluster_set', 'tempo'].includes((currentExercise.intensity_config as any).type);
+
+              // Si technique adaptative, utiliser AdaptiveSetInput
+              if (hasAdaptiveTechnique) {
+                return (
+                  <AdaptiveSetInput
+                    key={setIndex}
+                    setIndex={setIndex}
+                    exerciseId={currentExercise.id}
+                    config={currentExercise.intensity_config as IntensityConfig}
+                    logData={logData[exerciseKey]?.[setIndex]}
+                    targetReps={targetReps}
+                    targetLoad={targetLoad}
+                    placeholder={setPlaceholder}
+                    isSelected={isSetSelected}
+                    onLogChange={handleLogChange}
+                    onSetSelect={setActiveSetIndex}
+                    onCommentClick={handleOpenCommentModal}
+                    hasComment={!!logData[exerciseKey]?.[setIndex]?.comment}
+                    loadUnit={loadUnit}
+                  />
+                );
+              }
+
+              // Sinon, affichage standard
               return (
                 <div key={setIndex} className={`flex items-center p-2 rounded-lg cursor-pointer ${isSetSelected ? 'bg-primary' : ''}`} onClick={() => setActiveSetIndex(setIndex)}>
-                  <p className={`flex-none w-1/4 text-center font-bold text-lg ${isSetSelected ? 'text-white' : 'text-gray-500'}`}>S{setIndex + 1}</p>
+                  <p className={`flex-none w-1/4 text-center font-bold text-lg ${isSetSelected ? 'text-white' : 'text-gray-500 dark:text-client-subtle'}`}>S{setIndex + 1}</p>
                   <div className="flex-1 px-1">
-                    <input type="number" placeholder={targetReps !== '0' ? targetReps : (setPlaceholder?.reps || '0')} value={repValue} onChange={(e) => handleLogChange(currentExercise.id, setIndex, 'reps', e.target.value)} onFocus={() => setActiveSetIndex(setIndex)} className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : `bg-white ${getProgressionColor(repValue, setPlaceholder?.reps)}`}`} onClick={(e) => e.stopPropagation()} />
+                    <input type="number" placeholder={targetReps !== '0' ? targetReps : (setPlaceholder?.reps || '0')} value={repValue} onChange={(e) => handleLogChange(currentExercise.id, setIndex, 'reps', e.target.value)} onFocus={() => setActiveSetIndex(setIndex)} className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : `bg-white dark:bg-client-card dark:text-client-light ${getProgressionColor(repValue, setPlaceholder?.reps)}`}`} onClick={(e) => e.stopPropagation()} />
                   </div>
                   <div className="flex-1 px-1">
-                    <input type="number" placeholder={targetLoad !== '0' ? targetLoad : (setPlaceholder?.load || '0')} value={loadValue} onChange={(e) => handleLogChange(currentExercise.id, setIndex, 'load', e.target.value)} onFocus={() => setActiveSetIndex(setIndex)} className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : `bg-white ${getProgressionColor(loadValue, setPlaceholder?.load)}`}`} onClick={(e) => e.stopPropagation()} />
+                    <input type="number" placeholder={targetLoad !== '0' ? targetLoad : (setPlaceholder?.load || '0')} value={loadValue} onChange={(e) => handleLogChange(currentExercise.id, setIndex, 'load', e.target.value)} onFocus={() => setActiveSetIndex(setIndex)} className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${isSetSelected ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70' : `bg-white dark:bg-client-card dark:text-client-light ${getProgressionColor(loadValue, setPlaceholder?.load)}`}`} onClick={(e) => e.stopPropagation()} />
                   </div>
                   <div className="flex-none w-10 text-center pl-1">
                     {isSetSelected ? (
                       <button onClick={(e) => { e.stopPropagation(); handleOpenCommentModal(currentExercise.id, setIndex); }} className="p-1 rounded-full text-white/80 hover:bg-white/20"><PencilIcon className="w-5 h-5" /></button>
                     ) : (
-                      logData[exerciseKey]?.[setIndex]?.comment && <ChatBubbleLeftIcon className="w-5 h-5 text-gray-500 mx-auto" />
+                      logData[exerciseKey]?.[setIndex]?.comment && <ChatBubbleLeftIcon className="w-5 h-5 text-gray-500 dark:text-client-subtle mx-auto" />
                     )}
                   </div>
                 </div>
