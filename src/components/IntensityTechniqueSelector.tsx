@@ -40,7 +40,9 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredTechnique, setHoveredTechnique] = useState<IntensityTechnique | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -106,6 +108,18 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
     }
   }, [isOpen]);
 
+  // Calculer la position du dropdown
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [isOpen]);
+
   const handleConfigChange = (newConfig: Record<string, any> | null) => {
     if (value) {
       onChange(value, newConfig, appliesTo || 'all_weeks');
@@ -133,6 +147,7 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
       {/* Dropdown personnalisé */}
       <div className="relative" ref={dropdownRef}>
         <button
+          ref={buttonRef}
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
@@ -149,8 +164,15 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
         </button>
 
         {/* Liste déroulante */}
-        {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white border-2 border-primary/20 rounded-xl shadow-lg">
+        {isOpen && dropdownPosition && (
+          <div 
+            className="fixed z-[100] bg-white border-2 border-primary/20 rounded-xl shadow-lg"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: `${dropdownPosition.width}px`,
+            }}
+          >
             {/* Champ de recherche */}
             <div className="p-3 border-b border-gray-200 sticky top-0 bg-white">
               <input

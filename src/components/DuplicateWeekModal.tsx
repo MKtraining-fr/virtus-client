@@ -15,8 +15,9 @@ export const DuplicateWeekModal: React.FC<DuplicateWeekModalProps> = ({
   totalWeeks,
   onConfirm,
 }) => {
-  const [duplicateMode, setDuplicateMode] = useState<'following' | 'specific' | 'all'>('following');
+  const [duplicateMode, setDuplicateMode] = useState<'following' | 'specific' | 'all' | 'manual'>('following');
   const [selectedWeeks, setSelectedWeeks] = useState<number[]>([]);
+  const [manualInput, setManualInput] = useState('');
 
   if (!isOpen) return null;
 
@@ -32,6 +33,12 @@ export const DuplicateWeekModal: React.FC<DuplicateWeekModalProps> = ({
     } else if (duplicateMode === 'all') {
       // Toutes les semaines sauf la semaine actuelle
       targetWeeks = Array.from({ length: totalWeeks }, (_, i) => i + 1).filter(w => w !== currentWeek);
+    } else if (duplicateMode === 'manual') {
+      // Saisie manuelle (ex: "1,2,8")
+      targetWeeks = manualInput
+        .split(',')
+        .map(s => parseInt(s.trim()))
+        .filter(n => !isNaN(n) && n >= 1 && n <= totalWeeks && n !== currentWeek);
     }
 
     onConfirm(targetWeeks);
@@ -94,7 +101,38 @@ export const DuplicateWeekModal: React.FC<DuplicateWeekModalProps> = ({
               Toutes les semaines (1-{totalWeeks})
             </span>
           </label>
+
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="radio"
+              checked={duplicateMode === 'manual'}
+              onChange={() => setDuplicateMode('manual')}
+              className="w-3 h-3"
+            />
+            <span className="text-xs text-gray-700 dark:text-gray-300">
+              Saisie manuelle (ex: 1,2,8)
+            </span>
+          </label>
         </div>
+
+        {/* Saisie manuelle des semaines */}
+        {duplicateMode === 'manual' && (
+          <div className="mb-3">
+            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+              Entrez les numéros de semaines séparés par des virgules :
+            </label>
+            <input
+              type="text"
+              value={manualInput}
+              onChange={(e) => setManualInput(e.target.value)}
+              placeholder="Ex: 1,2,8"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Semaines disponibles : 1-{totalWeeks} (sauf {currentWeek})
+            </p>
+          </div>
+        )}
 
         {/* Sélection manuelle des semaines */}
         {duplicateMode === 'specific' && (
@@ -132,7 +170,10 @@ export const DuplicateWeekModal: React.FC<DuplicateWeekModalProps> = ({
           </button>
           <button
             onClick={handleConfirm}
-            disabled={duplicateMode === 'specific' && selectedWeeks.length === 0}
+            disabled={
+              (duplicateMode === 'specific' && selectedWeeks.length === 0) ||
+              (duplicateMode === 'manual' && manualInput.trim() === '')
+            }
             className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Dupliquer
