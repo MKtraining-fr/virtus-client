@@ -3,7 +3,7 @@ import type { IntensityTechnique } from '../types/intensityTechnique';
 import type { IntensityConfig } from '../types/intensityConfig';
 import { getAllTechniques } from '../services/intensityTechniqueService';
 import { useAuth } from '../context/AuthContext';
-import IntensityTechniqueConfigurator from './IntensityTechniqueConfigurator';
+import IntensityTechniqueConfigModal from './IntensityTechniqueConfigModal';
 
 interface IntensityTechniqueSelectorProps {
   value: string | null | undefined;
@@ -41,6 +41,7 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
   const [hoveredTechnique, setHoveredTechnique] = useState<IntensityTechnique | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -256,30 +257,58 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
           </label>
           <select
             value={appliesTo || 'all_weeks'}
-            onChange={handleAppliesChange}
+            onChange={(e) => onChange(value, config, e.target.value)}
             disabled={disabled}
             className="w-full px-3 py-2 border-2 border-primary/20 rounded-xl text-sm focus:outline-none focus:border-primary"
           >
             <option value="all_weeks">Toutes les semaines</option>
-            <option value="week_1">Semaine 1 uniquement</option>
-            <option value="week_2">Semaine 2 uniquement</option>
-            <option value="week_3">Semaine 3 uniquement</option>
-            <option value="week_4">Semaine 4 uniquement</option>
-            <option value="week_5">Semaine 5 uniquement</option>
-            <option value="week_6">Semaine 6 uniquement</option>
-            <option value="week_7">Semaine 7 uniquement</option>
-            <option value="week_8">Semaine 8 uniquement</option>
+            <option value="last_week">Dernière semaine uniquement</option>
+            <option value="specific_weeks">Semaines spécifiques</option>
           </select>
         </div>
       )}
 
-      {/* Configurateur pour les techniques adaptatives */}
+      {/* Input pour semaines spécifiques */}
+      {value && appliesTo === 'specific_weeks' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Numéros de semaines (ex: 1,2,8)
+          </label>
+          <input
+            type="text"
+            placeholder="Ex: 1,2,8"
+            disabled={disabled}
+            className="w-full px-3 py-2 border-2 border-primary/20 rounded-xl text-sm focus:outline-none focus:border-primary"
+          />
+        </div>
+      )}
+
+      {/* Bouton pour ouvrir la modal de configuration */}
       {selectedTechnique && selectedTechnique.adaptation_type === 'extra_fields' && selectedTechnique.config_schema && (
-        <IntensityTechniqueConfigurator
+        <div>
+          <button
+            type="button"
+            onClick={() => setIsConfigModalOpen(true)}
+            disabled={disabled}
+            className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Configurer la technique
+          </button>
+        </div>
+      )}
+
+      {/* Modal de configuration */}
+      {selectedTechnique && selectedTechnique.adaptation_type === 'extra_fields' && selectedTechnique.config_schema && (
+        <IntensityTechniqueConfigModal
+          isOpen={isConfigModalOpen}
+          onClose={() => setIsConfigModalOpen(false)}
           technique={selectedTechnique}
           config={config as IntensityConfig}
           onChange={handleConfigChange}
-          disabled={disabled}
         />
       )}
     </div>

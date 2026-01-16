@@ -623,6 +623,16 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
     return sessions.find((s) => s.id === activeSessionId);
   }, [sessions, activeSessionId]);
 
+  // Sauvegarder automatiquement sessionsByWeek dans programDraft pour la persistance
+  useEffect(() => {
+    if (programDraft && sessionsByWeek) {
+      setProgramDraft({
+        ...programDraft,
+        sessionsByWeek: sessionsByWeek,
+      });
+    }
+  }, [sessionsByWeek]); // Ne pas inclure programDraft et setProgramDraft pour éviter les boucles infinies
+
   // Assurer la conversion automatique vers le mode programme et la duplication des semaines
   useEffect(() => {
     if (!hasLoadedInitialData || workoutMode !== 'program') {
