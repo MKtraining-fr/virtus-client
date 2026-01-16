@@ -510,61 +510,61 @@ const useSupabaseWorkoutData = (
 
   const fetchProgramsAndSessions = useCallback(async () => {
     if (!coachId) {
-      console.error('[WorkoutLibrary] ⚠️ Coach ID is missing!', { coachId });
-      // Ne pas définir isLoading à false ici, car user peut être en cours de chargement
       return;
     }
-    console.error('[WorkoutLibrary] 🔍 Fetching programs for coach:', coachId);
-    console.log('[WorkoutLibrary] 🔍 Fetching programs for coach:', coachId);
     setIsLoading(true);
     try {
       const supabasePrograms = await getProgramsByCoachId(coachId);
-      console.error('[WorkoutLibrary] 📊 Programs fetched:', supabasePrograms.length, 'programs');
-      console.log('[WorkoutLibrary] 📊 Programs fetched:', supabasePrograms);
-      const allWorkoutPrograms: WorkoutProgram[] = [];
-      const allWorkoutSessions: WorkoutSession[] = [];
-
-      for (const program of supabasePrograms) {
-        console.log('[WorkoutLibrary] 📋 Processing program:', program.id, program.name);
-        const supabaseSessions = await getSessionsByProgramId(program.id);
-        console.log('[WorkoutLibrary] 📝 Sessions for program', program.id, ':', supabaseSessions);
-        const allSessionExercises: Map<string, SupabaseSessionExercise[]> = new Map();
-        const exerciseIds = new Set<string>();
-
-        for (const session of supabaseSessions) {
-          console.log('[WorkoutLibrary] 💪 Processing session:', session.id, session.name);
-          const exercises = await getSessionExercisesBySessionId(session.id);
-          console.log('[WorkoutLibrary] 🏋️ Exercises for session', session.id, ':', exercises);
-          allSessionExercises.set(session.id, exercises);
-          exercises.forEach((ex) => {
-            if (ex.exercise_id) exerciseIds.add(ex.exercise_id);
+      
+      // Traiter tous les programmes en parallèle
+      const allWorkoutPrograms = await Promise.all(
+        supabasePrograms.map(async (program) => {
+          const supabaseSessions = await getSessionsByProgramId(program.id);
+          
+          // Charger tous les exercices de toutes les sessions en parallèle
+          const sessionExercisesPromises = supabaseSessions.map(async (session) => ({
+            sessionId: session.id,
+            exercises: await getSessionExercisesBySessionId(session.id)
+          }));
+          
+          const sessionExercisesResults = await Promise.all(sessionExercisesPromises);
+          
+          // Construire la map des exercices par session
+          const allSessionExercises: Map<string, SupabaseSessionExercise[]> = new Map();
+          const exerciseIds = new Set<string>();
+          
+          sessionExercisesResults.forEach(({ sessionId, exercises }) => {
+            allSessionExercises.set(sessionId, exercises);
+            exercises.forEach((ex) => {
+              if (ex.exercise_id) exerciseIds.add(ex.exercise_id);
+            });
           });
-        }
-
-        console.log('[WorkoutLibrary] 🔑 Exercise IDs to fetch:', Array.from(exerciseIds));
-        const exerciseDetails = await getExercisesByIds(Array.from(exerciseIds));
-        console.log('[WorkoutLibrary] 📚 Exercise details:', exerciseDetails);
-
-        const workoutProgram = reconstructWorkoutProgram(
-          program,
-          supabaseSessions,
-          allSessionExercises,
-          exerciseDetails
-        );
-        console.log('[WorkoutLibrary] ✅ Reconstructed program:', workoutProgram);
-        allWorkoutPrograms.push(workoutProgram);
-
-        Object.values(workoutProgram.sessionsByWeek).forEach((weekSessions) => {
+          
+          // Charger les détails des exercices
+          const exerciseDetails = await getExercisesByIds(Array.from(exerciseIds));
+          
+          // Reconstruire le programme
+          return reconstructWorkoutProgram(
+            program,
+            supabaseSessions,
+            allSessionExercises,
+            exerciseDetails
+          );
+        })
+      );
+      
+      // Extraire toutes les sessions
+      const allWorkoutSessions: WorkoutSession[] = [];
+      allWorkoutPrograms.forEach((program) => {
+        Object.values(program.sessionsByWeek).forEach((weekSessions) => {
           allWorkoutSessions.push(...weekSessions);
         });
-      }
-      console.log('[WorkoutLibrary] 🎉 Total programs:', allWorkoutPrograms.length);
-      console.log('[WorkoutLibrary] 🎉 Total sessions:', allWorkoutSessions.length);
+      });
+      
       setPrograms(allWorkoutPrograms);
       setSessions(allWorkoutSessions);
     } catch (error) {
-      console.error('[ERROR] ❌ Erreur lors du chargement des programmes/sessions depuis Supabase:', error);
-      console.error('[ERROR] 📍 Error details:', JSON.stringify(error, null, 2));
+      console.error('[WorkoutLibrary] Error loading programs:', error);
       addNotification({
         message: 'Erreur lors du chargement des programmes et sessions.',
         type: 'error',
