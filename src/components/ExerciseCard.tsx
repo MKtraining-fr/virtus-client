@@ -276,8 +276,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 </span>
               </div>
 
-              {/* Image de l'exercice */}
-              <div className="flex items-center justify-center">
+              {/* Image de l'exercice - centrée verticalement */}
+              <div className="flex-1 flex items-center justify-center">
                 {ex.illustrationUrl ? (
                   <img
                     src={ex.illustrationUrl}

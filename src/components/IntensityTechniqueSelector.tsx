@@ -255,16 +255,34 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Appliquer à
           </label>
-          <select
-            value={appliesTo || 'all_weeks'}
-            onChange={(e) => onChange(value, config, e.target.value)}
-            disabled={disabled}
-            className="w-full px-3 py-2 border-2 border-primary/20 rounded-xl text-sm focus:outline-none focus:border-primary"
-          >
-            <option value="all_weeks">Toutes les semaines</option>
-            <option value="last_week">Dernière semaine uniquement</option>
-            <option value="specific_weeks">Semaines spécifiques</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={appliesTo || 'all_weeks'}
+              onChange={(e) => onChange(value, config, e.target.value)}
+              disabled={disabled}
+              className="flex-1 px-3 py-2 border-2 border-primary/20 rounded-xl text-sm focus:outline-none focus:border-primary"
+            >
+              <option value="all_weeks">Toutes les semaines</option>
+              <option value="last_week">Dernière semaine uniquement</option>
+              <option value="specific_weeks">Semaines spécifiques</option>
+            </select>
+            
+            {/* Bouton icône pour ouvrir la modal de configuration */}
+            {selectedTechnique.adaptation_type === 'extra_fields' && selectedTechnique.config_schema && (
+              <button
+                type="button"
+                onClick={() => setIsConfigModalOpen(true)}
+                disabled={disabled}
+                title="Configurer la technique"
+                className="p-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -283,23 +301,7 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
         </div>
       )}
 
-      {/* Bouton pour ouvrir la modal de configuration */}
-      {selectedTechnique && selectedTechnique.adaptation_type === 'extra_fields' && selectedTechnique.config_schema && (
-        <div>
-          <button
-            type="button"
-            onClick={() => setIsConfigModalOpen(true)}
-            disabled={disabled}
-            className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Configurer la technique
-          </button>
-        </div>
-      )}
+
 
       {/* Modal de configuration */}
       {selectedTechnique && selectedTechnique.adaptation_type === 'extra_fields' && selectedTechnique.config_schema && (
