@@ -7,7 +7,8 @@ export type TemplateType =
   | 'duration'        // Durée en secondes
   | 'angle'           // Angle en degrés
   | 'duration_angle'  // Durée + Angle
-  | 'progression';    // Progression de charge (% début → % fin)
+  | 'progression'     // Progression de charge (% début → % fin)
+  | 'iso_overcoming'; // Iso Overcoming complet (6 champs)
 
 export interface TemplateDefinition {
   id: TemplateType;
@@ -166,6 +167,79 @@ export const INTENSITY_TEMPLATES: Record<TemplateType, TemplateDefinition> = {
       'Pyramide descendante',
       'Dégressif contrôlé'
     ]
+  },
+
+  iso_overcoming: {
+    id: 'iso_overcoming',
+    name: 'Iso Overcoming Complet',
+    description: 'Configuration complète pour isométrie surmontante',
+    fields: [
+      {
+        key: 'sets',
+        label: 'Nombre de séries',
+        type: 'number',
+        unit: 'séries',
+        min: 1,
+        max: 10,
+        step: 1,
+        placeholder: 'Ex: 3'
+      },
+      {
+        key: 'reps',
+        label: 'Nombre de répétitions',
+        type: 'number',
+        unit: 'reps',
+        min: 1,
+        max: 20,
+        step: 1,
+        placeholder: 'Ex: 5'
+      },
+      {
+        key: 'iso_duration',
+        label: 'Temps d\'isométrie',
+        type: 'number',
+        unit: 'secondes',
+        min: 1,
+        max: 60,
+        step: 1,
+        placeholder: 'Ex: 8'
+      },
+      {
+        key: 'rest_between_sets',
+        label: 'Repos entre séries',
+        type: 'number',
+        unit: 'secondes',
+        min: 30,
+        max: 600,
+        step: 10,
+        placeholder: 'Ex: 180'
+      },
+      {
+        key: 'rest_between_reps',
+        label: 'Repos entre répétitions',
+        type: 'number',
+        unit: 'secondes',
+        min: 5,
+        max: 120,
+        step: 5,
+        placeholder: 'Ex: 30'
+      },
+      {
+        key: 'angle',
+        label: 'Angle articulaire',
+        type: 'number',
+        unit: 'degrés',
+        min: 0,
+        max: 180,
+        step: 5,
+        placeholder: 'Ex: 90'
+      }
+    ],
+    useCases: [
+      'Iso Overcoming',
+      'Force maximale isométrique',
+      'Renforcement à angle spécifique'
+    ]
   }
 };
 
@@ -191,12 +265,22 @@ export interface ProgressionConfig {
   decrement: number;
 }
 
+export interface IsoOvercomingConfig {
+  sets: number;
+  reps: number;
+  iso_duration: number;
+  rest_between_sets: number;
+  rest_between_reps: number;
+  angle: number;
+}
+
 export type TemplateConfig = 
   | null  // Pour 'simple'
   | DurationConfig
   | AngleConfig
   | DurationAngleConfig
-  | ProgressionConfig;
+  | ProgressionConfig
+  | IsoOvercomingConfig;
 
 /**
  * Helper pour obtenir un template par son ID
