@@ -70,7 +70,9 @@ const IntensityTechniqueSelector: React.FC<IntensityTechniqueSelectorProps> = ({
 
   const handleTechniqueSelect = (technique: IntensityTechnique | null) => {
     if (technique) {
-      onChange(technique.id, null, 'all_weeks');
+      // Conserver la config existante si la technique est la même, sinon réinitialiser
+      const newConfig = technique.id === value ? (config || null) : null;
+      onChange(technique.id, newConfig, 'all_weeks');
       setSelectedTechnique(technique);
     } else {
       onChange(null, null, null);

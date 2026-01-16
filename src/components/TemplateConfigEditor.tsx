@@ -53,8 +53,12 @@ const TemplateConfigEditor: React.FC<TemplateConfigEditorProps> = ({
             {field.type === 'number' && (
               <input
                 type="number"
-                value={currentValue || ''}
-                onChange={(e) => handleFieldChange(field.key, Number(e.target.value))}
+                value={currentValue === undefined || currentValue === null ? '' : currentValue}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Permettre la saisie vide ou convertir en nombre
+                  handleFieldChange(field.key, value === '' ? null : Number(value));
+                }}
                 min={field.min}
                 max={field.max}
                 step={field.step}
