@@ -39,12 +39,18 @@ const IntensityTechniqueConfigModal: React.FC<IntensityTechniqueConfigModalProps
           />
         </div>
 
-        <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary-dark"
+            className="px-4 py-2 text-sm border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            Fermer
+            Annuler
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-medium"
+          >
+            Valider
           </button>
         </div>
       </div>
