@@ -7,6 +7,7 @@ import {
   updateTechnique,
   archiveTechnique,
 } from '../services/intensityTechniqueService';
+import { getAllTemplates, type TemplateType } from '../types/intensityTemplates';
 import Card from './Card';
 import Modal from './Modal';
 import Button from './Button';
@@ -30,6 +31,9 @@ const IntensityTechniquesTab: React.FC = () => {
     protocol: '',
     adaptation_type: 'informative',
   });
+
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('simple');
+  const templates = getAllTemplates();
 
   useEffect(() => {
     if (user?.id) {
@@ -67,6 +71,7 @@ const IntensityTechniquesTab: React.FC = () => {
       protocol: '',
       adaptation_type: 'informative',
     });
+    setSelectedTemplate('simple');
     setIsAddModalOpen(true);
   };
 
@@ -85,12 +90,34 @@ const IntensityTechniquesTab: React.FC = () => {
     setNewTechnique((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleTemplateChange = (templateId: TemplateType) => {
+    setSelectedTemplate(templateId);
+    // Mettre à jour adaptation_type en fonction du template
+    if (templateId === 'simple') {
+      setNewTechnique(prev => ({ ...prev, adaptation_type: 'informative' }));
+    } else {
+      setNewTechnique(prev => ({ 
+        ...prev, 
+        adaptation_type: 'extra_fields',
+        config_schema: { template: templateId }
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
 
     try {
-      await createTechnique(newTechnique, user.id);
+      // Ajouter le template au config_schema si ce n'est pas 'simple'
+      const techniqueData = {
+        ...newTechnique,
+        config_schema: selectedTemplate !== 'simple' 
+          ? { template: selectedTemplate }
+          : null
+      };
+      
+      await createTechnique(techniqueData, user.id);
       await loadTechniques();
       closeAddModal();
     } catch (error) {
@@ -298,14 +325,53 @@ const IntensityTechniquesTab: React.FC = () => {
             <option value="periodization">Périodisation</option>
             <option value="advanced">Avancé</option>
           </Select>
-          <Select
-            label="Type d'adaptation"
-            value={newTechnique.adaptation_type}
-            onChange={handleSelectChange('adaptation_type')}
-          >
-            <option value="informative">Informatif (affichage simple)</option>
-            <option value="extra_fields">Avec configuration (champs supplémentaires)</option>
-          </Select>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Template de configuration</label>
+            <div className="space-y-2">
+              {templates.map((template) => (
+                <div
+                  key={template.id}
+                  onClick={() => handleTemplateChange(template.id)}
+                  className={`p-3 border-2 rounded-lg cursor-pointer transition-colors ${
+                    selectedTemplate === template.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{template.name}</div>
+                      <div className="text-sm text-gray-600 mt-1">{template.description}</div>
+                      {template.fields.length > 0 && (
+                        <div className="text-xs text-gray-500 mt-2">
+                          Champs : {template.fields.map(f => f.label).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                    {selectedTemplate === template.id && (
+                      <div className="ml-2 flex-shrink-0">
+                        <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  {template.useCases.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      <div className="text-xs text-gray-500 font-medium mb-1">Cas d'usage :</div>
+                      <div className="flex flex-wrap gap-1">
+                        {template.useCases.map((useCase, idx) => (
+                          <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                            {useCase}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="flex gap-2 pt-4">
             <Button type="button" variant="secondary" onClick={closeAddModal}>
               Annuler

@@ -15,6 +15,8 @@ import {
   DEFAULT_CLUSTER_SET_CONFIG,
   DEFAULT_TEMPO_CONFIG,
 } from '../types/intensityConfig';
+import type { TemplateType } from '../types/intensityTemplates';
+import TemplateConfigEditor from './TemplateConfigEditor';
 import Button from './Button';
 import Input from './Input';
 import Select from './Select';
@@ -37,6 +39,15 @@ const IntensityTechniqueConfigurator: React.FC<IntensityTechniqueConfiguratorPro
   useEffect(() => {
     // Initialiser avec la config par défaut si aucune config n'est fournie
     if (!config && technique.config_schema) {
+      // Vérifier si c'est un template personnalisé
+      if (technique.config_schema.template) {
+        // Pour les templates, initialiser avec un objet vide
+        const defaultConfig = {} as IntensityConfig;
+        setLocalConfig(defaultConfig);
+        onChange(defaultConfig);
+        return;
+      }
+
       const schemaType = technique.config_schema.type;
       let defaultConfig: IntensityConfig;
 
@@ -67,6 +78,20 @@ const IntensityTechniqueConfigurator: React.FC<IntensityTechniqueConfiguratorPro
 
   if (!technique.config_schema || !localConfig) {
     return null;
+  }
+
+  // Gérer les templates personnalisés
+  if (technique.config_schema.template) {
+    return (
+      <TemplateConfigEditor
+        templateId={technique.config_schema.template as TemplateType}
+        config={localConfig}
+        onChange={(newConfig) => {
+          setLocalConfig(newConfig);
+          onChange(newConfig);
+        }}
+      />
+    );
   }
 
   const schemaType = technique.config_schema.type;
