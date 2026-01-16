@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { WorkoutProgram, WorkoutSession, WorkoutExercise } from '../types';
 import Accordion from './Accordion';
+import IntensityTechniqueCell from './IntensityTechniqueCell';
 
 // Helper function for deep comparison of sessions. Using JSON.stringify for simplicity.
 const areSessionsIdentical = (
@@ -112,6 +113,7 @@ const WeekContent: React.FC<{ sessions: WorkoutSession[] }> = ({ sessions }) => 
             )}
             <th className="py-1 px-3 font-semibold">Tempo</th>
             <th className="py-1 px-3 font-semibold">Repos</th>
+            <th className="py-1 px-3 font-semibold">Technique</th>
           </tr>
         </thead>
         <tbody>
@@ -157,6 +159,12 @@ const WeekContent: React.FC<{ sessions: WorkoutSession[] }> = ({ sessions }) => 
                         )}
                         <td className="py-1 px-3 text-black">{getDisplayValue(ex.details, 'tempo')}</td>
                         <td className="py-1 px-3 text-black">{getDisplayValue(ex.details, 'rest')}</td>
+                        <td className="py-1 px-3">
+                          <IntensityTechniqueCell 
+                            techniqueId={ex.intensity_technique_id} 
+                            config={ex.intensity_config}
+                          />
+                        </td>
                       </tr>
                     );
                   })
@@ -165,7 +173,7 @@ const WeekContent: React.FC<{ sessions: WorkoutSession[] }> = ({ sessions }) => 
                     <td className={`py-1 px-3 align-middle font-bold text-lg text-center border-r ${isCompleted ? 'text-green-600' : 'text-primary'}`}>
                       S{sessionIndex + 1}
                     </td>
-                    <td colSpan={hasPerformanceData ? 8 : 6} className="text-center py-4 text-gray-500">
+                    <td colSpan={hasPerformanceData ? 10 : 8} className="text-center py-4 text-gray-500">
                       Cette séance est vide.
                     </td>
                   </tr>
@@ -175,7 +183,7 @@ const WeekContent: React.FC<{ sessions: WorkoutSession[] }> = ({ sessions }) => 
           })}
           {sessions.length === 0 && (
             <tr>
-              <td colSpan={hasPerformanceData ? 9 : 7} className="text-center py-4 text-gray-500">
+              <td colSpan={hasPerformanceData ? 10 : 8} className="text-center py-4 text-gray-500">
                 Aucune séance pour cette semaine.
               </td>
             </tr>
