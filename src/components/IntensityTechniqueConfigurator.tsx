@@ -35,16 +35,23 @@ const IntensityTechniqueConfigurator: React.FC<IntensityTechniqueConfiguratorPro
   disabled = false,
 }) => {
   const [localConfig, setLocalConfig] = useState<IntensityConfig | null>(config);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Synchroniser localConfig avec config quand il change de l'extérieur
   useEffect(() => {
-    // Initialiser avec la config par défaut si aucune config n'est fournie
-    if (!config && technique.config_schema) {
+    setLocalConfig(config);
+  }, [config]);
+
+  // Initialiser avec la config par défaut UNIQUEMENT au premier render
+  useEffect(() => {
+    if (!isInitialized && !config && technique.config_schema) {
       // Vérifier si c'est un template personnalisé
       if (technique.config_schema.template) {
         // Pour les templates, initialiser avec un objet vide
         const defaultConfig = {} as IntensityConfig;
         setLocalConfig(defaultConfig);
         onChange(defaultConfig);
+        setIsInitialized(true);
         return;
       }
 
@@ -68,13 +75,15 @@ const IntensityTechniqueConfigurator: React.FC<IntensityTechniqueConfiguratorPro
           defaultConfig = DEFAULT_TEMPO_CONFIG;
           break;
         default:
+          setIsInitialized(true);
           return;
       }
 
       setLocalConfig(defaultConfig);
       onChange(defaultConfig);
+      setIsInitialized(true);
     }
-  }, [technique, config, onChange]);
+  }, [isInitialized, config, technique, onChange]);
 
   if (!technique.config_schema || !localConfig) {
     return null;
