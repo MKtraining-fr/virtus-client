@@ -1761,7 +1761,25 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       const savedSessions = await Promise.all(saveSessionPromises);
       console.log('[onSave] Toutes les sessions et exercices ont été sauvegardés avec succès');
 
-      // Étape 7 : Mise à jour de l'état local
+      // Étape 7 : Mise à jour des dbId dans sessionsByWeek
+      console.log('[onSave] Mise à jour des dbId des séances dans l\'état local...');
+      const updatedSessionsByWeek = { ...sessionsByWeek };
+      let sessionIndex = 0;
+      Object.entries(sessionsByWeek).forEach(([week, sessions]) => {
+        sessions.forEach((session, index) => {
+          const savedSession = savedSessions[sessionIndex];
+          if (savedSession && savedSession.id) {
+            // Mettre à jour le dbId de la séance
+            (updatedSessionsByWeek[parseInt(week)][index] as any).dbId = savedSession.id;
+            console.log(`[onSave] Séance "${session.name}" (semaine ${week}) - dbId mis à jour: ${savedSession.id}`);
+          }
+          sessionIndex++;
+        });
+      });
+      setSessionsByWeek(updatedSessionsByWeek);
+      console.log('[onSave] dbId mis à jour pour toutes les séances');
+
+      // Étape 8 : Mise à jour de l'état local
       setEditProgramId(savedProgram.id);
       setIsEditMode(true);
       setLastSavedAt(new Date().toISOString());
@@ -1789,7 +1807,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
         return;
       }
 
-      // Étape 8 : Assignement automatique si un client est sélectionné
+      // Étape 9 : Assignement automatique si un client est sélectionné
       if (selectedClient !== '0' && savedProgram.id) {
         console.log('[onSave] Assignement du programme au client:', selectedClient);
         const templateId = savedProgram.id;
