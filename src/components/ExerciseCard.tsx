@@ -168,7 +168,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   // Fonction pour mettre à jour un champ de la semaine sélectionnée
   const handleWeekFieldChange = (field: string, value: any) => {
     const updatedExercise = setExerciseDataForWeek(ex as any, selectedWeek, field, value);
-    onUpdateExercise(ex.id, 'weekVariations', updatedExercise.weekVariations);
+    
+    // Si c'est la semaine 1, les modifications sont dans les champs directs de l'exercice
+    // Pour les autres semaines, elles sont dans weekVariations
+    if (selectedWeek === 1) {
+      // Mettre à jour le champ directement
+      onUpdateExercise(ex.id, field, value);
+    } else {
+      // Mettre à jour weekVariations
+      onUpdateExercise(ex.id, 'weekVariations', updatedExercise.weekVariations);
+    }
   };
 
   // Fonction pour dupliquer les modifications vers d'autres semaines
