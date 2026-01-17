@@ -1710,6 +1710,10 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   config: normalized.intensity_config || null,
                   applies_to: normalized.intensity_applies_to || null,
                 };
+                console.log(`[DEBUG] Exercice "${normalized.name}" - intensificationData:`, intensificationData);
+                console.log(`[DEBUG] normalized.intensity_technique_id:`, normalized.intensity_technique_id);
+                console.log(`[DEBUG] normalized.intensity_config:`, normalized.intensity_config);
+                console.log(`[DEBUG] normalized.intensity_applies_to:`, normalized.intensity_applies_to);
 
                 const baseExercise = {
                   exercise_id: normalized.exerciseId,
