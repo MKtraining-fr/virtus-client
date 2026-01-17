@@ -31,7 +31,34 @@ export function useLocalStorage<T>(
       // Sauvegarder dans localStorage
       window.localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error(`Error saving ${key} to localStorage:`, error);
+      // Gérer spécifiquement l'erreur QuotaExceededError
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.warn(`localStorage quota exceeded for ${key}. Attempting cleanup...`);
+        
+        // Essayer de nettoyer les anciens brouillons
+        try {
+          // Supprimer les clés de brouillon anciennes (workout_draft_*)
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < window.localStorage.length; i++) {
+            const storageKey = window.localStorage.key(i);
+            if (storageKey && storageKey.startsWith('workout_draft') && storageKey !== key) {
+              keysToRemove.push(storageKey);
+            }
+          }
+          
+          keysToRemove.forEach(k => window.localStorage.removeItem(k));
+          
+          // Réessayer de sauvegarder
+          window.localStorage.setItem(key, JSON.stringify(value));
+          console.log(`Successfully saved ${key} after cleanup`);
+        } catch (retryError) {
+          console.error(`Failed to save ${key} even after cleanup:`, retryError);
+          // Informer l'utilisateur (via console pour l'instant)
+          console.error('CRITICAL: Unable to save draft. Please save your work manually.');
+        }
+      } else {
+        console.error(`Error saving ${key} to localStorage:`, error);
+      }
     }
   };
 
