@@ -65,11 +65,38 @@ export const useSessionCompletion = (
 
         return {
           exercise_id: exercise.exerciseId.toString(),
-          sets: nonEmptySets.map((set) => ({
-            reps: set.reps.trim() || null,
-            load: set.load.trim() || null,
-            comment: set.comment?.trim() || null,
-          })),
+          sets: nonEmptySets.map((set) => {
+            // Extraire les données des drop sets si présentes
+            const subSeriesPerformance: any = {};
+            let hasSubSeries = false;
+            
+            // Parcourir les clés du set pour trouver les drop_X_reps et drop_X_load
+            Object.keys(set).forEach((key) => {
+              const dropMatch = key.match(/^drop_(\d+)_(reps|load)$/);
+              if (dropMatch) {
+                const dropIndex = parseInt(dropMatch[1]);
+                const field = dropMatch[2];
+                
+                if (!subSeriesPerformance.drops) {
+                  subSeriesPerformance.drops = [];
+                }
+                
+                if (!subSeriesPerformance.drops[dropIndex]) {
+                  subSeriesPerformance.drops[dropIndex] = {};
+                }
+                
+                subSeriesPerformance.drops[dropIndex][field] = (set as any)[key];
+                hasSubSeries = true;
+              }
+            });
+            
+            return {
+              reps: set.reps.trim() || null,
+              load: set.load.trim() || null,
+              comment: set.comment?.trim() || null,
+              sub_series_performance: hasSubSeries ? subSeriesPerformance : null,
+            };
+          }),
         };
       })
       .filter((ex) => ex !== null);

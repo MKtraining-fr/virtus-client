@@ -11,6 +11,7 @@ export interface PerformanceSet {
   load_achieved?: string;
   rpe?: number;
   notes?: string;
+  sub_series_performance?: any; // JSONB pour stocker les performances des sous-séries (drops, clusters, etc.)
 }
 
 /**
@@ -37,6 +38,7 @@ export const bulkCreatePerformanceLogs = async (
       load_achieved: set.load_achieved,
       rpe: set.rpe,
       notes: set.notes,
+      sub_series_performance: set.sub_series_performance || null,
       performed_at: new Date().toISOString(),
     }));
 

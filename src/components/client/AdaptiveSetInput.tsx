@@ -199,29 +199,39 @@ const AdaptiveSetInput: React.FC<AdaptiveSetInputProps> = ({
 
           {/* Drop levels */}
           {config.dropLevels.map((level, levelIndex) => {
-            const dropLoad = logData?.load ? Math.round(parseFloat(logData.load) * (1 - level.reduction / 100)) : 0;
+            // Calculer la charge du palier selon le type
+            let dropLoad: number | string = 0;
+            let dropLoadLabel = '';
+            
+            if (level.type === 'percentage') {
+              // Pourcentage : calculer depuis la charge de la série principale
+              if (logData?.load) {
+                dropLoad = Math.round(parseFloat(logData.load) * (1 - level.value / 100));
+                dropLoadLabel = `-${level.value}%`;
+              }
+            } else {
+              // Charge précise : utiliser directement la valeur
+              dropLoad = level.value;
+              dropLoadLabel = `${level.value}kg`;
+            }
+            
             return (
               <div key={levelIndex} className="mb-2">
                 <p className="text-xs text-gray-600 dark:text-client-subtle mb-1">
-                  Palier {levelIndex + 1} (-{level.reduction}%)
+                  Palier {levelIndex + 1} ({dropLoadLabel})
                 </p>
                 <div className="flex gap-2">
                   <input
                     type="number"
-                    placeholder={level.targetReps}
+                    placeholder={level.targetReps || 'Reps'}
                     value={(logData as any)?.[`drop_${levelIndex}_reps`] || ''}
                     onChange={(e) => onLogChange(exerciseId, setIndex, `drop_${levelIndex}_reps`, e.target.value)}
                     className="flex-1 rounded-md text-center py-2 text-sm border-2 border-gray-300 dark:border-client-dark bg-white dark:bg-client-card dark:text-client-light"
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <input
-                    type="number"
-                    placeholder={dropLoad.toString()}
-                    value={(logData as any)?.[`drop_${levelIndex}_load`] || ''}
-                    onChange={(e) => onLogChange(exerciseId, setIndex, `drop_${levelIndex}_load`, e.target.value)}
-                    className="flex-1 rounded-md text-center py-2 text-sm border-2 border-gray-300 dark:border-client-dark bg-white dark:bg-client-card dark:text-client-light"
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                  <div className="flex-1 flex items-center justify-center text-sm text-gray-600 dark:text-client-subtle font-medium">
+                    {dropLoad > 0 ? `${dropLoad} ${loadUnit}` : '-'}
+                  </div>
                 </div>
               </div>
             );
