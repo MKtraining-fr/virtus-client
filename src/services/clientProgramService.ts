@@ -64,6 +64,18 @@ const mapClientSessionToWorkoutSession = (
         }))
       : [];
 
+    // Parser l'objet intensification JSONB
+    let intensificationData: any = {};
+    if (exercise.intensification) {
+      try {
+        intensificationData = typeof exercise.intensification === 'string'
+          ? JSON.parse(exercise.intensification)
+          : exercise.intensification;
+      } catch (e) {
+        console.error('Erreur lors du parsing de intensification:', e);
+      }
+    }
+
     return {
       id: idx + 1 + indexOffset,
       dbId: exercise.id,
@@ -75,6 +87,10 @@ const mapClientSessionToWorkoutSession = (
       load: exercise.load ?? '',
       tempo: exercise.tempo ?? '',
       restTime: exercise.rest_time ?? '',
+      // Mapper les champs d'intensification depuis l'objet JSONB
+      intensity_technique_id: intensificationData.technique_id || null,
+      intensity_config: intensificationData.config || null,
+      intensity_applies_to: intensificationData.applies_to || null,
       intensification: Array.isArray(exercise.intensification)
         ? exercise.intensification.map((value: any, i: number) => ({
             id: i + 1,
