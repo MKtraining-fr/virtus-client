@@ -2413,11 +2413,12 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       </button>
       {isHistoryModalOpen && clientData && (
         <ClientHistoryModal
-          client={clientData}
+          clientId={selectedClient}
           isOpen={isHistoryModalOpen}
           onClose={() => setIsHistoryModalOpen(false)}
           isMinimized={isHistoryModalMinimized}
-          onMinimizeToggle={() => setIsHistoryModalMinimized(!isHistoryModalMinimized)}
+          onMinimize={() => setIsHistoryModalMinimized(true)}
+          onRestore={() => setIsHistoryModalMinimized(false)}
         />
       )}
     </div>
