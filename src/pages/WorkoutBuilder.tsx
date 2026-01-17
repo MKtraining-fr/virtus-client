@@ -1481,6 +1481,8 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
       }
       return newSessionsByWeek;
     });
+    // Sélectionner automatiquement la nouvelle séance
+    setActiveSessionId(newSessionId);
     setHasUnsavedChanges(true);
   };
 

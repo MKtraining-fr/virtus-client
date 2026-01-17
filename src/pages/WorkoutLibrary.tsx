@@ -114,7 +114,7 @@ const WorkoutLibrary: React.FC = () => {
       try {
         const result = await assignProgramToClient(templateId, clientId, coachId, startDate);
         
-        if (result) {
+        if (result && result.success) {
           successCount++;
           
           // Notifier le client
