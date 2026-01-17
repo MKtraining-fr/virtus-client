@@ -1703,6 +1703,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 const parsedSets = parseInt(String(normalized.sets), 10);
                 const sets = Number.isNaN(parsedSets) ? details.length : parsedSets;
 
+                // Construire l'objet intensification qui regroupe toutes les données de technique
+                const intensificationData = {
+                  techniques: normalized.intensification || [],
+                  technique_id: normalized.intensity_technique_id || null,
+                  config: normalized.intensity_config || null,
+                  applies_to: normalized.intensity_applies_to || null,
+                };
+
                 const baseExercise = {
                   exercise_id: normalized.exerciseId,
                   exercise_order: index + 1,
@@ -1713,10 +1721,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                     : '',
                   tempo: mainDetail.tempo || '',
                   rest_time: mainDetail.rest || '',
-                  intensification: JSON.stringify(normalized.intensification || []),
-                  intensity_technique_id: normalized.intensity_technique_id || null,
-                  intensity_config: normalized.intensity_config ? JSON.stringify(normalized.intensity_config) : null,
-                  intensity_applies_to: normalized.intensity_applies_to || null,
+                  intensification: JSON.stringify(intensificationData),
                   notes: normalized.notes || '',
                   details: JSON.stringify(details),
                   week_variations: normalized.weekVariations ? JSON.stringify(normalized.weekVariations) : null,
