@@ -7,8 +7,9 @@ export interface DropSetConfig {
   applyTo: 'all' | 'last' | 'specific'; // Toutes séries, dernière, ou spécifiques
   specificSets?: number[]; // Si applyTo = 'specific', quelles séries (ex: [3, 4])
   dropLevels: Array<{
-    reduction: number; // Réduction en % (ex: 20 pour -20%)
-    targetReps: string; // Répétitions cibles (ex: "8-10")
+    type: 'percentage' | 'weight'; // Type de réduction : pourcentage ou charge précise
+    value: number; // Valeur : 20 (%) ou 60 (kg)
+    targetReps?: string; // Répétitions cibles optionnelles (ex: "8-10")
   }>;
 }
 
@@ -94,8 +95,7 @@ export function getTechniqueTypeFromConfig(config: any): string | null {
 export const DEFAULT_DROP_SET_CONFIG: DropSetConfig = {
   applyTo: 'last',
   dropLevels: [
-    { reduction: 20, targetReps: '8-10' },
-    { reduction: 40, targetReps: '6-8' },
+    { type: 'percentage', value: 20, targetReps: '8-10' },
   ],
 };
 

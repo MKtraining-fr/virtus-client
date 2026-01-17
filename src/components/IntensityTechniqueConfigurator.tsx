@@ -159,58 +159,81 @@ const IntensityTechniqueConfigurator: React.FC<IntensityTechniqueConfiguratorPro
           Paliers de dégressif
         </label>
         {cfg.dropLevels.map((level, index) => (
-          <div key={index} className="flex gap-2 mb-2">
-            <div className="flex-1">
-              <Input
-                type="number"
-                value={level.reduction}
-                onChange={(e) => {
-                  const updated = { ...cfg };
-                  updated.dropLevels[index].reduction = parseInt(e.target.value);
-                  setLocalConfig(updated);
-                  onChange(updated);
-                }}
-                placeholder="Réduction %"
-                disabled={disabled}
-                min={5}
-                max={50}
-              />
+          <div key={index} className="space-y-2 mb-4 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Type</label>
+                <Select
+                  value={level.type}
+                  onChange={(e) => {
+                    const updated = { ...cfg };
+                    updated.dropLevels[index].type = e.target.value as 'percentage' | 'weight';
+                    setLocalConfig(updated);
+                    onChange(updated);
+                  }}
+                  disabled={disabled}
+                >
+                  <option value="percentage">Pourcentage</option>
+                  <option value="weight">Charge précise</option>
+                </Select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                  {level.type === 'percentage' ? 'Réduction (%)' : 'Charge (kg)'}
+                </label>
+                <Input
+                  type="number"
+                  value={level.value}
+                  onChange={(e) => {
+                    const updated = { ...cfg };
+                    updated.dropLevels[index].value = parseFloat(e.target.value);
+                    setLocalConfig(updated);
+                    onChange(updated);
+                  }}
+                  placeholder={level.type === 'percentage' ? 'Ex: 20' : 'Ex: 60'}
+                  disabled={disabled}
+                  min={1}
+                />
+              </div>
+              {cfg.dropLevels.length > 1 && (
+                <div className="flex items-end">
+                  <Button
+                    onClick={() => {
+                      const updated = { ...cfg };
+                      updated.dropLevels.splice(index, 1);
+                      setLocalConfig(updated);
+                      onChange(updated);
+                    }}
+                    variant="outline"
+                    disabled={disabled}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              )}
             </div>
-            <div className="flex-1">
+            <div>
+              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Répétitions cibles (optionnel)</label>
               <Input
                 type="text"
-                value={level.targetReps}
+                value={level.targetReps || ''}
                 onChange={(e) => {
                   const updated = { ...cfg };
                   updated.dropLevels[index].targetReps = e.target.value;
                   setLocalConfig(updated);
                   onChange(updated);
                 }}
-                placeholder="Reps (ex: 8-10)"
+                placeholder="Ex: 8-10 ou jusqu'au maximum"
                 disabled={disabled}
               />
             </div>
-            {cfg.dropLevels.length > 1 && (
-              <Button
-                onClick={() => {
-                  const updated = { ...cfg };
-                  updated.dropLevels.splice(index, 1);
-                  setLocalConfig(updated);
-                  onChange(updated);
-                }}
-                variant="outline"
-                disabled={disabled}
-              >
-                ✕
-              </Button>
-            )}
           </div>
         ))}
-        {cfg.dropLevels.length < 4 && (
+        {cfg.dropLevels.length < 5 && (
           <Button
             onClick={() => {
               const updated = { ...cfg };
-              updated.dropLevels.push({ reduction: 20, targetReps: '8-10' });
+              updated.dropLevels.push({ type: 'percentage', value: 20, targetReps: '8-10' });
               setLocalConfig(updated);
               onChange(updated);
             }}
