@@ -90,10 +90,23 @@ const WorkoutLibrary: React.FC = () => {
   };
 
   const handleAssign = async () => {
-    if (!itemToAssign || selectedClientsForAssign.length === 0 || !user) return;
+    console.log('[handleAssign] 🚀 Début de l\'assignation');
+    console.log('[handleAssign] itemToAssign:', itemToAssign);
+    console.log('[handleAssign] selectedClientsForAssign:', selectedClientsForAssign);
+    console.log('[handleAssign] user:', user);
+    
+    if (!itemToAssign || selectedClientsForAssign.length === 0 || !user) {
+      console.log('[handleAssign] ❌ Vérification initiale échouée');
+      return;
+    }
 
     // Vérifier si c'est une séance isolée ou un programme
+    console.log('[handleAssign] Vérification du type d\'item...');
+    console.log('[handleAssign] exercises in itemToAssign:', 'exercises' in itemToAssign);
+    console.log('[handleAssign] sessionsByWeek in itemToAssign:', 'sessionsByWeek' in itemToAssign);
+    
     if ('exercises' in itemToAssign && !('sessionsByWeek' in itemToAssign)) {
+      console.log('[handleAssign] ❌ Séance isolée détectée');
       addNotification({
         message: "L'assignement de séances isolées n'est pas encore supporté. Veuillez créer un programme contenant cette séance.",
         type: 'warning',
@@ -105,16 +118,26 @@ const WorkoutLibrary: React.FC = () => {
     const templateId = programToAssign.id;
     const coachId = user.id;
     const startDate = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+    
+    console.log('[handleAssign] 📋 Données d\'assignation:');
+    console.log('[handleAssign] templateId:', templateId);
+    console.log('[handleAssign] coachId:', coachId);
+    console.log('[handleAssign] startDate:', startDate);
+    console.log('[handleAssign] Nombre de clients:', selectedClientsForAssign.length);
 
     let successCount = 0;
     let errorCount = 0;
 
     // Assigner le programme à chaque client sélectionné
+    console.log('[handleAssign] 🔄 Début de la boucle d\'assignation...');
     for (const clientId of selectedClientsForAssign) {
+      console.log(`[handleAssign] 📤 Assignation pour client: ${clientId}`);
       try {
         const result = await assignProgramToClient(templateId, clientId, coachId, startDate);
+        console.log(`[handleAssign] 📥 Résultat reçu:`, result);
         
         if (result && result.success) {
+          console.log(`[handleAssign] ✅ Succès pour client ${clientId}`);
           successCount++;
           
           // Notifier le client
@@ -126,15 +149,21 @@ const WorkoutLibrary: React.FC = () => {
             link: `/app/workout`,
           });
         } else {
+          console.log(`[handleAssign] ❌ Échec pour client ${clientId}:`, result);
           errorCount++;
         }
       } catch (error) {
-        console.error(`Erreur lors de l'assignement pour le client ${clientId}:`, error);
+        console.error(`[handleAssign] 💥 Exception pour client ${clientId}:`, error);
         errorCount++;
       }
     }
+    
+    console.log('[handleAssign] 📊 Résultats finaux:');
+    console.log('[handleAssign] successCount:', successCount);
+    console.log('[handleAssign] errorCount:', errorCount);
 
     // Afficher le résultat
+    console.log('[handleAssign] 📢 Affichage des notifications...');
     if (successCount > 0) {
       addNotification({
         message: `Programme assigné avec succès à ${successCount} client(s).`,
@@ -149,6 +178,7 @@ const WorkoutLibrary: React.FC = () => {
       });
     }
 
+    console.log('[handleAssign] 🏁 Fin de l\'assignation');
     setIsAssignModalOpen(false);
     setSelectedClientsForAssign([]);
   };
