@@ -1724,7 +1724,7 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                   intensification: JSON.stringify(intensificationData),
                   notes: normalized.notes || '',
                   details: JSON.stringify(details),
-                  week_variations: normalized.weekVariations ? JSON.stringify(normalized.weekVariations) : null,
+                  // week_variations n'existe pas dans client_session_exercises, ne pas l'envoyer
                 };
 
                 if (isEditingClientProgram) {
