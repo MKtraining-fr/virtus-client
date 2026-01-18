@@ -45,9 +45,13 @@ const mapClientSessionToWorkoutSession = (
       tempo: exercise.tempo ?? '',
       restTime: exercise.rest_time ?? '',
       // Mapper les champs d'intensification depuis l'objet JSONB
-      intensity_technique_id: intensificationData.technique_id || null,
-      intensity_config: intensificationData.config || null,
-      intensity_applies_to: intensificationData.applies_to || null,
+      // Nouveau format : intensification contient directement la config (ex: DropSetConfig)
+      // Ancien format : intensification contient { technique_id, config, applies_to }
+      intensity_technique_id: intensificationData?.technique_id || null,
+      intensity_config: intensificationData?.config 
+        ? intensificationData.config 
+        : (intensificationData && Object.keys(intensificationData).length > 0 ? intensificationData : null),
+      intensity_applies_to: intensificationData?.applies_to || null,
       intensification: Array.isArray(exercise.intensification)
         ? exercise.intensification.map((value: any, i: number) => ({
             id: i + 1,
