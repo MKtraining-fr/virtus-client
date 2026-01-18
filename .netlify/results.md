@@ -1,1 +1,0 @@
-Added the @heroicons/react package to the project dependencies to resolve the Vite build error caused by the missing Heroicons module in CollapsibleSection.tsx. The pnpm lockfile was updated accordingly. After installing the dependency, the production build completed successfully.

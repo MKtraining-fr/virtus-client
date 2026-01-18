@@ -1,60 +1,75 @@
-// Cloudflare Pages Function pour générer le manifest.json dynamiquement
-// https://developers.cloudflare.com/pages/platform/functions/
+// functions/manifest.ts
+// Cloudflare Pages Function pour générer le manifest PWA dynamiquement
 
-interface Env {
-  VITE_SUPABASE_URL: string;
-  VITE_SUPABASE_ANON_KEY: string;
-}
+import { createClient } from '@supabase/supabase-js';
 
-interface PWAConfig {
-  icon_192?: string;
-  icon_512?: string;
-  name?: string;
-  short_name?: string;
-  theme_color?: string;
-  background_color?: string;
-}
-
-export async function onRequest(context: { env: Env }): Promise<Response> {
+export async function onRequest(context: any) {
   try {
-    const { env } = context;
-    
-    // Récupérer la configuration PWA depuis Supabase
-    const response = await fetch(
-      `${env.VITE_SUPABASE_URL}/rest/v1/app_settings?key=eq.pwa_config&select=value`,
-      {
-        headers: {
-          'apikey': env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Récupérer les variables d'environnement depuis Cloudflare
+    const supabaseUrl = context.env.VITE_SUPABASE_URL || '';
+    const supabaseKey = context.env.VITE_SUPABASE_ANON_KEY || '';
 
-    let config: PWAConfig = {};
+    // Créer le client Supabase
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data && data.length > 0 && data[0].value) {
-        config = data[0].value as PWAConfig;
-      }
-    } else {
-      console.error('Erreur lors de la récupération de la config PWA:', response.statusText);
+    // Récupérer la configuration PWA depuis la base de données
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'pwa_config')
+      .single();
+
+    if (error) {
+      console.error('Erreur lors de la récupération de la config PWA:', error);
+      // Retourner un manifest par défaut en cas d'erreur
+      return new Response(
+        JSON.stringify({
+          name: 'Virtus',
+          short_name: 'Virtus',
+          description: 'Your personal fitness coaching companion.',
+          start_url: '/',
+          display: 'standalone',
+          background_color: '#121212',
+          theme_color: '#7A68FA',
+          icons: [
+            {
+              src: 'https://cdn-icons-png.flaticon.com/512/3043/3043222.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any maskable'
+            },
+            {
+              src: 'https://cdn-icons-png.flaticon.com/512/3043/3043222.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any maskable'
+            }
+          ]
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=3600',
+          },
+        }
+      );
     }
 
-    // Construire le manifest avec les données de la base ou les valeurs par défaut
+    const config = data?.value || {};
+
+    // Construire le manifest avec les données de la base
     const manifest = {
       name: config.name || 'Virtus',
       short_name: config.short_name || 'Virtus',
       description: 'Your personal fitness coaching companion.',
       start_url: '/',
-      scope: '/',
       display: 'standalone',
-      background_color: config.background_color || '#F7F8FA',
-      theme_color: config.theme_color || '#6D5DD3',
+      background_color: config.background_color || '#121212',
+      theme_color: config.theme_color || '#7A68FA',
       icons: [
         {
-          src: config.icon_192 || 'https://cdn-icons-png.flaticon.com/192/3043/3043222.png',
+          src: config.icon_192 || 'https://cdn-icons-png.flaticon.com/512/3043/3043222.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'any maskable'
@@ -68,50 +83,26 @@ export async function onRequest(context: { env: Env }): Promise<Response> {
       ]
     };
 
-    return new Response(JSON.stringify(manifest, null, 2), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/manifest+json',
-        'Cache-Control': 'public, max-age=3600', // Cache 1 heure
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    return new Response(
+      JSON.stringify(manifest),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=3600',
+        },
+      }
+    );
   } catch (error) {
     console.error('Erreur dans la fonction manifest:', error);
-    
-    // Retourner un manifest par défaut en cas d'erreur
-    const defaultManifest = {
-      name: 'Virtus',
-      short_name: 'Virtus',
-      description: 'Your personal fitness coaching companion.',
-      start_url: '/',
-      scope: '/',
-      display: 'standalone',
-      background_color: '#F7F8FA',
-      theme_color: '#6D5DD3',
-      icons: [
-        {
-          src: 'https://cdn-icons-png.flaticon.com/192/3043/3043222.png',
-          sizes: '192x192',
-          type: 'image/png',
-          purpose: 'any maskable'
+    return new Response(
+      JSON.stringify({ error: 'Internal Server Error' }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          src: 'https://cdn-icons-png.flaticon.com/512/3043/3043222.png',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'any maskable'
-        }
-      ]
-    };
-
-    return new Response(JSON.stringify(defaultManifest, null, 2), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/manifest+json',
-        'Cache-Control': 'public, max-age=3600',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+      }
+    );
   }
 }
