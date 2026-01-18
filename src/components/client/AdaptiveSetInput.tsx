@@ -87,71 +87,9 @@ const AdaptiveSetInput: React.FC<AdaptiveSetInputProps> = ({
 
   // Render Drop Set Input
   if (isDropSetConfig(config)) {
-    const shouldApply =
-      config.applyTo === 'all' ||
-      (config.applyTo === 'last' && setIndex === 0) || // Assuming last set logic
-      (config.applyTo === 'specific' && config.specificSets?.includes(setIndex + 1));
-
-    if (!shouldApply) {
-      // Render standard input
-      return (
-        <div
-          key={setIndex}
-          className={`flex items-center p-2 rounded-lg cursor-pointer ${isSelected ? 'bg-primary' : ''}`}
-          onClick={() => onSetSelect(setIndex)}
-        >
-          <p className={`flex-none w-1/4 text-center font-bold text-lg ${isSelected ? 'text-white' : 'text-gray-500 dark:text-client-subtle'}`}>
-            S{setIndex + 1}
-          </p>
-          <div className="flex-1 px-1">
-            <input
-              type="number"
-              placeholder={targetReps !== '0' ? targetReps : placeholder?.reps || '0'}
-              value={logData?.reps || ''}
-              onChange={(e) => onLogChange(exerciseId, setIndex, 'reps', e.target.value)}
-              onFocus={() => onSetSelect(setIndex)}
-              className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${
-                isSelected
-                  ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70'
-                  : `bg-white dark:bg-client-card dark:text-client-light ${getProgressionColor(logData?.reps || '', placeholder?.reps)}`
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-          <div className="flex-1 px-1">
-            <input
-              type="number"
-              placeholder={targetLoad !== '0' ? targetLoad : placeholder?.load || '0'}
-              value={logData?.load || ''}
-              onChange={(e) => onLogChange(exerciseId, setIndex, 'load', e.target.value)}
-              onFocus={() => onSetSelect(setIndex)}
-              className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${
-                isSelected
-                  ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70'
-                  : `bg-white dark:bg-client-card dark:text-client-light ${getProgressionColor(logData?.load || '', placeholder?.load)}`
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-          <div className="flex-none w-10 text-center pl-1">
-            {isSelected ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCommentClick(exerciseId, setIndex);
-                }}
-                className="p-1 rounded-full text-white/80 hover:bg-white/20"
-              >
-                <PencilIcon className="w-5 h-5" />
-              </button>
-            ) : (
-              hasComment && <ChatBubbleLeftIcon className="w-5 h-5 text-gray-500 dark:text-client-subtle mx-auto" />
-            )}
-          </div>
-        </div>
-      );
-    }
-
+    // La logique shouldApply est déjà gérée par ClientCurrentProgram.tsx
+    // Ce composant n'est appelé que pour les séries où la technique s'applique
+    
     // Render Drop Set with expand/collapse
     return (
       <div className="space-y-2">
@@ -275,71 +213,8 @@ const AdaptiveSetInput: React.FC<AdaptiveSetInputProps> = ({
 
   // Render Rest-Pause Input
   if (isRestPauseConfig(config)) {
-    const shouldApply =
-      config.applyTo === 'all' ||
-      (config.applyTo === 'last' && setIndex === 0) ||
-      (config.applyTo === 'specific' && config.specificSets?.includes(setIndex + 1));
-
-    if (!shouldApply) {
-      // Render standard input (same as above)
-      return (
-        <div
-          key={setIndex}
-          className={`flex items-center p-2 rounded-lg cursor-pointer ${isSelected ? 'bg-primary' : ''}`}
-          onClick={() => onSetSelect(setIndex)}
-        >
-          <p className={`flex-none w-1/4 text-center font-bold text-lg ${isSelected ? 'text-white' : 'text-gray-500 dark:text-client-subtle'}`}>
-            S{setIndex + 1}
-          </p>
-          <div className="flex-1 px-1">
-            <input
-              type="number"
-              placeholder={targetReps !== '0' ? targetReps : placeholder?.reps || '0'}
-              value={logData?.reps || ''}
-              onChange={(e) => onLogChange(exerciseId, setIndex, 'reps', e.target.value)}
-              onFocus={() => onSetSelect(setIndex)}
-              className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${
-                isSelected
-                  ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70'
-                  : `bg-white dark:bg-client-card dark:text-client-light ${getProgressionColor(logData?.reps || '', placeholder?.reps)}`
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-          <div className="flex-1 px-1">
-            <input
-              type="number"
-              placeholder={targetLoad !== '0' ? targetLoad : placeholder?.load || '0'}
-              value={logData?.load || ''}
-              onChange={(e) => onLogChange(exerciseId, setIndex, 'load', e.target.value)}
-              onFocus={() => onSetSelect(setIndex)}
-              className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${
-                isSelected
-                  ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70'
-                  : `bg-white dark:bg-client-card dark:text-client-light ${getProgressionColor(logData?.load || '', placeholder?.load)}`
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-          <div className="flex-none w-10 text-center pl-1">
-            {isSelected ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCommentClick(exerciseId, setIndex);
-                }}
-                className="p-1 rounded-full text-white/80 hover:bg-white/20"
-              >
-                <PencilIcon className="w-5 h-5" />
-              </button>
-            ) : (
-              hasComment && <ChatBubbleLeftIcon className="w-5 h-5 text-gray-500 dark:text-client-subtle mx-auto" />
-            )}
-          </div>
-        </div>
-      );
-    }
-
+    // La logique shouldApply est déjà gérée par ClientCurrentProgram.tsx
+    
     // Render Rest-Pause with mini-sets
     return (
       <div className="space-y-2 mb-4">
