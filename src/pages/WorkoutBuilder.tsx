@@ -1704,8 +1704,14 @@ const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({ mode = 'coach' }) => {
                 const sets = Number.isNaN(parsedSets) ? details.length : parsedSets;
 
                 // Construire l'objet intensification pour client_session_exercises
-                // Si une technique est configurée, sauvegarder directement la config
-                const intensificationData = normalized.intensity_config || null;
+                // Sauvegarder technique_id ET config pour permettre la détection côté client
+                const intensificationData = normalized.intensity_technique_id 
+                  ? {
+                      technique_id: normalized.intensity_technique_id,
+                      config: normalized.intensity_config || null,
+                      applies_to: normalized.intensity_applies_to || null,
+                    }
+                  : null;
                 console.log(`[DEBUG] Exercice "${normalized.name}" - intensificationData:`, intensificationData);
                 console.log(`[DEBUG] normalized.intensity_technique_id:`, normalized.intensity_technique_id);
                 console.log(`[DEBUG] normalized.intensity_config:`, normalized.intensity_config);
