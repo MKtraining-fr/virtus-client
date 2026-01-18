@@ -340,7 +340,7 @@ const AdaptiveSetInput: React.FC<AdaptiveSetInputProps> = ({
       <div className="space-y-2">
         {/* Badge MYO-REPS */}
         <div className="flex items-center justify-between px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-600 rounded-t-lg">
-          <span className="text-xs font-bold text-white tracking-wider">⚡ MYO-REPS</span>
+          <span className="text-xs font-bold text-white tracking-wider">⚡ MYO-REPS (À L'ÉCHEC)</span>
           <span className="text-xs text-white/90">
             Dernière série • {config.restBetween}s entre mini-séries
           </span>

@@ -144,14 +144,11 @@ const IntensityTechniqueSelectionModal: React.FC<IntensityTechniqueSelectionModa
                       </div>
                     </div>
 
-                    {/* Protocole au survol */}
-                    {hoveredTechnique?.id === technique.id && (
+                    {/* Définition au survol */}
+                    {hoveredTechnique?.id === technique.id && technique.definition && (
                       <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
-                        <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                          Protocole :
-                        </div>
-                        <div className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                          {technique.protocol}
+                        <div className="text-gray-600 dark:text-gray-400">
+                          {technique.definition}
                         </div>
                       </div>
                     )}
