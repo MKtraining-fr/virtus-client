@@ -166,6 +166,21 @@ const ClientWorkout: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 gap-4">
+        {/* Nouveau bouton pour tester l'interface cylindre */}
+        <Link
+          to="/app/workout/cylinder"
+          className="bg-gradient-to-r from-brand-primary to-brand-secondary rounded-lg p-4 flex justify-between items-center w-full transition-all group border-2 border-brand-primary shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40"
+        >
+          <div>
+            <p className="font-bold text-white text-lg flex items-center gap-2">
+              🎯 Nouvelle Interface 3D
+              <span className="text-xs bg-accent-gold text-white px-2 py-0.5 rounded-full">BETA</span>
+            </p>
+            <p className="text-sm text-white/80">Expérience de tracking réinventée</p>
+          </div>
+          <ChevronRightIcon className="w-6 h-6 text-white transition-transform group-hover:translate-x-1" />
+        </Link>
+        
         <ActionButton
           to="/app/workout/my-programs"
           title="Mes programmes"

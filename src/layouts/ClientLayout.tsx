@@ -24,6 +24,7 @@ import FormationLibrary from '../pages/client/library/FormationLibrary';
 import ClientCurrentProgram from '../pages/client/workout/ClientCurrentProgram';
 import ClientWorkoutBuilder from '../pages/client/workout/ClientWorkoutBuilder';
 import ClientMyPrograms from '../pages/client/workout/ClientMyPrograms';
+import WorkoutCylinderView from '../pages/client/workout/WorkoutCylinderView';
 
 import { CLIENT_NAV_ITEMS } from '../constants/navigation';
 
@@ -34,6 +35,7 @@ const pathTitleMap: Record<string, string> = {
   '/library/glossaire': 'Glossaire',
   '/library/formation': 'Formation',
   '/workout/current-program': 'Programme en cours',
+  '/workout/cylinder': 'Entraînement',
   '/workout/builder': 'Créateur de séance',
   '/workout/my-programs': 'Mes Programmes',
   '/nutrition/journal': 'Journal',
@@ -120,6 +122,7 @@ const ClientLayout: React.FC = () => {
           <Route path="library/formation" element={<FormationLibrary />} />
           <Route path="workout" element={<ClientWorkout />} />
           <Route path="workout/current-program" element={<ClientCurrentProgram />} />
+          <Route path="workout/cylinder" element={<WorkoutCylinderView />} />
           <Route path="workout/builder" element={<ClientWorkoutBuilder />} />
           <Route path="workout/my-programs" element={<ClientMyPrograms />} />
           <Route path="profile" element={<ClientProfile />} />
