@@ -90,73 +90,80 @@ const AdaptiveSetInput: React.FC<AdaptiveSetInputProps> = ({
     // La logique shouldApply est déjà gérée par ClientCurrentProgram.tsx
     // Ce composant n'est appelé que pour les séries où la technique s'applique
     
-    // Render Drop Set with expand/collapse
     return (
       <div className="space-y-2">
-        {/* Série principale */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 flex-1">
-            <button
-              onClick={() => onSetSelect(setIndex)}
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                isSelected
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              S{setIndex + 1}
-            </button>
+        {/* Série principale - Style identique aux séries standards */}
+        <div
+          className={`flex items-center p-2 rounded-lg cursor-pointer ${
+            isSelected ? 'bg-primary' : ''
+          }`}
+          onClick={() => onSetSelect(setIndex)}
+        >
+          <p className={`flex-none w-1/4 text-center font-bold text-lg ${
+            isSelected ? 'text-white' : 'text-gray-500 dark:text-client-subtle'
+          }`}>
+            S{setIndex + 1}
+          </p>
+          <div className="flex-1 px-1">
             <input
               type="number"
-              inputMode="numeric"
+              placeholder={targetReps !== '0' ? targetReps : placeholder?.reps || '0'}
               value={logData?.reps || ''}
               onChange={(e) => onLogChange(exerciseId, setIndex, 'reps', e.target.value)}
-              placeholder={targetReps || '0'}
-              className={`w-16 px-2 py-1.5 text-center border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                getProgressionColor(logData?.reps || '', placeholder?.reps)
+              onFocus={() => onSetSelect(setIndex)}
+              className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${
+                isSelected
+                  ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70'
+                  : `bg-white dark:bg-client-card dark:text-client-light ${getProgressionColor(logData?.reps || '', placeholder?.reps)}`
               }`}
+              onClick={(e) => e.stopPropagation()}
             />
-            <span className="text-xs text-gray-500">reps</span>
+          </div>
+          <div className="flex-1 px-1">
             <input
               type="number"
-              inputMode="decimal"
+              placeholder={targetLoad !== '0' ? targetLoad : placeholder?.load || '0'}
               value={logData?.load || ''}
               onChange={(e) => onLogChange(exerciseId, setIndex, 'load', e.target.value)}
-              placeholder={targetLoad || '0'}
-              className={`w-20 px-2 py-1.5 text-center border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                getProgressionColor(logData?.load || '', placeholder?.load)
+              onFocus={() => onSetSelect(setIndex)}
+              className={`w-full rounded-md text-center py-2 font-bold text-lg border-2 ${
+                isSelected
+                  ? 'bg-white/20 border-white/50 text-white placeholder:text-white/70'
+                  : `bg-white dark:bg-client-card dark:text-client-light ${getProgressionColor(logData?.load || '', placeholder?.load)}`
               }`}
+              onClick={(e) => e.stopPropagation()}
             />
-            <span className="text-xs text-gray-500">{loadUnit || 'kg'}</span>
           </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onCommentClick(exerciseId, setIndex);
-            }}
-            className={`p-2 rounded-lg transition-colors ${
-              hasComment
-                ? 'bg-blue-100 text-blue-600'
-                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-            }`}
-          >
-            {hasComment ? <ChatBubbleLeftIcon className="w-4 h-4" /> : <PencilIcon className="w-4 h-4" />}
-          </button>
+          <div className="flex-none w-10 text-center pl-1">
+            {isSelected ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCommentClick(exerciseId, setIndex);
+                }}
+                className="p-1 rounded-full text-white/80 hover:bg-white/20"
+              >
+                <PencilIcon className="w-5 h-5" />
+              </button>
+            ) : (
+              hasComment && <ChatBubbleLeftIcon className="w-5 h-5 text-gray-500 dark:text-client-subtle mx-auto" />
+            )}
+          </div>
         </div>
 
         {/* Bouton expand/collapse */}
-        <div className="flex items-center gap-2 ml-10">
+        <div className="flex justify-center">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+            className="text-sm text-primary hover:text-primary/80 font-medium px-4 py-1"
           >
             {isExpanded ? '▲ Cacher' : '▼ Voir'} les paliers ({config.dropLevels.length})
           </button>
         </div>
 
-        {/* Paliers Drop Set (affichés uniquement si expanded) */}
+        {/* Paliers Drop Set (affichés uniquement si expanded) - Style identique aux séries standards */}
         {isExpanded && (
-          <div className="ml-10 space-y-2 border-l-2 border-blue-200 pl-4">
+          <div className="space-y-2 pl-4">
             {config.dropLevels.map((level: any, idx: number) => {
               const subSeriesData = logData?.sub_series_performance || [];
               const subData = subSeriesData[idx] || {};
@@ -167,39 +174,42 @@ const AdaptiveSetInput: React.FC<AdaptiveSetInputProps> = ({
                 : '';
 
               return (
-                <div key={idx} className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg">
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="text-xs font-medium text-blue-700 w-16">
-                      Palier {idx + 1}
-                    </span>
+                <div
+                  key={idx}
+                  className="flex items-center p-2 rounded-lg bg-gray-50 dark:bg-client-dark/30"
+                >
+                  <p className="flex-none w-1/4 text-center font-medium text-sm text-gray-600 dark:text-client-subtle">
+                    P{idx + 1}
+                  </p>
+                  <div className="flex-1 px-1">
                     <input
                       type="number"
-                      inputMode="numeric"
+                      placeholder={level.targetReps ? `${level.targetReps}` : '0'}
                       value={subData.reps || ''}
                       onChange={(e) => {
                         const newSubSeries = [...subSeriesData];
                         newSubSeries[idx] = { ...subData, reps: e.target.value };
                         onLogChange(exerciseId, setIndex, 'sub_series_performance', newSubSeries);
                       }}
-                      placeholder={level.targetReps ? `${level.targetReps}` : '0'}
-                      className="w-16 px-2 py-1.5 text-center border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300"
+                      className="w-full rounded-md text-center py-2 font-bold text-lg border-2 border-gray-300 bg-white dark:bg-client-card dark:text-client-light"
                     />
-                    <span className="text-xs text-gray-500">reps</span>
+                  </div>
+                  <div className="flex-1 px-1">
                     <input
                       type="number"
-                      inputMode="decimal"
+                      placeholder={calculatedLoad}
                       value={subData.load || ''}
                       onChange={(e) => {
                         const newSubSeries = [...subSeriesData];
                         newSubSeries[idx] = { ...subData, load: e.target.value };
                         onLogChange(exerciseId, setIndex, 'sub_series_performance', newSubSeries);
                       }}
-                      placeholder={calculatedLoad}
-                      className="w-20 px-2 py-1.5 text-center border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300"
+                      className="w-full rounded-md text-center py-2 font-bold text-lg border-2 border-gray-300 bg-white dark:bg-client-card dark:text-client-light"
                     />
-                    <span className="text-xs text-gray-500">{loadUnit || 'kg'}</span>
+                  </div>
+                  <div className="flex-none w-10 text-center pl-1">
                     <span className="text-xs text-gray-400">
-                      ({level.type === 'percentage' ? `-${level.value}%` : `-${level.value}${loadUnit || 'kg'}`})
+                      {level.type === 'percentage' ? `-${level.value}%` : `-${level.value}${loadUnit || 'kg'}`}
                     </span>
                   </div>
                 </div>
