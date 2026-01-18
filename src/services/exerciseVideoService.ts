@@ -27,6 +27,8 @@ export async function uploadExerciseVideo(
   clientId: string,
   coachId: string,
   performanceId: string,
+  exerciseName: string,
+  setIndex: number,
   file: File,
   onProgress?: (progress: number) => void
 ): Promise<{ videoUrl: string; videoId: string } | null> {
