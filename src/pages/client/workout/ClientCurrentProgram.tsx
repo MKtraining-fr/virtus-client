@@ -727,10 +727,16 @@ const ClientCurrentProgram: React.FC = () => {
               }
 
               // Vérifier si l'exercice a une technique adaptative
+              // Détecter par la présence de champs spécifiques à chaque technique
               const hasAdaptiveTechnique = currentExercise.intensity_config && 
                 typeof currentExercise.intensity_config === 'object' &&
-                'type' in currentExercise.intensity_config &&
-                ['drop_set', 'rest_pause', 'myo_reps', 'cluster_set', 'tempo'].includes((currentExercise.intensity_config as any).type);
+                ('dropLevels' in currentExercise.intensity_config ||  // Drop Set
+                 'restPauses' in currentExercise.intensity_config ||  // Rest-Pause
+                 'activationSet' in currentExercise.intensity_config || // Myo-reps
+                 'clusters' in currentExercise.intensity_config ||    // Cluster Sets
+                 'tempoPhases' in currentExercise.intensity_config);  // Tempo
+              
+              console.log('[DEBUG] Exercise:', currentExercise.name, 'hasAdaptiveTechnique:', hasAdaptiveTechnique, 'intensity_config:', currentExercise.intensity_config);
 
               // Vérifier si la technique s'applique à la semaine actuelle
               const techniqueApplies = !currentExercise.intensity_applies_to || 
