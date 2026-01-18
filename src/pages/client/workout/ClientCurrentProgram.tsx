@@ -744,14 +744,17 @@ const ClientCurrentProgram: React.FC = () => {
                 currentExercise.intensity_applies_to === `week_${currentWeek}`;
 
               // Vérifier si la technique s'applique à la série actuelle
-              const totalSets = currentExercise.sets || 1;
+              const totalSets = parseInt(currentExercise.sets, 10) || 1;
               const isLastSet = setIndex === totalSets - 1;
               const config = currentExercise.intensity_config as any;
               const setApplies = !config?.applyTo || config.applyTo === 'all' || 
                 (config.applyTo === 'last' && isLastSet);
 
+              console.log('[DEBUG] Set', setIndex + 1, '- totalSets:', totalSets, 'isLastSet:', isLastSet, 'config.applyTo:', config?.applyTo, 'setApplies:', setApplies, 'techniqueApplies:', techniqueApplies, 'hasAdaptiveTechnique:', hasAdaptiveTechnique);
+
               // Si technique adaptative ET qu'elle s'applique à cette semaine ET à cette série, utiliser AdaptiveSetInput
               if (hasAdaptiveTechnique && techniqueApplies && setApplies) {
+                console.log('[DEBUG] ✅ Utilisation de AdaptiveSetInput pour la série', setIndex + 1);
                 return (
                   <AdaptiveSetInput
                     key={setIndex}
