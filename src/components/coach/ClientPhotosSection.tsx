@@ -23,6 +23,8 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState<ClientDocument | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadPhotosData();
@@ -69,14 +71,35 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
     try {
       await deleteClientDocument(photoId);
       
-      // Recharger les données
+      // Recharger les photos de la session
       if (sessionId && sessionPhotos[sessionId]) {
         const photos = await getSessionPhotos(sessionId);
-        setSessionPhotos(prev => ({ ...prev, [sessionId]: photos }));
+        
+        // ✅ Si plus aucune photo, supprimer la session automatiquement
+        if (photos.length === 0) {
+          await deletePhotoSession(sessionId);
+          
+          // Retirer la session des états
+          setSessions(prev => prev.filter(s => s.id !== sessionId));
+          setExpandedSessions(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(sessionId);
+            return newSet;
+          });
+          setSessionPhotos(prev => {
+            const newPhotos = { ...prev };
+            delete newPhotos[sessionId];
+            return newPhotos;
+          });
+          
+          alert('Photo supprimée et dossier vide supprimé automatiquement !');
+        } else {
+          // Mettre à jour les photos de la session
+          setSessionPhotos(prev => ({ ...prev, [sessionId]: photos }));
+          await loadPhotosData();
+          alert('Photo supprimée avec succès !');
+        }
       }
-      
-      await loadPhotosData();
-      alert('Photo supprimée avec succès !');
     } catch (error) {
       console.error('Erreur suppression photo:', error);
       alert('Erreur lors de la suppression de la photo.');
@@ -119,6 +142,119 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
     }
   };
 
+  const handleSelectAll = () => {
+    // Collecter toutes les photos visibles
+    const allPhotos: string[] = [];
+    for (const sessionId of Array.from(expandedSessions)) {
+      if (sessionPhotos[sessionId]) {
+        allPhotos.push(...sessionPhotos[sessionId].map(p => p.id));
+      }
+    }
+
+    if (selectedPhotos.size === allPhotos.length) {
+      setSelectedPhotos(new Set());
+    } else {
+      setSelectedPhotos(new Set(allPhotos));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer ${selectedPhotos.size} photo${selectedPhotos.size > 1 ? 's' : ''} ?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      // Grouper les photos par session
+      const photosBySession: Record<string, string[]> = {};
+      for (const photoId of Array.from(selectedPhotos)) {
+        // Trouver la session de cette photo
+        for (const [sessionId, photos] of Object.entries(sessionPhotos)) {
+          if (photos.some(p => p.id === photoId)) {
+            if (!photosBySession[sessionId]) {
+              photosBySession[sessionId] = [];
+            }
+            photosBySession[sessionId].push(photoId);
+            break;
+          }
+        }
+      }
+
+      // Supprimer toutes les photos
+      await Promise.all(
+        Array.from(selectedPhotos).map(photoId => deleteClientDocument(photoId))
+      );
+
+      // Vérifier chaque session et supprimer si vide
+      for (const [sessionId, deletedPhotoIds] of Object.entries(photosBySession)) {
+        const remainingPhotos = await getSessionPhotos(sessionId);
+        
+        if (remainingPhotos.length === 0) {
+          // Supprimer la session vide
+          await deletePhotoSession(sessionId);
+          
+          // Retirer la session des états
+          setSessions(prev => prev.filter(s => s.id !== sessionId));
+          setExpandedSessions(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(sessionId);
+            return newSet;
+          });
+          setSessionPhotos(prev => {
+            const newPhotos = { ...prev };
+            delete newPhotos[sessionId];
+            return newPhotos;
+          });
+        } else {
+          // Mettre à jour les photos de la session
+          setSessionPhotos(prev => ({ ...prev, [sessionId]: remainingPhotos }));
+        }
+      }
+
+      await loadPhotosData();
+      setSelectedPhotos(new Set());
+      setSelectionMode(false);
+      alert('Photos supprimées avec succès !');
+    } catch (error) {
+      console.error('Erreur suppression photos:', error);
+      alert('Erreur lors de la suppression des photos.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDownloadSelected = async () => {
+    try {
+      for (const photoId of Array.from(selectedPhotos)) {
+        // Trouver la photo
+        let photo: ClientDocument | null = null;
+        for (const photos of Object.values(sessionPhotos)) {
+          const found = photos.find(p => p.id === photoId);
+          if (found) {
+            photo = found;
+            break;
+          }
+        }
+
+        if (photo) {
+          // Télécharger la photo
+          const link = document.createElement('a');
+          link.href = photo.file_url;
+          link.download = photo.file_name;
+          link.click();
+          
+          // Petit délai entre chaque téléchargement
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      alert('Téléchargement des photos lancé !');
+    } catch (error) {
+      console.error('Erreur téléchargement photos:', error);
+      alert('Erreur lors du téléchargement des photos.');
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',
@@ -154,10 +290,56 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Photos de progression
         </h3>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          {totalPhotos} photo{totalPhotos > 1 ? 's' : ''}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {totalPhotos} photo{totalPhotos > 1 ? 's' : ''}
+          </span>
+          {totalPhotos > 0 && (
+            <button
+              onClick={() => {
+                setSelectionMode(!selectionMode);
+                setSelectedPhotos(new Set());
+              }}
+              className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium"
+            >
+              {selectionMode ? 'Annuler' : '☑️ Sélectionner'}
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Barre d'actions en mode sélection */}
+      {selectionMode && (
+        <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {selectedPhotos.size} photo{selectedPhotos.size > 1 ? 's' : ''} sélectionnée{selectedPhotos.size > 1 ? 's' : ''}
+            </span>
+            <button
+              onClick={handleSelectAll}
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              {selectedPhotos.size > 0 ? 'Tout désélectionner' : 'Tout sélectionner'}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleDownloadSelected}
+              disabled={selectedPhotos.size === 0 || isDeleting}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              📥 Télécharger ({selectedPhotos.size})
+            </button>
+            <button
+              onClick={handleDeleteSelected}
+              disabled={selectedPhotos.size === 0 || isDeleting}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              🗑️ Supprimer ({selectedPhotos.size})
+            </button>
+          </div>
+        </div>
+      )}
 
       {totalPhotos === 0 ? (
         <div className="text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -244,7 +426,19 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
                         >
                           <div
                             className="cursor-pointer w-full h-full"
-                            onClick={() => setSelectedPhoto(photo)}
+                            onClick={() => {
+                              if (selectionMode) {
+                                const newSelected = new Set(selectedPhotos);
+                                if (newSelected.has(photo.id)) {
+                                  newSelected.delete(photo.id);
+                                } else {
+                                  newSelected.add(photo.id);
+                                }
+                                setSelectedPhotos(newSelected);
+                              } else {
+                                setSelectedPhoto(photo);
+                              }
+                            }}
                           >
                             <PhotoImage
                               filePath={photo.file_url}
@@ -252,17 +446,42 @@ export const ClientPhotosSection: React.FC<ClientPhotosSectionProps> = ({ client
                               className="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary transition-colors"
                             />
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeletePhoto(photo.id, session.id);
-                            }}
-                            className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all"
-                            disabled={isDeleting}
-                            title="Supprimer la photo"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          
+                          {/* Checkbox en mode sélection */}
+                          {selectionMode && (
+                            <div className="absolute top-2 left-2 z-10">
+                              <input
+                                type="checkbox"
+                                checked={selectedPhotos.has(photo.id)}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  const newSelected = new Set(selectedPhotos);
+                                  if (e.target.checked) {
+                                    newSelected.add(photo.id);
+                                  } else {
+                                    newSelected.delete(photo.id);
+                                  }
+                                  setSelectedPhotos(newSelected);
+                                }}
+                                className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Bouton supprimer (seulement en mode normal) */}
+                          {!selectionMode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePhoto(photo.id, session.id);
+                              }}
+                              className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all"
+                              disabled={isDeleting}
+                              title="Supprimer la photo"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>

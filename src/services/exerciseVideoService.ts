@@ -260,21 +260,41 @@ export async function addCoachCommentToVideo(
 }
 
 /**
- * Supprimer une vidéo (client uniquement)
+ * Supprimer une vidéo (client et coach)
  */
 export async function deleteExerciseVideo(
   videoId: string,
-  fileName: string
+  fileName?: string
 ): Promise<boolean> {
   try {
-    // Supprimer de Storage
-    const { error: storageError } = await supabase.storage
-      .from(BUCKET_NAMES.EXERCISE_VIDEOS)
-      .remove([fileName]);
+    // Si fileName n'est pas fourni, le récupérer depuis la BDD
+    let fileToDelete = fileName;
+    
+    if (!fileToDelete) {
+      const { data: video, error: fetchError } = await supabase
+        .from('exercise_set_videos')
+        .select('file_name')
+        .eq('id', videoId)
+        .single();
 
-    if (storageError) {
-      console.error('Erreur suppression Storage:', storageError);
-      return false;
+      if (fetchError) {
+        console.error('Erreur récupération vidéo:', fetchError);
+        return false;
+      }
+
+      fileToDelete = video?.file_name;
+    }
+
+    // Supprimer de Storage
+    if (fileToDelete) {
+      const { error: storageError } = await supabase.storage
+        .from(BUCKET_NAMES.EXERCISE_VIDEOS)
+        .remove([fileToDelete]);
+
+      if (storageError) {
+        console.error('Erreur suppression Storage:', storageError);
+        // On continue quand même pour supprimer l'entrée BDD
+      }
     }
 
     // Supprimer de la BDD
@@ -288,6 +308,7 @@ export async function deleteExerciseVideo(
       return false;
     }
 
+    console.log('Vidéo supprimée avec succès:', videoId);
     return true;
   } catch (error) {
     console.error('Erreur globale suppression vidéo:', error);
@@ -319,3 +340,4 @@ export async function countUnviewedVideosForCoach(
     return 0;
   }
 }
+

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getVideosForClient, markVideoAsViewed, addCoachCommentToVideo } from '../../services/exerciseVideoService';
+import { getVideosForClient, markVideoAsViewed, addCoachCommentToVideo, deleteExerciseVideo } from '../../services/exerciseVideoService';
 import VideoPlayerModal from './VideoPlayerModal';
 import Card from '../Card';
 import Button from '../Button';
@@ -20,6 +20,9 @@ const ClientVideosTab: React.FC<ClientVideosTabProps> = ({ clientId, coachId }) 
   const [loading, setLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [filter, setFilter] = useState<'all' | 'new' | 'viewed'>('all');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchVideos();
@@ -64,6 +67,60 @@ const ClientVideosTab: React.FC<ClientVideosTabProps> = ({ clientId, coachId }) 
       setSelectedVideo(null);
     } catch (error) {
       console.error('Erreur ajout commentaire:', error);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedVideos.size === filteredVideos.length) {
+      setSelectedVideos(new Set());
+    } else {
+      setSelectedVideos(new Set(filteredVideos.map(v => v.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer ${selectedVideos.size} vidéo${selectedVideos.size > 1 ? 's' : ''} ?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await Promise.all(
+        Array.from(selectedVideos).map(videoId => deleteExerciseVideo(videoId))
+      );
+      
+      await fetchVideos();
+      setSelectedVideos(new Set());
+      setSelectionMode(false);
+      alert('Vidéos supprimées avec succès !');
+    } catch (error) {
+      console.error('Erreur suppression vidéos:', error);
+      alert('Erreur lors de la suppression des vidéos.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDownloadSelected = async () => {
+    try {
+      for (const videoId of Array.from(selectedVideos)) {
+        const video = videos.find(v => v.id === videoId);
+        if (video) {
+          // Télécharger la vidéo
+          const link = document.createElement('a');
+          link.href = video.videoUrl;
+          link.download = video.fileName;
+          link.click();
+          
+          // Petit délai entre chaque téléchargement
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      alert('Téléchargement des vidéos lancé !');
+    } catch (error) {
+      console.error('Erreur téléchargement vidéos:', error);
+      alert('Erreur lors du téléchargement des vidéos.');
     }
   };
 
@@ -140,8 +197,50 @@ const ClientVideosTab: React.FC<ClientVideosTabProps> = ({ clientId, coachId }) 
           >
             Vues ({videos.filter(v => v.viewedByCoach).length})
           </button>
+          <button
+            onClick={() => {
+              setSelectionMode(!selectionMode);
+              setSelectedVideos(new Set());
+            }}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+          >
+            {selectionMode ? 'Annuler' : '☑️ Sélectionner'}
+          </button>
         </div>
       </div>
+
+      {/* Barre d'actions en mode sélection */}
+      {selectionMode && (
+        <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-700">
+              {selectedVideos.size} vidéo{selectedVideos.size > 1 ? 's' : ''} sélectionnée{selectedVideos.size > 1 ? 's' : ''}
+            </span>
+            <button
+              onClick={handleSelectAll}
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              {selectedVideos.size === filteredVideos.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleDownloadSelected}
+              disabled={selectedVideos.size === 0 || isDeleting}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              📥 Télécharger ({selectedVideos.size})
+            </button>
+            <button
+              onClick={handleDeleteSelected}
+              disabled={selectedVideos.size === 0 || isDeleting}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              🗑️ Supprimer ({selectedVideos.size})
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Liste des vidéos groupées par exercice */}
       {filteredVideos.length === 0 ? (
@@ -172,7 +271,19 @@ const ClientVideosTab: React.FC<ClientVideosTabProps> = ({ clientId, coachId }) 
                   {exerciseVideos.map((video) => (
                     <div
                       key={video.id}
-                      onClick={() => handleVideoClick(video)}
+                      onClick={() => {
+                        if (selectionMode) {
+                          const newSelected = new Set(selectedVideos);
+                          if (newSelected.has(video.id)) {
+                            newSelected.delete(video.id);
+                          } else {
+                            newSelected.add(video.id);
+                          }
+                          setSelectedVideos(newSelected);
+                        } else {
+                          handleVideoClick(video);
+                        }
+                      }}
                       className="relative cursor-pointer group"
                     >
                       {/* Thumbnail vidéo */}
@@ -190,8 +301,29 @@ const ClientVideosTab: React.FC<ClientVideosTabProps> = ({ clientId, coachId }) 
                           </div>
                         </div>
 
+                        {/* Checkbox en mode sélection */}
+                        {selectionMode && (
+                          <div className="absolute top-2 left-2 z-10">
+                            <input
+                              type="checkbox"
+                              checked={selectedVideos.has(video.id)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                const newSelected = new Set(selectedVideos);
+                                if (e.target.checked) {
+                                  newSelected.add(video.id);
+                                } else {
+                                  newSelected.delete(video.id);
+                                }
+                                setSelectedVideos(newSelected);
+                              }}
+                              className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                            />
+                          </div>
+                        )}
+
                         {/* Badge "Nouvelle" */}
-                        {!video.viewedByCoach && (
+                        {!selectionMode && !video.viewedByCoach && (
                           <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
                             🔴 Nouvelle
                           </div>
