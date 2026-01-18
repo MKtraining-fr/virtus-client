@@ -331,8 +331,209 @@ const AdaptiveSetInput: React.FC<AdaptiveSetInputProps> = ({
     );
   }
 
-  // For other techniques (Myo-Reps, Cluster Sets, Tempo), render standard input for now
-  // These can be implemented similarly if needed
+  // Render Myo-Reps Input
+  if (isMyoRepsConfig(config)) {
+    // La logique shouldApply est déjà gérée par ClientCurrentProgram.tsx
+    const [isMyoRepsExpanded, setIsMyoRepsExpanded] = React.useState(false);
+    
+    return (
+      <div className="space-y-2">
+        {/* Badge MYO-REPS */}
+        <div className="flex items-center justify-between px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-600 rounded-t-lg">
+          <span className="text-xs font-bold text-white tracking-wider">⚡ MYO-REPS</span>
+          <span className="text-xs text-white/90">
+            Dernière série • {config.restBetween}s entre mini-séries
+          </span>
+        </div>
+
+        {/* Série d'activation */}
+        <div
+          className={`p-3 rounded-b-lg border-2 ${isSelected ? 'border-primary bg-primary/10' : 'border-gray-200 dark:border-client-dark'}`}
+          onClick={() => onSetSelect(setIndex)}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3 flex-1">
+              <span className="text-sm font-bold text-gray-700 dark:text-client-light">S{setIndex + 1} (Activation)</span>
+              <div className="flex gap-2 flex-1">
+                <input
+                  type="number"
+                  placeholder={config.activationSet.targetReps}
+                  value={logData?.reps || ''}
+                  onChange={(e) => onLogChange(exerciseId, setIndex, 'reps', e.target.value)}
+                  className={`flex-1 rounded-md text-center py-2 font-bold text-lg border-2 ${
+                    isSelected
+                      ? 'bg-primary/20 border-primary text-gray-900 dark:text-client-light'
+                      : 'bg-white dark:bg-client-card dark:text-client-light border-gray-300 dark:border-client-dark'
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <input
+                  type="number"
+                  placeholder={targetLoad}
+                  value={logData?.load || ''}
+                  onChange={(e) => onLogChange(exerciseId, setIndex, 'load', e.target.value)}
+                  className={`flex-1 rounded-md text-center py-2 font-bold text-lg border-2 ${
+                    isSelected
+                      ? 'bg-primary/20 border-primary text-gray-900 dark:text-client-light'
+                      : 'bg-white dark:bg-client-card dark:text-client-light border-gray-300 dark:border-client-dark'
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="flex items-center text-sm text-gray-600 dark:text-client-subtle">{loadUnit}</span>
+              </div>
+            </div>
+            {isSelected ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCommentClick(exerciseId, setIndex);
+                }}
+                className="p-1 rounded-full text-primary hover:bg-primary/20 ml-2"
+              >
+                <PencilIcon className="w-5 h-5" />
+              </button>
+            ) : (
+              hasComment && <ChatBubbleLeftIcon className="w-5 h-5 text-gray-500 dark:text-client-subtle ml-2" />
+            )}
+          </div>
+
+          {/* Bouton expand/collapse */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMyoRepsExpanded(!isMyoRepsExpanded);
+            }}
+            className="w-full text-center text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 py-1"
+          >
+            {isMyoRepsExpanded ? '▲' : '▼'} {isMyoRepsExpanded ? 'Cacher' : 'Voir'} les mini-séries ({config.miniSets})
+          </button>
+
+          {/* Mini-séries */}
+          {isMyoRepsExpanded && (
+            <div className="mt-3 space-y-2 pl-4 border-l-2 border-purple-300 dark:border-purple-700">
+              {Array.from({ length: config.miniSets }).map((_, miniIndex) => (
+                <div key={miniIndex} className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-gray-600 dark:text-client-subtle w-16">M{miniIndex + 1}</span>
+                  <input
+                    type="number"
+                    placeholder={config.targetRepsPerMini}
+                    value={(logData as any)?.[`mini_${miniIndex}_reps`] || ''}
+                    onChange={(e) => onLogChange(exerciseId, setIndex, `mini_${miniIndex}_reps`, e.target.value)}
+                    className="flex-1 rounded-md text-center py-2 text-sm border-2 border-gray-300 dark:border-client-dark bg-gray-50 dark:bg-client-card/50 dark:text-client-light"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <span className="text-xs text-gray-500 dark:text-client-subtle whitespace-nowrap">{config.restBetween}s repos</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Render Cluster Set Input
+  if (isClusterSetConfig(config)) {
+    // La logique shouldApply est déjà gérée par ClientCurrentProgram.tsx
+    const [isClusterExpanded, setIsClusterExpanded] = React.useState(false);
+    
+    return (
+      <div className="space-y-2">
+        {/* Badge CLUSTER SET */}
+        <div className="flex items-center justify-between px-2 py-1 bg-gradient-to-r from-green-500 to-teal-600 rounded-t-lg">
+          <span className="text-xs font-bold text-white tracking-wider">⚡ CLUSTER SET</span>
+          <span className="text-xs text-white/90">
+            {config.clusters} clusters • {config.restBetweenClusters}s entre clusters
+          </span>
+        </div>
+
+        {/* Série principale */}
+        <div
+          className={`p-3 rounded-b-lg border-2 ${isSelected ? 'border-primary bg-primary/10' : 'border-gray-200 dark:border-client-dark'}`}
+          onClick={() => onSetSelect(setIndex)}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3 flex-1">
+              <span className="text-sm font-bold text-gray-700 dark:text-client-light">S{setIndex + 1}</span>
+              <div className="flex gap-2 flex-1">
+                <input
+                  type="number"
+                  placeholder={targetReps}
+                  value={logData?.reps || ''}
+                  onChange={(e) => onLogChange(exerciseId, setIndex, 'reps', e.target.value)}
+                  className={`flex-1 rounded-md text-center py-2 font-bold text-lg border-2 ${
+                    isSelected
+                      ? 'bg-primary/20 border-primary text-gray-900 dark:text-client-light'
+                      : 'bg-white dark:bg-client-card dark:text-client-light border-gray-300 dark:border-client-dark'
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <input
+                  type="number"
+                  placeholder={targetLoad}
+                  value={logData?.load || ''}
+                  onChange={(e) => onLogChange(exerciseId, setIndex, 'load', e.target.value)}
+                  className={`flex-1 rounded-md text-center py-2 font-bold text-lg border-2 ${
+                    isSelected
+                      ? 'bg-primary/20 border-primary text-gray-900 dark:text-client-light'
+                      : 'bg-white dark:bg-client-card dark:text-client-light border-gray-300 dark:border-client-dark'
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="flex items-center text-sm text-gray-600 dark:text-client-subtle">{loadUnit}</span>
+              </div>
+            </div>
+            {isSelected ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCommentClick(exerciseId, setIndex);
+                }}
+                className="p-1 rounded-full text-primary hover:bg-primary/20 ml-2"
+              >
+                <PencilIcon className="w-5 h-5" />
+              </button>
+            ) : (
+              hasComment && <ChatBubbleLeftIcon className="w-5 h-5 text-gray-500 dark:text-client-subtle ml-2" />
+            )}
+          </div>
+
+          {/* Bouton expand/collapse */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsClusterExpanded(!isClusterExpanded);
+            }}
+            className="w-full text-center text-xs text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 py-1"
+          >
+            {isClusterExpanded ? '▲' : '▼'} {isClusterExpanded ? 'Cacher' : 'Voir'} les clusters ({config.clusters})
+          </button>
+
+          {/* Clusters */}
+          {isClusterExpanded && (
+            <div className="mt-3 space-y-2 pl-4 border-l-2 border-green-300 dark:border-green-700">
+              {Array.from({ length: config.clusters }).map((_, clusterIndex) => (
+                <div key={clusterIndex} className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-gray-600 dark:text-client-subtle w-16">C{clusterIndex + 1}</span>
+                  <input
+                    type="number"
+                    placeholder={config.repsPerCluster}
+                    value={(logData as any)?.[`cluster_${clusterIndex}_reps`] || ''}
+                    onChange={(e) => onLogChange(exerciseId, setIndex, `cluster_${clusterIndex}_reps`, e.target.value)}
+                    className="flex-1 rounded-md text-center py-2 text-sm border-2 border-gray-300 dark:border-client-dark bg-gray-50 dark:bg-client-card/50 dark:text-client-light"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <span className="text-xs text-gray-500 dark:text-client-subtle whitespace-nowrap">{config.restBetweenClusters}s repos</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // For other techniques (Tempo), render standard input for now
   return (
     <div
       key={setIndex}
