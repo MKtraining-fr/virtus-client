@@ -103,38 +103,8 @@ const IntensityTechniqueDisplay: React.FC<IntensityTechniqueDisplayProps> = ({
           />
         </button>
         {isExpanded && (
-          <div className="p-3 mt-1 bg-gray-100 dark:bg-client-dark rounded-md space-y-2">
-            <div>
-              <p className="text-xs font-semibold text-gray-600 dark:text-client-subtle uppercase mb-1">
-                Description
-              </p>
-              <p className="text-sm text-gray-700 dark:text-client-light">{technique.description}</p>
-            </div>
-            {technique.protocol && (
-              <div>
-                <p className="text-xs font-semibold text-gray-600 dark:text-client-subtle uppercase mb-1">
-                  Protocole
-                </p>
-                <p className="text-sm text-gray-700 dark:text-client-light whitespace-pre-wrap">
-                  {technique.protocol}
-                </p>
-              </div>
-            )}
-            {config && Object.keys(config).length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-600 dark:text-client-subtle uppercase mb-1">
-                  Configuration
-                </p>
-                <div className="text-sm text-gray-700 dark:text-client-light">
-                  {Object.entries(config).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span className="font-medium">{key}:</span>
-                      <span>{String(value)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="p-3 mt-1 bg-gray-50 dark:bg-gray-700 rounded-md">
+            <p className="text-sm text-gray-700 dark:text-gray-300">{technique.definition || technique.description}</p>
           </div>
         )}
       </div>
