@@ -74,6 +74,8 @@ const AdaptiveSetInput: React.FC<AdaptiveSetInputProps> = ({
   hasComment,
   loadUnit,
 }) => {
+  // État pour expand/collapse du Drop Set
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const getProgressionColor = (value: string, previousValue?: string) => {
     if (!value || !previousValue) return 'border-gray-300';
     const current = parseFloat(value);
@@ -150,93 +152,123 @@ const AdaptiveSetInput: React.FC<AdaptiveSetInputProps> = ({
       );
     }
 
-    // Render Drop Set with multiple levels
+    // Render Drop Set with expand/collapse
     return (
-      <div className="space-y-2 mb-4">
-        <div
-          className={`p-3 rounded-lg border-2 ${isSelected ? 'border-primary bg-primary/10' : 'border-gray-200 dark:border-client-dark'}`}
-          onClick={() => onSetSelect(setIndex)}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="font-bold text-sm text-gray-700 dark:text-client-light">Série {setIndex + 1} - Drop Set</p>
-            {isSelected ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCommentClick(exerciseId, setIndex);
-                }}
-                className="p-1 rounded-full text-primary hover:bg-primary/20"
-              >
-                <PencilIcon className="w-4 h-4" />
-              </button>
-            ) : (
-              hasComment && <ChatBubbleLeftIcon className="w-4 h-4 text-gray-500 dark:text-client-subtle" />
-            )}
+      <div className="space-y-2">
+        {/* Série principale */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
+            <button
+              onClick={() => onSetSelect(setIndex)}
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                isSelected
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              S{setIndex + 1}
+            </button>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={logData?.reps || ''}
+              onChange={(e) => onLogChange(exerciseId, setIndex, 'reps', e.target.value)}
+              placeholder={targetReps || '0'}
+              className={`w-16 px-2 py-1.5 text-center border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                getProgressionColor(logData?.reps || '', placeholder?.reps)
+              }`}
+            />
+            <span className="text-xs text-gray-500">reps</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={logData?.load || ''}
+              onChange={(e) => onLogChange(exerciseId, setIndex, 'load', e.target.value)}
+              placeholder={targetLoad || '0'}
+              className={`w-20 px-2 py-1.5 text-center border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                getProgressionColor(logData?.load || '', placeholder?.load)
+              }`}
+            />
+            <span className="text-xs text-gray-500">{loadUnit || 'kg'}</span>
           </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCommentClick(exerciseId, setIndex);
+            }}
+            className={`p-2 rounded-lg transition-colors ${
+              hasComment
+                ? 'bg-blue-100 text-blue-600'
+                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+            }`}
+          >
+            {hasComment ? <ChatBubbleLeftIcon className="w-4 h-4" /> : <PencilIcon className="w-4 h-4" />}
+          </button>
+        </div>
 
-          {/* Main set */}
-          <div className="mb-2">
-            <p className="text-xs text-gray-600 dark:text-client-subtle mb-1">Série principale</p>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                placeholder={targetReps}
-                value={logData?.reps || ''}
-                onChange={(e) => onLogChange(exerciseId, setIndex, 'reps', e.target.value)}
-                className="flex-1 rounded-md text-center py-2 text-sm border-2 border-gray-300 dark:border-client-dark bg-white dark:bg-client-card dark:text-client-light"
-                onClick={(e) => e.stopPropagation()}
-              />
-              <input
-                type="number"
-                placeholder={targetLoad}
-                value={logData?.load || ''}
-                onChange={(e) => onLogChange(exerciseId, setIndex, 'load', e.target.value)}
-                className="flex-1 rounded-md text-center py-2 text-sm border-2 border-gray-300 dark:border-client-dark bg-white dark:bg-client-card dark:text-client-light"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-          </div>
+        {/* Bouton expand/collapse */}
+        <div className="flex items-center gap-2 ml-10">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
+            {isExpanded ? '▲ Cacher' : '▼ Voir'} les paliers ({config.dropLevels.length})
+          </button>
+        </div>
 
-          {/* Drop levels */}
-          {config.dropLevels.map((level, levelIndex) => {
-            // Calculer la charge du palier selon le type
-            let dropLoad: number | string = 0;
-            let dropLoadLabel = '';
-            
-            if (level.type === 'percentage') {
-              // Pourcentage : calculer depuis la charge de la série principale
-              if (logData?.load) {
-                dropLoad = Math.round(parseFloat(logData.load) * (1 - level.value / 100));
-                dropLoadLabel = `-${level.value}%`;
-              }
-            } else {
-              // Charge précise : utiliser directement la valeur
-              dropLoad = level.value;
-              dropLoadLabel = `${level.value}kg`;
-            }
-            
-            return (
-              <div key={levelIndex} className="mb-2">
-                <p className="text-xs text-gray-600 dark:text-client-subtle mb-1">
-                  Palier {levelIndex + 1} ({dropLoadLabel})
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder={level.targetReps || 'Reps'}
-                    value={(logData as any)?.[`drop_${levelIndex}_reps`] || ''}
-                    onChange={(e) => onLogChange(exerciseId, setIndex, `drop_${levelIndex}_reps`, e.target.value)}
-                    className="flex-1 rounded-md text-center py-2 text-sm border-2 border-gray-300 dark:border-client-dark bg-white dark:bg-client-card dark:text-client-light"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <div className="flex-1 flex items-center justify-center text-sm text-gray-600 dark:text-client-subtle font-medium">
-                    {dropLoad > 0 ? `${dropLoad} ${loadUnit}` : '-'}
+        {/* Paliers Drop Set (affichés uniquement si expanded) */}
+        {isExpanded && (
+          <div className="ml-10 space-y-2 border-l-2 border-blue-200 pl-4">
+            {config.dropLevels.map((level: any, idx: number) => {
+              const subSeriesData = logData?.sub_series_performance || [];
+              const subData = subSeriesData[idx] || {};
+              const calculatedLoad = logData?.load 
+                ? level.type === 'percentage'
+                  ? (parseFloat(logData.load) * (1 - level.value / 100)).toFixed(1)
+                  : (parseFloat(logData.load) - level.value).toFixed(1)
+                : '';
+
+              return (
+                <div key={idx} className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg">
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-xs font-medium text-blue-700 w-16">
+                      Palier {idx + 1}
+                    </span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={subData.reps || ''}
+                      onChange={(e) => {
+                        const newSubSeries = [...subSeriesData];
+                        newSubSeries[idx] = { ...subData, reps: e.target.value };
+                        onLogChange(exerciseId, setIndex, 'sub_series_performance', newSubSeries);
+                      }}
+                      placeholder={level.targetReps ? `${level.targetReps}` : '0'}
+                      className="w-16 px-2 py-1.5 text-center border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="text-xs text-gray-500">reps</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={subData.load || ''}
+                      onChange={(e) => {
+                        const newSubSeries = [...subSeriesData];
+                        newSubSeries[idx] = { ...subData, load: e.target.value };
+                        onLogChange(exerciseId, setIndex, 'sub_series_performance', newSubSeries);
+                      }}
+                      placeholder={calculatedLoad}
+                      className="w-20 px-2 py-1.5 text-center border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="text-xs text-gray-500">{loadUnit || 'kg'}</span>
+                    <span className="text-xs text-gray-400">
+                      ({level.type === 'percentage' ? `-${level.value}%` : `-${level.value}${loadUnit || 'kg'}`})
+                    </span>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }
