@@ -686,7 +686,8 @@ const ClientCurrentProgram: React.FC = () => {
           </div>
         )}
 
-        {currentExercise.intensity_technique_id && (
+        {/* Configuration technique masquée dans l'interface client */}
+        {/* {currentExercise.intensity_technique_id && (
           <IntensityTechniqueDisplay
             techniqueId={currentExercise.intensity_technique_id}
             config={currentExercise.intensity_config}
@@ -694,7 +695,7 @@ const ClientCurrentProgram: React.FC = () => {
             currentWeek={currentWeek}
             collapsible={true}
           />
-        )}
+        )} */}
 
         <div className="pt-2">
           <div className="flex text-center font-semibold text-gray-500 mb-2">

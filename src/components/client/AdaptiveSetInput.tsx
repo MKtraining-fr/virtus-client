@@ -92,9 +92,18 @@ const AdaptiveSetInput: React.FC<AdaptiveSetInputProps> = ({
     
     return (
       <div className="space-y-2">
+        {/* Badge DROP SET */}
+        <div className="flex items-center justify-between px-2 py-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-t-lg">
+          <span className="text-xs font-bold text-white tracking-wider">⚡ DROP SET
+          </span>
+          <span className="text-xs text-white/90">
+            Dernière série
+          </span>
+        </div>
+        
         {/* Série principale - Style identique aux séries standards */}
         <div
-          className={`flex items-center p-2 rounded-lg cursor-pointer ${
+          className={`flex items-center p-2 rounded-b-lg cursor-pointer ${
             isSelected ? 'bg-primary' : ''
           }`}
           onClick={() => onSetSelect(setIndex)}
