@@ -17,6 +17,7 @@ const CoachLayout = lazy(() => import('./layouts/CoachLayout'));
 const ClientLayout = lazy(() => import('./layouts/ClientLayout'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const VideoRoomPage = lazy(() => import('./pages/video/VideoRoomPage'));
+const IronTrackDemo = lazy(() => import('./pages/demo/IronTrackDemo'));
 
 const App: React.FC = () => {
   const { user, isAuthLoading, currentViewRole } = useAuth();
@@ -103,6 +104,7 @@ const App: React.FC = () => {
           <Route path="/login" element={!user ? <AuthPage /> : <Navigate to="/app" replace />} />
           <Route path="/set-password" element={<SetPassword />} />
           <Route path="/video/:roomId" element={<VideoRoomPage />} />
+          <Route path="/demo/irontrack" element={<IronTrackDemo />} />
           <Route
             path="/app/*"
             element={

@@ -7,6 +7,7 @@ interface WorkoutState {
   currentSetIndex: number;
 
   // Données de la séance
+  sessionName: string;
   exercises: WorkoutExercise[];
   performanceData: Record<string, PerformanceSet[]>;
 
@@ -35,12 +36,13 @@ interface WorkoutState {
   // Actions - UI
   startRestTimer: (duration: number) => void;
   stopRestTimer: () => void;
+  addRestTime: (seconds?: number) => void;
   toggleOptionsMenu: () => void;
   startVideoRecording: () => void;
   stopVideoRecording: () => void;
 
   // Initialisation
-  initializeWorkout: (exercises: WorkoutExercise[]) => void;
+  initializeWorkout: (exercises: WorkoutExercise[], sessionName?: string) => void;
   reset: () => void;
 }
 
@@ -48,6 +50,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   // État initial
   currentExerciseIndex: 0,
   currentSetIndex: 0,
+  sessionName: 'Séance en cours',
   exercises: [],
   performanceData: {},
   isRestTimerActive: false,
@@ -160,6 +163,10 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     set({ isRestTimerActive: false, restTimeLeft: 0 });
   },
 
+  addRestTime: (seconds: number = 30) => {
+    set((state) => ({ restTimeLeft: state.restTimeLeft + seconds }));
+  },
+
   // UI - Options
   toggleOptionsMenu: () => {
     set((state) => ({ isOptionsMenuOpen: !state.isOptionsMenuOpen }));
@@ -175,7 +182,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   },
 
   // Initialisation
-  initializeWorkout: (exercises: WorkoutExercise[]) => {
+  initializeWorkout: (exercises: WorkoutExercise[], sessionName?: string) => {
     const performanceData: Record<string, PerformanceSet[]> = {};
 
     exercises.forEach((exercise) => {
@@ -188,7 +195,8 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
     set({
       exercises,
-      performanceData,
+      sessionName: sessionName || 'Séance en cours',
+      performanceData: initialPerformanceData,
       currentExerciseIndex: 0,
       currentSetIndex: 0,
     });

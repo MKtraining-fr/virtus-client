@@ -106,6 +106,25 @@ const ClientWorkout: React.FC = () => {
         </div>
       )}
 
+      {/* Bouton BETA pour tester la nouvelle interface */}
+      <Link
+        to={hasAssignedProgram ? "/app/workout/tracking" : "/app/workout/tracking-demo"}
+        className="block bg-gradient-to-r from-violet-600 to-violet-800 rounded-lg p-4 hover:from-violet-700 hover:to-violet-900 transition-all group border border-violet-500/50 shadow-lg"
+      >
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-black text-white text-lg uppercase tracking-tight">
+                🎯 Nouvelle Interface 3D
+              </h3>
+              <span className="bg-orange-500 text-white text-xs font-black px-2 py-1 rounded-full">BETA</span>
+            </div>
+            <p className="text-sm text-violet-200 mt-1">Découvrez le nouveau design cylindre immersif</p>
+          </div>
+          <ChevronRightIcon className="w-6 h-6 text-white transition-transform group-hover:translate-x-1" />
+        </div>
+      </Link>
+
       <div className="grid grid-cols-1 gap-4">
         <ActionButton
           to="/app/workout/my-programs"
