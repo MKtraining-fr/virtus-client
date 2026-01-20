@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         navigate(targetPath, { replace: true });
       }
     } else {
-      const publicPaths = ['/', '/login', '/set-password'];
+      const publicPaths = ['/', '/login', '/set-password', '/demo/irontrack'];
       if (!publicPaths.includes(currentPath)) {
         logger.info('Redirecting unauthenticated user to login', { from: currentPath });
         lastNavigationRef.current = '/login';

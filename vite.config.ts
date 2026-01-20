@@ -72,7 +72,7 @@ export default defineConfig({
   // Optimisation du serveur de développement
   server: {
     host: '0.0.0.0',
-    port: 5173,
+    port: 5175,
     open: false,
     allowedHosts: true,
     watch: {

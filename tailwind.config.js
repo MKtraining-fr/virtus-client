@@ -28,6 +28,7 @@ export default {
         'accent-gold': '#FFB800',
         
         // Backgrounds
+        'background': '#0A0E14',
         'bg-primary': '#0A0E14',
         'bg-card': '#151922',
         
