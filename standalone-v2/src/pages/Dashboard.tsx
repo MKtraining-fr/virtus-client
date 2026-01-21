@@ -148,70 +148,61 @@ const Dashboard: React.FC = () => {
   const weekActivity = [true, true, false, true, true, true, true]; // L M M J V S D
 
   return (
-    <div className="space-y-6">
-      {/* En-tête */}
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">
-          Tableau de bord
-        </h1>
-        <p className="text-gray-400">
-          Bienvenue ! Voici un aperçu de votre progression.
+    <div className="px-4 py-4 space-y-4">
+      {/* Message de bienvenue mobile */}
+      <div className="bg-gradient-to-br from-[#6D5DD3] to-[#8B7DE8] rounded-2xl p-5 shadow-xl">
+        <h2 className="text-white text-lg font-bold mb-1">
+          Bienvenue ! 👋
+        </h2>
+        <p className="text-white/80 text-sm">
+          Voici un aperçu de votre progression
         </p>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPIs - Grille 2x2 pour mobile */}
+      <div className="grid grid-cols-2 gap-3">
         {kpis.map((kpi, index) => (
           <KPICard key={index} {...kpi} />
         ))}
       </div>
 
-      {/* Grille principale */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Colonne gauche - 2/3 */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Prochain entraînement */}
-          <NextWorkoutCard
-            workoutName="Push - Pectoraux & Épaules"
-            date="Demain"
-            time="10:00"
-            duration="60 min"
-            exercises={8}
-          />
+      {/* Prochain entraînement */}
+      <NextWorkoutCard
+        workoutName="Push - Pectoraux & Épaules"
+        date="Demain"
+        time="10:00"
+        duration="60 min"
+        exercises={8}
+      />
 
-          {/* Graphique de progression */}
-          <ProgressChart
-            title="Performance cette semaine"
-            data={progressData}
-            color="violet"
-            type="line"
-          />
+      {/* Série d'entraînement */}
+      <StreakCard
+        currentStreak={6}
+        bestStreak={14}
+        weekActivity={weekActivity}
+      />
 
-          {/* Graphique des exercices */}
-          <ProgressChart
-            title="Records personnels (kg)"
-            data={exerciseData}
-            color="orange"
-            type="bar"
-          />
-        </div>
+      {/* Actions rapides */}
+      <QuickActionCard actions={quickActions} />
 
-        {/* Colonne droite - 1/3 */}
-        <div className="space-y-6">
-          {/* Série d'entraînement */}
-          <StreakCard
-            currentStreak={6}
-            bestStreak={14}
-            weekActivity={weekActivity}
-          />
+      {/* Graphique de progression */}
+      <ProgressChart
+        title="Performance cette semaine"
+        data={progressData}
+        color="violet"
+        type="line"
+      />
 
-          {/* Actions rapides */}
-          <QuickActionCard actions={quickActions} />
+      {/* Graphique des exercices */}
+      <ProgressChart
+        title="Records personnels (kg)"
+        data={exerciseData}
+        color="orange"
+        type="bar"
+      />
 
-          {/* Activités récentes */}
-          <ActivityCard activities={activities} />
-        </div>
-      </div>
+      {/* Activités récentes */}
+      <ActivityCard activities={activities} />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, Dumbbell } from 'lucide-react';
+import { Calendar, Clock, Dumbbell, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface NextWorkoutCardProps {
@@ -20,43 +20,39 @@ export const NextWorkoutCard: React.FC<NextWorkoutCardProps> = ({
   const navigate = useNavigate();
 
   return (
-    <div className="rounded-2xl border border-violet-600/30 bg-gradient-to-br from-violet-600/20 to-violet-600/5 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-white">Prochain entraînement</h3>
-        <div className="rounded-xl bg-violet-600/20 p-3">
-          <Dumbbell size={24} className="text-violet-400" strokeWidth={2} />
+    <div className="rounded-xl border border-violet-600/30 bg-gradient-to-br from-violet-600/20 to-violet-600/5 p-4 active:scale-[0.98] transition-transform">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold text-violet-300 mb-1">Prochain entraînement</h3>
+          <p className="text-lg font-bold text-white leading-tight">{workoutName}</p>
+        </div>
+        <div className="rounded-lg bg-violet-600/20 p-2">
+          <Dumbbell size={20} className="text-violet-400" strokeWidth={2.5} />
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div>
-          <p className="text-2xl font-bold text-white mb-2">{workoutName}</p>
-          <p className="text-sm text-gray-400">{exercises} exercices</p>
+      <div className="flex items-center gap-4 mb-4 text-xs text-gray-300">
+        <div className="flex items-center gap-1.5">
+          <Calendar size={14} className="text-violet-400" />
+          <span>{date}</span>
         </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 text-sm">
-            <div className="rounded-lg bg-black/20 p-2">
-              <Calendar size={16} className="text-violet-400" />
-            </div>
-            <span className="text-gray-300">{date}</span>
-          </div>
-
-          <div className="flex items-center gap-3 text-sm">
-            <div className="rounded-lg bg-black/20 p-2">
-              <Clock size={16} className="text-violet-400" />
-            </div>
-            <span className="text-gray-300">{time} • {duration}</span>
-          </div>
+        <div className="flex items-center gap-1.5">
+          <Clock size={14} className="text-violet-400" />
+          <span>{time}</span>
         </div>
-
-        <button
-          onClick={() => navigate('/client/v2/training')}
-          className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 px-6 py-3 text-sm font-semibold text-white transition-all hover:scale-105 hover:shadow-lg hover:shadow-violet-600/30"
-        >
-          Commencer l'entraînement
-        </button>
+        <div className="flex items-center gap-1.5">
+          <Dumbbell size={14} className="text-violet-400" />
+          <span>{exercises} exercices</span>
+        </div>
       </div>
+
+      <button
+        onClick={() => navigate('/client/v2/training')}
+        className="w-full rounded-lg bg-gradient-to-r from-violet-600 to-violet-500 px-4 py-3 text-sm font-bold text-white transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-violet-600/20"
+      >
+        Commencer l'entraînement
+        <ChevronRight size={16} strokeWidth={3} />
+      </button>
     </div>
   );
 };

@@ -1,76 +1,47 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Dumbbell, Apple, BookOpen, MessageCircle, ShoppingBag, User } from 'lucide-react';
+import { Home, Dumbbell, Apple, BookOpen, User } from 'lucide-react';
 
 const MainLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
   const navItems = [
-    { path: '/client/v2/dashboard', icon: Home, label: 'Dashboard' },
+    { path: '/client/v2/dashboard', icon: Home, label: 'Accueil' },
     { path: '/client/v2/training', icon: Dumbbell, label: 'Entraînement' },
     { path: '/client/v2/nutrition', icon: Apple, label: 'Nutrition' },
     { path: '/client/v2/library', icon: BookOpen, label: 'Bibliothèque' },
-    { path: '/client/v2/messages', icon: MessageCircle, label: 'Messages' },
-    { path: '/client/v2/shop', icon: ShoppingBag, label: 'Shop' },
     { path: '/client/v2/profile', icon: User, label: 'Profil' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
 
+  // Trouver le titre de la page actuelle
+  const currentPage = navItems.find(item => item.path === location.pathname);
+  const pageTitle = currentPage?.label || 'Virtus';
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      {/* Header */}
-      <header className="bg-[#1a1a1a] border-b border-gray-800 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-primary">VIRTUS</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-400">Client Name</span>
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-              <User size={20} />
-            </div>
+      {/* Header Mobile - Fixed */}
+      <header className="bg-gradient-to-r from-[#1a1a1a] to-[#2a2a2a] border-b border-gray-800 px-4 py-3 fixed top-0 left-0 right-0 z-50">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-[#6D5DD3] to-[#8B7DE8] bg-clip-text text-transparent">
+            {pageTitle}
+          </h1>
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6D5DD3] to-[#8B7DE8] flex items-center justify-center shadow-lg">
+            <User size={18} className="text-white" />
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex">
-        {/* Sidebar Navigation */}
-        <nav className="w-64 bg-[#1a1a1a] border-r border-gray-800 p-4">
-          <div className="space-y-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-              
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                    active
-                      ? 'bg-primary text-white'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  }`}
-                >
-                  <Icon size={20} />
-                  <span className="font-medium">{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
+      {/* Main Content - Avec padding pour header et bottom nav */}
+      <main className="flex-1 overflow-y-auto pt-14 pb-20">
+        <Outlet />
+      </main>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto p-6">
-            <Outlet />
-          </div>
-        </main>
-      </div>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden bg-[#1a1a1a] border-t border-gray-800 px-4 py-2">
-        <div className="flex justify-around">
-          {navItems.slice(0, 5).map((item) => {
+      {/* Bottom Navigation - Fixed */}
+      <nav className="bg-gradient-to-t from-[#1a1a1a] to-[#0f0f0f] border-t border-gray-800 fixed bottom-0 left-0 right-0 z-50 shadow-2xl">
+        <div className="flex justify-around items-center px-2 py-2">
+          {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             
@@ -78,12 +49,16 @@ const MainLayout = () => {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`flex flex-col items-center gap-1 py-2 ${
-                  active ? 'text-primary' : 'text-gray-400'
+                className={`flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-xl transition-all duration-200 min-w-[60px] ${
+                  active 
+                    ? 'bg-gradient-to-br from-[#6D5DD3] to-[#8B7DE8] text-white shadow-lg scale-105' 
+                    : 'text-gray-400 active:scale-95'
                 }`}
               >
-                <Icon size={20} />
-                <span className="text-xs">{item.label}</span>
+                <Icon size={active ? 22 : 20} strokeWidth={active ? 2.5 : 2} />
+                <span className={`text-[10px] font-medium ${active ? 'font-semibold' : ''}`}>
+                  {item.label}
+                </span>
               </button>
             );
           })}

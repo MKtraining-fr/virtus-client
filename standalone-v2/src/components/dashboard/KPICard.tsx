@@ -37,30 +37,32 @@ export const KPICard: React.FC<KPICardProps> = ({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br p-6 ${colorClasses[color]}`}
+      className={`relative overflow-hidden rounded-xl border bg-gradient-to-br p-4 ${colorClasses[color]} active:scale-95 transition-transform`}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-400 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-white mb-1">{value}</p>
-          {subtitle && (
-            <p className="text-xs text-gray-500">{subtitle}</p>
-          )}
+      <div className="flex flex-col gap-2">
+        {/* Icône et titre */}
+        <div className="flex items-center justify-between">
+          <div className={`rounded-lg bg-black/20 p-2 ${iconColorClasses[color]}`}>
+            <Icon size={18} strokeWidth={2.5} />
+          </div>
           {trend && (
-            <div className="mt-2 flex items-center gap-1">
-              <span
-                className={`text-xs font-semibold ${
-                  trend.isPositive ? 'text-green-400' : 'text-red-400'
-                }`}
-              >
-                {trend.isPositive ? '↗' : '↘'} {Math.abs(trend.value)}%
-              </span>
-              <span className="text-xs text-gray-500">vs semaine dernière</span>
-            </div>
+            <span
+              className={`text-xs font-bold ${
+                trend.isPositive ? 'text-green-400' : 'text-red-400'
+              }`}
+            >
+              {trend.isPositive ? '↗' : '↘'} {Math.abs(trend.value)}%
+            </span>
           )}
         </div>
-        <div className={`rounded-xl bg-black/20 p-3 ${iconColorClasses[color]}`}>
-          <Icon size={24} strokeWidth={2} />
+
+        {/* Valeur principale */}
+        <div>
+          <p className="text-2xl font-bold text-white leading-none mb-1">{value}</p>
+          <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">{title}</p>
+          {subtitle && (
+            <p className="text-[9px] text-gray-500 mt-0.5">{subtitle}</p>
+          )}
         </div>
       </div>
     </div>

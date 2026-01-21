@@ -31,10 +31,10 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activities }) => {
   };
 
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900/50 to-gray-900/20 p-6">
-      <h3 className="text-lg font-semibold text-white mb-6">Activité récente</h3>
+    <div className="rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900/50 to-gray-900/20 p-4">
+      <h3 className="text-sm font-semibold text-white mb-3">Activité récente</h3>
       
-      <div className="space-y-4">
+      <div className="space-y-2.5">
         {activities.map((activity) => {
           const Icon = activity.icon;
           const colorClass = getActivityColor(activity.type);
@@ -42,20 +42,20 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activities }) => {
           return (
             <div
               key={activity.id}
-              className="flex items-start gap-4 rounded-xl bg-black/20 p-4 transition-all hover:bg-black/30"
+              className="flex items-start gap-3 rounded-lg bg-black/20 p-3 transition-all active:bg-black/30"
             >
-              <div className={`rounded-lg p-2 ${colorClass}`}>
-                <Icon size={20} strokeWidth={2} />
+              <div className={`rounded-md p-2 ${colorClass} flex-shrink-0`}>
+                <Icon size={16} strokeWidth={2.5} />
               </div>
               
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white mb-1">
+                <p className="text-xs font-bold text-white mb-0.5 leading-tight">
                   {activity.title}
                 </p>
-                <p className="text-xs text-gray-400 mb-1">
+                <p className="text-[10px] text-gray-400 mb-1 leading-tight">
                   {activity.description}
                 </p>
-                <p className="text-xs text-gray-500">{activity.time}</p>
+                <p className="text-[9px] text-gray-500">{activity.time}</p>
               </div>
             </div>
           );

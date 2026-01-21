@@ -35,16 +35,16 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900/50 to-gray-900/20 p-6">
-      <h3 className="text-lg font-semibold text-white mb-6">{title}</h3>
+    <div className="rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900/50 to-gray-900/20 p-4">
+      <h3 className="text-sm font-semibold text-white mb-4">{title}</h3>
       
       {type === 'bar' ? (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {data.map((point, index) => (
-            <div key={index} className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">{point.label}</span>
-                <span className="font-semibold text-white">{point.value}</span>
+            <div key={index} className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400 font-medium">{point.label}</span>
+                <span className="font-bold text-white">{point.value}</span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-gray-800">
                 <div
@@ -56,16 +56,16 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
           ))}
         </div>
       ) : (
-        <div className="relative h-48">
-          <svg className="h-full w-full" viewBox="0 0 400 200">
+        <div className="relative">
+          <svg className="h-40 w-full" viewBox="0 0 400 160" preserveAspectRatio="none">
             {/* Grille de fond */}
             {[0, 1, 2, 3, 4].map((i) => (
               <line
                 key={i}
                 x1="0"
-                y1={i * 50}
+                y1={i * 40}
                 x2="400"
-                y2={i * 50}
+                y2={i * 40}
                 stroke="rgba(255,255,255,0.05)"
                 strokeWidth="1"
               />
@@ -76,7 +76,7 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
               points={data
                 .map((point, index) => {
                   const x = (index / (data.length - 1)) * 400;
-                  const y = 200 - (point.value / maxValue) * 180;
+                  const y = 160 - (point.value / maxValue) * 140;
                   return `${x},${y}`;
                 })
                 .join(' ')}
@@ -90,13 +90,13 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
             {/* Points */}
             {data.map((point, index) => {
               const x = (index / (data.length - 1)) * 400;
-              const y = 200 - (point.value / maxValue) * 180;
+              const y = 160 - (point.value / maxValue) * 140;
               return (
                 <circle
                   key={index}
                   cx={x}
                   cy={y}
-                  r="5"
+                  r="4"
                   fill={`url(#gradient-${color})`}
                   className="drop-shadow-lg"
                 />
@@ -113,7 +113,7 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
           </svg>
           
           {/* Labels */}
-          <div className="mt-4 flex justify-between text-xs text-gray-500">
+          <div className="mt-2 flex justify-between text-[9px] text-gray-500 font-medium">
             {data.map((point, index) => (
               <span key={index}>{point.label}</span>
             ))}
