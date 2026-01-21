@@ -72,8 +72,8 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
       {/* 3D Cylinder Background Glow */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[140px] bg-primary/5 blur-[90px] rounded-full pointer-events-none"></div>
 
-      {/* Center Focus Guide */}
-      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[100px] pointer-events-none z-30 border-y border-white/5 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+      {/* Center Focus Line */}
+      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] pointer-events-none z-30 bg-primary/60"></div>
 
       {/* Scroll Container */}
       <div 
