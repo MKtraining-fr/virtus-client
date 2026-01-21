@@ -58,7 +58,7 @@ const Library = () => {
           return (
             <button
               key={cat.name}
-              className={\`rounded-lg border bg-gradient-to-br p-3 transition-all active:scale-95 \${colorClasses[cat.color as keyof typeof colorClasses]}\`}
+              className={`rounded-lg border bg-gradient-to-br p-3 transition-all active:scale-95 ${colorClasses[cat.color as keyof typeof colorClasses]}`}
             >
               <Icon size={20} strokeWidth={2.5} className="mb-2" />
               <p className="text-white text-sm font-bold leading-tight mb-0.5">{cat.name}</p>

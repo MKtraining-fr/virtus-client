@@ -63,7 +63,7 @@ const Profile = () => {
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className={\`rounded-lg border bg-gradient-to-br p-3 \${colorClasses[stat.color as keyof typeof colorClasses]}\`}
+            className={`rounded-lg border bg-gradient-to-br p-3 ${colorClasses[stat.color as keyof typeof colorClasses]}`}
           >
             <p className="text-2xl font-bold text-white mb-0.5">{stat.value}</p>
             <p className="text-[9px] text-gray-400 uppercase font-medium">{stat.label}</p>
@@ -78,9 +78,9 @@ const Profile = () => {
           return (
             <button
               key={item.action}
-              className={\`w-full flex items-center justify-between p-4 transition-all active:bg-black/30 \${
+              className={`w-full flex items-center justify-between p-4 transition-all active:bg-black/30 ${
                 index !== menuItems.length - 1 ? 'border-b border-gray-800' : ''
-              } \${item.danger ? 'text-red-400' : 'text-white'}\`}
+              } ${item.danger ? 'text-red-400' : 'text-white'}`}
             >
               <div className="flex items-center gap-3">
                 <Icon size={18} strokeWidth={2.5} />
