@@ -18,6 +18,14 @@ const ClientLayout = lazy(() => import('./layouts/ClientLayout'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const VideoRoomPage = lazy(() => import('./pages/video/VideoRoomPage'));
 const IronTrackDemo = lazy(() => import('./pages/demo/IronTrackDemo'));
+const MainLayoutV2 = lazy(() => import('./layouts/v2/MainLayout'));
+const DashboardV2 = lazy(() => import('./pages/client/v2/Dashboard'));
+const TrainingV2 = lazy(() => import('./pages/client/v2/Training'));
+const NutritionV2 = lazy(() => import('./pages/client/v2/Nutrition'));
+const LibraryV2 = lazy(() => import('./pages/client/v2/Library'));
+const MessagesV2 = lazy(() => import('./pages/client/v2/Messages'));
+const ShopV2 = lazy(() => import('./pages/client/v2/Shop'));
+const ProfileV2 = lazy(() => import('./pages/client/v2/Profile'));
 
 const App: React.FC = () => {
   const { user, isAuthLoading, currentViewRole } = useAuth();
@@ -105,6 +113,16 @@ const App: React.FC = () => {
           <Route path="/set-password" element={<SetPassword />} />
           <Route path="/video/:roomId" element={<VideoRoomPage />} />
           <Route path="/demo/irontrack" element={<IronTrackDemo />} />
+          <Route path="/client/v2" element={<MainLayoutV2 />}>
+            <Route index element={<Navigate to="/client/v2/dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardV2 />} />
+            <Route path="training" element={<TrainingV2 />} />
+            <Route path="nutrition" element={<NutritionV2 />} />
+            <Route path="library" element={<LibraryV2 />} />
+            <Route path="messages" element={<MessagesV2 />} />
+            <Route path="shop" element={<ShopV2 />} />
+            <Route path="profile" element={<ProfileV2 />} />
+          </Route>
           <Route
             path="/app/*"
             element={

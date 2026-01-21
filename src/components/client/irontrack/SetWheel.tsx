@@ -72,24 +72,25 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
       {/* 3D Cylinder Background Glow */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[140px] bg-primary/5 blur-[90px] rounded-full pointer-events-none"></div>
 
-      {/* Center Focus Line */}
-      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] pointer-events-none z-30 bg-primary/60"></div>
+      {/* Center Focus Line - Almost invisible */}
+      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] pointer-events-none z-30 bg-primary/10"></div>
 
       {/* Scroll Container */}
       <div 
         ref={containerRef}
         onScroll={isLocked ? undefined : handleScroll}
-        className={`h-full w-full overflow-y-auto snap-y snap-mandatory no-scrollbar py-[calc(50%-40px)] relative z-20 transition-opacity duration-300 ${isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}
+        className={`h-full w-full overflow-y-auto no-scrollbar py-[calc(50%-63px)] relative z-20 transition-opacity duration-300 ${isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}
         style={{ 
           transformStyle: 'preserve-3d',
-          scrollBehavior: 'smooth',
-          scrollSnapType: 'y mandatory',
-          scrollSnapStop: 'always'
-        }}
+          scrollBehavior: 'auto',
+          overscrollBehavior: 'none',
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y'
+        } as React.CSSProperties}
       >
         {/* Label SÉRIE qui scroll */}
         <div 
-          className="snap-center mb-4 flex justify-center transition-all duration-300 ease-out"
+          className="mb-4 flex justify-center transition-all duration-300 ease-out"
           style={{ 
             height: '30px',
             transformStyle: 'preserve-3d',
@@ -125,7 +126,7 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
           return (
             <div 
               key={set.id} 
-              className="snap-center mb-4 flex justify-center transition-all duration-300 ease-out"
+              className="mb-4 flex justify-center transition-all duration-300 ease-out"
               style={{ 
                 height: '80px',
                 transformStyle: 'preserve-3d',
