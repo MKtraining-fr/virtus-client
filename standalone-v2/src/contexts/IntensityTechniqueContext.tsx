@@ -27,8 +27,23 @@ interface IntensityTechniqueProviderProps {
 }
 
 export const IntensityTechniqueProvider: React.FC<IntensityTechniqueProviderProps> = ({ children }) => {
-  const [currentTechnique, setCurrentTechnique] = useState<IntensityTechnique>('STANDARD');
-  const [currentParams, setCurrentParams] = useState<IntensityTechniqueParams | null>(null);
+  // Initialiser depuis localStorage dès le début pour éviter le flash
+  const [currentTechnique, setCurrentTechnique] = useState<IntensityTechnique>(() => {
+    const saved = localStorage.getItem('irontrack_intensity_technique') as IntensityTechnique;
+    return saved || 'STANDARD';
+  });
+  const [currentParams, setCurrentParams] = useState<IntensityTechniqueParams | null>(() => {
+    const saved = localStorage.getItem('irontrack_intensity_params');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved params:', e);
+        return null;
+      }
+    }
+    return null;
+  });
 
   const setTechnique = (technique: IntensityTechnique, params?: IntensityTechniqueParams) => {
     setCurrentTechnique(technique);
@@ -46,23 +61,6 @@ export const IntensityTechniqueProvider: React.FC<IntensityTechniqueProviderProp
   const resetToStandard = () => {
     setTechnique('STANDARD');
   };
-
-  // Charger la technique sauvegardée au montage
-  React.useEffect(() => {
-    const savedTechnique = localStorage.getItem('irontrack_intensity_technique') as IntensityTechnique;
-    const savedParams = localStorage.getItem('irontrack_intensity_params');
-    
-    if (savedTechnique) {
-      setCurrentTechnique(savedTechnique);
-    }
-    if (savedParams) {
-      try {
-        setCurrentParams(JSON.parse(savedParams));
-      } catch (e) {
-        console.error('Failed to parse saved params:', e);
-      }
-    }
-  }, []);
 
   return (
     <IntensityTechniqueContext.Provider
