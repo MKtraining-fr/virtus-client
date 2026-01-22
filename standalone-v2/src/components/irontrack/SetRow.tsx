@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, TrendingUp, TrendingDown, Minus, BarChart3, Lock } from 'lucide-react';
+import { Check, TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react';
 import { ExerciseSet, SetType } from './irontrack-types';
 
 interface SetRowProps {
@@ -94,23 +94,15 @@ const SetRow: React.FC<SetRowProps> = ({ set, isActive, onClick, onWeightClick, 
       {/* Left Section: Set Number + Previous Perf */}
       <div className="flex items-center gap-3">
         <div className={`
-          flex items-center justify-center w-11 h-11 rounded-full font-black text-base transition-all duration-500 shadow-md flex-shrink-0 relative
+          flex items-center justify-center w-11 h-11 rounded-full font-black text-base transition-all duration-500 shadow-md flex-shrink-0
           ${set.completed 
             ? 'bg-violet-600 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]' 
             : isActive 
-              ? isLocked 
-                ? 'bg-orange-500 text-white scale-110 shadow-[0_0_15px_rgba(249,115,22,0.4)]' 
-                : 'bg-white text-black scale-110' 
+              ? 'bg-white text-black scale-110' 
               : 'bg-zinc-800 text-zinc-500'
           }
         `}>
-          {set.completed ? (
-            <Check size={20} strokeWidth={4} />
-          ) : isActive && isLocked ? (
-            <Lock size={18} strokeWidth={3} />
-          ) : (
-            set.setNumber
-          )}
+          {set.completed ? <Check size={20} strokeWidth={4} /> : set.setNumber}
         </div>
         
         <div className="flex flex-col">
