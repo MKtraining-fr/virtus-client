@@ -320,12 +320,12 @@ const IronTrack: React.FC = () => {
             isValidating 
               ? 'bg-green-500 scale-105 shadow-[0_10px_60px_rgba(34,197,94,0.5)]' 
               : 'bg-violet-600 hover:bg-violet-700 shadow-[0_10px_40px_rgba(109,93,211,0.25)] active:translate-y-1 active:shadow-none'
-          }`
+          }`}
         >
           <div className="bg-black/10 p-1 rounded-lg">
              <Check size={20} strokeWidth={4} />
           </div>
-          LOG SET {currentSetIndex + 1}
+          <span>LOG SET {currentSetIndex + 1}</span>
         </button>
       </footer>
 
