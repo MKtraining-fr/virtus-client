@@ -66,6 +66,7 @@ const IronTrack: React.FC = () => {
   const [showRepsModal, setShowRepsModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isPredataModified, setIsPredataModified] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
     const set = exercise.sets[currentSetIndex];
@@ -82,6 +83,16 @@ const IronTrack: React.FC = () => {
         setRestSeconds((prev) => {
           if (prev <= 1) {
             setIsResting(false);
+            
+            // Play sound when rest ends
+            const audio = new Audio('/beep.mp3');
+            audio.play().catch(() => {});
+            
+            // Vibrate when rest ends
+            if ('vibrate' in navigator) {
+              navigator.vibrate([200, 100, 200]);
+            }
+            
             return 0;
           }
           return prev - 1;
@@ -142,10 +153,20 @@ const IronTrack: React.FC = () => {
     };
     
     setExercise({ ...exercise, sets: updatedSets });
+    
+    // Trigger validation animation (flash vert)
+    setIsValidating(true);
+    setTimeout(() => setIsValidating(false), 600);
+    
+    // Vibrate on validation
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
+    
     setRestSeconds(exercise.protocol.restSeconds);
     setIsResting(true);
-    setIsPredataModified(false); // Réinitialiser après validation
-    setIsLocked(false); // Déverrouiller après validation
+    setIsPredataModified(false);
+    setIsLocked(false);
 
     if (currentSetIndex < exercise.sets.length - 1) {
       setTimeout(() => {
@@ -269,7 +290,11 @@ const IronTrack: React.FC = () => {
       <footer className="flex-none bg-zinc-950/90 backdrop-blur-xl border-t border-zinc-800/50 pt-3 pb-4 px-4 z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] rounded-t-[20px]">
         <button 
           onClick={finishSet}
-          className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-black text-base rounded-xl flex items-center justify-center gap-2 shadow-[0_10px_40px_rgba(109,93,211,0.25)] transition-all active:translate-y-1 active:shadow-none uppercase tracking-tighter italic"
+          className={`w-full h-12 text-white font-black text-base rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-tighter italic ${
+            isValidating 
+              ? 'bg-green-500 scale-105 shadow-[0_10px_60px_rgba(34,197,94,0.5)]' 
+              : 'bg-violet-600 hover:bg-violet-700 shadow-[0_10px_40px_rgba(109,93,211,0.25)] active:translate-y-1 active:shadow-none'
+          }`
         >
           <div className="bg-black/10 p-1 rounded-lg">
              <Check size={20} strokeWidth={4} />
