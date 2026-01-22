@@ -14,7 +14,8 @@ import {
 } from 'lucide-react';
 import SetWheel from '../components/irontrack/SetWheel';
 import RestTimer from '../components/irontrack/RestTimer';
-import NumberPicker from '../components/irontrack/NumberPickeimport { Exercise, ExerciseSet, DropSet } from '../components/irontrack/irontrack-types';
+import NumberPicker from '../components/irontrack/NumberPicker';
+import { Exercise, ExerciseSet, DropSet } from '../components/irontrack/irontrack-types';
 
 // Type pour les items du cylindre (sets et drops aplatis)
 type WheelItem = 
