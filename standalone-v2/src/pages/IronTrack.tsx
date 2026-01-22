@@ -125,6 +125,7 @@ const IronTrack: React.FC = () => {
   });
   
   const [currentSetIndex, setCurrentSetIndex] = useState<number>(2);
+  const [currentItemIndex, setCurrentItemIndex] = useState<number>(2); // Index dans flatItems
   
   // Charger les données appropriées selon la technique
   useEffect(() => {
@@ -436,20 +437,12 @@ const IronTrack: React.FC = () => {
           )}
           <SetWheel 
               sets={exercise.sets}
-              selectedIndex={(() => {
-                // Convertir currentSetIndex en itemIndex
-                const flatItems = buildFlatItems(exercise.sets, currentTechnique === 'DROP_SET');
-                let itemIndex = 0;
-                for (let i = 0; i < currentSetIndex; i++) {
-                  itemIndex++; // La série
-                  if (currentTechnique === 'DROP_SET' && exercise.sets[i].drops) {
-                    itemIndex += exercise.sets[i].drops!.length; // Les drops
-                  }
-                }
-                return itemIndex;
-              })()}
+              selectedIndex={currentItemIndex}
               onSelect={(itemIndex) => {
-                // Convertir itemIndex en setIndex
+                // Mettre à jour l'item sélectionné
+                setCurrentItemIndex(itemIndex);
+                
+                // Mettre à jour currentSetIndex pour la logique métier
                 const flatItems = buildFlatItems(exercise.sets, currentTechnique === 'DROP_SET');
                 const item = flatItems[itemIndex];
                 if (item) {
@@ -493,7 +486,18 @@ const IronTrack: React.FC = () => {
       {/* Modal Poids */}
       {showWeightModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" style={{ margin: 0 }}>
-          <div className="bg-zinc-900 border border-violet-600/30 rounded-3xl p-6 max-w-sm w-[85%] shadow-2xl animate-scale-in">
+          <div className="bg-zinc-900 border border-violet-600/30 rounded-3xl p-6 max-w-sm w-[85%] shadow-2xl animate-scale-in relative">
+            {/* Bouton fermeture */}
+            <button
+              onClick={() => setShowWeightModal(false)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-800 transition-colors active:scale-95"
+              aria-label="Fermer"
+            >
+              <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
             <h3 className="text-lg font-black text-white uppercase tracking-wide text-center mb-4">Poids (KG)</h3>
             
             <NumberPicker
@@ -521,7 +525,18 @@ const IronTrack: React.FC = () => {
       {/* Modal Reps */}
       {showRepsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" style={{ margin: 0 }}>
-          <div className="bg-zinc-900 border border-violet-600/30 rounded-3xl p-6 max-w-sm w-[85%] shadow-2xl animate-scale-in">
+          <div className="bg-zinc-900 border border-violet-600/30 rounded-3xl p-6 max-w-sm w-[85%] shadow-2xl animate-scale-in relative">
+            {/* Bouton fermeture */}
+            <button
+              onClick={() => setShowRepsModal(false)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-800 transition-colors active:scale-95"
+              aria-label="Fermer"
+            >
+              <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
             <h3 className="text-lg font-black text-white uppercase tracking-wide text-center mb-4">Répétitions</h3>
             
             <NumberPicker
