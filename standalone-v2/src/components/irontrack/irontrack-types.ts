@@ -5,6 +5,12 @@ export enum SetType {
   FAILURE = 'FAILURE'
 }
 
+export interface DropSet {
+  weight: number;
+  reps: number | 'échec'; // Nombre de reps ou "échec" pour AMRAP
+  completed: boolean;
+}
+
 export interface ExerciseSet {
   id: string | number;
   setNumber: number;
@@ -16,6 +22,9 @@ export interface ExerciseSet {
   previousBest?: string; // e.g. "100kg x 8"
   userNote?: string;
   userVideoUri?: string;
+  
+  // DROP SET support
+  drops?: DropSet[]; // Liste des drops pour cette série
 }
 
 export interface Exercise {

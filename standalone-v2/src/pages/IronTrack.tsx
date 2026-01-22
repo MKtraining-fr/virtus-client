@@ -44,9 +44,32 @@ const MOCK_EXERCISE: Exercise = {
   },
   sets: [
     { id: 1, setNumber: 1, type: 'WORKING' as any, weight: 80, reps: 12, previousBest: "80kg × 10", completed: false },
-    { id: 2, setNumber: 2, type: 'WORKING' as any, weight: 82.5, reps: 10, previousBest: "80kg × 10", completed: false },
+    { 
+      id: 2, 
+      setNumber: 2, 
+      type: 'WORKING' as any, 
+      weight: 82.5, 
+      reps: 10, 
+      previousBest: "80kg × 10", 
+      completed: false,
+      drops: [
+        { weight: 62.5, reps: 8, completed: false },
+        { weight: 42.5, reps: 'échec', completed: false }
+      ]
+    },
     { id: 3, setNumber: 3, type: 'WORKING' as any, weight: 82.5, reps: 10, previousBest: "80kg × 10", completed: false },
-    { id: 4, setNumber: 4, type: 'WORKING' as any, weight: 80, reps: 12, previousBest: "77.5kg × 11", completed: false },
+    { 
+      id: 4, 
+      setNumber: 4, 
+      type: 'WORKING' as any, 
+      weight: 80, 
+      reps: 12, 
+      previousBest: "77.5kg × 11", 
+      completed: false,
+      drops: [
+        { weight: 60, reps: 10, completed: false }
+      ]
+    },
     { id: 5, setNumber: 5, type: 'WORKING' as any, weight: 77.5, reps: 12, previousBest: "75kg × 12", completed: false },
   ]
 };
@@ -192,7 +215,10 @@ const IronTrack: React.FC = () => {
           <h1 className="text-base font-black text-white uppercase tracking-tighter italic leading-none">{exercise.name}</h1>
           <span className="text-[9px] text-violet-400 font-black tracking-widest uppercase mt-0.5">SÉANCE EN COURS</span>
         </div>
-        <button className="p-2 -mr-2 text-zinc-500 hover:text-white transition-colors">
+        <button 
+          onClick={() => navigate('/irontrack/settings')}
+          className="p-2 -mr-2 text-zinc-500 hover:text-white transition-colors active:scale-95"
+        >
           <Settings size={22} />
         </button>
       </header>

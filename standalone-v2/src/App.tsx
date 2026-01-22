@@ -1,4 +1,5 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { IntensityTechniqueProvider } from './contexts/IntensityTechniqueContext';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Training from './pages/Training';
@@ -8,10 +9,12 @@ import Messages from './pages/Messages';
 import Shop from './pages/Shop';
 import Profile from './pages/Profile';
 import IronTrack from './pages/IronTrack';
+import IronTrackSettings from './pages/IronTrackSettings';
 
 function App() {
   return (
-    <Router>
+    <IntensityTechniqueProvider>
+      <Router>
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
@@ -23,10 +26,12 @@ function App() {
           <Route path="shop" element={<Shop />} />
           <Route path="profile" element={<Profile />} />
         </Route>
-        {/* Route IronTrack sans layout (plein écran) */}
+        {/* Routes IronTrack sans layout (plein écran) */}
         <Route path="irontrack" element={<IronTrack />} />
+        <Route path="irontrack/settings" element={<IronTrackSettings />} />
       </Routes>
     </Router>
+    </IntensityTechniqueProvider>
   );
 }
 

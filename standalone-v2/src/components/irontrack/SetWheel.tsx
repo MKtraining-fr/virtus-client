@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { ExerciseSet } from './irontrack-types';
 import SetRow from './SetRow';
+import DropSetCard from './DropSetCard';
 
 interface SetWheelProps {
   sets: ExerciseSet[];
@@ -142,7 +143,7 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
                 zIndex: Math.round(100 - Math.abs(normalizedDistance) * 100)
               }}
             >
-              <div className="w-[92%] max-w-md">
+              <div className="w-[92%] max-w-md space-y-2">
                 <SetRow 
                   set={set} 
                   isActive={idx === selectedIndex}
@@ -156,6 +157,22 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
                   isPredataModified={idx === selectedIndex ? isPredataModified : false}
                   isLocked={idx === selectedIndex ? isLocked : false}
                 />
+                
+                {/* Drops si présents */}
+                {set.drops && set.drops.length > 0 && (
+                  <div className="space-y-2">
+                    {set.drops.map((drop, dropIdx) => (
+                      <DropSetCard
+                        key={`drop-${idx}-${dropIdx}`}
+                        drop={drop}
+                        dropNumber={dropIdx + 1}
+                        isActive={idx === selectedIndex}
+                        onWeightClick={idx === selectedIndex ? () => console.log('Drop weight clicked') : undefined}
+                        onRepsClick={idx === selectedIndex ? () => console.log('Drop reps clicked') : undefined}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           );
