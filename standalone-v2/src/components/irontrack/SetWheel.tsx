@@ -23,6 +23,15 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
   const [scrollTop, setScrollTop] = useState(0);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Debug: Log drops info
+  React.useEffect(() => {
+    const setsWithDrops = sets.filter(s => s.drops && s.drops.length > 0);
+    console.log('[SetWheel] Render with showDrops:', showDrops, '| Sets with drops:', setsWithDrops.length);
+    setsWithDrops.forEach((s, idx) => {
+      console.log(`  Set ${s.setNumber} has ${s.drops?.length} drops:`, s.drops);
+    });
+  }, [sets, showDrops]);
+  
   // Calculer la hauteur de chaque item (série + drops)
   const getItemHeight = (index: number): number => {
     const set = sets[index];

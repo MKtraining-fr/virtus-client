@@ -101,9 +101,12 @@ const IronTrack: React.FC = () => {
   
   // Charger les données appropriées selon la technique
   useEffect(() => {
+    console.log('[IronTrack] Technique changed to:', currentTechnique);
     if (currentTechnique === 'DROP_SET') {
+      console.log('[IronTrack] Loading DROPSET data with', MOCK_EXERCISE_DROPSET.sets.filter(s => s.drops).length, 'sets having drops');
       setExercise(MOCK_EXERCISE_DROPSET);
     } else {
+      console.log('[IronTrack] Loading STANDARD data');
       setExercise(MOCK_EXERCISE_STANDARD);
     }
   }, [currentTechnique]); 
