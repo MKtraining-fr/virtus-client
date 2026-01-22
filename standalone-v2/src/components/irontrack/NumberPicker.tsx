@@ -34,7 +34,7 @@ const NumberPicker: React.FC<NumberPickerProps> = ({
   const lastMoveYRef = useRef<number>(0);
 
   const itemHeight = 28; // Further reduced for mobile
-  const visibleItems = 5; // Increased from 3 for better context
+  const visibleItems = 15; // Increased massively for fast scroll - pre-render many items
 
   // Generate array of values
   const generateValues = () => {
@@ -166,11 +166,9 @@ const NumberPicker: React.FC<NumberPickerProps> = ({
       const offset = i * itemHeight + scrollOffset;
       const distance = Math.abs(offset) / itemHeight;
       
-      // Calculate 3D transform
-      const rotateX = (offset / itemHeight) * 15; // Reduced rotation for better visibility
-      const scale = Math.max(0.8, 1 - distance * 0.1); // Less scaling = more visible
-      const opacity = Math.max(0.5, 1 - distance * 0.25); // Higher minimum opacity
-      const translateZ = -distance * 10; // Less depth = better visibility
+      // Simplified transform - no 3D rotation, minimal effects for maximum visibility
+      const scale = Math.max(0.95, 1 - distance * 0.05); // Very minimal scaling
+      const opacity = Math.max(0.4, 1 - distance * 0.3); // Simple opacity fade
 
       const isSelected = i === 0 && scrollOffset === 0;
 
@@ -179,13 +177,13 @@ const NumberPicker: React.FC<NumberPickerProps> = ({
           key={index}
           className="h-[40px] flex items-center justify-center absolute w-full"
           style={{
-            transform: `translateY(${offset}px) rotateX(${-rotateX}deg) scale(${scale}) translateZ(${translateZ}px)`,
+            transform: `translateY(${offset}px) scale(${scale})`,
             opacity,
-            transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.2s ease-out',
+            transition: 'none', // No transitions for instant rendering during scroll
           }}
         >
           <span
-            className={`font-black font-mono tracking-tighter transition-all ${
+            className={`font-black font-mono tracking-tighter ${
               isSelected
                 ? 'text-xl text-white'
                 : 'text-base text-zinc-500'
@@ -211,20 +209,12 @@ const NumberPicker: React.FC<NumberPickerProps> = ({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        style={{
-          perspective: '1000px',
-        }}
       >
         {/* Selection highlight */}
         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[28px] border-y-2 border-violet-600/30 bg-violet-600/5 pointer-events-none z-10" />
 
         {/* Items container */}
-        <div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{
-            transformStyle: 'preserve-3d',
-          }}
-        >
+        <div className="absolute inset-0 flex items-center justify-center">
           {renderItems()}
         </div>
 

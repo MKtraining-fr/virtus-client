@@ -64,6 +64,8 @@ const IronTrack: React.FC = () => {
   const [showIntensityModal, setShowIntensityModal] = useState(false);
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [showRepsModal, setShowRepsModal] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [isPredataModified, setIsPredataModified] = useState(false);
 
   useEffect(() => {
     const set = exercise.sets[currentSetIndex];
@@ -107,12 +109,19 @@ const IronTrack: React.FC = () => {
 
   const updateCurrentSetData = (w: number, r: number) => {
     const updatedSets = [...exercise.sets];
+    const currentSet = updatedSets[currentSetIndex];
+    const originalWeight = MOCK_EXERCISE.sets[currentSetIndex].weight;
+    const originalReps = MOCK_EXERCISE.sets[currentSetIndex].reps;
+    
     updatedSets[currentSetIndex] = {
-      ...updatedSets[currentSetIndex],
+      ...currentSet,
       weight: w,
       reps: r,
     };
     setExercise({ ...exercise, sets: updatedSets });
+    
+    // Marquer comme modifié si différent des valeurs originales
+    setIsPredataModified(w !== originalWeight || r !== originalReps);
   }
 
   const handleAction = (type: 'timer' | 'video' | 'notes') => {
@@ -135,6 +144,8 @@ const IronTrack: React.FC = () => {
     setExercise({ ...exercise, sets: updatedSets });
     setRestSeconds(exercise.protocol.restSeconds);
     setIsResting(true);
+    setIsPredataModified(false); // Réinitialiser après validation
+    setIsLocked(false); // Déverrouiller après validation
 
     if (currentSetIndex < exercise.sets.length - 1) {
       setTimeout(() => {
@@ -228,8 +239,11 @@ const IronTrack: React.FC = () => {
               sets={exercise.sets}
               selectedIndex={currentSetIndex}
               onSelect={setCurrentSetIndex}
-              onWeightClick={() => setShowWeightModal(true)}
-              onRepsClick={() => setShowRepsModal(true)}
+              onWeightClick={() => !isLocked && setShowWeightModal(true)}
+              onRepsClick={() => !isLocked && setShowRepsModal(true)}
+              isLocked={isLocked}
+              onLockToggle={() => setIsLocked(!isLocked)}
+              isPredataModified={isPredataModified}
             />
       </div>
 

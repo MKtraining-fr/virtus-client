@@ -8,13 +8,17 @@ interface SetWheelProps {
   onSelect: (index: number) => void;
   onWeightClick?: () => void;
   onRepsClick?: () => void;
+  isLocked?: boolean;
+  onLockToggle?: () => void;
+  isPredataModified?: boolean;
 }
 
-const ITEM_HEIGHT = 86; // 70px item + 16px margin
+const ITEM_HEIGHT = 96; // 80px item + 16px gap
 
-const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWeightClick, onRepsClick }) => {
+const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWeightClick, onRepsClick, isLocked = false, onLockToggle, isPredataModified = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync scroll position for 3D calculations
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -27,6 +31,21 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
       onSelect(index);
       if (navigator.vibrate) navigator.vibrate(8);
     }
+
+    // Auto-snap after scroll ends
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      const targetIndex = Math.round(top / ITEM_HEIGHT);
+      const targetScroll = targetIndex * ITEM_HEIGHT;
+      if (Math.abs(top - targetScroll) > 2 && containerRef.current) {
+        containerRef.current.scrollTo({ 
+          top: targetScroll, 
+          behavior: 'smooth' 
+        });
+      }
+    }, 150);
   };
 
   // Initial scroll to current set
@@ -53,16 +72,38 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
       {/* 3D Cylinder Background Glow */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[140px] bg-primary/5 blur-[90px] rounded-full pointer-events-none"></div>
 
-      {/* Center Focus Guide */}
-      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[100px] pointer-events-none z-30 border-y border-white/5 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+      {/* Center Focus Line - Almost invisible */}
+      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] pointer-events-none z-30 bg-primary/10"></div>
 
       {/* Scroll Container */}
       <div 
         ref={containerRef}
-        onScroll={handleScroll}
-        className="h-full w-full overflow-y-auto snap-y snap-mandatory no-scrollbar py-[calc(50%-48px)] relative z-20"
-        style={{ transformStyle: 'preserve-3d' }}
+        onScroll={isLocked ? undefined : handleScroll}
+        className={`h-full w-full overflow-y-auto no-scrollbar py-[calc(50%-63px)] relative z-20 transition-opacity duration-300 ${isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}
+        style={{ 
+          transformStyle: 'preserve-3d',
+          scrollBehavior: 'auto',
+          overscrollBehavior: 'none',
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y'
+        } as React.CSSProperties}
       >
+        {/* Label SÉRIE qui scroll */}
+        <div 
+          className="mb-4 flex justify-center transition-all duration-300 ease-out"
+          style={{ 
+            height: '30px',
+            transformStyle: 'preserve-3d',
+            transform: `translateZ(-80px)`,
+            opacity: 0.4,
+            pointerEvents: 'none'
+          }}
+        >
+          <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">
+            SÉRIE
+          </span>
+        </div>
+        
         {sets.map((set, idx) => {
           // Calculate 3D Offset for "Giant Wheel" effect
           const distance = (idx * ITEM_HEIGHT) - scrollTop;
@@ -72,8 +113,8 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
           // 1. Less rotation (flatter curve)
           const rotateX = Math.max(-35, Math.min(35, normalizedDistance * -35));
           
-          // 2. Minimal shrinking (keep proportions visible)
-          const scale = 1 - Math.abs(normalizedDistance) * 0.1;
+          // 2. Scale modéré : active 100%, adjacentes 95%, éloignées 90%
+          const scale = Math.max(0.90, 1 - Math.abs(normalizedDistance) * 0.05);
           
           // 3. Less depth push (keep neighbors closer)
           const translateZ = Math.abs(normalizedDistance) * -60;
@@ -85,9 +126,9 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
           return (
             <div 
               key={set.id} 
-              className="snap-center mb-4 last:mb-0 flex justify-center transition-transform duration-75 ease-out"
+              className="mb-4 flex justify-center transition-all duration-300 ease-out"
               style={{ 
-                height: '70px',
+                height: '80px',
                 transformStyle: 'preserve-3d',
                 transform: `
                   translateY(${normalizedDistance * 5}px)
@@ -97,6 +138,7 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
                 `,
                 opacity: opacity,
                 filter: `blur(${blur}px)`,
+                transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
                 zIndex: Math.round(100 - Math.abs(normalizedDistance) * 100)
               }}
             >
@@ -110,6 +152,8 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
                   }}
                   onWeightClick={idx === selectedIndex ? onWeightClick : undefined}
                   onRepsClick={idx === selectedIndex ? onRepsClick : undefined}
+                  onLockToggle={idx === selectedIndex ? onLockToggle : undefined}
+                  isPredataModified={idx === selectedIndex ? isPredataModified : false}
                 />
               </div>
             </div>
