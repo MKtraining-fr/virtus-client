@@ -154,6 +154,7 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
                   onRepsClick={idx === selectedIndex ? onRepsClick : undefined}
                   onLockToggle={idx === selectedIndex ? onLockToggle : undefined}
                   isPredataModified={idx === selectedIndex ? isPredataModified : false}
+                  isLocked={idx === selectedIndex ? isLocked : false}
                 />
               </div>
             </div>
