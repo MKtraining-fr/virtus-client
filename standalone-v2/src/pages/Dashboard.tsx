@@ -15,6 +15,7 @@ import { ActivityCard } from '../components/dashboard/ActivityCard';
 import { QuickActionCard } from '../components/dashboard/QuickActionCard';
 import { StreakCard } from '../components/dashboard/StreakCard';
 import { NextWorkoutCard } from '../components/dashboard/NextWorkoutCard';
+import { CurrentProgramCard } from '../components/dashboard/CurrentProgramCard';
 
 const Dashboard: React.FC = () => {
   // Données mockées pour les KPIs
@@ -166,13 +167,17 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* Prochain entraînement */}
-      <NextWorkoutCard
-        workoutName="Push - Pectoraux & Épaules"
-        date="Demain"
-        time="10:00"
-        duration="60 min"
-        exercises={8}
+      {/* Programme en cours */}
+      <CurrentProgramCard
+        programName="Push Pull Legs - Hypertrophie"
+        currentWeek={3}
+        totalWeeks={12}
+        progressPercentage={25}
+        nextSession={{
+          name: "Push - Pectoraux & Triceps",
+          date: "Aujourd'hui",
+          time: "10:00"
+        }}
       />
 
       {/* Série d'entraînement */}

@@ -7,6 +7,7 @@ import Library from './pages/Library';
 import Messages from './pages/Messages';
 import Shop from './pages/Shop';
 import Profile from './pages/Profile';
+import IronTrack from './pages/IronTrack';
 
 function App() {
   return (
@@ -22,6 +23,8 @@ function App() {
           <Route path="shop" element={<Shop />} />
           <Route path="profile" element={<Profile />} />
         </Route>
+        {/* Route IronTrack sans layout (plein écran) */}
+        <Route path="irontrack" element={<IronTrack />} />
       </Routes>
     </Router>
   );
