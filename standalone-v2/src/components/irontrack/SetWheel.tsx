@@ -206,7 +206,7 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
                 zIndex: Math.round(100 - Math.abs(normalizedDistance) * 100)
               }}
             >
-              <div className="w-[92%] max-w-md">
+              <div className="w-[92%] max-w-md mx-auto">
                 {item.type === 'set' ? (
                   <SetRow 
                     set={item.set} 
