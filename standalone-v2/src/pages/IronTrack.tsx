@@ -95,7 +95,13 @@ const MOCK_EXERCISE_DROPSET: Exercise = {
 const IronTrack: React.FC = () => {
   const navigate = useNavigate();
   const { currentTechnique } = useIntensityTechnique();
-  const [exercise, setExercise] = useState<Exercise>(MOCK_EXERCISE_STANDARD);
+  
+  // Initialiser exercise avec les bonnes données dès le premier render
+  const [exercise, setExercise] = useState<Exercise>(() => {
+    const savedTechnique = localStorage.getItem('virtus-intensity-technique');
+    return savedTechnique === 'DROP_SET' ? MOCK_EXERCISE_DROPSET : MOCK_EXERCISE_STANDARD;
+  });
+  
   const [currentSetIndex, setCurrentSetIndex] = useState<number>(2);
   
   // Charger les données appropriées selon la technique
