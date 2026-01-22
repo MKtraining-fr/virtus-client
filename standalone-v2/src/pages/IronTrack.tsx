@@ -226,7 +226,7 @@ const IronTrack: React.FC = () => {
         </div>
 
         {/* Action Bar (Linked to Active Set) */}
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className={`grid ${currentTechnique === 'DROP_SET' ? 'grid-cols-4' : 'grid-cols-3'} gap-1.5`}>
              <button 
                 onClick={() => handleAction('timer')}
                 className="flex flex-col items-center justify-center gap-0.5 bg-zinc-900 hover:bg-zinc-800 p-1 rounded-lg border border-zinc-800 transition-all active:scale-95 group"
