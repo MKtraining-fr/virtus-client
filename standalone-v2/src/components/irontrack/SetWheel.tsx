@@ -1,7 +1,31 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { ExerciseSet } from './irontrack-types';
+import React, { useRef, useState, useEffect } from 'react';
+import { ExerciseSet, DropSet } from './irontrack-types';
 import SetRow from './SetRow';
 import DropSetCard from './DropSetCard';
+
+// Type pour les items du cylindre (sets et drops apl atis)
+type WheelItem = 
+  | { type: 'set'; setIndex: number; set: ExerciseSet }
+  | { type: 'drop'; setIndex: number; dropIndex: number; drop: DropSet };
+
+// Fonction pour construire la liste aplatie d'items
+const buildFlatItems = (sets: ExerciseSet[], showDrops: boolean): WheelItem[] => {
+  const items: WheelItem[] = [];
+  
+  sets.forEach((set, setIndex) => {
+    // Ajouter la série
+    items.push({ type: 'set', setIndex, set });
+    
+    // Ajouter les drops si présents
+    if (showDrops && set.drops && set.drops.length > 0) {
+      set.drops.forEach((drop, dropIndex) => {
+        items.push({ type: 'drop', setIndex, dropIndex, drop });
+      });
+    }
+  });
+  
+  return items;
+};
 
 interface SetWheelProps {
   sets: ExerciseSet[];
@@ -25,36 +49,35 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
   const [scrollTop, setScrollTop] = useState(0);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Calculer la hauteur de chaque item (série + drops)
-  const getItemHeight = (index: number): number => {
-    const set = sets[index];
-    const baseHeight = BASE_ITEM_HEIGHT;
-    if (showDrops && set.drops && set.drops.length > 0) {
-      return baseHeight + (set.drops.length * DROP_CARD_HEIGHT);
-    }
-    return baseHeight;
+  // Construire la liste aplatie d'items
+  const flatItems = buildFlatItems(sets, showDrops);
+  
+  // Calculer la hauteur d'un item (set ou drop)
+  const getItemHeight = (itemIndex: number): number => {
+    const item = flatItems[itemIndex];
+    return item.type === 'set' ? BASE_ITEM_HEIGHT : DROP_CARD_HEIGHT;
   };
   
-  // Calculer la position de scroll pour un index donné
-  const getScrollPosition = (index: number): number => {
+  // Calculer la position de scroll pour un itemIndex donné
+  const getScrollPosition = (itemIndex: number): number => {
     let position = 0;
-    for (let i = 0; i < index; i++) {
+    for (let i = 0; i < itemIndex; i++) {
       position += getItemHeight(i);
     }
     return position;
   };
   
-  // Trouver l'index à partir de la position de scroll
+  // Trouver l'itemIndex à partir de la position de scroll
   const getIndexFromScroll = (scrollPos: number): number => {
     let accumulatedHeight = 0;
-    for (let i = 0; i < sets.length; i++) {
+    for (let i = 0; i < flatItems.length; i++) {
       const itemHeight = getItemHeight(i);
       if (scrollPos < accumulatedHeight + itemHeight / 2) {
         return i;
       }
       accumulatedHeight += itemHeight;
     }
-    return sets.length - 1;
+    return flatItems.length - 1;
   };
 
   // Sync scroll position for 3D calculations
@@ -63,9 +86,9 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
     setScrollTop(top);
 
     // Logic for selection
-    const index = getIndexFromScroll(top);
-    if (index !== selectedIndex && index >= 0 && index < sets.length) {
-      onSelect(index);
+    const itemIndex = getIndexFromScroll(top);
+    if (itemIndex !== selectedIndex && itemIndex >= 0 && itemIndex < flatItems.length) {
+      onSelect(itemIndex);
       if (navigator.vibrate) navigator.vibrate(8);
     }
 
@@ -74,8 +97,8 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
       clearTimeout(scrollTimeoutRef.current);
     }
     scrollTimeoutRef.current = setTimeout(() => {
-      const targetIndex = getIndexFromScroll(top);
-      const targetScroll = getScrollPosition(targetIndex);
+      const targetItemIndex = getIndexFromScroll(top);
+      const targetScroll = getScrollPosition(targetItemIndex);
       if (Math.abs(top - targetScroll) > 2 && containerRef.current) {
         containerRef.current.scrollTo({ 
           top: targetScroll, 
@@ -142,9 +165,9 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
           </span>
         </div>
         
-        {sets.map((set, idx) => {
+        {flatItems.map((item, itemIdx) => {
           // Calculate 3D Offset for "Giant Wheel" effect
-          const itemPosition = getScrollPosition(idx);
+          const itemPosition = getScrollPosition(itemIdx);
           const distance = itemPosition - scrollTop;
           const normalizedDistance = distance / (BASE_ITEM_HEIGHT * 2); // -1 to 1 range for neighbors
           
@@ -162,12 +185,14 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
           const opacity = 1 - Math.abs(normalizedDistance) * 0.5;
           const blur = Math.max(0, Math.abs(normalizedDistance) * 2 - 0.5); // Start blur only when further away
 
+          const isActive = itemIdx === selectedIndex;
+
           return (
             <div 
-              key={set.id} 
+              key={item.type === 'set' ? `set-${item.setIndex}` : `drop-${item.setIndex}-${item.dropIndex}`}
               className="mb-4 flex flex-col justify-start transition-all duration-300 ease-out"
               style={{ 
-                minHeight: `${getItemHeight(idx)}px`,
+                minHeight: `${getItemHeight(itemIdx)}px`,
                 transformStyle: 'preserve-3d',
                 transform: `
                   translateY(${normalizedDistance * 5}px)
@@ -181,35 +206,29 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
                 zIndex: Math.round(100 - Math.abs(normalizedDistance) * 100)
               }}
             >
-              <div className="w-[92%] max-w-md space-y-2">
-                <SetRow 
-                  set={set} 
-                  isActive={idx === selectedIndex}
-                  onClick={() => {
-                    onSelect(idx);
-                    containerRef.current?.scrollTo({ top: getScrollPosition(idx), behavior: 'smooth' });
-                  }}
-                  onWeightClick={idx === selectedIndex ? onWeightClick : undefined}
-                  onRepsClick={idx === selectedIndex ? onRepsClick : undefined}
-                  onLockToggle={idx === selectedIndex ? onLockToggle : undefined}
-                  isPredataModified={idx === selectedIndex ? isPredataModified : false}
-                  isLocked={idx === selectedIndex ? isLocked : false}
-                />
-                
-                {/* Drops si présents */}
-                {showDrops && set.drops && set.drops.length > 0 && (
-                  <div className="space-y-2">
-                    {set.drops.map((drop, dropIdx) => (
-                      <DropSetCard
-                        key={`drop-${idx}-${dropIdx}`}
-                        drop={drop}
-                        dropNumber={dropIdx + 1}
-                        isActive={idx === selectedIndex}
-                        onWeightClick={idx === selectedIndex && onDropWeightClick ? () => onDropWeightClick(idx, dropIdx) : undefined}
-                        onRepsClick={idx === selectedIndex && onDropRepsClick ? () => onDropRepsClick(idx, dropIdx) : undefined}
-                      />
-                    ))}
-                  </div>
+              <div className="w-[92%] max-w-md">
+                {item.type === 'set' ? (
+                  <SetRow 
+                    set={item.set} 
+                    isActive={isActive}
+                    onClick={() => {
+                      onSelect(itemIdx);
+                      containerRef.current?.scrollTo({ top: getScrollPosition(itemIdx), behavior: 'smooth' });
+                    }}
+                    onWeightClick={isActive ? onWeightClick : undefined}
+                    onRepsClick={isActive ? onRepsClick : undefined}
+                    onLockToggle={isActive ? onLockToggle : undefined}
+                    isPredataModified={isActive ? isPredataModified : false}
+                    isLocked={isActive ? isLocked : false}
+                  />
+                ) : (
+                  <DropSetCard
+                    drop={item.drop}
+                    dropNumber={item.dropIndex + 1}
+                    isActive={isActive}
+                    onWeightClick={isActive && onDropWeightClick ? () => onDropWeightClick(item.setIndex, item.dropIndex) : undefined}
+                    onRepsClick={isActive && onDropRepsClick ? () => onDropRepsClick(item.setIndex, item.dropIndex) : undefined}
+                  />
                 )}
               </div>
             </div>

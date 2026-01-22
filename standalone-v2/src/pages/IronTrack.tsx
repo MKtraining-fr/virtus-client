@@ -14,8 +14,29 @@ import {
 } from 'lucide-react';
 import SetWheel from '../components/irontrack/SetWheel';
 import RestTimer from '../components/irontrack/RestTimer';
-import NumberPicker from '../components/irontrack/NumberPicker';
-import type { Exercise, ExerciseSet } from '../components/irontrack/irontrack-types';
+import NumberPicker from '../components/irontrack/NumberPickeimport { Exercise, ExerciseSet, DropSet } from '../components/irontrack/irontrack-types';
+
+// Type pour les items du cylindre (sets et drops aplatis)
+type WheelItem = 
+  | { type: 'set'; setIndex: number; set: ExerciseSet }
+  | { type: 'drop'; setIndex: number; dropIndex: number; drop: DropSet };
+
+// Fonction pour construire la liste aplatie d'items
+const buildFlatItems = (sets: ExerciseSet[], showDrops: boolean): WheelItem[] => {
+  const items: WheelItem[] = [];
+  
+  sets.forEach((set, setIndex) => {
+    items.push({ type: 'set', setIndex, set });
+    
+    if (showDrops && set.drops && set.drops.length > 0) {
+      set.drops.forEach((drop, dropIndex) => {
+        items.push({ type: 'drop', setIndex, dropIndex, drop });
+      });
+    }
+  });
+  
+  return items;
+};
 import { useIntensityTechnique } from '../contexts/IntensityTechniqueContext';
 
 // Responsive cylinder area height
@@ -414,8 +435,26 @@ const IronTrack: React.FC = () => {
           )}
           <SetWheel 
               sets={exercise.sets}
-              selectedIndex={currentSetIndex}
-              onSelect={setCurrentSetIndex}
+              selectedIndex={(() => {
+                // Convertir currentSetIndex en itemIndex
+                const flatItems = buildFlatItems(exercise.sets, currentTechnique === 'DROP_SET');
+                let itemIndex = 0;
+                for (let i = 0; i < currentSetIndex; i++) {
+                  itemIndex++; // La série
+                  if (currentTechnique === 'DROP_SET' && exercise.sets[i].drops) {
+                    itemIndex += exercise.sets[i].drops!.length; // Les drops
+                  }
+                }
+                return itemIndex;
+              })()}
+              onSelect={(itemIndex) => {
+                // Convertir itemIndex en setIndex
+                const flatItems = buildFlatItems(exercise.sets, currentTechnique === 'DROP_SET');
+                const item = flatItems[itemIndex];
+                if (item) {
+                  setCurrentSetIndex(item.setIndex);
+                }
+              }}
               onWeightClick={() => !isLocked && setShowWeightModal(true)}
               onRepsClick={() => !isLocked && setShowRepsModal(true)}
               onDropWeightClick={handleDropWeightClick}
