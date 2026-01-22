@@ -12,11 +12,12 @@ interface SetWheelProps {
   isLocked?: boolean;
   onLockToggle?: () => void;
   isPredataModified?: boolean;
+  showDrops?: boolean;
 }
 
 const ITEM_HEIGHT = 96; // 80px item + 16px gap
 
-const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWeightClick, onRepsClick, isLocked = false, onLockToggle, isPredataModified = false }) => {
+const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWeightClick, onRepsClick, isLocked = false, onLockToggle, isPredataModified = false, showDrops = true }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -159,7 +160,7 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
                 />
                 
                 {/* Drops si présents */}
-                {set.drops && set.drops.length > 0 && (
+                {showDrops && set.drops && set.drops.length > 0 && (
                   <div className="space-y-2">
                     {set.drops.map((drop, dropIdx) => (
                       <DropSetCard

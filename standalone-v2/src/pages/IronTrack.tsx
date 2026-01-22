@@ -16,6 +16,7 @@ import SetWheel from '../components/irontrack/SetWheel';
 import RestTimer from '../components/irontrack/RestTimer';
 import NumberPicker from '../components/irontrack/NumberPicker';
 import type { Exercise, ExerciseSet } from '../components/irontrack/irontrack-types';
+import { useIntensityTechnique } from '../contexts/IntensityTechniqueContext';
 
 // Responsive cylinder area height
 const cylinderAreaStyle = `
@@ -44,38 +45,16 @@ const MOCK_EXERCISE: Exercise = {
   },
   sets: [
     { id: 1, setNumber: 1, type: 'WORKING' as any, weight: 80, reps: 12, previousBest: "80kg × 10", completed: false },
-    { 
-      id: 2, 
-      setNumber: 2, 
-      type: 'WORKING' as any, 
-      weight: 82.5, 
-      reps: 10, 
-      previousBest: "80kg × 10", 
-      completed: false,
-      drops: [
-        { weight: 62.5, reps: 8, completed: false },
-        { weight: 42.5, reps: 'échec', completed: false }
-      ]
-    },
+    { id: 2, setNumber: 2, type: 'WORKING' as any, weight: 82.5, reps: 10, previousBest: "80kg × 10", completed: false },
     { id: 3, setNumber: 3, type: 'WORKING' as any, weight: 82.5, reps: 10, previousBest: "80kg × 10", completed: false },
-    { 
-      id: 4, 
-      setNumber: 4, 
-      type: 'WORKING' as any, 
-      weight: 80, 
-      reps: 12, 
-      previousBest: "77.5kg × 11", 
-      completed: false,
-      drops: [
-        { weight: 60, reps: 10, completed: false }
-      ]
-    },
+    { id: 4, setNumber: 4, type: 'WORKING' as any, weight: 80, reps: 12, previousBest: "77.5kg × 11", completed: false },
     { id: 5, setNumber: 5, type: 'WORKING' as any, weight: 77.5, reps: 12, previousBest: "75kg × 12", completed: false },
   ]
 };
 
 const IronTrack: React.FC = () => {
   const navigate = useNavigate();
+  const { currentTechnique } = useIntensityTechnique();
   const [exercise, setExercise] = useState<Exercise>(MOCK_EXERCISE);
   const [currentSetIndex, setCurrentSetIndex] = useState<number>(2); 
   
@@ -269,13 +248,15 @@ const IronTrack: React.FC = () => {
                 <NotebookPen size={16} className="text-zinc-500 group-hover:text-violet-400 transition-colors" />
                 <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-wider">Notes</span>
              </button>
-             <button 
-                onClick={() => setShowIntensityModal(true)}
-                className="flex flex-col items-center justify-center gap-0.5 bg-zinc-900/80 hover:bg-orange-500/10 p-1 rounded-lg border border-orange-500/30 transition-all active:scale-95 group"
-             >
-                <Zap size={16} className="text-orange-400 group-hover:text-orange-300 transition-colors" />
-                <span className="text-[8px] font-black text-orange-400 uppercase tracking-wider group-hover:text-orange-300 transition-colors leading-none">Drop Set</span>
-             </button>
+             {currentTechnique === 'DROP_SET' && (
+               <button 
+                  onClick={() => setShowIntensityModal(true)}
+                  className="flex flex-col items-center justify-center gap-0.5 bg-zinc-900/80 hover:bg-orange-500/10 p-1 rounded-lg border border-orange-500/30 transition-all active:scale-95 group"
+               >
+                  <Zap size={16} className="text-orange-400 group-hover:text-orange-300 transition-colors" />
+                  <span className="text-[8px] font-black text-orange-400 uppercase tracking-wider group-hover:text-orange-300 transition-colors leading-none">Drop Set</span>
+               </button>
+             )}
         </div>
 
       </div>
@@ -309,6 +290,7 @@ const IronTrack: React.FC = () => {
               isLocked={isLocked}
               onLockToggle={() => setIsLocked(!isLocked)}
               isPredataModified={isPredataModified}
+              showDrops={currentTechnique === 'DROP_SET'}
             />
       </div>
 
