@@ -44,10 +44,10 @@ const MOCK_EXERCISE_STANDARD: Exercise = {
     restSeconds: 90
   },
   sets: [
-    { id: 1, setNumber: 1, type: 'WORKING' as any, weight: 80, reps: 12, previousBest: "80kg × 10", completed: false },
+    { id: 1, setNumber: 1, type: 'WORKING' as any, weight: 80, reps: 12, completed: false },
     { id: 2, setNumber: 2, type: 'WORKING' as any, weight: 82.5, reps: 10, previousBest: "80kg × 10", completed: false },
     { id: 3, setNumber: 3, type: 'WORKING' as any, weight: 82.5, reps: 10, previousBest: "80kg × 10", completed: false },
-    { id: 4, setNumber: 4, type: 'WORKING' as any, weight: 80, reps: 12, previousBest: "77.5kg × 11", completed: false },
+    { id: 4, setNumber: 4, type: 'WORKING' as any, weight: 80, reps: 12, completed: false },
     { id: 5, setNumber: 5, type: 'WORKING' as any, weight: 77.5, reps: 12, previousBest: "75kg × 12", completed: false },
   ]
 };
@@ -62,7 +62,7 @@ const MOCK_EXERCISE_DROPSET: Exercise = {
     restSeconds: 90
   },
   sets: [
-    { id: 1, setNumber: 1, type: 'WORKING' as any, weight: 80, reps: 12, previousBest: "80kg × 10", completed: false },
+    { id: 1, setNumber: 1, type: 'WORKING' as any, weight: 80, reps: 12, completed: false },
     { 
       id: 2, 
       setNumber: 2, 
@@ -83,7 +83,6 @@ const MOCK_EXERCISE_DROPSET: Exercise = {
       type: 'WORKING' as any, 
       weight: 80, 
       reps: 12, 
-      previousBest: "77.5kg × 11", 
       completed: false,
       drops: [
         { weight: 60, reps: 10, completed: false }
@@ -110,6 +109,13 @@ const IronTrack: React.FC = () => {
   
   const [weightInput, setWeightInput] = useState<number>(MOCK_EXERCISE_STANDARD.sets[2].weight);
   const [repsInput, setRepsInput] = useState<number>(MOCK_EXERCISE_STANDARD.sets[2].reps || 10);
+  
+  // États pour l'édition des drops
+  const [editingDrop, setEditingDrop] = useState<{ setIndex: number; dropIndex: number } | null>(null);
+  const [dropWeightInput, setDropWeightInput] = useState<number>(0);
+  const [dropRepsInput, setDropRepsInput] = useState<number | 'échec'>(0);
+  const [showDropWeightModal, setShowDropWeightModal] = useState(false);
+  const [showDropRepsModal, setShowDropRepsModal] = useState(false);
   
   const [isResting, setIsResting] = useState(false);
   const [restSeconds, setRestSeconds] = useState(0);
@@ -173,8 +179,11 @@ const IronTrack: React.FC = () => {
   const updateCurrentSetData = (w: number, r: number) => {
     const updatedSets = [...exercise.sets];
     const currentSet = updatedSets[currentSetIndex];
-    const originalWeight = MOCK_EXERCISE.sets[currentSetIndex].weight;
-    const originalReps = MOCK_EXERCISE.sets[currentSetIndex].reps;
+    
+    // Récupérer les valeurs originales depuis le bon dataset
+    const originalData = currentTechnique === 'DROP_SET' ? MOCK_EXERCISE_DROPSET : MOCK_EXERCISE_STANDARD;
+    const originalWeight = originalData.sets[currentSetIndex].weight;
+    const originalReps = originalData.sets[currentSetIndex].reps;
     
     updatedSets[currentSetIndex] = {
       ...currentSet,
@@ -193,6 +202,72 @@ const IronTrack: React.FC = () => {
           setIsResting(true);
           setRestSeconds(exercise.protocol.restSeconds);
       }
+  };
+
+  // Handlers pour l'édition des drops
+  const handleDropWeightClick = (setIndex: number, dropIndex: number) => {
+    if (isLocked) return;
+    const drop = exercise.sets[setIndex].drops?.[dropIndex];
+    if (drop) {
+      setEditingDrop({ setIndex, dropIndex });
+      setDropWeightInput(drop.weight);
+      setShowDropWeightModal(true);
+    }
+  };
+
+  const handleDropRepsClick = (setIndex: number, dropIndex: number) => {
+    if (isLocked) return;
+    const drop = exercise.sets[setIndex].drops?.[dropIndex];
+    if (drop) {
+      setEditingDrop({ setIndex, dropIndex });
+      setDropRepsInput(drop.reps);
+      setShowDropRepsModal(true);
+    }
+  };
+
+  const handleAdjustDropWeight = (amount: number) => {
+    setDropWeightInput(prev => Math.max(0, prev + amount));
+  };
+
+  const handleAdjustDropReps = (amount: number) => {
+    if (dropRepsInput === 'échec') {
+      setDropRepsInput(amount > 0 ? 1 : 'échec');
+    } else {
+      setDropRepsInput(prev => {
+        const newVal = (prev as number) + amount;
+        return newVal < 0 ? 'échec' : newVal;
+      });
+    }
+  };
+
+  const handleValidateDropWeight = () => {
+    if (!editingDrop) return;
+    const updatedSets = [...exercise.sets];
+    const drops = updatedSets[editingDrop.setIndex].drops;
+    if (drops && drops[editingDrop.dropIndex]) {
+      drops[editingDrop.dropIndex] = {
+        ...drops[editingDrop.dropIndex],
+        weight: dropWeightInput
+      };
+      setExercise({ ...exercise, sets: updatedSets });
+    }
+    setShowDropWeightModal(false);
+    setEditingDrop(null);
+  };
+
+  const handleValidateDropReps = () => {
+    if (!editingDrop) return;
+    const updatedSets = [...exercise.sets];
+    const drops = updatedSets[editingDrop.setIndex].drops;
+    if (drops && drops[editingDrop.dropIndex]) {
+      drops[editingDrop.dropIndex] = {
+        ...drops[editingDrop.dropIndex],
+        reps: dropRepsInput
+      };
+      setExercise({ ...exercise, sets: updatedSets });
+    }
+    setShowDropRepsModal(false);
+    setEditingDrop(null);
   };
 
   const finishSet = () => {
@@ -337,6 +412,8 @@ const IronTrack: React.FC = () => {
               onSelect={setCurrentSetIndex}
               onWeightClick={() => !isLocked && setShowWeightModal(true)}
               onRepsClick={() => !isLocked && setShowRepsModal(true)}
+              onDropWeightClick={handleDropWeightClick}
+              onDropRepsClick={handleDropRepsClick}
               isLocked={isLocked}
               onLockToggle={() => setIsLocked(!isLocked)}
               isPredataModified={isPredataModified}
@@ -419,6 +496,75 @@ const IronTrack: React.FC = () => {
             >
               Valider
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Poids Drop */}
+      {showDropWeightModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" style={{ margin: 0 }}>
+          <div className="bg-zinc-900 border border-orange-600/30 rounded-3xl p-6 max-w-sm w-[85%] shadow-2xl animate-scale-in">
+            <h3 className="text-lg font-black text-white uppercase tracking-wide text-center mb-4">Poids Drop (KG)</h3>
+            
+            <NumberPicker
+              value={dropWeightInput}
+              onChange={setDropWeightInput}
+              min={0}
+              max={200}
+              step={2.5}
+              label=""
+            />
+            
+            <button
+              onClick={handleValidateDropWeight}
+              className="w-full mt-6 py-3 px-6 bg-orange-600 hover:bg-orange-700 text-white font-black text-sm uppercase tracking-wider rounded-xl transition-colors active:scale-95 shadow-lg"
+            >
+              Valider
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Reps Drop */}
+      {showDropRepsModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" style={{ margin: 0 }}>
+          <div className="bg-zinc-900 border border-orange-600/30 rounded-3xl p-6 max-w-sm w-[85%] shadow-2xl animate-scale-in">
+            <h3 className="text-lg font-black text-white uppercase tracking-wide text-center mb-4">Répétitions Drop</h3>
+            
+            {dropRepsInput === 'échec' ? (
+              <div className="text-center py-8">
+                <div className="text-6xl font-black text-orange-400 mb-2">∞</div>
+                <div className="text-sm text-zinc-400 uppercase tracking-wider">Jusqu'à l'échec</div>
+              </div>
+            ) : (
+              <NumberPicker
+                value={dropRepsInput as number}
+                onChange={setDropRepsInput}
+                min={1}
+                max={50}
+                step={1}
+                label=""
+              />
+            )}
+            
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => setDropRepsInput('échec')}
+                className={`flex-1 py-3 px-4 font-black text-sm uppercase tracking-wider rounded-xl transition-colors active:scale-95 ${
+                  dropRepsInput === 'échec'
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                }`}
+              >
+                Échec ∞
+              </button>
+              <button
+                onClick={handleValidateDropReps}
+                className="flex-1 py-3 px-6 bg-orange-600 hover:bg-orange-700 text-white font-black text-sm uppercase tracking-wider rounded-xl transition-colors active:scale-95 shadow-lg"
+              >
+                Valider
+              </button>
+            </div>
           </div>
         </div>
       )}

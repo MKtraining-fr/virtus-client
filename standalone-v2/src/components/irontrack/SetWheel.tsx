@@ -9,6 +9,8 @@ interface SetWheelProps {
   onSelect: (index: number) => void;
   onWeightClick?: () => void;
   onRepsClick?: () => void;
+  onDropWeightClick?: (setIndex: number, dropIndex: number) => void;
+  onDropRepsClick?: (setIndex: number, dropIndex: number) => void;
   isLocked?: boolean;
   onLockToggle?: () => void;
   isPredataModified?: boolean;
@@ -18,7 +20,7 @@ interface SetWheelProps {
 const BASE_ITEM_HEIGHT = 96; // 80px item + 16px gap
 const DROP_CARD_HEIGHT = 72; // Hauteur d'une carte drop (64px + 8px gap)
 
-const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWeightClick, onRepsClick, isLocked = false, onLockToggle, isPredataModified = false, showDrops = true }) => {
+const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWeightClick, onRepsClick, onDropWeightClick, onDropRepsClick, isLocked = false, onLockToggle, isPredataModified = false, showDrops = true }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -203,8 +205,8 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
                         drop={drop}
                         dropNumber={dropIdx + 1}
                         isActive={idx === selectedIndex}
-                        onWeightClick={idx === selectedIndex ? () => console.log('Drop weight clicked') : undefined}
-                        onRepsClick={idx === selectedIndex ? () => console.log('Drop reps clicked') : undefined}
+                        onWeightClick={idx === selectedIndex && onDropWeightClick ? () => onDropWeightClick(idx, dropIdx) : undefined}
+                        onRepsClick={idx === selectedIndex && onDropRepsClick ? () => onDropRepsClick(idx, dropIdx) : undefined}
                       />
                     ))}
                   </div>
