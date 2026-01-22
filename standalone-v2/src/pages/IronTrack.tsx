@@ -34,7 +34,7 @@ const cylinderAreaStyle = `
 `;
 
 // Mock exercise data
-const MOCK_EXERCISE: Exercise = {
+const MOCK_EXERCISE_STANDARD: Exercise = {
   name: "Développé Couché",
   videoUrl: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop",
   protocol: {
@@ -52,14 +52,64 @@ const MOCK_EXERCISE: Exercise = {
   ]
 };
 
+const MOCK_EXERCISE_DROPSET: Exercise = {
+  name: "Développé Couché",
+  videoUrl: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop",
+  protocol: {
+    targetSets: 5,
+    targetReps: "8-12 reps",
+    tempo: "3-0-1-0",
+    restSeconds: 90
+  },
+  sets: [
+    { id: 1, setNumber: 1, type: 'WORKING' as any, weight: 80, reps: 12, previousBest: "80kg × 10", completed: false },
+    { 
+      id: 2, 
+      setNumber: 2, 
+      type: 'WORKING' as any, 
+      weight: 82.5, 
+      reps: 10, 
+      previousBest: "80kg × 10", 
+      completed: false,
+      drops: [
+        { weight: 62.5, reps: 8, completed: false },
+        { weight: 42.5, reps: 'échec', completed: false }
+      ]
+    },
+    { id: 3, setNumber: 3, type: 'WORKING' as any, weight: 82.5, reps: 10, previousBest: "80kg × 10", completed: false },
+    { 
+      id: 4, 
+      setNumber: 4, 
+      type: 'WORKING' as any, 
+      weight: 80, 
+      reps: 12, 
+      previousBest: "77.5kg × 11", 
+      completed: false,
+      drops: [
+        { weight: 60, reps: 10, completed: false }
+      ]
+    },
+    { id: 5, setNumber: 5, type: 'WORKING' as any, weight: 77.5, reps: 12, previousBest: "75kg × 12", completed: false },
+  ]
+};
+
 const IronTrack: React.FC = () => {
   const navigate = useNavigate();
   const { currentTechnique } = useIntensityTechnique();
-  const [exercise, setExercise] = useState<Exercise>(MOCK_EXERCISE);
-  const [currentSetIndex, setCurrentSetIndex] = useState<number>(2); 
+  const [exercise, setExercise] = useState<Exercise>(MOCK_EXERCISE_STANDARD);
+  const [currentSetIndex, setCurrentSetIndex] = useState<number>(2);
   
-  const [weightInput, setWeightInput] = useState<number>(MOCK_EXERCISE.sets[2].weight);
-  const [repsInput, setRepsInput] = useState<number>(MOCK_EXERCISE.sets[2].reps || 10);
+  // Charger les données appropriées selon la technique
+  useEffect(() => {
+    if (currentTechnique === 'DROP_SET') {
+      setExercise(MOCK_EXERCISE_DROPSET);
+    } else {
+      setExercise(MOCK_EXERCISE_STANDARD);
+    }
+  }, [currentTechnique]); 
+  
+  const [weightInput, setWeightInput] = useState<number>(MOCK_EXERCISE_STANDARD.sets[2].weight);
+  const [repsInput, setRepsInput] = useState<number>(MOCK_EXERCISE_STANDARD.sets[2].reps || 10);
   
   const [isResting, setIsResting] = useState(false);
   const [restSeconds, setRestSeconds] = useState(0);

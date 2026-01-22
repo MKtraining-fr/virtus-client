@@ -15,12 +15,45 @@ interface SetWheelProps {
   showDrops?: boolean;
 }
 
-const ITEM_HEIGHT = 96; // 80px item + 16px gap
+const BASE_ITEM_HEIGHT = 96; // 80px item + 16px gap
+const DROP_CARD_HEIGHT = 72; // Hauteur d'une carte drop (64px + 8px gap)
 
 const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWeightClick, onRepsClick, isLocked = false, onLockToggle, isPredataModified = false, showDrops = true }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Calculer la hauteur de chaque item (série + drops)
+  const getItemHeight = (index: number): number => {
+    const set = sets[index];
+    const baseHeight = BASE_ITEM_HEIGHT;
+    if (showDrops && set.drops && set.drops.length > 0) {
+      return baseHeight + (set.drops.length * DROP_CARD_HEIGHT);
+    }
+    return baseHeight;
+  };
+  
+  // Calculer la position de scroll pour un index donné
+  const getScrollPosition = (index: number): number => {
+    let position = 0;
+    for (let i = 0; i < index; i++) {
+      position += getItemHeight(i);
+    }
+    return position;
+  };
+  
+  // Trouver l'index à partir de la position de scroll
+  const getIndexFromScroll = (scrollPos: number): number => {
+    let accumulatedHeight = 0;
+    for (let i = 0; i < sets.length; i++) {
+      const itemHeight = getItemHeight(i);
+      if (scrollPos < accumulatedHeight + itemHeight / 2) {
+        return i;
+      }
+      accumulatedHeight += itemHeight;
+    }
+    return sets.length - 1;
+  };
 
   // Sync scroll position for 3D calculations
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -28,7 +61,7 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
     setScrollTop(top);
 
     // Logic for selection
-    const index = Math.round(top / ITEM_HEIGHT);
+    const index = getIndexFromScroll(top);
     if (index !== selectedIndex && index >= 0 && index < sets.length) {
       onSelect(index);
       if (navigator.vibrate) navigator.vibrate(8);
@@ -39,8 +72,8 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
       clearTimeout(scrollTimeoutRef.current);
     }
     scrollTimeoutRef.current = setTimeout(() => {
-      const targetIndex = Math.round(top / ITEM_HEIGHT);
-      const targetScroll = targetIndex * ITEM_HEIGHT;
+      const targetIndex = getIndexFromScroll(top);
+      const targetScroll = getScrollPosition(targetIndex);
       if (Math.abs(top - targetScroll) > 2 && containerRef.current) {
         containerRef.current.scrollTo({ 
           top: targetScroll, 
@@ -53,15 +86,16 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
   // Initial scroll to current set
   useEffect(() => {
     if (containerRef.current) {
-      containerRef.current.scrollTop = selectedIndex * ITEM_HEIGHT;
-      setScrollTop(selectedIndex * ITEM_HEIGHT);
+      const scrollPos = getScrollPosition(selectedIndex);
+      containerRef.current.scrollTop = scrollPos;
+      setScrollTop(scrollPos);
     }
   }, []);
 
   // External sync (e.g. logging a set)
   useEffect(() => {
     if (containerRef.current) {
-      const target = selectedIndex * ITEM_HEIGHT;
+      const target = getScrollPosition(selectedIndex);
       if (Math.abs(containerRef.current.scrollTop - target) > 5) {
         containerRef.current.scrollTo({ top: target, behavior: 'smooth' });
       }
@@ -108,8 +142,9 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
         
         {sets.map((set, idx) => {
           // Calculate 3D Offset for "Giant Wheel" effect
-          const distance = (idx * ITEM_HEIGHT) - scrollTop;
-          const normalizedDistance = distance / (ITEM_HEIGHT * 2); // -1 to 1 range for neighbors
+          const itemPosition = getScrollPosition(idx);
+          const distance = itemPosition - scrollTop;
+          const normalizedDistance = distance / (BASE_ITEM_HEIGHT * 2); // -1 to 1 range for neighbors
           
           // Geometry for a larger diameter cylinder:
           // 1. Less rotation (flatter curve)
@@ -128,9 +163,9 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
           return (
             <div 
               key={set.id} 
-              className="mb-4 flex justify-center transition-all duration-300 ease-out"
+              className="mb-4 flex flex-col justify-start transition-all duration-300 ease-out"
               style={{ 
-                height: '80px',
+                minHeight: `${getItemHeight(idx)}px`,
                 transformStyle: 'preserve-3d',
                 transform: `
                   translateY(${normalizedDistance * 5}px)
@@ -150,7 +185,7 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
                   isActive={idx === selectedIndex}
                   onClick={() => {
                     onSelect(idx);
-                    containerRef.current?.scrollTo({ top: idx * ITEM_HEIGHT, behavior: 'smooth' });
+                    containerRef.current?.scrollTo({ top: getScrollPosition(idx), behavior: 'smooth' });
                   }}
                   onWeightClick={idx === selectedIndex ? onWeightClick : undefined}
                   onRepsClick={idx === selectedIndex ? onRepsClick : undefined}
