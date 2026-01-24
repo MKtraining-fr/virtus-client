@@ -142,7 +142,7 @@ const SetWheel: React.FC<SetWheelProps> = ({
   }, [selectedIndex]);
 
   return (
-    <div className="relative h-full w-full flex items-center justify-center overflow-hidden min-h-[250px]">
+    <div className="relative w-full flex items-center justify-center overflow-hidden" style={{ height: '100%', minHeight: '400px' }}>
       
       {/* Zone de sélection fixe au centre */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-md h-[96px] pointer-events-none z-30">
@@ -185,8 +185,12 @@ const SetWheel: React.FC<SetWheelProps> = ({
                     set={item.set}
                     setNumber={item.setIndex + 1}
                     isActive={isActive}
+                    onClick={() => onSelect(itemIdx)}
                     onWeightClick={isActive ? onWeightClick : undefined}
                     onRepsClick={isActive ? onRepsClick : undefined}
+                    onLockToggle={isActive ? onLockToggle : undefined}
+                    isLocked={isLocked}
+                    isPredataModified={isPredataModified}
                   />
                 ) : (
                   <DropSetCard
@@ -203,21 +207,7 @@ const SetWheel: React.FC<SetWheelProps> = ({
         })}
       </div>
 
-      {/* Lock Button */}
-      {onLockToggle && (
-        <button
-          onClick={onLockToggle}
-          className={`absolute bottom-4 right-4 z-40 p-3 rounded-full transition-all ${
-            isLocked 
-              ? 'bg-red-500/20 text-red-400' 
-              : isPredataModified 
-                ? 'bg-orange-500/20 text-orange-400' 
-                : 'bg-zinc-800/50 text-zinc-400'
-          }`}
-        >
-          {isLocked ? '🔒' : '🔓'}
-        </button>
-      )}
+
     </div>
   );
 };
