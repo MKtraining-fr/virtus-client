@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { ExerciseSet, DropSet } from './irontrack-types';
 import SetRow from './SetRow';
 import DropSetCard from './DropSetCard';
