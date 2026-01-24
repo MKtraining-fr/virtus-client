@@ -58,6 +58,7 @@ const SetWheel: React.FC<SetWheelProps> = ({
   showDrops = true 
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Construire la liste aplatie d'items
@@ -98,6 +99,8 @@ const SetWheel: React.FC<SetWheelProps> = ({
 
   // Sync scroll position
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    setIsUserScrolling(true);
+    
     const top = e.currentTarget.scrollTop;
 
     // Logic for selection
@@ -112,6 +115,7 @@ const SetWheel: React.FC<SetWheelProps> = ({
       clearTimeout(scrollTimeoutRef.current);
     }
     scrollTimeoutRef.current = setTimeout(() => {
+      setIsUserScrolling(false);
       const targetItemIndex = getIndexFromScroll(top);
       const targetScroll = getScrollPosition(targetItemIndex);
       if (Math.abs(top - targetScroll) > 2 && containerRef.current) {
@@ -133,13 +137,13 @@ const SetWheel: React.FC<SetWheelProps> = ({
 
   // External sync (e.g. logging a set)
   useEffect(() => {
-    if (containerRef.current) {
+    if (containerRef.current && !isUserScrolling) {
       const target = getScrollPosition(selectedIndex);
       if (Math.abs(containerRef.current.scrollTop - target) > 5) {
         containerRef.current.scrollTo({ top: target, behavior: 'smooth' });
       }
     }
-  }, [selectedIndex]);
+  }, [selectedIndex, isUserScrolling]);
 
   return (
     <div className="relative w-full flex items-center justify-center overflow-hidden" style={{ height: '100%', minHeight: '400px' }}>
