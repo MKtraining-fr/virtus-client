@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, 
@@ -126,6 +126,7 @@ const IronTrack: React.FC = () => {
   
   const [currentSetIndex, setCurrentSetIndex] = useState<number>(2);
   const [currentItemIndex, setCurrentItemIndex] = useState<number>(2); // Index dans flatItems
+  const scrollToIndexRef = useRef<((index: number) => void) | null>(null);
   
   // Charger les données appropriées selon la technique
   useEffect(() => {
@@ -326,7 +327,25 @@ const IronTrack: React.FC = () => {
 
     if (currentSetIndex < exercise.sets.length - 1) {
       setTimeout(() => {
-        setCurrentSetIndex(prev => prev + 1);
+        const nextSetIndex = currentSetIndex + 1;
+        setCurrentSetIndex(nextSetIndex);
+        
+        // Calculer le nouvel itemIndex et scroller
+        const flatItems = buildFlatItems(exercise.sets, currentTechnique === 'DROP_SET');
+        const nextItemIndex = flatItems.findIndex(item => 
+          item.type === 'set' && item.setIndex === nextSetIndex
+        );
+        
+        if (nextItemIndex !== -1) {
+          setCurrentItemIndex(nextItemIndex);
+          
+          // Scroller vers la série suivante
+          if (scrollToIndexRef.current) {
+            setTimeout(() => {
+              scrollToIndexRef.current!(nextItemIndex);
+            }, 100);
+          }
+        }
       }, 400);
     }
   };
@@ -457,6 +476,7 @@ const IronTrack: React.FC = () => {
               onLockToggle={() => setIsLocked(!isLocked)}
               isPredataModified={isPredataModified}
               showDrops={currentTechnique === 'DROP_SET'}
+              scrollToIndex={(fn) => { scrollToIndexRef.current = fn; }}
             />
       </div>
 

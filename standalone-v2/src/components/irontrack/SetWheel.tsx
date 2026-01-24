@@ -39,6 +39,7 @@ interface SetWheelProps {
   onLockToggle?: () => void;
   isPredataModified?: boolean;
   showDrops?: boolean;
+  scrollToIndex?: (index: number) => void;  // Callback pour exposer la fonction de scroll
 }
 
 const BASE_ITEM_HEIGHT = 96; // 80px item + 16px gap
@@ -55,11 +56,13 @@ const SetWheel: React.FC<SetWheelProps> = ({
   isLocked = false, 
   onLockToggle, 
   isPredataModified = false, 
-  showDrops = true 
+  showDrops = true,
+  scrollToIndex
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInternalScrollRef = useRef(false);  // Flag pour ignorer handleScroll pendant scroll programmatique
   
   // Construire la liste aplatie d'items
   const flatItems = buildFlatItems(sets, showDrops);
@@ -97,8 +100,32 @@ const SetWheel: React.FC<SetWheelProps> = ({
     return flatItems.length - 1;
   };
 
+  // Fonction pour scroller vers un index (exposée via callback)
+  const scrollToIndexInternal = useCallback((index: number) => {
+    if (containerRef.current) {
+      isInternalScrollRef.current = true;  // Marquer comme scroll programmatique
+      const target = getScrollPosition(index);
+      containerRef.current.scrollTo({ top: target, behavior: 'smooth' });
+      
+      // Réinitialiser le flag après le scroll
+      setTimeout(() => {
+        isInternalScrollRef.current = false;
+      }, 500);
+    }
+  }, [flatItems]);
+
+  // Exposer la fonction de scroll au parent
+  useEffect(() => {
+    if (scrollToIndex) {
+      scrollToIndex(scrollToIndexInternal as any);
+    }
+  }, [scrollToIndex, scrollToIndexInternal]);
+
   // Sync scroll position
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    // Ignorer si c'est un scroll programmatique
+    if (isInternalScrollRef.current) return;
+    
     setIsUserScrolling(true);
     
     const top = e.currentTarget.scrollTop;
@@ -135,15 +162,7 @@ const SetWheel: React.FC<SetWheelProps> = ({
     }
   }, []);
 
-  // External sync (e.g. logging a set)
-  useEffect(() => {
-    if (containerRef.current && !isUserScrolling) {
-      const target = getScrollPosition(selectedIndex);
-      if (Math.abs(containerRef.current.scrollTop - target) > 5) {
-        containerRef.current.scrollTo({ top: target, behavior: 'smooth' });
-      }
-    }
-  }, [selectedIndex, isUserScrolling]);
+  // Pas de useEffect externe - le scroll est maintenant contrôlé explicitement par le parent
 
   return (
     <div className="relative w-full h-full">
