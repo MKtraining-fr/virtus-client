@@ -3,7 +3,7 @@ import { ExerciseSet, DropSet } from './irontrack-types';
 import SetRow from './SetRow';
 import DropSetCard from './DropSetCard';
 
-// Type pour les items du cylindre (sets et drops apl atis)
+// Type pour les items du cylindre (sets et drops aplatis)
 type WheelItem = 
   | { type: 'set'; setIndex: number; set: ExerciseSet }
   | { type: 'drop'; setIndex: number; dropIndex: number; drop: DropSet };
@@ -44,9 +44,20 @@ interface SetWheelProps {
 const BASE_ITEM_HEIGHT = 96; // 80px item + 16px gap
 const DROP_CARD_HEIGHT = 72; // Hauteur d'une carte drop (64px + 8px gap)
 
-const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWeightClick, onRepsClick, onDropWeightClick, onDropRepsClick, isLocked = false, onLockToggle, isPredataModified = false, showDrops = true }) => {
+const SetWheel: React.FC<SetWheelProps> = ({ 
+  sets, 
+  selectedIndex, 
+  onSelect, 
+  onWeightClick, 
+  onRepsClick, 
+  onDropWeightClick, 
+  onDropRepsClick, 
+  isLocked = false, 
+  onLockToggle, 
+  isPredataModified = false, 
+  showDrops = true 
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scrollTop, setScrollTop] = useState(0);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Construire la liste aplatie d'items
@@ -69,10 +80,15 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
   
   // Trouver l'itemIndex à partir de la position de scroll
   const getIndexFromScroll = (scrollPos: number): number => {
+    const containerHeight = containerRef.current?.clientHeight || 800;
+    const viewportCenter = scrollPos + (containerHeight / 2);
+    
     let accumulatedHeight = 0;
     for (let i = 0; i < flatItems.length; i++) {
       const itemHeight = getItemHeight(i);
-      if (scrollPos < accumulatedHeight + itemHeight / 2) {
+      const itemCenter = accumulatedHeight + (itemHeight / 2);
+      
+      if (viewportCenter < itemCenter + (itemHeight / 2)) {
         return i;
       }
       accumulatedHeight += itemHeight;
@@ -80,10 +96,9 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
     return flatItems.length - 1;
   };
 
-  // Sync scroll position for 3D calculations
+  // Sync scroll position
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const top = e.currentTarget.scrollTop;
-    setScrollTop(top);
 
     // Logic for selection
     const itemIndex = getIndexFromScroll(top);
@@ -113,7 +128,6 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
     if (containerRef.current) {
       const scrollPos = getScrollPosition(selectedIndex);
       containerRef.current.scrollTop = scrollPos;
-      setScrollTop(scrollPos);
     }
   }, []);
 
@@ -128,13 +142,12 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
   }, [selectedIndex]);
 
   return (
-    <div className="relative h-full w-full flex items-center justify-center overflow-hidden min-h-[250px]" style={{ perspective: '1500px' }}>
+    <div className="relative h-full w-full flex items-center justify-center overflow-hidden min-h-[250px]">
       
-      {/* 3D Cylinder Background Glow */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[140px] bg-primary/5 blur-[90px] rounded-full pointer-events-none"></div>
-
-      {/* Center Focus Line - Almost invisible */}
-      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] pointer-events-none z-30 bg-primary/10"></div>
+      {/* Zone de sélection fixe au centre */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-md h-[96px] pointer-events-none z-30">
+        <div className="w-full h-full rounded-xl border-2 border-primary/20 bg-primary/5"></div>
+      </div>
 
       {/* Scroll Container */}
       <div 
@@ -144,108 +157,67 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
         style={{ 
           paddingTop: `calc(50% - ${BASE_ITEM_HEIGHT / 2}px)`,
           paddingBottom: `calc(50% - ${BASE_ITEM_HEIGHT / 2}px)`,
-          transformStyle: 'preserve-3d',
           scrollBehavior: 'auto',
           overscrollBehavior: 'none',
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-y'
         } as React.CSSProperties}
       >
-        {/* Label SÉRIE qui scroll */}
-        <div 
-          className="mb-4 flex justify-center transition-all duration-300 ease-out"
-          style={{ 
-            height: '30px',
-            transformStyle: 'preserve-3d',
-            transform: `translateZ(-80px)`,
-            opacity: 0.4,
-            pointerEvents: 'none'
-          }}
-        >
-          <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">
-            SÉRIE
-          </span>
-        </div>
-        
+        {/* Items */}
         {flatItems.map((item, itemIdx) => {
-          // Calculate 3D Offset for "Giant Wheel" effect
-          const itemPosition = getScrollPosition(itemIdx);
-          const distance = itemPosition - scrollTop;
-          const normalizedDistance = distance / (BASE_ITEM_HEIGHT * 2); // -1 to 1 range for neighbors
-          
-          // Geometry for a larger diameter cylinder:
-          // 1. Less rotation (flatter curve)
-          const rotateX = Math.max(-35, Math.min(35, normalizedDistance * -35));
-          
-          // 2. Scale modéré : active 100%, adjacentes 95%, éloignées 90%
-          const scale = Math.max(0.90, 1 - Math.abs(normalizedDistance) * 0.05);
-          
-          // 3. Less depth push (keep neighbors closer)
-          const translateZ = Math.abs(normalizedDistance) * -60;
-          
-          // 4. Higher visibility for neighbors
-          const opacity = 1 - Math.abs(normalizedDistance) * 0.5;
-          const blur = Math.max(0, Math.abs(normalizedDistance) * 2 - 0.5); // Start blur only when further away
-
           const isActive = itemIdx === selectedIndex;
-
+          
           return (
             <div 
-              key={item.type === 'set' ? `set-${item.setIndex}` : `drop-${item.setIndex}-${item.dropIndex}`}
-              className="mb-4 flex flex-col justify-start transition-all duration-300 ease-out"
+              key={`item-${itemIdx}`}
               style={{ 
-              height: `${getItemHeight(itemIdx)}px`,
-                transformStyle: 'preserve-3d',
-                transform: `
-                  translateY(${normalizedDistance * 5}px)
-                  rotateX(${rotateX}deg) 
-                  translateZ(${translateZ}px) 
-                  scale(${scale})
-                `,
-                opacity: opacity,
-                filter: `blur(${blur}px)`,
-                transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                zIndex: Math.round(100 - Math.abs(normalizedDistance) * 100)
+                height: `${getItemHeight(itemIdx)}px`,
               }}
+              className="flex items-center justify-center"
             >
-              <div className="w-[92%] max-w-md mx-auto">
+              <div 
+                className={`w-[92%] max-w-md mx-auto transition-all duration-300 ease-out ${
+                  isActive ? 'scale-105 opacity-100' : 'scale-100 opacity-60'
+                }`}
+              >
                 {item.type === 'set' ? (
-                  <SetRow 
-                    set={item.set} 
+                  <SetRow
+                    set={item.set}
+                    setNumber={item.setIndex + 1}
                     isActive={isActive}
-                    onClick={() => {
-                      onSelect(itemIdx);
-                      containerRef.current?.scrollTo({ top: getScrollPosition(itemIdx), behavior: 'smooth' });
-                    }}
                     onWeightClick={isActive ? onWeightClick : undefined}
                     onRepsClick={isActive ? onRepsClick : undefined}
-                    onLockToggle={isActive ? onLockToggle : undefined}
-                    isPredataModified={isActive ? isPredataModified : false}
-                    isLocked={isActive ? isLocked : false}
                   />
                 ) : (
                   <DropSetCard
                     drop={item.drop}
                     dropNumber={item.dropIndex + 1}
                     isActive={isActive}
-                    onWeightClick={isActive && onDropWeightClick ? () => onDropWeightClick(item.setIndex, item.dropIndex) : undefined}
-                    onRepsClick={isActive && onDropRepsClick ? () => onDropRepsClick(item.setIndex, item.dropIndex) : undefined}
+                    onWeightClick={isActive ? () => onDropWeightClick?.(item.setIndex, item.dropIndex) : undefined}
+                    onRepsClick={isActive ? () => onDropRepsClick?.(item.setIndex, item.dropIndex) : undefined}
                   />
                 )}
               </div>
             </div>
           );
         })}
-        
-        {/* End of Cylinder visual padding */}
-        <div className="h-[120px] flex items-center justify-center pointer-events-none opacity-20">
-           <div className="w-12 h-1 bg-zinc-800 rounded-full"></div>
-        </div>
       </div>
 
-      {/* Cinematic Overlays - reduced to show more of top/bottom */}
-      <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-zinc-950 to-transparent z-40 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-zinc-950 to-transparent z-40 pointer-events-none"></div>
+      {/* Lock Button */}
+      {onLockToggle && (
+        <button
+          onClick={onLockToggle}
+          className={`absolute bottom-4 right-4 z-40 p-3 rounded-full transition-all ${
+            isLocked 
+              ? 'bg-red-500/20 text-red-400' 
+              : isPredataModified 
+                ? 'bg-orange-500/20 text-orange-400' 
+                : 'bg-zinc-800/50 text-zinc-400'
+          }`}
+        >
+          {isLocked ? '🔒' : '🔓'}
+        </button>
+      )}
     </div>
   );
 };

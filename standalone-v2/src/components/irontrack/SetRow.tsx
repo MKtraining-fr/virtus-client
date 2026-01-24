@@ -75,7 +75,7 @@ const SetRow: React.FC<SetRowProps> = ({ set, isActive, onClick, onWeightClick, 
         w-full min-h-[80px] h-[80px]
         relative flex items-center justify-between px-4 py-2 rounded-xl border transition-all duration-300
         ${isActive 
-          ? `bg-gradient-to-b from-zinc-800 to-zinc-900 ${getBorderColor()} shadow-[0_0_30px_rgba(123,109,242,0.15)]` 
+          ? `bg-gradient-to-b from-zinc-800 to-zinc-900 ${getBorderColor()} shadow-[0_0_40px_rgba(139,92,246,0.4)]` 
           : 'bg-zinc-900/60 border-zinc-800/50 hover:bg-zinc-800/60'
         }
       `}
