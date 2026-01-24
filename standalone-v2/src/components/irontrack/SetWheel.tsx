@@ -60,6 +60,7 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
   
   // Calculer la position de scroll pour un itemIndex donné
   const getScrollPosition = (itemIndex: number): number => {
+    // Position absolue depuis le début du contenu (après padding)
     let position = 0;
     for (let i = 0; i < itemIndex; i++) {
       position += getItemHeight(i);
@@ -69,10 +70,17 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
   
   // Trouver l'itemIndex à partir de la position de scroll
   const getIndexFromScroll = (scrollPos: number): number => {
+    // Le scrollPos est relatif au début du container (padding inclus)
+    // On doit calculer la position absolue dans le contenu
+    const containerHeight = containerRef.current?.clientHeight || 800;
+    const paddingTop = (containerHeight / 2) - (BASE_ITEM_HEIGHT / 2);
+    const viewportCenter = scrollPos + (containerHeight / 2);
+    const absoluteCenter = viewportCenter - paddingTop;
+    
     let accumulatedHeight = 0;
     for (let i = 0; i < flatItems.length; i++) {
       const itemHeight = getItemHeight(i);
-      if (scrollPos < accumulatedHeight + itemHeight / 2) {
+      if (absoluteCenter < accumulatedHeight + itemHeight / 2) {
         return i;
       }
       accumulatedHeight += itemHeight;
