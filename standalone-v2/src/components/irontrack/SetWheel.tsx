@@ -146,7 +146,7 @@ const SetWheel: React.FC<SetWheelProps> = ({
   }, [selectedIndex, isUserScrolling]);
 
   return (
-    <div className="relative w-full flex items-center justify-center overflow-hidden" style={{ height: '100%', minHeight: '400px' }}>
+    <div className="relative w-full h-full">
       
       {/* Zone de sélection fixe au centre */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-md h-[96px] pointer-events-none z-30">
@@ -157,7 +157,7 @@ const SetWheel: React.FC<SetWheelProps> = ({
       <div 
         ref={containerRef}
         onScroll={isLocked ? undefined : handleScroll}
-        className={`h-full w-full overflow-y-auto no-scrollbar relative z-20 transition-opacity duration-300 ${isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}
+        className={`absolute inset-0 overflow-y-auto no-scrollbar transition-opacity duration-300 ${isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}
         style={{ 
           paddingTop: `calc(50% - ${BASE_ITEM_HEIGHT / 2}px)`,
           paddingBottom: `calc(50% - ${BASE_ITEM_HEIGHT / 2}px)`,
