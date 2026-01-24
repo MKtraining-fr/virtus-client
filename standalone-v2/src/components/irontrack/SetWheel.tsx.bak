@@ -140,10 +140,8 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
       <div 
         ref={containerRef}
         onScroll={isLocked ? undefined : handleScroll}
-        className={`h-full w-full overflow-y-auto no-scrollbar relative z-20 transition-opacity duration-300 ${isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}
+        className={`h-full w-full overflow-y-auto no-scrollbar py-[calc(50%-63px)] relative z-20 transition-opacity duration-300 ${isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}
         style={{ 
-          paddingTop: `calc(50% - ${BASE_ITEM_HEIGHT / 2}px)`,
-          paddingBottom: `calc(50% - ${BASE_ITEM_HEIGHT / 2}px)`,
           transformStyle: 'preserve-3d',
           scrollBehavior: 'auto',
           overscrollBehavior: 'none',
@@ -194,7 +192,7 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
               key={item.type === 'set' ? `set-${item.setIndex}` : `drop-${item.setIndex}-${item.dropIndex}`}
               className="mb-4 flex flex-col justify-start transition-all duration-300 ease-out"
               style={{ 
-              height: `${getItemHeight(itemIdx)}px`,
+                minHeight: `${getItemHeight(itemIdx)}px`,
                 transformStyle: 'preserve-3d',
                 transform: `
                   translateY(${normalizedDistance * 5}px)
