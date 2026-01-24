@@ -63,20 +63,9 @@ const SetRow: React.FC<SetRowProps> = ({ set, isActive, onClick, onWeightClick, 
 
   const progressionIcon = getProgressionIcon();
 
-  // Get border color based on progression
+  // Get border color - always neutral
   const getBorderColor = () => {
-    if (!isActive) return 'border-zinc-800/50';
-    
-    switch (progression) {
-      case 'better':
-        return 'border-lime-500/40 ring-1 ring-lime-500/20';
-      case 'worse':
-        return 'border-orange-500/40 ring-1 ring-orange-500/20';
-      case 'same':
-        return 'border-cyan-500/40 ring-1 ring-cyan-500/20';
-      default:
-        return 'border-violet-600/40 ring-1 ring-violet-600/20';
-    }
+    return 'border-zinc-800/50';
   };
 
   return (
