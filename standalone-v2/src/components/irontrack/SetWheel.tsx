@@ -60,8 +60,6 @@ const SetWheel: React.FC<SetWheelProps> = ({
   scrollToIndex
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isUserScrolling, setIsUserScrolling] = useState(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInternalScrollRef = useRef(false);  // Flag pour ignorer handleScroll pendant scroll programmatique
   
   // Construire la liste aplatie d'items
@@ -126,32 +124,16 @@ const SetWheel: React.FC<SetWheelProps> = ({
     // Ignorer si c'est un scroll programmatique
     if (isInternalScrollRef.current) return;
     
-    setIsUserScrolling(true);
-    
     const top = e.currentTarget.scrollTop;
 
-    // Logic for selection
+    // Logic for selection (détection de l'item au centre pour effets visuels)
     const itemIndex = getIndexFromScroll(top);
     if (itemIndex !== selectedIndex && itemIndex >= 0 && itemIndex < flatItems.length) {
       onSelect(itemIndex);
       if (navigator.vibrate) navigator.vibrate(8);
     }
 
-    // Auto-snap after scroll ends
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-    scrollTimeoutRef.current = setTimeout(() => {
-      setIsUserScrolling(false);
-      const targetItemIndex = getIndexFromScroll(top);
-      const targetScroll = getScrollPosition(targetItemIndex);
-      if (Math.abs(top - targetScroll) > 2 && containerRef.current) {
-        containerRef.current.scrollTo({ 
-          top: targetScroll, 
-          behavior: 'smooth' 
-        });
-      }
-    }, 150);
+    // Pas de auto-snap - scroll complètement libre
   };
 
   // Initial scroll to current set
@@ -166,11 +148,6 @@ const SetWheel: React.FC<SetWheelProps> = ({
 
   return (
     <div className="relative w-full h-full">
-      
-      {/* Zone de sélection fixe au centre */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-md h-[96px] pointer-events-none z-30">
-        <div className="w-full h-full rounded-xl border-2 border-primary/20 bg-primary/5"></div>
-      </div>
 
       {/* Scroll Container */}
       <div 
