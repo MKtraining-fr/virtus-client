@@ -192,7 +192,7 @@ const SetWheel: React.FC<SetWheelProps> = ({ sets, selectedIndex, onSelect, onWe
               key={item.type === 'set' ? `set-${item.setIndex}` : `drop-${item.setIndex}-${item.dropIndex}`}
               className="mb-4 flex flex-col justify-start transition-all duration-300 ease-out"
               style={{ 
-                minHeight: `${getItemHeight(itemIdx)}px`,
+              height: `${getItemHeight(itemIdx)}px`,
                 transformStyle: 'preserve-3d',
                 transform: `
                   translateY(${normalizedDistance * 5}px)
