@@ -143,6 +143,7 @@ const SetList: React.FC<SetListProps> = ({
   
   // Gérer le scroll manuel
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isLocked) return;  // Bloquer complètement si locké
     if (isScrollingProgrammatically.current) return;
     
     const scrollTop = e.currentTarget.scrollTop;
@@ -179,8 +180,8 @@ const SetList: React.FC<SetListProps> = ({
       <div 
         ref={containerRef}
         onScroll={isLocked ? undefined : handleScroll}
-        className={`absolute inset-0 overflow-y-auto no-scrollbar transition-opacity duration-300 ${
-          isLocked ? 'opacity-50 pointer-events-none' : 'opacity-100'
+        className={`absolute inset-0 no-scrollbar transition-opacity duration-300 ${
+          isLocked ? 'opacity-50 pointer-events-none overflow-hidden' : 'opacity-100 overflow-y-auto'
         }`}
         style={{ 
           paddingTop: `calc(50% - ${SET_HEIGHT / 2}px)`,
@@ -188,7 +189,7 @@ const SetList: React.FC<SetListProps> = ({
           scrollBehavior: 'auto',
           overscrollBehavior: 'none',
           WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-y'
+          touchAction: isLocked ? 'none' : 'pan-y'
         } as React.CSSProperties}
       >
         {flatItems.map((item, index) => {
