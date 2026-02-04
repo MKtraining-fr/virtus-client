@@ -171,11 +171,6 @@ const SetList: React.FC<SetListProps> = ({
   return (
     <div className="relative w-full h-full">
       
-      {/* Zone de sélection fixe au centre */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-md h-[96px] pointer-events-none z-30">
-        <div className="w-full h-full rounded-xl border-2 border-violet-500/30 bg-violet-500/5 shadow-lg shadow-violet-500/20"></div>
-      </div>
-
       {/* Container de scroll */}
       <div 
         ref={containerRef}
