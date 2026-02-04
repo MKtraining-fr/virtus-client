@@ -68,19 +68,14 @@ const SetList: React.FC<SetListProps> = ({
   };
   
   // Position de scroll pour centrer un item
+  // Le centrage est déjà géré par le padding du container (calc(50% - 48px))
+  // On retourne juste la position du haut de l'item
   const getScrollPositionForItem = (index: number): number => {
-    if (!containerRef.current) return 0;
-    
     let totalHeight = 0;
     for (let i = 0; i < index; i++) {
       totalHeight += getItemHeight(i);
     }
-    
-    const containerHeight = containerRef.current.clientHeight;
-    const itemHeight = getItemHeight(index);
-    
-    // Centrer l'item : position - (hauteur container / 2) + (hauteur item / 2)
-    return totalHeight - (containerHeight / 2) + (itemHeight / 2);
+    return totalHeight;
   };
   
   // Trouver l'item le plus proche du centre
@@ -148,16 +143,8 @@ const SetList: React.FC<SetListProps> = ({
     // Attendre que le DOM soit complètement rendu
     const timer = setTimeout(() => {
       if (containerRef.current) {
-        console.log('[SetList] Scroll initial');
-        console.log('  selectedIndex:', selectedIndex);
-        console.log('  containerHeight:', containerRef.current.clientHeight);
-        console.log('  itemHeight:', getItemHeight(selectedIndex));
-        
         const scrollPos = getScrollPositionForItem(selectedIndex);
-        console.log('  scrollPos calculé:', scrollPos);
-        
         containerRef.current.scrollTop = scrollPos;
-        console.log('  scrollTop appliqué:', containerRef.current.scrollTop);
       }
     }, 50);
     
