@@ -87,21 +87,29 @@ const SetWheel: React.FC<SetWheelProps> = ({
   };
   
   // Trouver l'itemIndex à partir de la position de scroll
+  // Logique simple : trouver l'item dont le centre est le plus proche du centre du viewport
   const getIndexFromScroll = (scrollPos: number): number => {
     const containerHeight = containerRef.current?.clientHeight || 800;
     const viewportCenter = scrollPos + (containerHeight / 2);
     
     let accumulatedHeight = 0;
+    let closestIndex = 0;
+    let minDistance = Infinity;
+    
     for (let i = 0; i < flatItems.length; i++) {
       const itemHeight = getItemHeight(i);
       const itemCenter = accumulatedHeight + (itemHeight / 2);
+      const distance = Math.abs(viewportCenter - itemCenter);
       
-      if (viewportCenter < itemCenter + (itemHeight / 2)) {
-        return i;
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = i;
       }
+      
       accumulatedHeight += itemHeight;
     }
-    return flatItems.length - 1;
+    
+    return closestIndex;
   };
 
   // Fonction pour scroller vers un index (exposée via callback)
