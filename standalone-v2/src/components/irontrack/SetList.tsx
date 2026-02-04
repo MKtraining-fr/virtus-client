@@ -59,7 +59,6 @@ const SetList: React.FC<SetListProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingProgrammatically = useRef(false);
-  const snapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const flatItems = buildFlatItems(sets, showDrops);
   
@@ -126,7 +125,7 @@ const SetList: React.FC<SetListProps> = ({
     }
   }, [scrollToIndex, scrollToItem]);
   
-  // Gérer le scroll manuel avec snap automatique
+  // Gérer le scroll manuel
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (isScrollingProgrammatically.current) return;
     
@@ -138,29 +137,6 @@ const SetList: React.FC<SetListProps> = ({
       onSelect(centerIndex);
       if (navigator.vibrate) navigator.vibrate(8);
     }
-    
-    // Snap automatique après 150ms sans scroll
-    if (snapTimeoutRef.current) {
-      clearTimeout(snapTimeoutRef.current);
-    }
-    
-    snapTimeoutRef.current = setTimeout(() => {
-      if (containerRef.current && !isScrollingProgrammatically.current) {
-        const finalIndex = getItemAtCenter(containerRef.current.scrollTop);
-        const targetScrollPos = getScrollPositionForItem(finalIndex);
-        
-        // Snap smooth vers le centre
-        isScrollingProgrammatically.current = true;
-        containerRef.current.scrollTo({ 
-          top: targetScrollPos, 
-          behavior: 'smooth' 
-        });
-        
-        setTimeout(() => {
-          isScrollingProgrammatically.current = false;
-        }, 300);
-      }
-    }, 150);
   };
   
   // Scroll initial vers l'item sélectionné
