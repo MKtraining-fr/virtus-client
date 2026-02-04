@@ -153,8 +153,13 @@ const SetWheel: React.FC<SetWheelProps> = ({
   // Initial scroll to current set
   useEffect(() => {
     if (containerRef.current) {
-      const scrollPos = getScrollPosition(selectedIndex);
-      containerRef.current.scrollTop = scrollPos;
+      // Attendre que le container ait sa vraie hauteur avant de scroller
+      setTimeout(() => {
+        if (containerRef.current) {
+          const scrollPos = getScrollPosition(selectedIndex);
+          containerRef.current.scrollTop = scrollPos;
+        }
+      }, 100);
     }
   }, []);
 
