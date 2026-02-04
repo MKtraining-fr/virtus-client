@@ -83,15 +83,17 @@ const SetList: React.FC<SetListProps> = ({
     if (!containerRef.current) return 0;
     
     const containerHeight = containerRef.current.clientHeight;
+    const padding = (containerHeight / 2) - (SET_HEIGHT / 2);
     const centerPosition = scrollTop + (containerHeight / 2);
     
     console.log('[getItemAtCenter]', {
       scrollTop,
       containerHeight,
+      padding,
       centerPosition
     });
     
-    let accumulatedHeight = 0;
+    let accumulatedHeight = padding;  // Commencer au padding !
     let closestIndex = 0;
     let minDistance = Infinity;
     
