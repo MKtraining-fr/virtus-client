@@ -85,6 +85,12 @@ const SetList: React.FC<SetListProps> = ({
     const containerHeight = containerRef.current.clientHeight;
     const centerPosition = scrollTop + (containerHeight / 2);
     
+    console.log('[getItemAtCenter]', {
+      scrollTop,
+      containerHeight,
+      centerPosition
+    });
+    
     let accumulatedHeight = 0;
     let closestIndex = 0;
     let minDistance = Infinity;
@@ -94,6 +100,13 @@ const SetList: React.FC<SetListProps> = ({
       const itemCenter = accumulatedHeight + (itemHeight / 2);
       const distance = Math.abs(centerPosition - itemCenter);
       
+      console.log(`  Item ${i}:`, {
+        itemHeight,
+        itemCenter,
+        distance,
+        isCurrent: i === selectedIndex
+      });
+      
       if (distance < minDistance) {
         minDistance = distance;
         closestIndex = i;
@@ -102,6 +115,7 @@ const SetList: React.FC<SetListProps> = ({
       accumulatedHeight += itemHeight;
     }
     
+    console.log('  → closestIndex:', closestIndex, 'minDistance:', minDistance);
     return closestIndex;
   };
   
