@@ -148,8 +148,16 @@ const SetList: React.FC<SetListProps> = ({
     // Attendre que le DOM soit complètement rendu
     const timer = setTimeout(() => {
       if (containerRef.current) {
+        console.log('[SetList] Scroll initial');
+        console.log('  selectedIndex:', selectedIndex);
+        console.log('  containerHeight:', containerRef.current.clientHeight);
+        console.log('  itemHeight:', getItemHeight(selectedIndex));
+        
         const scrollPos = getScrollPositionForItem(selectedIndex);
+        console.log('  scrollPos calculé:', scrollPos);
+        
         containerRef.current.scrollTop = scrollPos;
+        console.log('  scrollTop appliqué:', containerRef.current.scrollTop);
       }
     }, 50);
     
