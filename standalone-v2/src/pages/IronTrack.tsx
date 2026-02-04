@@ -12,19 +12,21 @@ import {
   NotebookPen,
   Zap
 } from 'lucide-react';
-import SetWheel from '../components/irontrack/SetWheel';
+import SetList from '../components/irontrack/SetList';
 import RestTimer from '../components/irontrack/RestTimer';
 import NumberPicker from '../components/irontrack/NumberPicker';
 import { Exercise, ExerciseSet, DropSet } from '../components/irontrack/irontrack-types';
 
-// Type pour les items du cylindre (sets et drops aplatis)
-type WheelItem = 
+import { useIntensityTechnique } from '../contexts/IntensityTechniqueContext';
+
+// Type pour les items de la liste
+type ListItem = 
   | { type: 'set'; setIndex: number; set: ExerciseSet }
   | { type: 'drop'; setIndex: number; dropIndex: number; drop: DropSet };
 
 // Fonction pour construire la liste aplatie d'items
-const buildFlatItems = (sets: ExerciseSet[], showDrops: boolean): WheelItem[] => {
-  const items: WheelItem[] = [];
+const buildFlatItems = (sets: ExerciseSet[], showDrops: boolean): ListItem[] => {
+  const items: ListItem[] = [];
   
   sets.forEach((set, setIndex) => {
     items.push({ type: 'set', setIndex, set });
@@ -38,17 +40,16 @@ const buildFlatItems = (sets: ExerciseSet[], showDrops: boolean): WheelItem[] =>
   
   return items;
 };
-import { useIntensityTechnique } from '../contexts/IntensityTechniqueContext';
 
-// Responsive cylinder area height
-const cylinderAreaStyle = `
-  .cylinder-area {
+// Hauteur de la zone de liste (responsive)
+const listAreaStyle = `
+  .list-area {
     height: calc(100vh - 480px);
     min-height: 250px;
   }
   
   @media (min-width: 768px) {
-    .cylinder-area {
+    .list-area {
       height: calc(100vh - 350px);
       min-height: 400px;
     }
@@ -352,7 +353,7 @@ const IronTrack: React.FC = () => {
 
   return (
     <>
-      <style>{cylinderAreaStyle}</style>
+      <style>{listAreaStyle}</style>
       <div className="h-screen w-full bg-zinc-950 flex flex-col relative overflow-y-auto">
       
       {/* Header */}
@@ -434,8 +435,8 @@ const IronTrack: React.FC = () => {
 
       </div>
 
-      {/* Cylinder Area (Responsive height with calc) */}
-      <div className="cylinder-area relative -mt-1 z-10 overflow-hidden">
+      {/* Liste des séries (Responsive height) */}
+      <div className="list-area relative -mt-1 z-10 overflow-hidden">
           {/* Lock badge overlay */}
           {isLocked && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-zinc-900/90 backdrop-blur-md border border-zinc-700/50 rounded-full px-4 py-2 shadow-lg">
@@ -454,7 +455,7 @@ const IronTrack: React.FC = () => {
               </button>
             </div>
           )}
-          <SetWheel 
+          <SetList 
               sets={exercise.sets}
               selectedIndex={currentItemIndex}
               onSelect={(itemIndex) => {
