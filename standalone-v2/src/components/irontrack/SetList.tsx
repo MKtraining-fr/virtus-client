@@ -219,8 +219,6 @@ const SetList: React.FC<SetListProps> = ({
                     set={item.set}
                     setNumber={item.setIndex + 1}
                     isActive={isActive}
-                    {/* Pas de clic pour activer - scroll uniquement */}
-                    onClick={undefined}
                     onWeightClick={isActive ? onWeightClick : undefined}
                     onRepsClick={isActive ? onRepsClick : undefined}
                     onLockToggle={isActive ? onLockToggle : undefined}
