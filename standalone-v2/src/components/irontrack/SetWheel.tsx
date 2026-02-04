@@ -71,12 +71,18 @@ const SetWheel: React.FC<SetWheelProps> = ({
     return item.type === 'set' ? BASE_ITEM_HEIGHT : DROP_CARD_HEIGHT;
   };
   
-  // Calculer la position de scroll pour un itemIndex donné
+  // Calculer la position de scroll pour un itemIndex donné (centré dans le viewport)
   const getScrollPosition = (itemIndex: number): number => {
     let position = 0;
     for (let i = 0; i < itemIndex; i++) {
       position += getItemHeight(i);
     }
+    
+    // Centrer l'item dans le viewport
+    const containerHeight = containerRef.current?.clientHeight || 800;
+    const itemHeight = getItemHeight(itemIndex);
+    position = position - (containerHeight / 2) + (itemHeight / 2);
+    
     return position;
   };
   
