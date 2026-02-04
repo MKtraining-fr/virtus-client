@@ -59,6 +59,7 @@ const SetList: React.FC<SetListProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingProgrammatically = useRef(false);
+  const snapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const flatItems = buildFlatItems(sets, showDrops);
   
@@ -125,17 +126,41 @@ const SetList: React.FC<SetListProps> = ({
     }
   }, [scrollToIndex, scrollToItem]);
   
-  // Gérer le scroll manuel
+  // Gérer le scroll manuel avec snap automatique
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (isScrollingProgrammatically.current) return;
     
     const scrollTop = e.currentTarget.scrollTop;
     const centerIndex = getItemAtCenter(scrollTop);
     
+    // Mettre à jour la sélection si l'item au centre change
     if (centerIndex !== selectedIndex) {
       onSelect(centerIndex);
       if (navigator.vibrate) navigator.vibrate(8);
     }
+    
+    // Snap automatique après 150ms sans scroll
+    if (snapTimeoutRef.current) {
+      clearTimeout(snapTimeoutRef.current);
+    }
+    
+    snapTimeoutRef.current = setTimeout(() => {
+      if (containerRef.current && !isScrollingProgrammatically.current) {
+        const finalIndex = getItemAtCenter(containerRef.current.scrollTop);
+        const targetScrollPos = getScrollPositionForItem(finalIndex);
+        
+        // Snap smooth vers le centre
+        isScrollingProgrammatically.current = true;
+        containerRef.current.scrollTo({ 
+          top: targetScrollPos, 
+          behavior: 'smooth' 
+        });
+        
+        setTimeout(() => {
+          isScrollingProgrammatically.current = false;
+        }, 300);
+      }
+    }, 150);
   };
   
   // Scroll initial vers l'item sélectionné
@@ -194,7 +219,7 @@ const SetList: React.FC<SetListProps> = ({
                     set={item.set}
                     setNumber={item.setIndex + 1}
                     isActive={isActive}
-                    onClick={() => onSelect(index)}
+                    onClick={undefined}  {/* Pas de clic pour activer - scroll uniquement */}
                     onWeightClick={isActive ? onWeightClick : undefined}
                     onRepsClick={isActive ? onRepsClick : undefined}
                     onLockToggle={isActive ? onLockToggle : undefined}
