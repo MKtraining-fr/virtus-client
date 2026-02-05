@@ -6,11 +6,11 @@ const MainLayout = () => {
   const navigate = useNavigate();
 
   const navItems = [
-    { path: '/client/v2/dashboard', icon: Home, label: 'Accueil' },
-    { path: '/client/v2/training', icon: Dumbbell, label: 'Entraînement' },
-    { path: '/client/v2/nutrition', icon: Apple, label: 'Nutrition' },
-    { path: '/client/v2/library', icon: BookOpen, label: 'Bibliothèque' },
-    { path: '/client/v2/profile', icon: User, label: 'Profil' },
+    { path: '/dashboard', icon: Home, label: 'Accueil' },
+    { path: '/training', icon: Dumbbell, label: 'Entraînement' },
+    { path: '/nutrition', icon: Apple, label: 'Nutrition' },
+    { path: '/library', icon: BookOpen, label: 'Bibliothèque' },
+    { path: '/profile', icon: User, label: 'Profil' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
