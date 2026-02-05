@@ -15,6 +15,8 @@ import {
 import SetList from '../components/irontrack/SetList';
 import RestTimer from '../components/irontrack/RestTimer';
 import NumberPicker from '../components/irontrack/NumberPicker';
+import NotesModal from '../components/irontrack/NotesModal';
+import VideoModal from '../components/irontrack/VideoModal';
 import { Exercise, ExerciseSet, DropSet } from '../components/irontrack/irontrack-types';
 
 import { useIntensityTechnique } from '../contexts/IntensityTechniqueContext';
@@ -156,6 +158,12 @@ const IronTrack: React.FC = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [isPredataModified, setIsPredataModified] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  
+  // États pour les modales Notes et Vidéo
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [setNotes, setSetNotes] = useState<Record<number, string>>({});
+  const [setVideos, setSetVideos] = useState<Record<number, File>>({});
 
   useEffect(() => {
     const set = exercise.sets[currentSetIndex];
@@ -232,7 +240,28 @@ const IronTrack: React.FC = () => {
       if (type === 'timer') {
           setIsResting(true);
           setRestSeconds(exercise.protocol.restSeconds);
+      } else if (type === 'video') {
+          setShowVideoModal(true);
+      } else if (type === 'notes') {
+          setShowNotesModal(true);
       }
+  };
+
+  // Handlers pour les modales
+  const handleSaveNote = (note: string) => {
+    setSetNotes(prev => ({
+      ...prev,
+      [currentSetIndex]: note
+    }));
+    console.log(`Note saved for set ${currentSetIndex + 1}:`, note);
+  };
+
+  const handleVideoSelected = (videoFile: File) => {
+    setSetVideos(prev => ({
+      ...prev,
+      [currentSetIndex]: videoFile
+    }));
+    console.log(`Video selected for set ${currentSetIndex + 1}:`, videoFile.name);
   };
 
   // Handlers pour l'édition des drops
@@ -410,17 +439,23 @@ const IronTrack: React.FC = () => {
              </button>
              <button 
                 onClick={() => handleAction('video')}
-                className="flex flex-col items-center justify-center gap-0.5 bg-zinc-900 hover:bg-zinc-800 p-1 rounded-lg border border-zinc-800 transition-all active:scale-95 group"
+                className="flex flex-col items-center justify-center gap-0.5 bg-zinc-900 hover:bg-zinc-800 p-1 rounded-lg border border-zinc-800 transition-all active:scale-95 group relative"
              >
                 <Camera size={16} className="text-zinc-500 group-hover:text-violet-400 transition-colors" />
                 <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-wider">Rec</span>
+                {setVideos[currentSetIndex] && (
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-violet-500 rounded-full" />
+                )}
              </button>
              <button 
                 onClick={() => handleAction('notes')}
-                className="flex flex-col items-center justify-center gap-0.5 bg-zinc-900 hover:bg-zinc-800 p-1 rounded-lg border border-zinc-800 transition-all active:scale-95 group"
+                className="flex flex-col items-center justify-center gap-0.5 bg-zinc-900 hover:bg-zinc-800 p-1 rounded-lg border border-zinc-800 transition-all active:scale-95 group relative"
              >
                 <NotebookPen size={16} className="text-zinc-500 group-hover:text-violet-400 transition-colors" />
                 <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-wider">Notes</span>
+                {setNotes[currentSetIndex] && (
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-violet-500 rounded-full" />
+                )}
              </button>
              {currentTechnique === 'DROP_SET' && (
                <button 
@@ -698,6 +733,22 @@ const IronTrack: React.FC = () => {
       `}</style>
 
     </div>
+
+    {/* Modales */}
+    <NotesModal
+      isOpen={showNotesModal}
+      onClose={() => setShowNotesModal(false)}
+      setNumber={currentSetIndex + 1}
+      initialNote={setNotes[currentSetIndex] || ''}
+      onSave={handleSaveNote}
+    />
+
+    <VideoModal
+      isOpen={showVideoModal}
+      onClose={() => setShowVideoModal(false)}
+      setNumber={currentSetIndex + 1}
+      onVideoSelected={handleVideoSelected}
+    />
     </>
   );
 };
