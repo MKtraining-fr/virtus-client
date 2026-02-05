@@ -54,18 +54,18 @@ const NotesModal: React.FC<NotesModalProps> = ({
 
       {/* Modal */}
       <div className="fixed inset-x-0 bottom-0 z-50 animate-slideUp">
-        <div className="bg-zinc-950 border-t border-zinc-800 rounded-t-3xl shadow-2xl max-h-[70vh] flex flex-col">
+        <div className="bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 rounded-t-3xl shadow-2xl max-h-[70vh] flex flex-col">
           {/* Header */}
-          <div className="flex-none border-b border-zinc-800/50 px-4 py-3 flex items-center justify-between">
+          <div className="flex-none border-b border-zinc-200 dark:border-zinc-800/50 px-4 py-3 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-black uppercase tracking-tight">Note - Série {setNumber}</h2>
-              <p className="text-xs text-zinc-400">Ajouter un commentaire</p>
+              <h2 className="text-base font-black uppercase tracking-tight text-zinc-900 dark:text-white">Note Série {setNumber}</h2>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">Ajouter un commentaire</p>
             </div>
             <button
               onClick={handleCancel}
-              className="p-2 hover:bg-zinc-800 rounded-lg transition-colors active:scale-95"
+              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors active:scale-95"
             >
-              <X size={20} className="text-zinc-400" />
+              <X size={20} className="text-zinc-600 dark:text-zinc-400" />
             </button>
           </div>
 
@@ -76,11 +76,11 @@ const NotesModal: React.FC<NotesModalProps> = ({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Saisir votre commentaire..."
-              className="w-full h-40 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
+              className="w-full h-40 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
               maxLength={500}
             />
             <div className="flex items-center justify-between mt-2">
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-zinc-600 dark:text-zinc-500">
                 {note.length}/500 caractères
               </p>
               {note.trim() && (
@@ -92,10 +92,10 @@ const NotesModal: React.FC<NotesModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="flex-none border-t border-zinc-800/50 p-4 flex gap-3">
+          <div className="flex-none border-t border-zinc-200 dark:border-zinc-800/50 p-4 flex gap-3">
             <button
               onClick={handleCancel}
-              className="flex-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white font-black py-3 rounded-xl transition-all active:scale-98"
+              className="flex-1 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white font-black py-3 rounded-xl transition-all active:scale-98"
             >
               Annuler
             </button>

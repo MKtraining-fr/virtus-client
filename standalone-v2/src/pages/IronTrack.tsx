@@ -383,23 +383,23 @@ const IronTrack: React.FC = () => {
   return (
     <>
       <style>{listAreaStyle}</style>
-      <div className="h-screen w-full bg-zinc-950 flex flex-col relative overflow-y-auto">
+      <div className="h-screen w-full bg-white dark:bg-zinc-950 flex flex-col relative overflow-y-auto">
       
       {/* Header */}
-      <header className="flex-none pt-2 px-4 pb-1 flex items-center justify-between z-40 bg-zinc-950/80 backdrop-blur-md sticky top-0">
+      <header className="flex-none pt-2 px-4 pb-1 flex items-center justify-between z-40 bg-zinc-100/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0">
         <button 
           onClick={() => navigate('/training')}
-          className="p-2 -ml-2 text-zinc-500 hover:text-white transition-colors"
+          className="p-2 -ml-2 text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
         >
           <ChevronLeft size={28} />
         </button>
         <div className="flex flex-col items-center">
-          <h1 className="text-base font-black text-white uppercase tracking-tighter italic leading-none">{exercise.name}</h1>
+          <h1 className="text-base font-black text-zinc-900 dark:text-white uppercase tracking-tighter italic leading-none">{exercise.name}</h1>
           <span className="text-[9px] text-violet-400 font-black tracking-widest uppercase mt-0.5">SÉANCE EN COURS</span>
         </div>
         <button 
           onClick={() => navigate('/irontrack/settings')}
-          className="p-2 -mr-2 text-zinc-500 hover:text-white transition-colors active:scale-95"
+          className="p-2 -mr-2 text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors active:scale-95"
         >
           <Settings size={22} />
         </button>
@@ -409,7 +409,7 @@ const IronTrack: React.FC = () => {
       <div className="flex-none flex flex-col z-30 relative px-4 pt-1 space-y-1.5">
         
         {/* Large Video Card */}
-        <div className="relative w-full aspect-[16/8] rounded-xl overflow-hidden bg-zinc-900 border border-white/5 shadow-xl group">
+        <div className="relative w-full aspect-[16/8] rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 shadow-xl group">
             <img src={exercise.videoUrl} className="w-full h-full object-cover opacity-50 group-hover:opacity-40 transition-opacity" />
             <div className="absolute inset-0 flex items-center justify-center">
                 <PlayCircle size={48} className="text-violet-400/60 group-hover:text-violet-400 transition-colors cursor-pointer" />
@@ -417,12 +417,12 @@ const IronTrack: React.FC = () => {
             
             {/* Badges Overlay */}
             <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                 <span className="bg-black/60 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10 flex items-center gap-2 text-[10px] font-black font-mono text-zinc-300 uppercase tracking-widest">
+                 <span className="bg-zinc-800/60 dark:bg-black/60 px-3 py-1.5 rounded-lg backdrop-blur-md border border-zinc-300 dark:border-white/10 flex items-center gap-2 text-[10px] font-black font-mono text-zinc-700 dark:text-zinc-300 uppercase tracking-widest">
                     <Dumbbell size={12} className="text-violet-400" /> {exercise.protocol.targetReps}
                  </span>
             </div>
             <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                 <span className="bg-black/60 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10 flex items-center gap-2 text-[10px] font-black font-mono text-zinc-300 uppercase tracking-widest">
+                 <span className="bg-zinc-800/60 dark:bg-black/60 px-3 py-1.5 rounded-lg backdrop-blur-md border border-zinc-300 dark:border-white/10 flex items-center gap-2 text-[10px] font-black font-mono text-zinc-700 dark:text-zinc-300 uppercase tracking-widest">
                     <History size={12} className="text-violet-400" /> {exercise.protocol.tempo}
                  </span>
             </div>
@@ -432,27 +432,27 @@ const IronTrack: React.FC = () => {
         <div className={`grid ${currentTechnique === 'DROP_SET' ? 'grid-cols-4' : 'grid-cols-3'} gap-1.5`}>
              <button 
                 onClick={() => handleAction('timer')}
-                className="flex flex-col items-center justify-center gap-0.5 bg-zinc-900 hover:bg-zinc-800 p-1 rounded-lg border border-zinc-800 transition-all active:scale-95 group"
+                className="flex flex-col items-center justify-center gap-0.5 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800 transition-all active:scale-95 group"
              >
                 <Timer size={16} className="text-zinc-500 group-hover:text-violet-400 transition-colors" />
-                <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-wider">Chrono</span>
+                <span className="text-[8px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-wider">Chrono</span>
              </button>
              <button 
                 onClick={() => handleAction('video')}
-                className="flex flex-col items-center justify-center gap-0.5 bg-zinc-900 hover:bg-zinc-800 p-1 rounded-lg border border-zinc-800 transition-all active:scale-95 group relative"
+                className="flex flex-col items-center justify-center gap-0.5 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800 transition-all active:scale-95 group relative"
              >
                 <Camera size={16} className="text-zinc-500 group-hover:text-violet-400 transition-colors" />
-                <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-wider">Rec</span>
+                <span className="text-[8px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-wider">Rec</span>
                 {setVideos[currentSetIndex] && (
                   <div className="absolute -top-1 -right-1 w-2 h-2 bg-violet-500 rounded-full" />
                 )}
              </button>
              <button 
                 onClick={() => handleAction('notes')}
-                className="flex flex-col items-center justify-center gap-0.5 bg-zinc-900 hover:bg-zinc-800 p-1 rounded-lg border border-zinc-800 transition-all active:scale-95 group relative"
+                className="flex flex-col items-center justify-center gap-0.5 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800 transition-all active:scale-95 group relative"
              >
                 <NotebookPen size={16} className="text-zinc-500 group-hover:text-violet-400 transition-colors" />
-                <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-wider">Notes</span>
+                <span className="text-[8px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-wider">Notes</span>
                 {setNotes[currentSetIndex] && (
                   <div className="absolute -top-1 -right-1 w-2 h-2 bg-violet-500 rounded-full" />
                 )}
@@ -460,7 +460,7 @@ const IronTrack: React.FC = () => {
              {currentTechnique === 'DROP_SET' && (
                <button 
                   onClick={() => setShowIntensityModal(true)}
-                  className="flex flex-col items-center justify-center gap-0.5 bg-zinc-900/80 hover:bg-orange-500/10 p-1 rounded-lg border border-orange-500/30 transition-all active:scale-95 group"
+                  className="flex flex-col items-center justify-center gap-0.5 bg-orange-100 dark:bg-zinc-900/80 hover:bg-orange-200 dark:hover:bg-orange-500/10 p-1 rounded-lg border border-orange-300 dark:border-orange-500/30 transition-all active:scale-95 group"
                >
                   <Zap size={16} className="text-orange-400 group-hover:text-orange-300 transition-colors" />
                   <span className="text-[8px] font-black text-orange-400 uppercase tracking-wider group-hover:text-orange-300 transition-colors leading-none">Drop Set</span>
@@ -474,14 +474,14 @@ const IronTrack: React.FC = () => {
       <div className="list-area relative -mt-1 z-10 overflow-hidden">
           {/* Lock badge overlay */}
           {isLocked && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-zinc-900/90 backdrop-blur-md border border-zinc-700/50 rounded-full px-4 py-2 shadow-lg">
+             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-zinc-100/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-300 dark:border-zinc-700/50 rounded-full px-4 py-2 shadow-lg">
               <svg className="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
               <span className="text-xs font-black text-orange-400 uppercase tracking-wider">Série verrouillée</span>
               <button
                 onClick={() => setIsLocked(false)}
-                className="ml-2 p-1 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors active:scale-95"
+                className="ml-2 p-1 rounded-full bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors active:scale-95"
                 aria-label="Déverrouiller"
               >
                 <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -517,10 +517,10 @@ const IronTrack: React.FC = () => {
       </div>
 
       {/* Control Station */}
-      <footer className="flex-none bg-zinc-950/90 backdrop-blur-xl border-t border-zinc-800/50 pt-3 pb-4 px-4 z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] rounded-t-[20px]">
+      <footer className="flex-none bg-zinc-100/90 dark:bg-zinc-950/90 backdrop-blur-xl border-t border-zinc-200 dark:border-zinc-800/50 pt-3 pb-4 px-4 z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_-20px_50px_rgba(0,0,0,0.8)] rounded-t-[20px]">
         <button 
           onClick={finishSet}
-          className={`w-full h-12 text-white font-black text-base rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-tighter italic ${
+          className={`w-full h-12 text-white dark:text-white font-black text-base rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-tighter italic ${
             isValidating 
               ? 'bg-green-500 scale-105 shadow-[0_10px_60px_rgba(34,197,94,0.5)]' 
               : 'bg-violet-600 hover:bg-violet-700 shadow-[0_10px_40px_rgba(109,93,211,0.25)] active:translate-y-1 active:shadow-none'
