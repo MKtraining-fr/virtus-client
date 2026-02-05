@@ -83,7 +83,7 @@ const IronTrackSettings: React.FC = () => {
       {/* Header */}
       <header className="flex-none bg-zinc-100 dark:bg-zinc-900/50 backdrop-blur-xl border-b border-zinc-200 dark:border-zinc-800/50 px-4 py-3 flex items-center gap-3">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/irontrack')}
           className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition-colors active:scale-95"
         >
           <ChevronLeft size={24} />
