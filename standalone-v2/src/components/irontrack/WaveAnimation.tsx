@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 interface WaveAnimationProps {
   tempo: string;
@@ -23,10 +23,15 @@ const WaveAnimation: React.FC<WaveAnimationProps> = ({
   const amplitude = waveHeight / 2;
   const centerY = waveHeight / 2;
   
-  // ViewBox fixe (ne change pas)
+  // ViewBox fixe
   const visibleWaves = 2.5;
   const viewBoxWidth = visibleWaves * waveWidth;
   const viewBoxHeight = waveHeight + 100;
+  
+  // État pour le défilement fluide
+  const [smoothScrollOffset, setSmoothScrollOffset] = useState(0);
+  const animationFrameRef = useRef<number>();
+  const startTimeRef = useRef<number>(Date.now());
   
   // Parser le tempo
   const parseTempo = (tempoStr: string): { eccentric: number; bottom: number; concentric: number; top: number } => {
@@ -40,47 +45,72 @@ const WaveAnimation: React.FC<WaveAnimationProps> = ({
   };
 
   const tempoPhases = parseTempo(tempo);
+  const totalPhaseTime = tempoPhases.eccentric + tempoPhases.bottom + tempoPhases.concentric + tempoPhases.top;
   
-  // Calculer le décalage de scroll pour créer l'effet de défilement
-  // La boule reste relativement fixe, c'est la courbe qui se déplace
-  const getScrollOffset = () => {
-    const repIndex = currentRep - 1;
-    let baseOffset = repIndex * waveWidth;
+  // Calculer le temps écoulé dans la répétition actuelle
+  const getElapsedTimeInRep = () => {
+    let elapsed = 0;
     
-    // Ajouter un offset progressif selon la phase pour un défilement fluide
-    const totalPhaseTime = tempoPhases.eccentric + tempoPhases.bottom + tempoPhases.concentric + tempoPhases.top;
-    const elapsedInRep = totalPhaseTime - (
-      (currentPhase === 'top' ? tempoPhases.top : 0) +
-      (currentPhase === 'concentric' ? tempoPhases.concentric + phaseTimeRemaining : 0) +
-      (currentPhase === 'bottom' ? tempoPhases.bottom + tempoPhases.concentric : 0) +
-      (currentPhase === 'eccentric' ? tempoPhases.eccentric + tempoPhases.bottom + tempoPhases.concentric - phaseTimeRemaining : 0)
-    );
+    if (currentPhase === 'eccentric') {
+      elapsed = tempoPhases.eccentric - phaseTimeRemaining;
+    } else if (currentPhase === 'bottom') {
+      elapsed = tempoPhases.eccentric + (tempoPhases.bottom - phaseTimeRemaining);
+    } else if (currentPhase === 'concentric') {
+      elapsed = tempoPhases.eccentric + tempoPhases.bottom + (tempoPhases.concentric - phaseTimeRemaining);
+    } else if (currentPhase === 'top') {
+      elapsed = tempoPhases.eccentric + tempoPhases.bottom + tempoPhases.concentric + (tempoPhases.top - phaseTimeRemaining);
+    }
     
-    const progressInRep = totalPhaseTime > 0 ? elapsedInRep / totalPhaseTime : 0;
-    baseOffset += progressInRep * waveWidth;
-    
-    // Centrer la vue sur la répétition en cours (garder la boule au centre-gauche)
-    return Math.max(0, baseOffset - waveWidth * 0.5);
+    return elapsed;
   };
   
-  const scrollOffset = getScrollOffset();
+  // Défilement fluide avec requestAnimationFrame
+  useEffect(() => {
+    const animate = () => {
+      const repIndex = currentRep - 1;
+      const elapsedInRep = getElapsedTimeInRep();
+      const progressInRep = totalPhaseTime > 0 ? elapsedInRep / totalPhaseTime : 0;
+      
+      // Calcul du scroll continu
+      const baseOffset = repIndex * waveWidth;
+      const currentOffset = baseOffset + progressInRep * waveWidth;
+      const targetScrollOffset = Math.max(0, currentOffset - waveWidth * 0.5);
+      
+      // Interpolation fluide vers la cible
+      setSmoothScrollOffset(prev => {
+        const diff = targetScrollOffset - prev;
+        return prev + diff * 0.15; // Interpolation douce
+      });
+      
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    
+    animate();
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [currentRep, currentPhase, phaseTimeRemaining, totalPhaseTime, waveWidth]);
   
-  // Générer le path de la courbe ondulée avec des Bézier cubiques pour plus de fluidité
+  // Générer le path avec des courbes sinusoïdales ultra-fluides
   const generateWavePath = () => {
     let path = '';
+    const segments = 60; // Nombre de points pour une courbe ultra-fluide
     
     for (let i = 0; i < totalReps; i++) {
       const x = i * waveWidth;
       
-      // Point haut (début de la vague)
+      // Point haut (début)
       const topX = x + waveWidth * 0.15;
       const topY = centerY - amplitude;
       
-      // Point bas (milieu de la vague)
+      // Point bas (milieu)
       const bottomX = x + waveWidth * 0.5;
       const bottomY = centerY + amplitude;
       
-      // Point haut suivant (fin de la vague)
+      // Point haut (fin)
       const nextTopX = x + waveWidth * 0.85;
       const nextTopY = centerY - amplitude;
       
@@ -88,97 +118,82 @@ const WaveAnimation: React.FC<WaveAnimationProps> = ({
         path += `M ${topX} ${topY} `;
       }
       
-      // Descente (excentrique) - courbe de Bézier CUBIQUE pour plus de fluidité
-      const control1X = topX + waveWidth * 0.1;
-      const control1Y = topY;
-      const control2X = bottomX - waveWidth * 0.1;
-      const control2Y = bottomY;
-      path += `C ${control1X} ${control1Y} ${control2X} ${control2Y} ${bottomX} ${bottomY} `;
+      // Descente (excentrique) - Courbe sinusoïdale pure
+      const descenteWidth = bottomX - topX;
+      for (let j = 1; j <= segments / 2; j++) {
+        const t = j / (segments / 2);
+        const px = topX + descenteWidth * t;
+        const py = topY + (bottomY - topY) * Math.sin(t * Math.PI / 2); // Sinusoïde douce
+        path += `L ${px} ${py} `;
+      }
       
-      // Montée (concentrique) - courbe de Bézier CUBIQUE
-      const control3X = bottomX + waveWidth * 0.1;
-      const control3Y = bottomY;
-      const control4X = nextTopX - waveWidth * 0.1;
-      const control4Y = nextTopY;
-      path += `C ${control3X} ${control3Y} ${control4X} ${control4Y} ${nextTopX} ${nextTopY} `;
+      // Point bas (pause instantanée si tempo bottom = 0)
+      if (tempoPhases.bottom === 0) {
+        // Changement de direction instantané (sommet aigu)
+        path += `L ${bottomX} ${bottomY} `;
+      } else {
+        // Petit plateau si pause > 0
+        const plateauWidth = waveWidth * 0.05;
+        path += `L ${bottomX - plateauWidth} ${bottomY} L ${bottomX + plateauWidth} ${bottomY} `;
+      }
       
-      // Connexion fluide à la vague suivante
-      if (i < totalReps - 1) {
-        const nextWaveTopX = (i + 1) * waveWidth + waveWidth * 0.15;
-        path += `L ${nextWaveTopX} ${nextTopY} `;
+      // Montée (concentrique) - Courbe sinusoïdale pure
+      const monteeWidth = nextTopX - bottomX;
+      for (let j = 1; j <= segments / 2; j++) {
+        const t = j / (segments / 2);
+        const px = bottomX + monteeWidth * t;
+        const py = bottomY + (nextTopY - bottomY) * Math.sin(t * Math.PI / 2); // Sinusoïde douce
+        path += `L ${px} ${py} `;
+      }
+      
+      // Point haut (pause instantanée si tempo top = 0)
+      if (tempoPhases.top === 0) {
+        // Changement de direction instantané (sommet aigu)
+        if (i < totalReps - 1) {
+          const nextWaveTopX = (i + 1) * waveWidth + waveWidth * 0.15;
+          path += `L ${nextTopX} ${nextTopY} L ${nextWaveTopX} ${nextTopY} `;
+        }
+      } else {
+        // Petit plateau si pause > 0
+        const plateauWidth = waveWidth * 0.05;
+        path += `L ${nextTopX - plateauWidth} ${nextTopY} L ${nextTopX + plateauWidth} ${nextTopY} `;
+        if (i < totalReps - 1) {
+          const nextWaveTopX = (i + 1) * waveWidth + waveWidth * 0.15;
+          path += `L ${nextWaveTopX} ${nextTopY} `;
+        }
       }
     }
     
     return path;
   };
   
-  // Calculer la position de la boule (utilise les mêmes courbes cubiques)
+  // Calculer la position de la boule (même logique sinusoïdale)
   const getBallPosition = () => {
     const repIndex = currentRep - 1;
     const baseX = repIndex * waveWidth;
     
-    // Point haut
     const topX = baseX + waveWidth * 0.15;
     const topY = centerY - amplitude;
-    
-    // Point bas
     const bottomX = baseX + waveWidth * 0.5;
     const bottomY = centerY + amplitude;
-    
-    // Point haut suivant
     const nextTopX = baseX + waveWidth * 0.85;
     const nextTopY = centerY - amplitude;
     
-    // Calculer la position selon la phase
     if (currentPhase === 'top') {
       return { x: topX, y: topY };
     } else if (currentPhase === 'eccentric') {
-      // Descente progressive avec Bézier cubique
-      const progress = tempoPhases.eccentric > 0 
-        ? 1 - (phaseTimeRemaining / tempoPhases.eccentric) 
-        : 1;
-      const t = progress;
-      
-      // Points de contrôle pour Bézier cubique
-      const control1X = topX + waveWidth * 0.1;
-      const control1Y = topY;
-      const control2X = bottomX - waveWidth * 0.1;
-      const control2Y = bottomY;
-      
-      // Formule de Bézier cubique
-      const x = Math.pow(1 - t, 3) * topX + 
-                3 * Math.pow(1 - t, 2) * t * control1X + 
-                3 * (1 - t) * Math.pow(t, 2) * control2X + 
-                Math.pow(t, 3) * bottomX;
-      const y = Math.pow(1 - t, 3) * topY + 
-                3 * Math.pow(1 - t, 2) * t * control1Y + 
-                3 * (1 - t) * Math.pow(t, 2) * control2Y + 
-                Math.pow(t, 3) * bottomY;
+      const progress = tempoPhases.eccentric > 0 ? 1 - (phaseTimeRemaining / tempoPhases.eccentric) : 1;
+      const descenteWidth = bottomX - topX;
+      const x = topX + descenteWidth * progress;
+      const y = topY + (bottomY - topY) * Math.sin(progress * Math.PI / 2);
       return { x, y };
     } else if (currentPhase === 'bottom') {
       return { x: bottomX, y: bottomY };
     } else if (currentPhase === 'concentric') {
-      // Montée progressive avec Bézier cubique
-      const progress = tempoPhases.concentric > 0 
-        ? 1 - (phaseTimeRemaining / tempoPhases.concentric) 
-        : 1;
-      const t = progress;
-      
-      // Points de contrôle pour Bézier cubique
-      const control3X = bottomX + waveWidth * 0.1;
-      const control3Y = bottomY;
-      const control4X = nextTopX - waveWidth * 0.1;
-      const control4Y = nextTopY;
-      
-      // Formule de Bézier cubique
-      const x = Math.pow(1 - t, 3) * bottomX + 
-                3 * Math.pow(1 - t, 2) * t * control3X + 
-                3 * (1 - t) * Math.pow(t, 2) * control4X + 
-                Math.pow(t, 3) * nextTopX;
-      const y = Math.pow(1 - t, 3) * bottomY + 
-                3 * Math.pow(1 - t, 2) * t * control3Y + 
-                3 * (1 - t) * Math.pow(t, 2) * control4Y + 
-                Math.pow(t, 3) * nextTopY;
+      const progress = tempoPhases.concentric > 0 ? 1 - (phaseTimeRemaining / tempoPhases.concentric) : 1;
+      const monteeWidth = nextTopX - bottomX;
+      const x = bottomX + monteeWidth * progress;
+      const y = bottomY + (nextTopY - bottomY) * Math.sin(progress * Math.PI / 2);
       return { x, y };
     }
     
@@ -252,10 +267,9 @@ const WaveAnimation: React.FC<WaveAnimationProps> = ({
       <svg
         width="100%"
         height="400"
-        viewBox={`${scrollOffset} 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        viewBox={`${smoothScrollOffset} 0 ${viewBoxWidth} ${viewBoxHeight}`}
         preserveAspectRatio="xMidYMid meet"
         className="overflow-visible"
-        style={{ transition: 'viewBox 0.3s ease-out' }}
       >
         {/* Définition du filtre glow */}
         <defs>
@@ -268,7 +282,7 @@ const WaveAnimation: React.FC<WaveAnimationProps> = ({
           </filter>
         </defs>
         
-        {/* Courbe ondulée avec trait plus épais */}
+        {/* Courbe ondulée avec trait épais */}
         <path
           d={generateWavePath()}
           fill="none"
