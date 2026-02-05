@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { X, Video, Upload, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Video, Upload, Check, Play, Square } from 'lucide-react';
 
 interface VideoModalProps {
   isOpen: boolean;
@@ -18,14 +18,17 @@ const VideoModal: React.FC<VideoModalProps> = ({
   setNumber,
   onVideoSelected,
 }) => {
+  const [cameraReady, setCameraReady] = useState(false); // Caméra activée mais pas encore en enregistrement
   const [isRecording, setIsRecording] = useState(false);
   const [recordedVideo, setRecordedVideo] = useState<Blob | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const videoPreviewRef = useRef<HTMLVideoElement>(null);
 
-  const handleStartRecording = async () => {
+  // Activer la caméra pour prévisualisation
+  const handleActivateCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'user' }, 
@@ -33,32 +36,57 @@ const VideoModal: React.FC<VideoModalProps> = ({
       });
       streamRef.current = stream;
 
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
+      // Afficher le flux dans la vidéo de prévisualisation
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = stream;
+      }
 
-      const chunks: Blob[] = [];
-      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
-        setRecordedVideo(blob);
-        
-        // Arrêter la caméra
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
+      setCameraReady(true);
     } catch (error) {
       console.error('Erreur accès caméra:', error);
       alert('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
     }
   };
 
+  // Démarrer l'enregistrement
+  const handleStartRecording = () => {
+    if (!streamRef.current) return;
+
+    const mediaRecorder = new MediaRecorder(streamRef.current);
+    mediaRecorderRef.current = mediaRecorder;
+
+    const chunks: Blob[] = [];
+    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      setRecordedVideo(blob);
+      
+      // Arrêter la caméra
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      setCameraReady(false);
+    };
+
+    mediaRecorder.start();
+    setIsRecording(true);
+  };
+
+  // Arrêter l'enregistrement
   const handleStopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
+  };
+
+  // Annuler la prévisualisation caméra
+  const handleCancelCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+    setCameraReady(false);
+    setIsRecording(false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,11 +113,23 @@ const VideoModal: React.FC<VideoModalProps> = ({
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
+    setCameraReady(false);
     setIsRecording(false);
     setRecordedVideo(null);
     setUploadedFile(null);
     onClose();
   };
+
+  // Nettoyer la caméra quand la modale se ferme
+  useEffect(() => {
+    if (!isOpen) {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      setCameraReady(false);
+      setIsRecording(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -108,7 +148,12 @@ const VideoModal: React.FC<VideoModalProps> = ({
           <div className="flex-none border-b border-zinc-800/50 px-4 py-3 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-black uppercase tracking-tight">Vidéo - Série {setNumber}</h2>
-              <p className="text-xs text-zinc-400">Enregistrer ou télécharger</p>
+              <p className="text-xs text-zinc-400">
+                {cameraReady 
+                  ? (isRecording ? 'Enregistrement en cours' : 'Prévisualisation caméra')
+                  : 'Enregistrer ou télécharger'
+                }
+              </p>
             </div>
             <button
               onClick={handleClose}
@@ -120,45 +165,27 @@ const VideoModal: React.FC<VideoModalProps> = ({
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {/* Option 1 : Enregistrer */}
-            {!recordedVideo && !uploadedFile && (
+            {/* Étape 1 : Choix initial */}
+            {!cameraReady && !recordedVideo && !uploadedFile && (
               <>
                 <button
-                  onClick={isRecording ? handleStopRecording : handleStartRecording}
-                  className={`w-full p-4 rounded-xl border transition-all active:scale-98 ${
-                    isRecording
-                      ? 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20'
-                      : 'bg-zinc-900 border-zinc-800 hover:bg-zinc-800'
-                  }`}
+                  onClick={handleActivateCamera}
+                  className="w-full p-4 rounded-xl border bg-zinc-900 border-zinc-800 hover:bg-zinc-800 transition-all active:scale-98"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-full ${
-                      isRecording ? 'bg-red-500/20' : 'bg-violet-500/20'
-                    }`}>
-                      <Video size={24} className={isRecording ? 'text-red-400' : 'text-violet-400'} />
+                    <div className="p-3 rounded-full bg-violet-500/20">
+                      <Video size={24} className="text-violet-400" />
                     </div>
                     <div className="flex-1 text-left">
-                      <div className="font-black text-base">
-                        {isRecording ? '⏹ Arrêter l\'enregistrement' : '🎥 Enregistrer maintenant'}
-                      </div>
-                      <div className="text-xs text-zinc-400">
-                        {isRecording ? 'Cliquez pour arrêter' : 'Capturer une vidéo en direct'}
-                      </div>
+                      <div className="font-black text-base">🎥 Enregistrer maintenant</div>
+                      <div className="text-xs text-zinc-400">Capturer une vidéo en direct</div>
                     </div>
                   </div>
-                  {isRecording && (
-                    <div className="mt-3 flex items-center justify-center gap-2">
-                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                      <span className="text-sm text-red-400 font-semibold">Enregistrement en cours...</span>
-                    </div>
-                  )}
                 </button>
 
-                {/* Option 2 : Upload */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full p-4 rounded-xl border bg-zinc-900 border-zinc-800 hover:bg-zinc-800 transition-all active:scale-98"
-                  disabled={isRecording}
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-full bg-blue-500/20">
@@ -177,6 +204,57 @@ const VideoModal: React.FC<VideoModalProps> = ({
                   onChange={handleFileUpload}
                   className="hidden"
                 />
+              </>
+            )}
+
+            {/* Étape 2 : Prévisualisation caméra + Contrôles d'enregistrement */}
+            {cameraReady && !recordedVideo && (
+              <>
+                {/* Prévisualisation vidéo */}
+                <div className="relative rounded-xl overflow-hidden bg-black aspect-video">
+                  <video
+                    ref={videoPreviewRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                  {isRecording && (
+                    <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500/90 backdrop-blur-md rounded-full px-3 py-1.5">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      <span className="text-xs font-black text-white uppercase">REC</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Contrôles */}
+                <div className="flex gap-3">
+                  {!isRecording ? (
+                    <>
+                      <button
+                        onClick={handleCancelCamera}
+                        className="flex-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white font-black py-3 rounded-xl transition-all active:scale-98"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={handleStartRecording}
+                        className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-3 rounded-xl transition-all active:scale-98 shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+                      >
+                        <Play size={20} fill="white" />
+                        Démarrer
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleStopRecording}
+                      className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-3 rounded-xl transition-all active:scale-98 shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+                    >
+                      <Square size={20} fill="white" />
+                      Arrêter l'enregistrement
+                    </button>
+                  )}
+                </div>
               </>
             )}
 
@@ -211,11 +289,13 @@ const VideoModal: React.FC<VideoModalProps> = ({
             )}
 
             {/* Info */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                💡 La vidéo sera liée à la série {setNumber}. Vous pourrez la revoir plus tard dans l'historique.
-              </p>
-            </div>
+            {!cameraReady && (
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  💡 La vidéo sera liée à la série {setNumber}. Vous pourrez la revoir plus tard dans l'historique.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Footer */}
@@ -236,7 +316,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
             </div>
           )}
 
-          {!recordedVideo && !uploadedFile && (
+          {!recordedVideo && !uploadedFile && !cameraReady && (
             <div className="flex-none border-t border-zinc-800/50 p-4">
               <button
                 onClick={handleClose}
