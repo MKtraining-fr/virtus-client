@@ -410,20 +410,20 @@ const IronTrack: React.FC = () => {
         
         {/* Large Video Card */}
         <div className="relative w-full aspect-[16/8] rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 shadow-xl group">
-            <img src={exercise.videoUrl} className="w-full h-full object-cover opacity-50 group-hover:opacity-40 transition-opacity" />
+            <img src={exercise.videoUrl} className="w-full h-full object-cover opacity-100 dark:opacity-50 group-hover:opacity-90 dark:group-hover:opacity-40 transition-opacity" />
             <div className="absolute inset-0 flex items-center justify-center">
                 <PlayCircle size={48} className="text-violet-400/60 group-hover:text-violet-400 transition-colors cursor-pointer" />
             </div>
             
             {/* Badges Overlay */}
             <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                 <span className="bg-zinc-800/60 dark:bg-black/60 px-3 py-1.5 rounded-lg backdrop-blur-md border border-zinc-300 dark:border-white/10 flex items-center gap-2 text-[10px] font-black font-mono text-zinc-700 dark:text-zinc-300 uppercase tracking-widest">
-                    <Dumbbell size={12} className="text-violet-400" /> {exercise.protocol.targetReps}
+                 <span className="bg-white/80 dark:bg-black/60 px-3 py-1.5 rounded-lg backdrop-blur-md border border-zinc-300 dark:border-white/10 flex items-center gap-2 text-[10px] font-black font-mono text-zinc-900 dark:text-zinc-300 uppercase tracking-widest">
+                    <Dumbbell size={12} className="text-violet-500" /> {exercise.protocol.targetReps}
                  </span>
             </div>
             <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                 <span className="bg-zinc-800/60 dark:bg-black/60 px-3 py-1.5 rounded-lg backdrop-blur-md border border-zinc-300 dark:border-white/10 flex items-center gap-2 text-[10px] font-black font-mono text-zinc-700 dark:text-zinc-300 uppercase tracking-widest">
-                    <History size={12} className="text-violet-400" /> {exercise.protocol.tempo}
+                 <span className="bg-white/80 dark:bg-black/60 px-3 py-1.5 rounded-lg backdrop-blur-md border border-zinc-300 dark:border-white/10 flex items-center gap-2 text-[10px] font-black font-mono text-zinc-900 dark:text-zinc-300 uppercase tracking-widest">
+                    <History size={12} className="text-violet-500" /> {exercise.protocol.tempo}
                  </span>
             </div>
         </div>
