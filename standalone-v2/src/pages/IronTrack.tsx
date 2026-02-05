@@ -17,6 +17,7 @@ import RestTimer from '../components/irontrack/RestTimer';
 import NumberPicker from '../components/irontrack/NumberPicker';
 import NotesModal from '../components/irontrack/NotesModal';
 import VideoModal from '../components/irontrack/VideoModal';
+import MetronomeModal from '../components/irontrack/MetronomeModal';
 import { Exercise, ExerciseSet, DropSet } from '../components/irontrack/irontrack-types';
 
 import { useIntensityTechnique } from '../contexts/IntensityTechniqueContext';
@@ -43,17 +44,17 @@ const buildFlatItems = (sets: ExerciseSet[], showDrops: boolean): ListItem[] => 
   return items;
 };
 
-// Hauteur de la zone de liste (responsive)
+// Hauteur de la zone de liste (responsive) - ajustée pour les badges sous la vidéo
 const listAreaStyle = `
   .list-area {
-    height: calc(100vh - 480px);
-    min-height: 250px;
+    height: calc(100vh - 530px);
+    min-height: 200px;
   }
   
   @media (min-width: 768px) {
     .list-area {
-      height: calc(100vh - 350px);
-      min-height: 400px;
+      height: calc(100vh - 400px);
+      min-height: 350px;
     }
   }
 `;
@@ -162,6 +163,7 @@ const IronTrack: React.FC = () => {
   // États pour les modales Notes et Vidéo
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showMetronomeModal, setShowMetronomeModal] = useState(false);
   const [setNotes, setSetNotes] = useState<Record<number, string>>({});
   const [setVideos, setSetVideos] = useState<Record<number, File>>({});
 
@@ -414,18 +416,19 @@ const IronTrack: React.FC = () => {
             <div className="absolute inset-0 flex items-center justify-center">
                 <PlayCircle size={48} className="text-violet-400/60 group-hover:text-violet-400 transition-colors cursor-pointer" />
             </div>
-            
-            {/* Badges Overlay */}
-            <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                 <span className="bg-white/80 dark:bg-black/60 px-3 py-1.5 rounded-lg backdrop-blur-md border border-zinc-300 dark:border-white/10 flex items-center gap-2 text-[10px] font-black font-mono text-zinc-900 dark:text-zinc-300 uppercase tracking-widest">
-                    <Dumbbell size={12} className="text-violet-500" /> {exercise.protocol.targetReps}
-                 </span>
-            </div>
-            <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                 <span className="bg-white/80 dark:bg-black/60 px-3 py-1.5 rounded-lg backdrop-blur-md border border-zinc-300 dark:border-white/10 flex items-center gap-2 text-[10px] font-black font-mono text-zinc-900 dark:text-zinc-300 uppercase tracking-widest">
-                    <History size={12} className="text-violet-500" /> {exercise.protocol.tempo}
-                 </span>
-            </div>
+        </div>
+
+        {/* Protocol Info - Moved below video */}
+        <div className="flex items-center justify-center gap-2">
+          <button className="bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-center gap-2 text-xs font-black font-mono text-zinc-900 dark:text-zinc-300 uppercase tracking-wider transition-all active:scale-95">
+            <Dumbbell size={14} className="text-violet-500" /> {exercise.protocol.targetReps}
+          </button>
+          <button 
+            onClick={() => setShowMetronomeModal(true)}
+            className="bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-center gap-2 text-xs font-black font-mono text-zinc-900 dark:text-zinc-300 uppercase tracking-wider transition-all active:scale-95"
+          >
+            <History size={14} className="text-violet-500" /> {exercise.protocol.tempo}
+          </button>
         </div>
 
         {/* Action Bar (Linked to Active Set) */}
@@ -749,6 +752,15 @@ const IronTrack: React.FC = () => {
       setNumber={currentSetIndex + 1}
       onVideoSelected={handleVideoSelected}
     />
+
+    {showMetronomeModal && (
+      <MetronomeModal
+        tempo={exercise.protocol.tempo}
+        targetReps={exercise.protocol.targetReps}
+        exerciseName={exercise.name}
+        onClose={() => setShowMetronomeModal(false)}
+      />
+    )}
     </>
   );
 };
