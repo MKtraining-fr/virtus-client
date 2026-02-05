@@ -10,6 +10,7 @@ import Shop from './pages/Shop';
 import Profile from './pages/Profile';
 import IronTrack from './pages/IronTrack';
 import IronTrackSettings from './pages/IronTrackSettings';
+import IntensityTechniquesSettings from './pages/settings/IntensityTechniquesSettings';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
         {/* Routes IronTrack sans layout (plein écran) */}
         <Route path="irontrack" element={<IronTrack />} />
         <Route path="irontrack/settings" element={<IronTrackSettings />} />
+        <Route path="settings/intensity-techniques" element={<IntensityTechniquesSettings />} />
       </Routes>
     </Router>
     </IntensityTechniqueProvider>

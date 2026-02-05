@@ -1,46 +1,76 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Flame } from 'lucide-react';
 import { useIntensityTechnique } from '../contexts/IntensityTechniqueContext';
-import { INTENSITY_TECHNIQUES_CATALOG, type IntensityTechnique } from '../types/intensity-techniques';
+import { INTENSITY_TECHNIQUES_CATALOG } from '../types/intensity-techniques';
 
 /**
- * Page de réglages IronTrack
- * Permet de sélectionner la technique d'intensification active
+ * Menu principal des réglages IronTrack
+ * Point d'entrée vers les différentes sections de configuration
  */
+
+interface SettingsSection {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+  badge?: 'DEV' | 'NEW';
+  route: string;
+  currentValue?: string;
+}
 
 const IronTrackSettings: React.FC = () => {
   const navigate = useNavigate();
-  const { currentTechnique, setTechnique } = useIntensityTechnique();
+  const { currentTechnique } = useIntensityTechnique();
 
-  const handleSelectTechnique = (technique: IntensityTechnique) => {
-    setTechnique(technique);
-    // Retour automatique après sélection
-    setTimeout(() => navigate(-1), 300);
-  };
+  const devSections: SettingsSection[] = [
+    {
+      id: 'intensity-techniques',
+      icon: '🔥',
+      title: 'Techniques d\'intensification',
+      description: 'DROP_SET, REST_PAUSE, SUPERSET...',
+      badge: 'DEV',
+      route: '/settings/intensity-techniques',
+      currentValue: INTENSITY_TECHNIQUES_CATALOG[currentTechnique].label,
+    },
+  ];
 
-  // Grouper par objectif
-  const techniquesByGoal = Object.values(INTENSITY_TECHNIQUES_CATALOG).reduce((acc, tech) => {
-    if (!acc[tech.goal]) {
-      acc[tech.goal] = [];
-    }
-    acc[tech.goal].push(tech);
-    return acc;
-  }, {} as Record<string, typeof INTENSITY_TECHNIQUES_CATALOG[IntensityTechnique][]>);
+  const generalSections: SettingsSection[] = [
+    // Sections permanentes à venir
+  ];
 
-  const goalLabels = {
-    STRENGTH: 'Force',
-    HYPERTROPHY: 'Hypertrophie',
-    ENDURANCE: 'Endurance',
-    POWER: 'Puissance',
-  };
-
-  const goalColors = {
-    STRENGTH: 'from-red-500/20 to-orange-500/20 border-red-500/30',
-    HYPERTROPHY: 'from-violet-500/20 to-purple-500/20 border-violet-500/30',
-    ENDURANCE: 'from-blue-500/20 to-cyan-500/20 border-blue-500/30',
-    POWER: 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30',
-  };
+  const renderSection = (section: SettingsSection) => (
+    <button
+      key={section.id}
+      onClick={() => navigate(section.route)}
+      className="w-full bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-900 hover:border-zinc-700 rounded-xl p-4 transition-all active:scale-98"
+    >
+      <div className="flex items-center gap-3">
+        <div className="text-2xl flex-shrink-0">{section.icon}</div>
+        <div className="flex-1 min-w-0 text-left">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="font-black text-base">{section.title}</span>
+            {section.badge && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                section.badge === 'DEV' 
+                  ? 'bg-orange-500/20 text-orange-400' 
+                  : 'bg-green-500/20 text-green-400'
+              }`}>
+                {section.badge}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-zinc-400">{section.description}</p>
+          {section.currentValue && (
+            <p className="text-xs text-violet-400 mt-1 font-semibold">
+              Actuel : {section.currentValue}
+            </p>
+          )}
+        </div>
+        <ChevronRight size={20} className="text-zinc-600 flex-shrink-0" />
+      </div>
+    </button>
+  );
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
@@ -54,89 +84,47 @@ const IronTrackSettings: React.FC = () => {
         </button>
         <div>
           <h1 className="text-lg font-black uppercase tracking-tight">Réglages IronTrack</h1>
-          <p className="text-xs text-zinc-400">Technique d'intensification</p>
+          <p className="text-xs text-zinc-400">Configuration et personnalisation</p>
         </div>
       </header>
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* Technique actuelle */}
-        <div className="bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-500/20 rounded-xl p-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="text-3xl">{INTENSITY_TECHNIQUES_CATALOG[currentTechnique].icon}</div>
-            <div>
-              <div className="text-xs text-violet-400 uppercase tracking-wider font-semibold">Technique active</div>
-              <div className="text-lg font-black">{INTENSITY_TECHNIQUES_CATALOG[currentTechnique].label}</div>
+        {/* Section DEV */}
+        {devSections.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3 px-1">
+              <h2 className="text-sm font-black uppercase tracking-wider text-zinc-400">
+                🧪 Développement
+              </h2>
+              <span className="text-xs text-zinc-500">(Temporaire)</span>
+            </div>
+            <div className="space-y-2">
+              {devSections.map(renderSection)}
             </div>
           </div>
-          <p className="text-sm text-zinc-300">{INTENSITY_TECHNIQUES_CATALOG[currentTechnique].description}</p>
-        </div>
+        )}
 
-        {/* Techniques par objectif */}
-        {Object.entries(techniquesByGoal).map(([goal, techniques]) => (
-          <div key={goal}>
+        {/* Section Paramètres Généraux */}
+        {generalSections.length > 0 && (
+          <div>
             <h2 className="text-sm font-black uppercase tracking-wider text-zinc-400 mb-3 px-1">
-              {goalLabels[goal as keyof typeof goalLabels]}
+              ⚙️ Paramètres
             </h2>
             <div className="space-y-2">
-              {techniques.map((tech) => {
-                const isActive = tech.type === currentTechnique;
-                return (
-                  <button
-                    key={tech.type}
-                    onClick={() => handleSelectTechnique(tech.type)}
-                    className={`w-full text-left p-4 rounded-xl border transition-all active:scale-98 ${
-                      isActive
-                        ? `bg-gradient-to-br ${goalColors[goal as keyof typeof goalColors]} shadow-lg`
-                        : 'bg-zinc-900/50 border-zinc-800 hover:bg-zinc-900 hover:border-zinc-700'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="text-2xl flex-shrink-0">{tech.icon}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-black text-base">{tech.label}</span>
-                          {isActive && (
-                            <div className="bg-violet-500 rounded-full p-0.5">
-                              <Check size={12} strokeWidth={3} />
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-xs text-zinc-400 leading-relaxed">{tech.description}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          {/* Difficulté */}
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <div
-                                key={i}
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  i < tech.difficulty ? 'bg-orange-400' : 'bg-zinc-700'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-xs text-zinc-500">•</span>
-                          <span className="text-xs text-zinc-500 capitalize">
-                            {tech.goal.toLowerCase()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+              {generalSections.map(renderSection)}
             </div>
           </div>
-        ))}
+        )}
 
         {/* Info */}
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs text-zinc-400 leading-relaxed">
             <p className="mb-2">
-              <span className="font-semibold text-zinc-300">💡 Astuce :</span> La technique sélectionnée s'applique à tous les exercices de votre séance. Vous pouvez la changer à tout moment.
+              <span className="font-semibold text-zinc-300">🧪 Sections DEV :</span> Ces options sont temporaires et serviront à tester les interfaces. Elles seront supprimées une fois le backend connecté.
             </p>
             <p>
-              <span className="font-semibold text-zinc-300">🔄 Synchronisation :</span> Quand le backend sera connecté, vos préférences seront automatiquement sauvegardées.
+              <span className="font-semibold text-zinc-300">🔄 Backend :</span> Les personnalisations seront gérées automatiquement par le coach ou via une interface dédiée.
             </p>
           </div>
         </div>
