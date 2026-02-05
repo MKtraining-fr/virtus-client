@@ -65,7 +65,7 @@ const SetRow: React.FC<SetRowProps> = ({ set, isActive, onClick, onWeightClick, 
 
   // Get border color - always neutral
   const getBorderColor = () => {
-    return 'border-zinc-800/50';
+    return 'border-zinc-300 dark:border-zinc-800/50';
   };
 
   return (
@@ -75,8 +75,8 @@ const SetRow: React.FC<SetRowProps> = ({ set, isActive, onClick, onWeightClick, 
         w-full min-h-[80px] h-[80px]
         relative flex items-center justify-between px-4 py-2 rounded-xl border transition-all duration-300
         ${isActive 
-          ? `bg-gradient-to-b from-zinc-800 to-zinc-900 ${getBorderColor()} shadow-[0_0_40px_rgba(139,92,246,0.4)]` 
-          : 'bg-zinc-900/60 border-zinc-800/50 hover:bg-zinc-800/60'
+          ? `bg-gradient-to-b from-white to-zinc-50 dark:from-zinc-800 dark:to-zinc-900 ${getBorderColor()} shadow-[0_0_40px_rgba(139,92,246,0.4)]` 
+          : 'bg-zinc-100 dark:bg-zinc-900/60 border-zinc-300 dark:border-zinc-800/50 hover:bg-zinc-200 dark:hover:bg-zinc-800/60'
         }
       `}
     >
@@ -87,8 +87,8 @@ const SetRow: React.FC<SetRowProps> = ({ set, isActive, onClick, onWeightClick, 
           ${set.completed 
             ? 'bg-violet-600 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]' 
             : isActive 
-              ? 'bg-white text-black scale-110' 
-              : 'bg-zinc-800 text-zinc-500'
+              ? 'bg-zinc-900 dark:bg-white text-white dark:text-black scale-110' 
+              : 'bg-zinc-300 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-500'
           }
         `}>
           {set.completed ? <Check size={20} strokeWidth={4} /> : set.setNumber}
@@ -101,13 +101,13 @@ const SetRow: React.FC<SetRowProps> = ({ set, isActive, onClick, onWeightClick, 
               {progressionIcon && (
                 <progressionIcon.Icon size={14} className={progressionIcon.color} strokeWidth={3} />
               )}
-              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-zinc-600 dark:text-zinc-500 uppercase tracking-wider">
                 Dernière:
               </span>
-              <span className="text-sm font-black text-zinc-400 font-mono">
+              <span className="text-sm font-black text-zinc-700 dark:text-zinc-400 font-mono">
                 {previous.weight} × {previous.reps}
               </span>
-              <span className="text-[10px] text-zinc-600 font-semibold">
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-600 font-semibold">
                 (S2)
               </span>
               {onHistoryClick && (
@@ -119,7 +119,7 @@ const SetRow: React.FC<SetRowProps> = ({ set, isActive, onClick, onWeightClick, 
                   className="p-0.5 rounded hover:bg-zinc-700/50 transition-colors active:scale-95 ml-0.5"
                   aria-label="Voir l'historique"
                 >
-                  <BarChart3 size={13} className="text-zinc-500" />
+                  <BarChart3 size={13} className="text-zinc-600 dark:text-zinc-500" />
                 </button>
               )}
             </div>
@@ -127,7 +127,7 @@ const SetRow: React.FC<SetRowProps> = ({ set, isActive, onClick, onWeightClick, 
           
           {/* Fallback if no previous data */}
           {!previous && isActive && (
-            <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-wider">
+            <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-wider">
               Première fois
             </span>
           )}
@@ -149,15 +149,15 @@ const SetRow: React.FC<SetRowProps> = ({ set, isActive, onClick, onWeightClick, 
         >
           <div className={`text-2xl font-black font-mono tracking-tighter leading-none transition-colors ${
             isActive 
-              ? (isPredataModified ? 'text-white' : 'text-zinc-500 opacity-60') 
-              : 'text-zinc-600'
+              ? (isPredataModified ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-500 opacity-60') 
+              : 'text-zinc-500 dark:text-zinc-600'
           }`}>
             {set.weight}<span className={`text-[11px] font-sans font-bold ml-1 ${
-              isActive && !isPredataModified ? 'text-zinc-600 opacity-60' : 'text-zinc-600'
+              isActive && !isPredataModified ? 'text-zinc-500 dark:text-zinc-600 opacity-60' : 'text-zinc-600 dark:text-zinc-600'
             }`}>KG</span>
           </div>
         </div>
-        <div className={`w-px h-5 transition-colors ${isActive ? 'bg-violet-600/30' : 'bg-zinc-800'}`}></div>
+        <div className={`w-px h-5 transition-colors ${isActive ? 'bg-violet-600/30' : 'bg-zinc-300 dark:bg-zinc-800'}`}></div>
         <div 
           onClick={(e) => {
             if (isActive && onRepsClick) {
@@ -171,11 +171,11 @@ const SetRow: React.FC<SetRowProps> = ({ set, isActive, onClick, onWeightClick, 
         >
           <div className={`text-xl font-black font-mono tracking-tighter leading-none text-center transition-colors ${
             isActive 
-              ? (isPredataModified ? 'text-white' : 'text-zinc-500 opacity-60') 
-              : 'text-zinc-600'
+              ? (isPredataModified ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-500 opacity-60') 
+              : 'text-zinc-500 dark:text-zinc-600'
           }`}>
             {set.reps}<span className={`text-[11px] font-sans font-bold ml-1 ${
-              isActive && !isPredataModified ? 'text-zinc-600 opacity-60' : 'text-zinc-600'
+              isActive && !isPredataModified ? 'text-zinc-500 dark:text-zinc-600 opacity-60' : 'text-zinc-600 dark:text-zinc-600'
             }`}>R</span>
           </div>
         </div>
