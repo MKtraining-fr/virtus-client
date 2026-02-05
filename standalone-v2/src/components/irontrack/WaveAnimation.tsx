@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface WaveAnimationProps {
-  tempo: string; // Format: "3-0-1-0" (eccentric-bottom-concentric-top)
+  tempo: string;
   totalReps: number;
   currentRep: number;
   currentPhase: 'eccentric' | 'bottom' | 'concentric' | 'top';
-  phaseTimeRemaining: number; // Temps restant dans la phase actuelle (en secondes)
+  phaseTimeRemaining: number;
   onComplete: () => void;
 }
 
@@ -17,9 +17,20 @@ const WaveAnimation: React.FC<WaveAnimationProps> = ({
   phaseTimeRemaining,
   onComplete
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [scrollOffset, setScrollOffset] = useState(0);
-
+  // Dimensions - BEAUCOUP PLUS GRANDES pour correspondre au mockup
+  const waveWidth = 280; // Largeur d'une vague (x2.3 par rapport à avant)
+  const waveHeight = 300; // Hauteur d'une vague (x2)
+  const amplitude = waveHeight / 2;
+  const centerY = waveHeight / 2;
+  
+  // ViewBox pour n'afficher que 2.5 vagues à la fois
+  const visibleWaves = 2.5;
+  const viewBoxWidth = visibleWaves * waveWidth;
+  const viewBoxHeight = waveHeight + 100; // Marge pour les labels
+  
+  // Scroll offset basé sur la répétition actuelle (centrer la répétition en cours)
+  const scrollOffset = Math.max(0, (currentRep - 1.5) * waveWidth);
+  
   // Parser le tempo
   const parseTempo = (tempoStr: string): { eccentric: number; bottom: number; concentric: number; top: number } => {
     const parts = tempoStr.split('-').map(Number);
@@ -32,208 +43,236 @@ const WaveAnimation: React.FC<WaveAnimationProps> = ({
   };
 
   const tempoPhases = parseTempo(tempo);
-
-  // Calculer la position Y de la boule en fonction de la phase
-  const getBallPosition = (): { x: number; y: number } => {
-    const waveWidth = 120; // Largeur d'une vague
-    const waveHeight = 200; // Hauteur d'une vague
-    const centerY = 150; // Centre vertical
-    
-    // Position X: basée sur la répétition actuelle
-    const baseX = (currentRep - 1) * waveWidth + waveWidth / 2;
-    
-    let y = centerY;
-    let phaseProgress = 0;
-    
-    switch (currentPhase) {
-      case 'top':
-        y = centerY - waveHeight / 2; // Position haute
-        break;
-      case 'eccentric':
-        // Descente progressive
-        if (tempoPhases.eccentric > 0) {
-          phaseProgress = 1 - (phaseTimeRemaining / tempoPhases.eccentric);
-        }
-        y = centerY - waveHeight / 2 + (waveHeight * phaseProgress);
-        break;
-      case 'bottom':
-        y = centerY + waveHeight / 2; // Position basse
-        break;
-      case 'concentric':
-        // Montée progressive
-        if (tempoPhases.concentric > 0) {
-          phaseProgress = 1 - (phaseTimeRemaining / tempoPhases.concentric);
-        }
-        y = centerY + waveHeight / 2 - (waveHeight * phaseProgress);
-        break;
-    }
-    
-    return { x: baseX, y };
-  };
-
-  const ballPos = getBallPosition();
-
-  // Auto-scroll pour garder la boule visible
-  useEffect(() => {
-    if (containerRef.current) {
-      const containerWidth = containerRef.current.clientWidth;
-      const targetScroll = Math.max(0, ballPos.x - containerWidth / 2);
-      setScrollOffset(targetScroll);
-    }
-  }, [ballPos.x]);
-
-  // Générer les points SVG pour la courbe ondulée
-  const generateWavePath = (): string => {
-    const waveWidth = 120;
-    const waveHeight = 200;
-    const centerY = 150;
-    
-    let path = `M 0 ${centerY - waveHeight / 2}`;
+  
+  // Générer le path de la courbe ondulée
+  const generateWavePath = () => {
+    let path = '';
     
     for (let i = 0; i < totalReps; i++) {
       const x = i * waveWidth;
-      const nextX = (i + 1) * waveWidth;
       
-      // Courbe de Bézier pour créer la vague
-      const cp1x = x + waveWidth * 0.25;
-      const cp1y = centerY - waveHeight / 2;
-      const cp2x = x + waveWidth * 0.75;
-      const cp2y = centerY + waveHeight / 2;
-      const endX = nextX;
-      const endY = centerY + waveHeight / 2;
+      // Point haut (début de la vague)
+      const topX = x + waveWidth * 0.15;
+      const topY = centerY - amplitude;
       
-      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
+      // Point bas (milieu de la vague)
+      const bottomX = x + waveWidth * 0.5;
+      const bottomY = centerY + amplitude;
       
-      // Remonter pour la prochaine vague
+      // Point haut suivant (fin de la vague)
+      const nextTopX = x + waveWidth * 0.85;
+      const nextTopY = centerY - amplitude;
+      
+      if (i === 0) {
+        path += `M ${topX} ${topY} `;
+      }
+      
+      // Descente (excentrique) - courbe de Bézier
+      path += `Q ${topX + waveWidth * 0.15} ${centerY - amplitude * 0.3} ${bottomX} ${bottomY} `;
+      
+      // Montée (concentrique) - courbe de Bézier
+      path += `Q ${bottomX + waveWidth * 0.15} ${centerY - amplitude * 0.3} ${nextTopX} ${nextTopY} `;
+      
+      // Connexion à la vague suivante
       if (i < totalReps - 1) {
-        const cp3x = endX + waveWidth * 0.25;
-        const cp3y = centerY + waveHeight / 2;
-        const cp4x = endX + waveWidth * 0.75;
-        const cp4y = centerY - waveHeight / 2;
-        const nextEndX = endX + waveWidth;
-        const nextEndY = centerY - waveHeight / 2;
-        
-        path += ` C ${cp3x} ${cp3y}, ${cp4x} ${cp4y}, ${nextEndX} ${nextEndY}`;
+        const nextWaveTopX = (i + 1) * waveWidth + waveWidth * 0.15;
+        path += `L ${nextWaveTopX} ${nextTopY} `;
       }
     }
     
     return path;
   };
-
-  // Déterminer le statut de chaque répétition
-  const getRepStatus = (repIndex: number): 'completed' | 'current' | 'upcoming' => {
-    if (repIndex < currentRep - 1) return 'completed';
-    if (repIndex === currentRep - 1) return 'current';
-    return 'upcoming';
+  
+  // Calculer la position de la boule
+  const getBallPosition = () => {
+    const repIndex = currentRep - 1;
+    const baseX = repIndex * waveWidth;
+    
+    // Point haut
+    const topX = baseX + waveWidth * 0.15;
+    const topY = centerY - amplitude;
+    
+    // Point bas
+    const bottomX = baseX + waveWidth * 0.5;
+    const bottomY = centerY + amplitude;
+    
+    // Point haut suivant
+    const nextTopX = baseX + waveWidth * 0.85;
+    const nextTopY = centerY - amplitude;
+    
+    // Calculer la position selon la phase
+    if (currentPhase === 'top') {
+      return { x: topX, y: topY };
+    } else if (currentPhase === 'eccentric') {
+      // Descente progressive
+      const progress = tempoPhases.eccentric > 0 
+        ? 1 - (phaseTimeRemaining / tempoPhases.eccentric) 
+        : 1;
+      const t = progress;
+      // Courbe de Bézier quadratique
+      const controlX = topX + waveWidth * 0.15;
+      const controlY = centerY - amplitude * 0.3;
+      const x = (1 - t) * (1 - t) * topX + 2 * (1 - t) * t * controlX + t * t * bottomX;
+      const y = (1 - t) * (1 - t) * topY + 2 * (1 - t) * t * controlY + t * t * bottomY;
+      return { x, y };
+    } else if (currentPhase === 'bottom') {
+      return { x: bottomX, y: bottomY };
+    } else if (currentPhase === 'concentric') {
+      // Montée progressive
+      const progress = tempoPhases.concentric > 0 
+        ? 1 - (phaseTimeRemaining / tempoPhases.concentric) 
+        : 1;
+      const t = progress;
+      // Courbe de Bézier quadratique
+      const controlX = bottomX + waveWidth * 0.15;
+      const controlY = centerY - amplitude * 0.3;
+      const x = (1 - t) * (1 - t) * bottomX + 2 * (1 - t) * t * controlX + t * t * nextTopX;
+      const y = (1 - t) * (1 - t) * bottomY + 2 * (1 - t) * t * controlY + t * t * nextTopY;
+      return { x, y };
+    }
+    
+    return { x: topX, y: topY };
   };
-
-  return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden">
-      {/* Labels */}
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 text-violet-400 font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-        <span>⬆️</span>
-        <span>Concentrique</span>
-      </div>
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-orange-400 font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-        <span>⬇️</span>
-        <span>Excentrique</span>
-      </div>
-
-      {/* Zone de scroll horizontale */}
-      <div 
-        ref={containerRef}
-        className="relative w-full h-[350px] overflow-hidden"
-        style={{ 
-          transform: `translateX(-${scrollOffset}px)`,
-          transition: 'transform 0.5s ease-out'
-        }}
-      >
-        <svg
-          width={totalReps * 120 + 100}
-          height="350"
-          viewBox={`0 0 ${totalReps * 120 + 100} 350`}
-          className="absolute top-0 left-0"
+  
+  const ballPos = getBallPosition();
+  
+  // Générer les points pour chaque répétition
+  const renderRepPoints = () => {
+    const points = [];
+    
+    for (let i = 0; i < totalReps; i++) {
+      const x = i * waveWidth;
+      const topX = x + waveWidth * 0.15;
+      const topY = centerY - amplitude;
+      const bottomX = x + waveWidth * 0.5;
+      const bottomY = centerY + amplitude;
+      
+      const isCompleted = i < currentRep - 1;
+      const isCurrent = i === currentRep - 1;
+      const color = isCompleted || isCurrent ? '#8B5CF6' : '#52525B';
+      
+      // Point haut
+      points.push(
+        <circle
+          key={`top-${i}`}
+          cx={topX}
+          cy={topY}
+          r={12}
+          fill={color}
+          opacity={isCompleted ? 1 : isCurrent ? 0.8 : 0.4}
+        />
+      );
+      
+      // Point bas
+      points.push(
+        <circle
+          key={`bottom-${i}`}
+          cx={bottomX}
+          cy={bottomY}
+          r={12}
+          fill={color}
+          opacity={isCompleted ? 1 : isCurrent ? 0.8 : 0.4}
+        />
+      );
+      
+      // Numéro de répétition
+      points.push(
+        <text
+          key={`label-${i}`}
+          x={bottomX}
+          y={bottomY + 50}
+          textAnchor="middle"
+          fill={color}
+          fontSize="20"
+          fontWeight="bold"
+          opacity={isCompleted || isCurrent ? 1 : 0.5}
         >
-          {/* Courbe ondulée */}
-          <path
-            d={generateWavePath()}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            className="text-zinc-700 dark:text-zinc-600"
-          />
-
-          {/* Points de répétitions */}
-          {Array.from({ length: totalReps }).map((_, index) => {
-            const status = getRepStatus(index);
-            const x = index * 120 + 60;
-            const yTop = 150 - 100;
-            const yBottom = 150 + 100;
-            
-            return (
-              <g key={index}>
-                {/* Point haut */}
-                <circle
-                  cx={x}
-                  cy={yTop}
-                  r="8"
-                  fill={status === 'completed' ? '#8b5cf6' : status === 'current' ? '#a78bfa' : '#52525b'}
-                  className="transition-all duration-300"
-                />
-                {/* Point bas */}
-                <circle
-                  cx={x}
-                  cy={yBottom}
-                  r="8"
-                  fill={status === 'completed' ? '#8b5cf6' : status === 'current' ? '#a78bfa' : '#52525b'}
-                  className="transition-all duration-300"
-                />
-                {/* Numéro de répétition */}
-                <text
-                  x={x}
-                  y={yBottom + 30}
-                  textAnchor="middle"
-                  className="text-xs font-bold fill-zinc-400"
-                >
-                  {index + 1}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Boule animée */}
-          <g>
-            <circle
-              cx={ballPos.x}
-              cy={ballPos.y}
-              r="24"
-              fill="#8b5cf6"
-              className="drop-shadow-[0_0_20px_rgba(139,92,246,0.8)]"
-            />
-            <circle
-              cx={ballPos.x}
-              cy={ballPos.y}
-              r="20"
-              fill="#a78bfa"
-            />
-            {/* Décompte dans la boule */}
-            <text
-              x={ballPos.x}
-              y={ballPos.y + 6}
-              textAnchor="middle"
-              className="text-xl font-black fill-white"
-            >
-              {Math.ceil(phaseTimeRemaining)}
-            </text>
-          </g>
-        </svg>
+          {i + 1}
+        </text>
+      );
+    }
+    
+    return points;
+  };
+  
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center">
+      {/* SVG avec la courbe */}
+      <svg
+        width="100%"
+        height="400"
+        viewBox={`${scrollOffset} 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        preserveAspectRatio="xMidYMid meet"
+        className="overflow-visible"
+        style={{ transition: 'all 0.5s ease-out' }}
+      >
+        {/* Définition du filtre glow */}
+        <defs>
+          <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="25" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        
+        {/* Courbe ondulée */}
+        <path
+          d={generateWavePath()}
+          fill="none"
+          stroke="#3F3F46"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        
+        {/* Points de répétitions */}
+        {renderRepPoints()}
+        
+        {/* Boule animée avec glow intense */}
+        <circle
+          cx={ballPos.x}
+          cy={ballPos.y}
+          r="60"
+          fill="#8B5CF6"
+          filter="url(#glow)"
+          opacity="0.9"
+        />
+        
+        {/* Décompte dans la boule */}
+        <text
+          x={ballPos.x}
+          y={ballPos.y + 10}
+          textAnchor="middle"
+          fill="white"
+          fontSize="48"
+          fontWeight="black"
+        >
+          {Math.ceil(phaseTimeRemaining)}
+        </text>
+      </svg>
+      
+      {/* Compteur de progression */}
+      <div className="mt-8 bg-zinc-900/80 px-6 py-3 rounded-full border border-zinc-700">
+        <span className="text-zinc-400 font-bold">Répétition: </span>
+        <span className="text-violet-400 font-black text-xl">{currentRep}</span>
+        <span className="text-zinc-400 font-bold"> / {totalReps}</span>
       </div>
-
-      {/* Compteur de répétitions */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-zinc-900/90 backdrop-blur-md border border-zinc-700 rounded-full px-6 py-2">
-        <span className="text-lg font-black text-white">
-          Répétition: <span className="text-violet-400">{currentRep}</span> / {totalReps}
-        </span>
+      
+      {/* Labels de phase */}
+      <div className="mt-6 flex flex-col items-center gap-2">
+        {currentPhase === 'concentric' || currentPhase === 'top' ? (
+          <div className="flex items-center gap-2 text-green-400 font-bold text-lg uppercase tracking-wider">
+            <span>⬆️</span>
+            <span>CONCENTRIQUE</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-orange-400 font-bold text-lg uppercase tracking-wider">
+            <span>⬇️</span>
+            <span>EXCENTRIQUE</span>
+          </div>
+        )}
       </div>
     </div>
   );
