@@ -15,6 +15,10 @@ export interface AppointmentType {
   default_duration: number;
   color: string;
   is_active: boolean;
+  is_system: boolean;
+  category: string | null;
+  sort_order: number;
+  folder_color: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -72,6 +76,8 @@ export async function getAppointmentTypes(
       .from('appointment_types')
       .select('*')
       .eq('coach_id', coachId)
+      .eq('is_system', false)
+      .order('sort_order', { ascending: true })
       .order('name', { ascending: true });
 
     if (activeOnly) {
